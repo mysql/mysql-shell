@@ -4379,6 +4379,20 @@ extern std::unordered_map<std::string, Version> k_latest_versions;
 extern std::string check_for_version_suggestion(const Version &serverVersion,
                                                 const Version &targetVersion);
 
+Version get_next_series(const Version &version) {
+  if (version.get_major() == 8 && version.get_minor() == 0) {
+    return Version(8, 4, 0);
+  }
+  return Version(version.get_major() + 1, 0, 0);
+}
+
+std::string get_next_series_key(const Version &version) {
+  if (version.get_major() == 8 && version.get_minor() == 0) {
+    return "8.4";
+  }
+  return std::to_string(version.get_major() + 1);
+}
+
 #define EXPECT_NEXT_LTS(version, next_lts, key) \
   expect_next_lts(version, next_lts, key, __FILE__, __LINE__)
 
@@ -4403,24 +4417,35 @@ TEST_F(MySQL_upgrade_check_test, get_next_suggested_lts_version) {
   // Next LTS for all under 8.0.0 leads is the latest 8.0.X
   EXPECT_NEXT_LTS(Version(5, 7, 44), k_latest_versions.at("8.0"), "8.0");
 
-  // Next LTS for the 8.0 series is the last version in the 8.0 series
-  for (int index = 11; index < k_latest_versions.at("8.0").get_patch();
-       index++) {
-    EXPECT_NEXT_LTS(Version(8, 0, index), k_latest_versions.at("8.0"), "8.0");
+  // BUG#36930714 - Hard sanity checks on expected suggested versions
+  EXPECT_NEXT_LTS(Version(6, 5, 44), k_latest_versions.at("8.0"), "8.0");
+  EXPECT_NEXT_LTS(Version(8, 0, 11), k_latest_versions.at("8.4"), "8.4");
+  EXPECT_NEXT_LTS(Version(8, 0, 25), k_latest_versions.at("8.4"), "8.4");
+  {
+    auto lts9it = k_latest_versions.find(
+        get_first_lts_version(Version(9, 0)).get_short());
+    auto ver9 = lts9it == k_latest_versions.end() ? std::optional<Version>()
+                                                  : lts9it->second;
+    auto ver9key = lts9it == k_latest_versions.end() ? "" : lts9it->first;
+    EXPECT_NEXT_LTS(Version(8, 4, 0), ver9, ver9key);
+    EXPECT_NEXT_LTS(Version(8, 4, 1), ver9, ver9key);
   }
 
-  // The next LTS for the last version in the 8.0 series is the last version in
-  // the 8.4 series
-  EXPECT_NEXT_LTS(k_latest_versions.at("8.0"), k_latest_versions.at("8.4"),
-                  "8.4");
+  // Next LTS for any patch of 8.0 series is latest 8.4 release
+  for (int index = 11; index < k_latest_versions.at("8.0").get_patch();
+       index++) {
+    EXPECT_NEXT_LTS(Version(8, 0, index), k_latest_versions.at("8.4"), "8.4");
+  }
+
   Version first_lts;
 
-  // For all the LTS releases (including the initial innovation releses in the
-  // series) the next LTS is the latest release in the series
+  // For all the LTS releases the next LTS is next in the series
+  // For all innovation releases the next LTS is the latest in the series
   int major, minor, patch;
   for (major = 8; major < mysqlshdk::utils::k_shell_version.get_major();
        major++) {
     first_lts = get_first_lts_version(Version(major, 0));
+
     // All innovation versions next LTS is the latest version in the series
     auto first_innovation = get_first_innovation_version(Version(major, 0));
     for (minor = first_innovation.get_minor(); minor < first_lts.get_minor();
@@ -4430,28 +4455,27 @@ TEST_F(MySQL_upgrade_check_test, get_next_suggested_lts_version) {
                       first_lts.get_short());
     }
 
-    // All LTS version next LTS is the latest version in the series
+    // All LTS version next LTS is the latest version in the next series
     Version series(major, minor, 0);
 
     for (patch = 0;
          patch < k_latest_versions.at(series.get_short()).get_patch();
          patch++) {
       Version lts(major, minor, patch);
-      EXPECT_NEXT_LTS(lts, k_latest_versions.at(lts.get_short()),
-                      lts.get_short());
-    }
+      auto next_lts = get_first_lts_version(get_next_series(lts));
+      auto item = k_latest_versions.find(next_lts.get_short());
 
-    // Next LTS for the latest version in the series, is the latest version in
-    // the next series
-    first_lts = get_first_lts_version(Version(major + 1, 0, 0));
-    if (first_lts <= k_latest_versions.at(std::to_string(major + 1))) {
-      // There's already an LTS version in the next series
-      EXPECT_NEXT_LTS(Version(major, minor, patch),
-                      k_latest_versions.at(first_lts.get_short()),
-                      first_lts.get_short());
-    } else {
-      // There's no LTS version on the next
-      EXPECT_NEXT_LTS(Version(major, minor, patch), {}, "");
+      std::optional<Version> expected_version;
+      std::string expected_key = "";
+
+      // if no LTS version was released yet, the latest innovation in the next
+      // series is latest, and no suggestion should be required
+      if (item != k_latest_versions.end()) {
+        expected_version = item->second;
+        expected_key = item->first;
+      }
+
+      EXPECT_NEXT_LTS(lts, expected_version, expected_key);
     }
   }
 
@@ -4482,37 +4506,77 @@ TEST_F(MySQL_upgrade_check_test, get_next_suggested_lts_version) {
   EXPECT_NEXT_LTS(mysqlshdk::utils::k_shell_version, {}, "");
 }
 
+#define CHECK_MSG_EMPTY(prev, next) \
+  check_msg_empty(prev, next, __FILE__, __LINE__)
+
+#define CHECK_MSG_SUGGEST(prev, next, key) \
+  check_msg_suggest(prev, next, key, __FILE__, __LINE__)
+
 TEST_F(MySQL_upgrade_check_test, suggested_version_check) {
-  auto check_msg_empty = [](const Version &prev, const Version &next) {
+  auto check_msg_empty = [](const Version &prev, const Version &next,
+                            const char *file, int line) {
+    std::string error_message =
+        "Suggest message not empty for versions prev: " + prev.get_base() +
+        ", next: " + next.get_base() + "\n   -> AT: " + file + ":" +
+        std::to_string(line);
+
+    SCOPED_TRACE(error_message);
+
     EXPECT_STREQ(check_for_version_suggestion(prev, next).c_str(), "");
   };
   auto check_msg_suggest = [](const Version &prev, const Version &next,
-                              const std::string &key) {
+                              const std::string &key, const char *file,
+                              int line) {
+    std::string error_message =
+        "Suggest message incorrect for versions prev: " + prev.get_base() +
+        ", next: " + next.get_base() + " and key: " + key +
+        "\n   -> AT: " + file + ":" + std::to_string(line);
+
+    SCOPED_TRACE(error_message);
+
     EXPECT_STREQ(
         check_for_version_suggestion(prev, next).c_str(),
         suggested_version::format_suggested_version_message(prev, next, key)
             .c_str());
   };
 
-  check_msg_empty(Version(5, 7, 44), Version(8, 0, 0));
-  check_msg_empty(Version(5, 7, 44), Version(8, 0, 37));
-  check_msg_suggest(Version(5, 7, 44), Version(8, 1, 0), "8.0");
-  check_msg_suggest(Version(5, 7, 44), Version(8, 4, 1), "8.0");
-  check_msg_suggest(Version(5, 7, 44), Version(9, 0, 0), "8.0");
+  CHECK_MSG_EMPTY(Version(5, 7, 44), Version(8, 0, 0));
+  CHECK_MSG_EMPTY(Version(5, 7, 44), Version(8, 0, 37));
+  CHECK_MSG_SUGGEST(Version(5, 7, 44), Version(8, 1, 0), "8.0");
+  CHECK_MSG_SUGGEST(Version(5, 7, 44), Version(8, 4, 1), "8.0");
+  CHECK_MSG_SUGGEST(Version(5, 7, 44), Version(9, 0, 0), "8.0");
 
-  // Next LTS for the 8.0 series is the last version in the 8.0 series
+  // Next LTS for any 8.0 series is the 8.4 series
   for (int index = 11; index < k_latest_versions.at("8.0").get_patch();
        index++) {
-    check_msg_empty(Version(8, 0, 0), Version(8, 0, index));
-    check_msg_suggest(Version(8, 0, index), Version(8, 1, 0), "8.0");
+    CHECK_MSG_EMPTY(Version(8, 0, 0), Version(8, 0, index));
+    CHECK_MSG_EMPTY(Version(8, 0, index),
+                    get_first_lts_version(Version(8, 0, 0)));
+    CHECK_MSG_SUGGEST(Version(8, 0, index), Version(9, 0, 0), "8.4");
   }
 
-  // The next LTS for the last version in the 8.0 series is the last version in
-  // the 8.4 series
-  check_msg_suggest(k_latest_versions.at("8.0"), Version(9, 0, 0), "8.4");
+  // BUG#36930714 - Hard sanity checks on expected suggested versions
+  CHECK_MSG_EMPTY(Version(8, 0, 0), Version(8, 4, 0));
+  CHECK_MSG_EMPTY(Version(8, 1, 0), Version(8, 4, 0));
+  CHECK_MSG_EMPTY(Version(8, 3, 0), Version(8, 4, 1));
+  CHECK_MSG_SUGGEST(Version(8, 0, 0), Version(9, 0, 0), "8.4");
+  CHECK_MSG_SUGGEST(Version(8, 1, 0), Version(9, 0, 0), "8.4");
+  CHECK_MSG_SUGGEST(Version(8, 3, 0), Version(9, 0, 0), "8.4");
+  CHECK_MSG_EMPTY(Version(8, 4, 1), Version(9, 1, 0));
+  CHECK_MSG_EMPTY(Version(8, 4, 1), Version(9, 3, 0));
+  {
+    auto first_lts = get_first_lts_version(Version(9, 0));
+    auto lts9it = k_latest_versions.find(first_lts.get_short());
+
+    if (lts9it == k_latest_versions.end()) {
+      CHECK_MSG_EMPTY(Version(8, 4, 1), first_lts);
+    } else {
+      CHECK_MSG_SUGGEST(Version(8, 4, 1), lts9it->second, lts9it->first);
+    }
+  }
 
   // For all the LTS releases (including the initial innovation releses in the
-  // series) the next LTS is the latest release in the series
+  // series) the next LTS is the latest LTS release in the series
   int major, minor, patch;
   for (major = 8; major < mysqlshdk::utils::k_shell_version.get_major();
        major++) {
@@ -4522,26 +4586,26 @@ TEST_F(MySQL_upgrade_check_test, suggested_version_check) {
     for (minor = first_innovation.get_minor(); minor < first_lts.get_minor();
          minor++) {
       Version innovation(major, minor, 0);
-      check_msg_suggest(innovation, Version(major + 1, 0, 0),
+      CHECK_MSG_SUGGEST(innovation, Version(major + 1, 0, 0),
                         first_lts.get_short());
     }
 
-    // All LTS version next LTS is the latest version in the series
+    // All LTS versions next LTS is the latest LTS in the next series
     Version series(major, minor, 0);
     for (patch = 0;
          patch < k_latest_versions.at(series.get_short()).get_patch();
          patch++) {
       Version lts(major, minor, patch);
-      check_msg_suggest(lts, Version(major + 1, 0, 0), first_lts.get_short());
-    }
+      auto next_lts = get_first_lts_version(get_next_series(lts));
+      auto item = k_latest_versions.find(next_lts.get_short());
 
-    // Next LTS for the latest version in the series, is the latest version in
-    // the next series
-    first_lts = get_first_lts_version(Version(major + 1, 0, 0));
-    if (first_lts <= k_latest_versions.at(std::to_string(major + 1))) {
-      // There's already an LTS version in the next series
-      check_msg_suggest(Version(major, minor, patch), Version(major + 2, 0, 0),
-                        first_lts.get_short());
+      // if no LTS version was released yet for the next series, no suggest
+      // message should be displayed
+      if (item == k_latest_versions.end()) {
+        CHECK_MSG_EMPTY(lts, get_next_series(next_lts));
+      } else {
+        CHECK_MSG_SUGGEST(lts, get_next_series(item->second), item->first);
+      }
     }
   }
 
@@ -4561,13 +4625,13 @@ TEST_F(MySQL_upgrade_check_test, suggested_version_check) {
       Version innovation(mysqlshdk::utils::k_shell_version.get_major(), minor,
                          0);
 
-      check_msg_suggest(innovation, Version(major, 0, 0), key);
+      CHECK_MSG_SUGGEST(innovation, Version(major, 0, 0), key);
     }
 
     for (patch = 0; patch < mysqlshdk::utils::k_shell_version.get_patch();
          patch++) {
       Version lts(mysqlshdk::utils::k_shell_version.get_major(), minor, patch);
-      check_msg_suggest(lts, Version(major, 0, 0), key);
+      CHECK_MSG_SUGGEST(lts, Version(major, 0, 0), key);
     }
   }
 }

@@ -107,6 +107,11 @@ std::unordered_map<std::string, Version> generate_mapping() {
     }
 
     if (major > 8 || ver.get_minor() > 0) {
+      if (auto first_lts = mysqlshdk::utils::get_first_lts_version(ver);
+          first_lts <= ver) {
+        result.emplace(ver.get_short(), ver);
+      }
+
       // major version corresponds to the latest release in series
       auto key = std::to_string(major);
       result.emplace(std::move(key), std::move(ver));

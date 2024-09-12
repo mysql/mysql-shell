@@ -40,35 +40,35 @@ namespace upgrade_checker {
 
 using mysqlshdk::utils::Version;
 namespace suggested_version {
+/*
+ * RULE: Do NOT skip bugfix or LTS versions.
+ *
+ * bugfix:     5.7.whatever    want-to: 9.0   suggestion=8.0
+ * bugfix:     8.0.whatever    want-to: 9.0   suggestion=8.4
+ * Innovation: 8.1..8.3        want-to: 9.0   suggestion=8.4
+ * LTS:        8.4.whatever    want-to: 10.0  suggestion=9.7
+ * Innovation: 9.0..9.6        want-to: 10.0	suggestion=9.7
+ * LTS:        9.7.whatever    want-to: 10.7	suggestion=10.7
+ * Innovation: 10.0..10.6
+ * LTS:        10.7.whatever
+ */
 std::optional<Version> get_next_suggested_lts_version(
     const Version &version, std::string *out_key = nullptr) {
   std::optional<Version> next_lts;
   decltype(k_latest_versions)::const_iterator item = k_latest_versions.end();
 
+  // versions before 8.0.0 must be first updated to 8.0 series
   if (version < Version(8, 0, 0)) {
     item = k_latest_versions.find("8.0");
-  } else {
-    // This would be the case for LTS releases
-    item = k_latest_versions.find(version.get_short());
-    if (item == k_latest_versions.end()) {
-      // This would be the case for innovation releases
-      auto first_lts = get_first_lts_version(version);
-      item = k_latest_versions.find(first_lts.get_short());
-    }
-    // We might be already on the latest release in the series, so it jumps to
+  } else if (mysqlshdk::utils::is_lts_release(version) &&
+             !(version.get_major() == 8 && version.get_minor() == 0)) {
+    // We might be already on the LTS release of the series, so it jumps to
     // the LTS in the next series (If they exist)
-    if (item != k_latest_versions.end() && item->second == version) {
-      if (version.get_major() == 8 and version.get_minor() == 0) {
-        // The next LTS for the 8.0 series is the latest LTS in the  8.4 series
-        auto first_lts = get_first_lts_version(version);
-        item = k_latest_versions.find(first_lts.get_short());
-      } else {
-        // In any other case, it is the latest LTS in the next major
-        auto first_lts =
-            get_first_lts_version(Version(version.get_major() + 1, 0));
-        item = k_latest_versions.find(first_lts.get_short());
-      }
-    }
+    auto first_lts = get_first_lts_version(Version(version.get_major() + 1, 0));
+    item = k_latest_versions.find(first_lts.get_short());
+  } else {
+    // in other cases lets find the latest LTS version in the series
+    item = k_latest_versions.find(get_first_lts_version(version).get_short());
   }
 
   if (item != k_latest_versions.end()) {
@@ -97,7 +97,7 @@ std::string check_for_version_suggestion(const Version &serverVersion,
   std::string suggested_target_version;
   auto suggested = suggested_version::get_next_suggested_lts_version(
       serverVersion, &suggested_target_version);
-  if (suggested.has_value() && *suggested >= targetVersion) return {};
+  if (suggested.value_or(targetVersion) >= targetVersion) return {};
 
   return suggested_version::format_suggested_version_message(
       serverVersion, targetVersion, suggested_target_version);
