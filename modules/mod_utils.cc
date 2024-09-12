@@ -626,6 +626,9 @@ Connection_options get_classic_connection_options(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   // copy the connection options
   auto co = session->get_connection_options();
+  if (co.is_interactive()) {
+    co.set_interactive(false);
+  }
   // switch from X protocol to classic
   if (SessionType::Classic != co.get_session_type()) {
     co.set_scheme("mysql");

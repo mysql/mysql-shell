@@ -353,6 +353,15 @@ TEST(Connection_options, case_insensitive_get_server_public_key) {
   combine(mysqlshdk::db::kGetServerPublicKey, callback);
 }
 
+TEST(Connection_options, case_insensitive_interactive) {
+  // This callback will get called with every combination of
+  // uppercase/lowercase letters on get-server-public-key
+  auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
+                            std::placeholders::_2, "true");
+
+  combine(mysqlshdk::db::kClientInteractive, callback);
+}
+
 TEST(Connection_options, case_insensitive_server_public_key_path) {
   // This callback will get called with every combination of
   // uppercase/lowercase letters on server-public-key-path
@@ -374,6 +383,7 @@ TEST(Connection_options, case_insensitive_options) {
   // handled by other, more specific tests
   attributes.erase(mysqlshdk::db::kSslMode);
   attributes.erase(mysqlshdk::db::kGetServerPublicKey);
+  attributes.erase(mysqlshdk::db::kClientInteractive);
   attributes.erase(mysqlshdk::db::kServerPublicKeyPath);
   attributes.erase(mysqlshdk::db::kConnectTimeout);
   attributes.erase(mysqlshdk::db::kNetReadTimeout);

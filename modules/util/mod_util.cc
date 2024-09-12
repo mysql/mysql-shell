@@ -191,6 +191,9 @@ void Util::check_for_server_upgrade(
   std::unique_ptr<mysqlshdk::mysql::User_privileges> privileges;
 
   if (connection.has_data()) {
+    if (connection.is_interactive()) {
+      connection.set_interactive(false);
+    }
     const auto session =
         establish_session(connection, current_shell_options()->get().wizards);
     mysqlshdk::mysql::Instance instance(session);
