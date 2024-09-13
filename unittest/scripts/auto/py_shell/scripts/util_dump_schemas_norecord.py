@@ -2255,7 +2255,7 @@ EXPECT_STDOUT_CONTAINS(f"""
    {tested_schema}.{tested_table}.e - ENUM contains element longer than 255 characters
 
    More information:
-     https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
+     https://dev.mysql.com/doc/refman/en/string-type-syntax.html
 """)
 EXPECT_STDOUT_CONTAINS("ERROR: 1 errors were found. Please correct these issues before upgrading to avoid compatibility issues.")
 

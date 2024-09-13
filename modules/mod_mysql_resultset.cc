@@ -317,7 +317,7 @@ REGISTER_HELP(CLASSICRESULT_INFO_BRIEF, "${CLASSICRESULT_GETINFO_BRIEF}");
  * $(CLASSICRESULT_GETINFO)
  *
  * For more details, see:
- * https://dev.mysql.com/doc/refman/en/mysql-info.html
+ * https://dev.mysql.com/doc/c-api/en/mysql-info.html
  */
 #if DOXYGEN_JS
 String ClassicResult::getInfo() {}
@@ -341,7 +341,7 @@ Returns the last insert id auto generated (from an insert operation).
  * $(CLASSICRESULT_GETAUTOINCREMENTVALUE)
  *
  * For more details, see
- * https://dev.mysql.com/doc/refman/en/information-functions.html#function_last-insert-id
+ * https://dev.mysql.com/doc/c-api/en/mysql-insert-id.html
  */
 #if DOXYGEN_JS
 Integer ClassicResult::getAutoIncrementValue() {}
@@ -361,7 +361,7 @@ The number of warnings produced by the last statement execution.
 @returns the number of warnings.
 
 This is the same value than C API mysql_warning_count, see
-https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+https://dev.mysql.com/doc/c-api/en/mysql-warning-count.html
 
 See <<<getWarnings>>>() for more details.
 )*");
@@ -399,7 +399,7 @@ REGISTER_HELP(CLASSICRESULT_WARNINGS_BRIEF,
  * $(CLASSICRESULT_GETWARNINGS)
  *
  * This is the same value than C API mysql_warning_count, see
- * https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+ * https://dev.mysql.com/doc/c-api/en/mysql-warning-count.html
  */
 #if DOXYGEN_JS
 List ClassicResult::getWarnings() {}

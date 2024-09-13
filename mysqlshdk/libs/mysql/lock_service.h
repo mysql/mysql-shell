@@ -25,7 +25,7 @@
 
 // This module implements basic primitives to use the MySQL Locking Service
 // UDF Interface. For more information, see:
-// https://dev.mysql.com/doc/en/locking-service-udf-interface.html
+// https://dev.mysql.com/doc/refman/en/locking-service.html
 
 #ifndef MYSQLSHDK_LIBS_MYSQL_LOCK_SERVICE_H_
 #define MYSQLSHDK_LIBS_MYSQL_LOCK_SERVICE_H_

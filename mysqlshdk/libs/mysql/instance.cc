@@ -657,7 +657,7 @@ bool Instance::user_exists(std::string_view username,
     // the current_account doesn't have enough privileges to execute the query
     if (err.code() == ER_TABLEACCESS_DENIED_ERROR) {
       // Get the current username and hostname
-      // https://dev.mysql.com/doc/refman/5.7/en/information-functions.html
+      // https://dev.mysql.com/doc/refman/en/information-functions.html
       // #function_current-user
       std::string current_user, current_host;
       get_current_user(&current_user, &current_host);

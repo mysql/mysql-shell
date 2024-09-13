@@ -115,7 +115,7 @@ RETURNS
 
 DESCRIPTION
       For more details, see
-      https://dev.mysql.com/doc/refman/en/information-functions.html#function_last-insert-id
+      https://dev.mysql.com/doc/c-api/en/mysql-insert-id.html
 
       Note that this value will be available only when the result is for a
       Table.insert operation.
@@ -164,7 +164,7 @@ RETURNS
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
-      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+      https://dev.mysql.com/doc/c-api/en/mysql-warning-count.html
 
       Each warning object contains a key/value pair describing the information
       related to a specific warning.
@@ -184,7 +184,7 @@ RETURNS
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
-      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+      https://dev.mysql.com/doc/c-api/en/mysql-warning-count.html
 
       See get_warnings() for more details.
 
