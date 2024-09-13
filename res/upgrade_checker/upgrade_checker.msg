@@ -636,7 +636,7 @@ https://dev.mysql.com/doc/refman/8.4/en/added-deprecated-removed.html#optvars-re
 https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-logging
 
 * foreignKeyReferences.title
-Checks for foreing keys not referencing a full unique index
+Checks for foreign keys not referencing a full unique index
 
 * foreignKeyReferences.description
 Foreign keys to partial indexes may be forbidden as of 8.4.0, this check identifies such
