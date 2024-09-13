@@ -4481,13 +4481,20 @@ TEST_F(MySQL_upgrade_check_test, get_next_suggested_lts_version) {
 
   // Now verifies the current shell version series
   first_lts = get_first_lts_version(mysqlshdk::utils::k_shell_version);
-  std::string key;
-  std::optional<Version> next_lts;
+  auto next_series_first_lts =
+      get_first_lts_version(get_next_series(mysqlshdk::utils::k_shell_version));
+  std::string key, next_series_key;
+  std::optional<Version> next_lts, next_series_lts;
   if (mysqlshdk::utils::k_shell_version >= first_lts) {
     key = first_lts.get_short();
     next_lts = k_latest_versions.at(key);
   }
+  if (k_latest_versions.contains(next_series_first_lts.get_short())) {
+    next_series_key = next_series_first_lts.get_short();
+    next_series_lts = k_latest_versions.at(next_series_key);
+  }
 
+  // next lts for innovation line is the latest lts in that series
   auto first_innovation =
       get_first_innovation_version(mysqlshdk::utils::k_shell_version);
   for (minor = first_innovation.get_minor(); minor < first_lts.get_minor();
@@ -4496,13 +4503,14 @@ TEST_F(MySQL_upgrade_check_test, get_next_suggested_lts_version) {
     EXPECT_NEXT_LTS(innovation, next_lts, key);
   }
 
+  // next lts for lts line is the latest lts in the next series
   for (patch = 0; patch < mysqlshdk::utils::k_shell_version.get_patch();
        patch++) {
     Version lts(major, minor, patch);
-    EXPECT_NEXT_LTS(lts, next_lts, key);
+    EXPECT_NEXT_LTS(lts, next_series_lts, next_series_key);
   }
 
-  // The current version (latest) never has a next LTS
+  // The current version (latest) never has a next series LTS
   EXPECT_NEXT_LTS(mysqlshdk::utils::k_shell_version, {}, "");
 }
 
@@ -4611,6 +4619,8 @@ TEST_F(MySQL_upgrade_check_test, suggested_version_check) {
 
   // Now verifies the current shell version series
   auto first_lts = get_first_lts_version(mysqlshdk::utils::k_shell_version);
+  auto next_series_first_lts =
+      get_first_lts_version(get_next_series(mysqlshdk::utils::k_shell_version));
   std::string key;
   std::optional<Version> next_lts;
   if (mysqlshdk::utils::k_shell_version >= first_lts) {
@@ -4628,10 +4638,11 @@ TEST_F(MySQL_upgrade_check_test, suggested_version_check) {
       CHECK_MSG_SUGGEST(innovation, Version(major, 0, 0), key);
     }
 
+    // next series lts does not exist for the lts line of the latest series
     for (patch = 0; patch < mysqlshdk::utils::k_shell_version.get_patch();
          patch++) {
       Version lts(mysqlshdk::utils::k_shell_version.get_major(), minor, patch);
-      CHECK_MSG_SUGGEST(lts, Version(major, 0, 0), key);
+      CHECK_MSG_EMPTY(lts, Version(major, 0, 0));
     }
   }
 }
