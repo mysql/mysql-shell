@@ -26,7 +26,7 @@ var resp = dba.checkInstanceConfiguration();
 EXPECT_EQ({"status":"error"}, resp)
 
 EXPECT_STDOUT_CONTAINS("Group Replication requires tables to use InnoDB and have a PRIMARY KEY or PRIMARY KEY Equivalent (non-null unique key). Tables that do not follow these requirements will be readable but not updateable when used with Group Replication. If your applications make updates (INSERT, UPDATE or DELETE) to these tables, ensure they use the InnoDB storage engine and have a PRIMARY KEY or PRIMARY KEY Equivalent.")
-EXPECT_STDOUT_CONTAINS("If you can't change the tables structure to include an extra visible key to be used as PRIMARY KEY, you can make use of the INVISIBLE COLUMN feature available since 8.0.23: https://dev.mysql.com/doc/refman/8.0/en/invisible-columns.html")
+EXPECT_STDOUT_CONTAINS("If you can't change the tables structure to include an extra visible key to be used as PRIMARY KEY, you can make use of the INVISIBLE COLUMN feature available since 8.0.23: https://dev.mysql.com/doc/refman/en/invisible-columns.html")
 
 session.runSql("DROP DATABASE test");
 

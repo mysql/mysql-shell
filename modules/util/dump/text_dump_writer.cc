@@ -170,7 +170,7 @@ void Text_dump_writer::start_row() {
 void Text_dump_writer::store_field(const mysqlshdk::db::IRow *row,
                                    uint32_t idx) {
   // TODO(pawel): implement a fixed-row format:
-  //              https://dev.mysql.com/doc/refman/8.0/en/load-data.html
+  //              https://dev.mysql.com/doc/refman/en/load-data.html
 
   if (0 != idx) {
     buffer()->append_fixed(m_dialect.fields_terminated_by);

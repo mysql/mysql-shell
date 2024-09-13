@@ -488,18 +488,19 @@ const std::map<std::string, std::string> k_plugin_doclink = {
      "https://dev.mysql.com/doc/refman/en/"
      "webauthn-pluggable-authentication.html"},
     {"sha256_password",
-     "https://dev.mysql.com/doc/refman/8.0/en/"
+     "https://dev.mysql.com/doc/refman/en/"
      "caching-sha2-pluggable-authentication.html"},
     {"mysql_native_password",
-     "https://dev.mysql.com/doc/refman/8.0/en/"
+     "https://dev.mysql.com/doc/refman/en/"
      "caching-sha2-pluggable-authentication.html"},
     {"keyring_file",
-     "https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html"},
+     "https://dev.mysql.com/doc/refman/en/keyring-file-component.html"},
     {"keyring_encrypted_file",
-     "https://dev.mysql.com/doc/refman/8.0/en/"
+     "https://dev.mysql.com/doc/refman/en/"
      "keyring-encrypted-file-component.html"},
     {"keyring_oci",
-     "https://dev.mysql.com/doc/refman/en/keyring-oci-plugin.html"},
+     "https://dev.mysql.com/doc/mysql-security-excerpt/en/"
+     "keyring-oci-plugin.html"},
 };
 
 }  // namespace
@@ -680,7 +681,7 @@ TEST(Auth_method_usage_check, mixed) {
               "The 'mysql_native_password' authentication type is disabled by "
               "default in MySQL 8.4, but can still be enabled by setting "
               "loose_mysql_native_password=ON.",
-              "https://dev.mysql.com/doc/refman/8.0/en/"
+              "https://dev.mysql.com/doc/refman/en/"
               "caching-sha2-pluggable-authentication.html",
               "another@localhost",
           },
@@ -690,7 +691,7 @@ TEST(Auth_method_usage_check, mixed) {
            "will be removed in a future release.\n"
            "Consider switching the users to a different authentication method "
            "(i.e. caching_sha2_password).",
-           "https://dev.mysql.com/doc/refman/8.0/en/"
+           "https://dev.mysql.com/doc/refman/en/"
            "caching-sha2-pluggable-authentication.html",
            "sample@localhost"},
       });
@@ -960,20 +961,21 @@ TEST(Plugin_usage_check, mixed) {
         "MySQL 8.0.34 and will be removed in a future release.\n"
         "Consider using the 'component_encrypted_keyring_file' component "
         "instead.",
-        "https://dev.mysql.com/doc/refman/8.0/en/"
+        "https://dev.mysql.com/doc/refman/en/"
         "keyring-encrypted-file-component.html",
         "keyring_encrypted_file"},
        {Upgrade_issue::Level::WARNING, "keyring_file",
         "The 'keyring_file' plugin is deprecated as of MySQL "
         "8.0.34 and will be removed in a future release.\n"
         "Consider using the 'component_keyring_file' component instead.",
-        "https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html",
+        "https://dev.mysql.com/doc/refman/en/keyring-file-component.html",
         "keyring_file"},
        {Upgrade_issue::Level::WARNING, "keyring_oci",
         "The 'keyring_oci' plugin is deprecated as of "
         "MySQL 8.0.31 and will be removed in a future release.\n"
         "Consider using the 'component_keyring_oci' component instead.",
-        "https://dev.mysql.com/doc/refman/en/keyring-oci-plugin.html",
+        "https://dev.mysql.com/doc/mysql-security-excerpt/en/"
+        "keyring-oci-plugin.html",
         "keyring_oci"}});
 }
 

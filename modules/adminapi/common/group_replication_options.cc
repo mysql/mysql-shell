@@ -137,7 +137,7 @@ void validate_ip_allow_list(const mysqlshdk::mysql::IInstance &instance,
   // validate that, when ipAllowlist isn't specified, that the local_address
   // (generated or user-specified) is part of the range of addresses that are
   // part of the automatic IP Allowlist Group Replication sets (see
-  // https://dev.mysql.com/doc/refman/8.0/en/group-replication-ip-address-permissions.html)
+  // https://dev.mysql.com/doc/refman/en/group-replication-ip-address-permissions.html)
   if (!shcore::str_caseeq(communication_stack, kCommunicationStackXCom)) return;
 
   if (shcore::str_caseeq(ip_allowlist, "AUTOMATIC")) {

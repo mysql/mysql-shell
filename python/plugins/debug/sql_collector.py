@@ -1560,7 +1560,7 @@ def explain_heatwave_query(zf: zipfile.ZipFile, session: InstanceSession,
         "SHOW SESSION STATUS LIKE 'rapid%'",
         "SELECT NOW()",
         "SET SESSION optimizer_trace='enabled=on'",
-        # why -2? idk, see https://dev.mysql.com/doc/heatwave/en/heatwave-running-queries.html#heatwave-debugging-queries
+        # why -2? idk, see https://dev.mysql.com/doc/heatwave/en/mys-hw-debugging-queries.html
         "SET optimizer_trace_offset=-2",
         f"EXPLAIN {query}",
         "SELECT query, trace->'$**.Rapid_Offload_Fails', trace->'$**.secondary_engine_not_used' FROM information_schema.optimizer_trace",

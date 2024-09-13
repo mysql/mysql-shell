@@ -445,7 +445,7 @@ bool is_option_supported(
  * are found.
  *
  * GR does not support filters:
- * https://dev.mysql.com/doc/refman/8.0/en/replication-options-slave.html
+ * https://dev.mysql.com/doc/refman/en/replication-options-replica.html
  * Global replication filters cannot be used on a MySQL server instance that
  * is configured for Group Replication, because filtering transactions on some
  * servers would make the group unable to reach agreement on a consistent

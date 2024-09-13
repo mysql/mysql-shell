@@ -1013,7 +1013,7 @@ TEST_F(MySQL_upgrade_check_test, utf8mb3) {
   PrepareTestDatabase("aaaaaaaaaaaaaaaa_utf8mb3");
   std::unique_ptr<Sql_upgrade_check> check = get_utf8mb3_check();
   EXPECT_STREQ(
-      "https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html",
+      "https://dev.mysql.com/doc/refman/en/charset-unicode-utf8mb3.html",
       check->get_doc_link().c_str());
 
   session->execute(
@@ -1052,7 +1052,7 @@ TEST_F(MySQL_upgrade_check_test, mysql_schema) {
   std::unique_ptr<Sql_upgrade_check> check = get_mysql_schema_check();
   EXPECT_NO_ISSUES(check.get());
   EXPECT_STREQ(
-      "https://dev.mysql.com/doc/refman/8.0/en/upgrade-before-you-begin.html",
+      "https://dev.mysql.com/doc/refman/en/upgrade-before-you-begin.html",
       check->get_doc_link().c_str());
 
   ASSERT_NO_THROW(session->execute("use mysql;"));
@@ -1107,7 +1107,7 @@ TEST_F(MySQL_upgrade_check_test, foreign_key_length) {
 
   std::unique_ptr<Sql_upgrade_check> check = get_foreign_key_length_check();
   EXPECT_STREQ(
-      "https://dev.mysql.com/doc/refman/8.0/en/upgrade-before-you-begin.html",
+      "https://dev.mysql.com/doc/refman/en/upgrade-before-you-begin.html",
       check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
   // No way to prepare test data in 5.7
@@ -1358,9 +1358,8 @@ TEST_F(MySQL_upgrade_check_test, enum_set_element_length) {
   PrepareTestDatabase("aaa_test_enum_set_element_length");
   std::unique_ptr<Sql_upgrade_check> check =
       get_enum_set_element_length_check();
-  EXPECT_STREQ(
-      "https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html",
-      check->get_doc_link().c_str());
+  EXPECT_STREQ("https://dev.mysql.com/doc/refman/en/string-type-syntax.html",
+               check->get_doc_link().c_str());
   ASSERT_NO_THROW(issues = check->run(session, info, &cache));
   std::size_t original = issues.size();
 
@@ -2731,7 +2730,7 @@ TEST_F(MySQL_upgrade_check_test, columns_which_cannot_have_defaults_check) {
 
   const auto check = get_columns_which_cannot_have_defaults_check();
   EXPECT_STREQ(
-      "https://dev.mysql.com/doc/refman/8.0/en/"
+      "https://dev.mysql.com/doc/refman/en/"
       "data-type-defaults.html#data-type-defaults-explicit",
       check->get_doc_link().c_str());
 

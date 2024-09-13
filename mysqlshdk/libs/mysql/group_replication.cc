@@ -238,7 +238,7 @@ bool has_quorum(const mysqlshdk::mysql::IInstance &instance,
  *         an additional state MISSING indicating that GR monitory information
  *         was not found for the instance (e.g., if GR is not enabled).
  *         For more information, see:
- *         https://dev.mysql.com/doc/refman/5.7/en/group-replication-server-states.html
+ *         https://dev.mysql.com/doc/refman/en/group-replication-server-states.html
  */
 Member_state get_member_state(const mysqlshdk::mysql::IInstance &instance) {
   // replication_group_members will have a single row with member_id = '' and
