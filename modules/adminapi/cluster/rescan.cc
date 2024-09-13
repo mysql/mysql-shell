@@ -38,6 +38,7 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/config/config.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "utils/utils_string.h"
 #include "utils/version.h"
@@ -1156,14 +1157,20 @@ shcore::Value Rescan::execute() {
   // consistency regarding group_replication_view_change_uuid when already in
   // use.
   // Skip if running MySQL >= 8.3.0, since the option is no longer needed.
+
   if (m_is_view_change_uuid_supported) {
-    auto view_change_uuid = m_cluster->get_primary_master()->get_sysvar_string(
+    auto view_change_uuid = m_cluster->get_cluster_server()->get_sysvar_string(
         "group_replication_view_change_uuid", "");
 
     if (view_change_uuid == "AUTOMATIC") {
+      auto lowest_version_cluster = m_cluster->get_lowest_instance_version();
+
+      DBUG_EXECUTE_IF("dba_view_change_uuid_needed", {
+        lowest_version_cluster = mysqlshdk::utils::Version(8, 1, 0);
+      });
+
       if (!m_options.update_view_change_uuid.has_value() &&
-          m_cluster->get_lowest_instance_version() <
-              k_view_change_uuid_deprecated) {
+          lowest_version_cluster < k_view_change_uuid_deprecated) {
         console->print_note(
             "The Cluster is not configured to use "
             "'group_replication_view_change_uuid', which is required "

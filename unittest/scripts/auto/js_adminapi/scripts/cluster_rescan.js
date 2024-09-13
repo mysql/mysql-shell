@@ -1381,6 +1381,34 @@ Result of the rescanning operation for the 'cluster' cluster:
 }
 `);
 
+//@<> Cluster.rescan() - view_change_uuid handling in mixed version scenario {VER(>=8.0.27) && !__dbug_off}
+
+// When the Primary Cluster is running a version >= 8.3.0, view_change_uuid is not required so it won't be set. If any Replica Cluster is running a version < 8.3.0 then view_change_uuid is required for itself and will be set.
+// When a user runs .rescan() on that Cluster the command must do the view_change_uuid validations on the Cluster itself and not on the Primary Cluster.
+
+testutil.dbugSet("+d,dba_view_change_uuid_needed");
+
+session2 = mysql.getSession(__sandbox_uri2)
+reset_instance(session2)
+
+cs = c.createClusterSet("cs")
+replica_cluster = cs.createReplicaCluster(__sandbox_uri2, "replica_cluster")
+
+// Simulate the Replica Cluster having a different value for view_change_uuid to ensure that .rescan() does the check on itself and not on the primary cluster
+session2.runSql("set persist_only group_replication_view_change_uuid='aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'");
+session2.runSql("STOP group_replication");
+
+shell.connect(__sandbox_uri2);
+
+c = dba.rebootClusterFromCompleteOutage()
+
+EXPECT_NO_THROWS(function() { c.rescan(); });
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster's group_replication_view_change_uuid is not set.");
+EXPECT_OUTPUT_NOT_CONTAINS("Generating and setting a value for group_replication_view_change_uuid...");
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: The Cluster must be completely taken OFFLINE and restarted (dba.rebootClusterFromCompleteOutage()) for the settings to be effective");
+
+testutil.dbugSet("");
+
 //@<> Finalize.
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1);
