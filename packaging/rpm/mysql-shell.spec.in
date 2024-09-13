@@ -228,6 +228,9 @@ cmake .. \
 %if 0%{?bundled_antlr:1}
     -DBUNDLED_ANTLR_DIR="%{bundled_antlr}" \
 %endif
+%if 0%{?with_yacc_parser:1}
+    -DWITH_YACC_PARSER=1 \
+%endif
     -DHAVE_PYTHON=1 \
     -DLIBEXECDIR=`basename %{_libexecdir}`
 
@@ -303,7 +306,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %endif
 %{_prefix}/lib/mysqlsh/plugins/*
 %{_prefix}/lib/mysqlsh/python-packages/*
+%if 0%{?with_yacc_parser:1}
 %{_prefix}/lib/mysqlsh/yparser/*
+%endif
 %{_mandir}/man1/mysqlsh.1*
 
 %changelog
