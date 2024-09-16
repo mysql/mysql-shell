@@ -77,7 +77,7 @@ them to use utf8mb4 instead, for improved Unicode support. The utf8mb3 character
 in the future.
 
 * utf8mb3.docLink
-https://dev.mysql.com/doc/refman/8.0/en/charset-unicode-utf8mb3.html
+https://dev.mysql.com/doc/refman/en/charset-unicode-utf8mb3.html
 
 * mysqlSchema.title
 Table names in the mysql schema conflicting with new tables in the latest MySQL.
@@ -88,7 +88,7 @@ introduced in the latest version. They must be renamed or removed before upgradi
 TABLE command). This may also entail changes to applications that use the affected tables.
 
 * mysqlSchema.docLink
-https://dev.mysql.com/doc/refman/8.0/en/upgrade-before-you-begin.html
+https://dev.mysql.com/doc/refman/en/upgrade-before-you-begin.html
 
 * nonNativePartitioning.title
 Partitioned tables using engines with non native partitioning
@@ -112,7 +112,7 @@ Error: The following tables must be altered to have constraint names shorter tha
 (use ALTER TABLE).
 
 * foreignKeyLength.docLink
-https://dev.mysql.com/doc/refman/8.0/en/upgrade-before-you-begin.html
+https://dev.mysql.com/doc/refman/en/upgrade-before-you-begin.html
 
 * maxdbSqlModeFlags.title
 Usage of obsolete MAXDB sql_mode flag
@@ -146,7 +146,7 @@ longer that 255 characters. They need to be altered so that all elements fit int
 characters limit.
 
 * enumSetElementLength.docLink
-https://dev.mysql.com/doc/refman/8.0/en/string-type-overview.html
+https://dev.mysql.com/doc/refman/en/string-type-syntax.html
 
 * partitionedTablesInSharedTablespaces.title
 Usage of partitioned tables in shared tablespaces
@@ -325,7 +325,7 @@ starting with 8.0.13, the default value must be specified as an expression. In o
 issue, please use the ALTER TABLE ... ALTER COLUMN ... DROP DEFAULT statement.
 
 * columnsWhichCannotHaveDefaults.docLink
-https://dev.mysql.com/doc/refman/8.0/en/data-type-defaults.html#data-type-defaults-explicit
+https://dev.mysql.com/doc/refman/en/data-type-defaults.html#data-type-defaults-explicit
 
 * invalid57Names.title
 Check for invalid table names and schema names used in 5.7
@@ -414,7 +414,7 @@ Since version 8.0.19 it's also possible to instruct MySQL Router to use a dedica
 account can be created using the AdminAPI.
 
 * deprecatedRouterAuthMethod.docLink
-https://dev.mysql.com/doc/mysql-shell/en/configuring-router-user.html\n
+https://dev.mysql.com/doc/mysql-shell/en/configuring-router-user.html
 https://dev.mysql.com/doc/mysql-router/en/mysqlrouter.html#option_mysqlrouter_account
 
 * deprecatedTemporalDelimiter.title
@@ -483,10 +483,10 @@ The users must be deleted or re-created with a different authentication method (
 https://dev.mysql.com/doc/refman/en/webauthn-pluggable-authentication.html
 
 * authMethodUsage.docLink.sha256_password
-https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
+https://dev.mysql.com/doc/refman/en/caching-sha2-pluggable-authentication.html
 
 * authMethodUsage.docLink.mysql_native_password
-https://dev.mysql.com/doc/refman/8.0/en/caching-sha2-pluggable-authentication.html
+https://dev.mysql.com/doc/refman/en/caching-sha2-pluggable-authentication.html
 
 * pluginUsage.title
 Check for deprecated or removed plugin usage.
@@ -522,13 +522,13 @@ It must not be used anymore, please use %replacement% instead.
 https://dev.mysql.com/doc/refman/en/webauthn-pluggable-authentication.html
 
 * pluginUsage.docLink.keyring_file
-https://dev.mysql.com/doc/refman/8.0/en/keyring-file-component.html
+https://dev.mysql.com/doc/refman/en/keyring-file-component.html
 
 * pluginUsage.docLink.keyring_encrypted_file
-https://dev.mysql.com/doc/refman/8.0/en/keyring-encrypted-file-component.html
+https://dev.mysql.com/doc/refman/en/keyring-encrypted-file-component.html
 
 * pluginUsage.docLink.keyring_oci
-https://dev.mysql.com/doc/refman/en/keyring-oci-plugin.html
+https://dev.mysql.com/doc/mysql-security-excerpt/en/keyring-oci-plugin.html
 
 * invalidPrivileges.title
 Checks for user privileges that will be removed

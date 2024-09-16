@@ -31,8 +31,7 @@
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 
-namespace mysqlsh {
-namespace dba {
+namespace mysqlsh::dba {
 
 enum class Member_op_action { ADD_INSTANCE, REJOIN_INSTANCE };
 
@@ -60,12 +59,18 @@ enum class Member_op_action { ADD_INSTANCE, REJOIN_INSTANCE };
  * @param gtid_set_is_complete boolean value indicating if the GTID-set was
  * marked as complete in the cluster
  * @param interactive boolean indicating if interactive mode is used
- * @param clone_disabled boolean indicating if clone was disabled on the cluster
- * (or not supported)
+ * @param clone_availability if clone is available or why it was disabled
  *
  * @return a Member_recovery_method object with the recovery method
  * validated/set
  */
+enum class Clone_availability {
+  Available,   // Cloning is enabled and compatible
+  Disabled,    // Cloning is explicitly disabled by the user
+  Unavailable  // Cloning is not available due to version or other
+               // incompatibilities
+};
+
 Member_recovery_method validate_instance_recovery(
     Cluster_type cluster_type, Member_op_action op_action,
     const mysqlshdk::mysql::IInstance &donor_instance,
@@ -73,7 +78,8 @@ Member_recovery_method validate_instance_recovery(
     const std::function<bool(const mysqlshdk::mysql::IInstance &)>
         &check_recoverable,
     Member_recovery_method opt_recovery_method, bool gtid_set_is_complete,
-    bool interactive, bool clone_disabled = false);
+    bool interactive,
+    Clone_availability clone_availability = Clone_availability::Available);
 
 mysqlshdk::mysql::Replica_gtid_state check_replica_group_gtid_state(
     const mysqlshdk::mysql::IInstance &source,
@@ -84,7 +90,6 @@ std::string get_only_view_change_gtids(
     const mysqlshdk::mysql::IInstance &source,
     const mysqlshdk::mysql::IInstance &replica, const std::string &gtids);
 
-}  // namespace dba
-}  // namespace mysqlsh
+}  // namespace mysqlsh::dba
 
 #endif  // MODULES_ADMINAPI_COMMON_GTID_VALIDATIONS_H_

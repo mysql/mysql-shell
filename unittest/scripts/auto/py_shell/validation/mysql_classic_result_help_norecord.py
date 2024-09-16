@@ -278,7 +278,7 @@ RETURNS
 
 DESCRIPTION
       This is the same value than C API mysql_warning_count, see
-      https://dev.mysql.com/doc/refman/en/mysql-warning-count.html
+      https://dev.mysql.com/doc/c-api/en/mysql-warning-count.html
 
       See get_warnings() for more details.
 

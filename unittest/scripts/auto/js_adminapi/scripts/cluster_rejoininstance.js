@@ -379,4 +379,53 @@ EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2, {recoveryMe
 shell.connect(__sandbox_uri2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
+//@<> Check if proper clone validations regarding compatibility are done {!__dbug_off}
+shell.connect(__sandbox_uri2);
+reset_instance(session);
+
+shell.connect(__sandbox_uri1);
+reset_instance(session);
+
+testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
+
+cluster = dba.createCluster("sample");
+
+EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri2, {recoveryMethod: "incremental"}); });
+EXPECT_NO_THROWS(function() { cluster.addInstance(__sandbox_uri3, {recoveryMethod: "incremental"}); });
+
+shell.connect(__sandbox_uri2);
+session.runSql("STOP group_replication")
+session.runSql("RESET " + get_reset_binary_logs_keyword());
+
+testutil.dbugSet("+d,dba_clone_no_compatible_donors");
+
+WIPE_OUTPUT();
+EXPECT_THROWS(function(){
+    cluster.rejoinInstance(__sandbox_uri2);
+}, "Instance provisioning required");
+EXPECT_OUTPUT_CONTAINS(`WARNING: None of the online Cluster members are compatible with the recipient (${__endpoint2}) for cloning due to version/platform incompatibilities. Therefore, no instance is available to serve as a valid donor for cloning`);
+
+EXPECT_OUTPUT_CONTAINS("The incremental state recovery may be safely used if you are sure all updates ever executed in the cluster were done with GTIDs enabled, there are no purged transactions and the new instance contains the same GTID set as the cluster or a subset of it. To use this method by default, set the 'recoveryMethod' option to 'incremental'.");
+
+testutil.assertNoPrompts(); // No prompts
+
+// Test with interaction enabled
+shell.options.useWizards=1;
+
+EXPECT_THROWS(function(){
+    cluster.rejoinInstance(__sandbox_uri2);
+}, "Instance provisioning required");
+
+testutil.assertNoPrompts(); // No prompts
+
+WIPE_OUTPUT();
+
+EXPECT_THROWS(function(){
+    cluster.rejoinInstance(__sandbox_uri2, {recoveryMethod:"clone"});
+}, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.");
+EXPECT_OUTPUT_CONTAINS(`WARNING: None of the online Cluster members are compatible with the recipient (${__endpoint2}) for cloning due to version/platform incompatibilities. Therefore, no instance is available to serve as a valid donor for cloning`);
+
+testutil.dbugSet("");
+
 scene.destroy();
+testutil.destroySandbox(__mysql_sandbox_port3);

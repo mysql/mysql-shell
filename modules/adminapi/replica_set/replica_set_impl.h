@@ -149,7 +149,7 @@ class Replica_set_impl final : public Base_cluster_impl {
 
   void ensure_compatible_clone_donor(
       const mysqlshdk::mysql::IInstance &donor,
-      const mysqlshdk::mysql::IInstance &recipient) const override;
+      const mysqlshdk::mysql::IInstance &recipient) const;
 
   std::shared_ptr<Global_topology_manager> get_topology_manager(
       topology::Server_global_topology **out_topology = nullptr,

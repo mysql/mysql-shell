@@ -189,7 +189,7 @@ bool validate_schemas(const mysqlshdk::mysql::IInstance &instance,
         "If you can't change the tables structure to include an extra visible "
         "key to be used as PRIMARY KEY, you can make use of the INVISIBLE "
         "COLUMN feature available since 8.0.23: "
-        "https://dev.mysql.com/doc/refman/8.0/en/invisible-columns.html");
+        "https://dev.mysql.com/doc/refman/en/invisible-columns.html");
   }
   return ok;
 }

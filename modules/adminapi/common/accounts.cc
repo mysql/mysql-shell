@@ -181,7 +181,7 @@ const std::map<std::string, std::set<std::string>> k_admin_schema_grants{
 // (global_status, session_status, variables_info), but they do not require a
 // specific privilege (enabled by default).
 // See:
-// https://dev.mysql.com/doc/refman/8.0/en/performance-schema-system-variable-tables.html
+// https://dev.mysql.com/doc/refman/en/performance-schema-system-variable-tables.html
 const std::map<std::string, std::map<std::string, std::set<std::string>>>
     k_admin_table_grants{};
 

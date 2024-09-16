@@ -89,66 +89,80 @@ TEST_F(Admin_api_clone_test, check_clone_version_compatibility) {
   using namespace mysqlshdk::utils;
 
   // anything below 8.0.16 can't be used
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 16), Version(8, 0, 17)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 17), Version(8, 0, 16)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 16), Version(8, 0, 16)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 17), Version(8, 0, 17)));
 
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  // Cloning is allowed if version strings match
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(9, 1, 4), Version(9, 1, 4)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version("8.0.28-debug"), Version("8.0.28-debug")));
 
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  // Cloning is NOT allowed when either Major and/or Minor versions are
+  // different between the source and the recipient.
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(10, 7, 3), Version(9, 7, 4)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(9, 7, 4), Version(9, 6, 4)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(9, 6, 4), Version(10, 7, 3)));
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
+      Version(9, 1, 0), Version(9, 0, 0)));
 
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  // For 8.4 series and above, cloning is allowed when Major and Minor versions
+  // are same.
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(9, 6, 4), Version("9.6.53-release")));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(10, 7, 36), Version(10, 7, 16)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version("8.4.1-release"), Version(8, 4, 0)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(9, 0, 0), Version(9, 0, 2)));
 
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  // For 8.0 series, cloning is allowed if Major, Minor and Patch versions
+  // match.
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 31), Version(8, 0, 31)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version("8.0.35-release"), Version(8, 0, 35)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version("8.0.37-release"), Version(8, 0, 37)));
 
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  // Cloning on 8.0 series is NOT allowed if patch versions mismatch AND either
+  // donor or recipient patch version is less than backported version: 8.0.37
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 33), Version(8, 0, 35)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 35), Version(8, 0, 30)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 35), Version(8, 0, 37)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 37), Version(8, 0, 34)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 0), Version(8, 0, 37)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 0), Version(8, 0, 34)));
 
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  // Cloning on 8.0 series is allowed if patch versions mismatch AND both donor
+  // and recipient patch version is greater than or equal to backported
+  // version: 8.0.37
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 37), Version(8, 0, 38)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 0, 38), Version(8, 0, 37)));
 
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 3, 1), Version(8, 3, 0)));
-  EXPECT_TRUE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(8, 4, 1), Version(8, 4, 1)));
-  EXPECT_FALSE(Base_cluster_impl::verify_compatible_clone_versions(
+  EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version("8.0.37-release"), Version("8.0.36-release")));
 }
 

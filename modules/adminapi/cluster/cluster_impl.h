@@ -508,7 +508,12 @@ class Cluster_impl final : public Base_cluster_impl,
 
   void refresh_connections();
 
-  void ensure_compatible_clone_donor(
+  bool has_compatible_clone_donor(
+      const mysqlshdk::mysql::IInstance &recipient) const;
+
+  void ensure_donor_is_valid(const mysqlshdk::mysql::IInstance &donor) const;
+
+  Clone_availability check_clone_availablity(
       const mysqlshdk::mysql::IInstance &donor,
       const mysqlshdk::mysql::IInstance &recipient) const override;
 

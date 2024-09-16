@@ -29,16 +29,16 @@
 #include <string>
 #include <vector>
 
-#include "mysql/instance.h"
 #include "mysqlshdk/libs/config/config.h"
+#include "mysqlshdk/libs/mysql/instance.h"
+#include "mysqlshdk/libs/utils/version.h"
 
-namespace mysqlshdk {
-namespace mysql {
+namespace mysqlshdk::mysql {
 
-constexpr const char k_mysql_clone_plugin_name[] = "clone";
+inline constexpr const char k_mysql_clone_plugin_name[] = "clone";
 
 // # of seconds to wait until server finished restarting during recovery
-constexpr const int k_server_recovery_restart_timeout = 60;
+inline constexpr const int k_server_recovery_restart_timeout = 60;
 
 /**
  * Check if the Clone  plugin is installed, and if not try to
@@ -83,6 +83,18 @@ bool uninstall_clone_plugin(const mysqlshdk::mysql::IInstance &instance,
  * not.
  */
 bool is_clone_available(const mysqlshdk::mysql::IInstance &instance);
+
+/**
+ * Check if clone can be performed between two instances
+ *
+ * @param donor version of the donor instance
+ * @param recipient version of the recipient instance
+ *
+ * @return A boolean value indicating if clone can be performed (true) or not.
+ */
+bool verify_compatible_clone_versions(
+    const mysqlshdk::utils::Version &donor,
+    const mysqlshdk::utils::Version &recipient);
 
 /**
  * Forces the usage of clone by setting the value of
@@ -179,7 +191,6 @@ struct Clone_status {
 Clone_status check_clone_status(const mysqlshdk::mysql::IInstance &instance,
                                 const std::string &start_time);
 
-}  // namespace mysql
-}  // namespace mysqlshdk
+}  // namespace mysqlshdk::mysql
 
 #endif  // MYSQLSHDK_LIBS_MYSQL_CLONE_H_

@@ -182,7 +182,7 @@ Json_importer Prepare_json_import::build() {
  * max_allowed_packet, do commit every 512M.
  * It is advised to "Avoid performing rollbacks after inserting, updating, or
  * deleting huge numbers of rows."
- * https://dev.mysql.com/doc/refman/8.0/en/optimizing-innodb-transaction-management.html
+ * https://dev.mysql.com/doc/refman/en/optimizing-innodb-transaction-management.html
  */
 static constexpr const int k_inserts_per_transaction = 8;
 

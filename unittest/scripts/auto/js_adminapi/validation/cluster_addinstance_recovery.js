@@ -184,7 +184,7 @@
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, empty GTID -> err {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
+||Cannot use recoveryMethod=clone option because cloning has been disabled for the Cluster with the 'disableClone' option. (MYSQLSH 51165)
 
 //@# recoveryMethod:clone, empty GTIDs + gtidSetIsComplete -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
@@ -199,7 +199,7 @@
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, errant GTIDs -> error {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
+||Cannot use recoveryMethod=clone option because cloning has been disabled for the Cluster with the 'disableClone' option. (MYSQLSH 51165)
 
 //@# purge GTIDs from cluster
 ||
@@ -281,14 +281,14 @@
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, purged GTID -> err {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
+||Cannot use recoveryMethod=clone option because cloning has been disabled for the Cluster with the 'disableClone' option. (MYSQLSH 51165)
 
 //@# recoveryMethod:clone, errant GTIDs + purged GTIDs -> clone {VER(>=8.0.17)}
 |Clone based recovery selected through the recoveryMethod option|
 ||debug (LogicError)
 
 //@# recoveryMethod:clone, cloneDisabled, errant GTIDs + purged GTIDs -> error {VER(>=8.0.17)}
-||Cannot use recoveryMethod=clone option because the disableClone option was set for the cluster. (MYSQLSH 51165)
+||Cannot use recoveryMethod=clone option because cloning has been disabled for the Cluster with the 'disableClone' option. (MYSQLSH 51165)
 
 //@# Cleanup
 ||

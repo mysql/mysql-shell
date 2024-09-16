@@ -144,7 +144,9 @@ Member_recovery_method Rejoin_replica_instance::validate_instance_recovery() {
       m_options.clone_options.recovery_method.value_or(
           Member_recovery_method::AUTO),
       m_cluster_impl->get_gtid_set_is_complete(),
-      current_shell_options()->get().wizards);
+      current_shell_options()->get().wizards,
+      m_cluster_impl->check_clone_availablity(*m_donor_instance,
+                                              *m_target_instance));
 }
 
 void Rejoin_replica_instance::validate_replication_channels() {
@@ -257,9 +259,15 @@ void Rejoin_replica_instance::prepare() {
   m_options.clone_options.recovery_method = validate_instance_recovery();
 
   // Check if the donor is valid
-  m_cluster_impl->ensure_compatible_donor(
-      *m_donor_instance, *m_target_instance,
-      *m_options.clone_options.recovery_method);
+  {
+    m_cluster_impl->ensure_donor_is_valid(*m_donor_instance);
+
+    if (*m_options.clone_options.recovery_method ==
+        Member_recovery_method::CLONE) {
+      m_cluster_impl->check_compatible_clone_donor(*m_donor_instance,
+                                                   *m_target_instance);
+    }
+  }
 
   // Check if the replication source is compatible
   m_cluster_impl->check_compatible_replication_sources(*m_donor_instance,

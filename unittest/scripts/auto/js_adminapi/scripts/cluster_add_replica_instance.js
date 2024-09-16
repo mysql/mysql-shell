@@ -561,6 +561,24 @@ shell.options.useWizards=1;
 testutil.expectPrompt("Please select a recovery method [C]lone/[A]bort (default Clone): ", "a");
 EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "Cancelled");
 
+//@<> Attempt to add an instance as read-replica when binlogs were purged in the cluster and recoveryMethod: auto but there are no compatible clone donors - interactive {!__dbug_off}
+testutil.dbugSet("+d,dba_clone_version_check_fail");
+
+EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "Instance provisioning required");
+
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+
+testutil.assertNoPrompts(); // No prompts
+
+//@<> Attempt to add an instance as read-replica when binlogs were purged in the cluster and recoveryMethod: auto but there are no compatible clone donors - non-interactive {!__dbug_off}
+shell.options.useWizards=0;
+
+EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "Instance provisioning required");
+
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+
+testutil.dbugSet("");
+
 // --- cloneDonor tests
 
 //@<> addReplicaInstance: recoveryMethod: clone, automatic donor not valid {!__dbug_off}
