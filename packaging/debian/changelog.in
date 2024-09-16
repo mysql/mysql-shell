@@ -1,6 +1,6 @@
 mysql-shell@PRODUCT_SUFFIX@ (@VERSION@@ID_RELEASE@) @CODENAME@; urgency=low
 
   * New Release. For release notes, please refer to
-    https://dev.mysql.com/doc/relnotes/mysql-shell/8.4/en/news-@MYSH_NO_DASH_VERSION@.html
+    https://dev.mysql.com/doc/relnotes/mysql-shell/9.0/en/news-@MYSH_NO_DASH_VERSION@.html
 
  -- MySQL Release Engineering <mysql-build@oss.oracle.com>  @DEB_CHANGELOG_TIMESTAMP@
