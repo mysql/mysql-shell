@@ -631,6 +631,7 @@ consider using '%replacement%' instead
 * sysVars.docLink.removed
 https://dev.mysql.com/doc/refman/8.0/en/added-deprecated-removed.html#optvars-removed
 https://dev.mysql.com/doc/refman/8.4/en/added-deprecated-removed.html#optvars-removed
+https://dev.mysql.com/doc/refman/9.0/en/added-deprecated-removed.html#optvars-removed
 
 * sysVars.docLink.removedLogging
 https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-13.html#mysqld-8-0-13-logging
