@@ -331,12 +331,30 @@ void Create_replica_cluster::prepare() {
   // Validate the clone options
   m_options.clone_options.check_option_values(m_target_instance->get_version());
 
+  // Validate cloneDonor if used and set m_donor_instance
+  // By default, the donor must be the PRIMARY member of the PRIMARY Cluster.
+  std::string donor = m_options.clone_options.clone_donor.has_value()
+                          ? *m_options.clone_options.clone_donor
+                          : m_primary_instance->get_canonical_address();
+
+  m_donor_instance =
+      Scoped_instance(m_cluster_set->connect_target_instance(donor));
+
+  // If the 'cloneDonor' option is used, ensure the donor is valid:
+  //   - It's an ONLINE member of the Primary Cluster
+  //   - It has the same version of the recipient
+  //   - It has the same operating system as the recipient
+  if (m_options.clone_options.clone_donor.has_value()) {
+    m_cluster_set->ensure_compatible_clone_donor(*m_donor_instance,
+                                                 *m_target_instance);
+  }
+
   console->print_info();
   console->print_info("* Checking transaction state of the instance...");
 
   m_options.clone_options.recovery_method =
       m_cluster_set->validate_instance_recovery(
-          Member_op_action::ADD_INSTANCE, *m_target_instance,
+          Member_op_action::ADD_INSTANCE, *m_donor_instance, *m_target_instance,
           m_options.clone_options.recovery_method.value_or(
               Member_recovery_method::AUTO),
           m_cluster_set->get_primary_cluster()->get_gtid_set_is_complete(),
@@ -432,28 +450,8 @@ shcore::Value Create_replica_cluster::execute() {
     // Handle clone provisioning
     if (*m_options.clone_options.recovery_method ==
         Member_recovery_method::CLONE) {
-      // Pick a donor if the option is not used. By default, the donor must be
-      // the PRIMARY member of the PRIMARY Cluster.
-      std::string donor;
-      if (m_options.clone_options.clone_donor.has_value()) {
-        donor = *m_options.clone_options.clone_donor;
-      } else {
-        // Pick the primary instance of the primary cluster as donor
-        donor = m_primary_instance->get_canonical_address();
-      }
-
-      const auto donor_instance =
-          Scoped_instance(m_cluster_set->connect_target_instance(donor));
-
-      // Ensure the donor is valid:
-      //   - It's an ONLINE member of the Primary Cluster
-      //   - It has the same version of the recipient
-      //   - It has the same operating system as the recipient
-      m_cluster_set->ensure_compatible_clone_donor(donor_instance,
-                                                   *m_target_instance);
-
       m_cluster_set->handle_clone_provisioning(
-          m_target_instance, donor_instance, ar_options, repl_account_host,
+          m_target_instance, m_donor_instance, ar_options, repl_account_host,
           m_cluster_set->query_clusterset_auth_cert_issuer(),
           m_options.cert_subject, m_progress_style, m_options.timeout,
           m_options.dry_run);

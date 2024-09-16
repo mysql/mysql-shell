@@ -405,9 +405,7 @@ EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4,
 EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
 
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor not valid
-EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.", "MYSQLSH");
-
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" +__version + ").", "MYSQLSH");
 
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor valid
 
@@ -430,6 +428,13 @@ testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 EXPECT_THROWS(function(){
     cluster_set.createReplicaCluster(__sandbox_uri3, "myReplicaCluster2", {recoveryMethod: "clone", cloneDonor: __endpoint2});
 }, `Instance '${__endpoint2}' is not an ONLINE member of the PRIMARY Cluster.`);
+
+// re-try with donor in a valid state
+EXPECT_NO_THROWS(function() { cluster.rejoinInstance(__sandbox_uri2); });
+
+EXPECT_NO_THROWS(function() { cluster_set.createReplicaCluster(__sandbox_uri3, "myReplicaCluster2", {recoveryMethod: "clone", cloneDonor: __endpoint2}); });
+
+EXPECT_OUTPUT_CONTAINS(`NOTE: ${hostname}:${__mysql_sandbox_port3} is being cloned from ${hostname}:${__mysql_sandbox_port2}`);
 
 //@<> Cleanup
 session.close();

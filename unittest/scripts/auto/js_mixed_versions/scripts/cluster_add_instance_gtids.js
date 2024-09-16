@@ -21,7 +21,7 @@ EXPECT_THROWS(function() {
 }, "Instance provisioning required");
 
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check found GTIDs with tags, which the donor instance '${localhost}:${__mysql_sandbox_port1}' doesn't support. In order to use GTID tags, all members of the Cluster must support them.`);
-EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${localhost}:${__mysql_sandbox_port2}' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can be done manually. Having extra GTID events is not expected, and it is recommended to investigate this further.`);
 
 //@<> Check if the primary cluster detects tagged GTIDs from a joining replica cluster (ClusterSet) {testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, ">=", "8.0.27")}
 var cset = cluster.createClusterSet("cset");
@@ -32,7 +32,7 @@ EXPECT_THROWS(function() {
 }, "Instance provisioning required");
 
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check found GTIDs with tags, which the donor instance '${localhost}:${__mysql_sandbox_port1}' doesn't support. In order to use GTID tags, all members of the ClusterSet must support them.`);
-EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${localhost}:${__mysql_sandbox_port2}' with a physical snapshot from an existing clusterset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can be done manually. Having extra GTID events is not expected, and it is recommended to investigate this further.`);
 
 //@<> Check if the primary instance detects tagged GTIDs from a joining instance (ReplicaSet) {testutil.versionCheck(MYSQLD_SECONDARY_SERVER_A.version, ">=", "8.0.11")}
 reset_instance(session, true);
@@ -45,7 +45,7 @@ EXPECT_THROWS(function() {
 }, "Instance provisioning required");
 
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check found GTIDs with tags, which the donor instance '${localhost}:${__mysql_sandbox_port1}' doesn't support. In order to use GTID tags, all members of the ReplicaSet must support them.`);
-EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${localhost}:${__mysql_sandbox_port2}' with a physical snapshot from an existing replicaset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can be done manually. Having extra GTID events is not expected, and it is recommended to investigate this further.`);
 
 //@<> Check if the primary instance detects tagged GTIDs from a re-joining instance (Cluster)
 var session2 = mysql.getSession(__sandbox_uri2);
@@ -67,7 +67,7 @@ EXPECT_THROWS(function() {
 }, "Instance provisioning required");
 
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check found GTIDs with tags, which the donor instance '${localhost}:${__mysql_sandbox_port1}' doesn't support. In order to use GTID tags, all members of the Cluster must support them.`);
-EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${localhost}:${__mysql_sandbox_port2}' with a physical snapshot from an existing cluster member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can be done manually. Having extra GTID events is not expected, and it is recommended to investigate this further.`);
 
 //@<> Check if reboot (Cluster)
 
@@ -98,7 +98,7 @@ EXPECT_THROWS(function() {
 }, "Instance provisioning required");
 
 EXPECT_OUTPUT_CONTAINS(`WARNING: A GTID set check found GTIDs with tags, which the donor instance '${localhost}:${__mysql_sandbox_port1}' doesn't support. In order to use GTID tags, all members of the ReplicaSet must support them.`);
-EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can either be done manually or by completely overwriting the state of '${localhost}:${__mysql_sandbox_port2}' with a physical snapshot from an existing replicaset member. To use this method by default, set the 'recoveryMethod' option to 'clone'.`);
+EXPECT_OUTPUT_CONTAINS(`Discarding these extra GTID events can be done manually. Having extra GTID events is not expected, and it is recommended to investigate this further.`);
 
 session2.close();
 
