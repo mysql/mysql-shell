@@ -35,7 +35,7 @@ print("executable =", sys.executable)
 print("prefix =", sys.prefix)
 
 EXPECT_TRUE(os.path.basename(sys.executable).lower().startswith("python"))
-EXPECT_TRUE(sys.executable.lower().startswith(sys.prefix.lower()))
+EXPECT_TRUE(os.path.realpath(sys.executable).lower().startswith(os.path.realpath(sys.prefix).lower()))
 
 if __os_type == "windows":
     EXPECT_TRUE(os.path.basename(os.path.dirname(sys.executable)).lower().startswith("python"))
