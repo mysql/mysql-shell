@@ -1,6 +1,6 @@
 Licensing Information User Manual
 
-MySQL Shell, part of MySQL 8.4.1 Community
+MySQL Shell, part of MySQL 8.4.3 Community
      __________________________________________________________________
 
 Introduction
@@ -8,18 +8,18 @@ Introduction
    This License Information User Manual contains Oracle's product license
    and other licensing information, including licensing information for
    third-party software which may be included in this distribution of
-   MySQL Shell, part of MySQL 8.4.1 Community.
+   MySQL Shell, part of MySQL 8.4.3 Community.
 
-   Last updated: May 2024
+   Last updated: September 2024
 
 Licensing Information
 
-   This release of MySQL Shell, part of MySQL 8.4.1 Community, is brought
+   This release of MySQL Shell, part of MySQL 8.4.3 Community, is brought
    to you by the MySQL team at Oracle. This software is released under
    version 2 of the GNU General Public License (GPLv2), as set forth
    below, with the following additional permissions:
 
-   This distribution of MySQL Shell, part of MySQL 8.4.1 Community, is
+   This distribution of MySQL Shell, part of MySQL 8.4.3 Community, is
    designed to work with certain software (including but not limited to
    OpenSSL) that is licensed under separate terms, as designated in a
    particular file or component or in the license documentation. Without
@@ -3240,21 +3240,22 @@ without it.
 Copyright (c) 2016, 2022, Oracle and/or its affiliates.  All rights reserved.
 
 This software is dual-licensed to you under the Universal Permissive License
-(UPL) 1.0 or Apache License 2.0.  See below for license terms.  You may choose
-either license.
- ____________________________
+(UPL) 1.0 or Apache License 2.0.  See below for license terms.
+You may choose either license.
+____________________________
 The Universal Permissive License (UPL), Version 1.0
 Copyright (c) 2016, 2022, Oracle and/or its affiliates.  All rights reserved.
 
 The Universal Permissive License (UPL), Version 1.0
 
-Subject to the condition set forth below, permission is hereby granted to any
-person obtaining a copy of this software, associated documentation and/or
-data (collectively the "Software"), free of charge and under any and all
-copyright rights in the Software, and any and all patent rights owned or
-freely licensable by each licensor hereunder covering either (i) the
-unmodified Software as contributed to or provided by such licensor, or (ii)
-the Larger Works (as defined below), to deal in both
+Subject to the condition set forth below, permission is hereby granted
+to any person obtaining a copy of this software, associated
+documentation and/or data (collectively the "Software"), free of charge
+and under any and all copyright rights in the Software, and any and all
+patent rights owned or freely licensable by each licensor hereunder
+covering either (i) the unmodified Software as contributed to or
+provided by such licensor, or (ii) the Larger Works (as defined below),
+to deal in both
 
 (a) the Software, and
 (b) any piece of software and/or hardware listed in the lrgrwrks.txt
@@ -3272,29 +3273,32 @@ The above copyright notice and either this complete permission notice or
 at a minimum a reference to the UPL must be included in all copies or
 substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ____________________________
 
 The Apache Software License, Version 2.0
-Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 2016, 2018, Oracle and/or its affiliates.  All rights reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License"); You may
 not use this product except in compliance with the License. You may
 obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0. A copy of the license is
-also reproduced below. Unless required by applicable law or agreed to in
-writing, software distributed under the License is distributed on an "AS
-IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
-or implied. See the License for the specific language governing
-permissions and limitations under the License.
+http://www.apache.org/licenses/LICENSE-2.0
+A copy of the license is also reproduced below. Unless required by
+applicable law or agreed to in writing, software distributed under the
+License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for
+the specific language governing permissions and limitations under the
+License.
 
 Apache License
+
+Version 2.0, January 2004
 
 Version 2.0, January 2004
 For the text of the Apache License v2.0, January 2004
@@ -3313,7 +3317,6 @@ OCI toolkit for Python Third Party License File
 - PSF License
 - OpenSSL License
 - Original SSLeay License
-
 -------------------------------- Notices -------------------------------
 Requests
 Copyright 2019 Kenneth Reitz
@@ -3499,9 +3502,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ------------------------ BSD-3-Clause New License ----------------------
 
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are
-met:
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
 
 1. Redistributions of source code must retain the above copyright
 notice, this list of conditions and the following disclaimer.
@@ -3544,7 +3546,7 @@ Just configure this file as the SSLCACertificateFile.#
 ***** BEGIN LICENSE BLOCK *****
 This Source Code Form is subject to the terms of the Mozilla Public License,
 v. 2.0. If a copy of the MPL was not distributed with this file, You can obtain
-one at http://mozilla.org/MPL/2.0/.
+one at http://mozilla.org/MPL/2.0/
 
 ***** END LICENSE BLOCK *****
 @(#) $RCSfile: certdata.txt,v $ $Revision: 1.80 $ $Date: 2011/11/03 15:11:58 $
@@ -3572,53 +3574,50 @@ For the text of the GNU Lesser General Public License v2.1, February 1999
 See the 'Standard Licenses' section.
 
 ------------------ PYTHON SOFTWARE FOUNDATION LICENSE ------------------
-1. This LICENSE AGREEMENT is between the Python Software Foundation ("PSF"), and
-   the Individual or Organization ("Licensee") accessing and otherwise using Pyt
-hon
-   2.7.12 software in source or binary form and its associated documentation.
+1. This LICENSE AGREEMENT is between the Python Software Foundation
+("PSF"), and the Individual or Organization ("Licensee") accessing and
+otherwise using Python 2.7.12 software in source or binary form and its
+associated documentation.
 
-2. Subject to the terms and conditions of this License Agreement, PSF hereby
-   grants Licensee a nonexclusive, royalty-free, world-wide license to reproduce
-,
-   analyze, test, perform and/or display publicly, prepare derivative works,
-   distribute, and otherwise use Python 2.7.12 alone or in any derivative
-   version, provided, however, that PSF's License Agreement and PSF's notice of
-   copyright, i.e., "Copyright (c) 2001-2016 Python Software Foundation; All Rig
-hts
-   Reserved" are retained in Python 2.7.12 alone or in any derivative version
-   prepared by Licensee.
+2. Subject to the terms and conditions of this License Agreement, PSF
+hereby grants Licensee a nonexclusive, royalty-free, world-wide license
+to reproduce, analyze, test, perform and/or display publicly, prepare
+derivative works, distribute, and otherwise use Python 2.7.12 alone or
+in any derivative version, provided, however, that PSF's License
+Agreement and PSF's notice of copyright, i.e., "Copyright (c) 2001-2016
+Python Software Foundation; All Rights Reserved" are retained in Python
+2.7.12 alone or in any derivative version prepared by Licensee.
 
 3. In the event Licensee prepares a derivative work that is based on or
-   incorporates Python 2.7.12 or any part thereof, and wants to make the
-   derivative work available to others as provided herein, then Licensee hereby
-   agrees to include in any such work a brief summary of the changes made to Pyt
-hon
-   2.7.12.
+incorporates Python 2.7.12 or any part thereof, and wants to make the
+derivative work available to others as provided herein, then Licensee
+hereby agrees to include in any such work a brief summary of the changes
+made to Python 2.7.12.
 
-4. PSF is making Python 2.7.12 available to Licensee on an "AS IS" basis.
-   PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.  BY WAY OF
-   EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY REPRESENTATION OR
-   WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE
-   USE OF PYTHON 2.7.12 WILL NOT INFRINGE ANY THIRD PARTY RIGHTS.
+4. PSF is making Python 2.7.12 available to Licensee on an "AS IS"
+basis. PSF MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
+BY WAY OF EXAMPLE, BUT NOT LIMITATION, PSF MAKES NO AND DISCLAIMS ANY
+REPRESENTATION OR WARRANTY OF MERCHANTABILITY OR FITNESS FOR ANY
+PARTICULAR PURPOSE OR THAT THE USE OF PYTHON 2.7.12 WILL NOT INFRINGE
+ANY THIRD PARTY RIGHTS.
 
-5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON 2.7.12
-   FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS A RESULT OF
-   MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 2.7.12, OR ANY DERIVATIVE
-   THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
+5. PSF SHALL NOT BE LIABLE TO LICENSEE OR ANY OTHER USERS OF PYTHON
+2.7.12 FOR ANY INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES OR LOSS AS
+A RESULT OF MODIFYING, DISTRIBUTING, OR OTHERWISE USING PYTHON 2.7.12,
+OR ANY DERIVATIVE THEREOF, EVEN IF ADVISED OF THE POSSIBILITY THEREOF.
 
-6. This License Agreement will automatically terminate upon a material breach of
-   its terms and conditions.
+6. This License Agreement will automatically terminate upon a material
+breach of its terms and conditions.
 
-7. Nothing in this License Agreement shall be deemed to create any relationship
-   of agency, partnership, or joint venture between PSF and Licensee.  This Lice
-nse
-   Agreement does not grant permission to use PSF trademarks or trade name in a
-   trademark sense to endorse or promote products or services of Licensee, or an
-y
-   third party.
+7. Nothing in this License Agreement shall be deemed to create any
+relationship of agency, partnership, or joint venture between PSF and
+Licensee. This License Agreement does not grant permission to use PSF
+trademarks or trade name in a trademark sense to endorse or promote
+products or services of Licensee, or any third party.
 
-8. By copying, installing or otherwise using Python 2.7.12, Licensee agrees
-   to be bound by the terms and conditions of this License Agreement.
+8. By copying, installing or otherwise using Python 2.7.12, Licensee
+agrees to be bound by the terms and conditions of this License
+Agreement.
 ------------------------------------------------------------------------
 
 OpenSSL License
@@ -3642,7 +3641,8 @@ OpenSSL License
  * 3. All advertising materials mentioning features or use of this
  *    software must display the following acknowledgment:
  *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit. (http://www.openssl.org/)"
+ *    for use in the OpenSSL Toolkit. (http://www.openssl.org/
+
  *
  * 4. The names "OpenSSL Toolkit" and "OpenSSL Project" must not be used to
  *    endorse or promote products derived from this software without
@@ -3656,7 +3656,8 @@ OpenSSL License
  * 6. Redistributions of any form whatsoever must retain the following
  *    acknowledgment:
  *    "This product includes software developed by the OpenSSL Project
- *    for use in the OpenSSL Toolkit (http://www.openssl.org/)"
+ *    for use in the OpenSSL Toolkit (http://www.openssl.org/
+
  *
  * THIS SOFTWARE IS PROVIDED BY THE OpenSSL PROJECT ``AS IS'' AND ANY
  * EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
@@ -5605,6 +5606,29 @@ Copyright (c) 2014-present, Facebook, Inc.
    ======================================================================
    ======================================================================
 
+Setuptools
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to
+deal in the Software without restriction, including without limitation the
+rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+IN THE SOFTWARE.
+
+   ======================================================================
+   ======================================================================
+
 tabulator-tables
 
 Copyright (c) 2015-2022 Oli Folkerd
@@ -5919,6 +5943,41 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 V8
 
+This license applies to all parts of V8 that are not externally
+maintained libraries.  The externally maintained libraries used by V8
+are:
+
+  - PCRE test suite, located in
+    test/mjsunit/third_party/regexp-pcre/regexp-pcre.js.  This is based on the
+    test suite from PCRE-7.3, which is copyrighted by the University
+    of Cambridge and Google, Inc.  The copyright notice and license
+    are embedded in regexp-pcre.js.
+
+  - Layout tests, located in test/mjsunit/third_party/object-keys.  These are
+    based on layout tests from webkit.org which are copyrighted by
+    Apple Computer, Inc. and released under a 3-clause BSD license.
+
+  - Strongtalk assembler, the basis of the files assembler-arm-inl.h,
+    assembler-arm.cc, assembler-arm.h, assembler-ia32-inl.h,
+    assembler-ia32.cc, assembler-ia32.h, assembler-x64-inl.h,
+    assembler-x64.cc, assembler-x64.h, assembler.cc and assembler.h.
+    This code is copyrighted by Sun Microsystems Inc. and released
+    under a 3-clause BSD license.
+
+  - Valgrind client API header, located at src/third_party/valgrind/valgrind.h
+    This is released under the BSD license.
+
+  - The Wasm C/C++ API headers, located at third_party/wasm-api/wasm.{h,hh}
+    This is released under the Apache license. The API's upstream prototype
+    implementation also formed the basis of V8's implementation in
+    src/wasm/c-api.cc.
+
+These libraries have their own licenses; we recommend you read them,
+as their terms may differ from the terms below.
+
+Further license information can be found in LICENSE files located in
+sub-directories.
+
 Copyright 2014, the V8 project authors. All rights reserved.
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are
@@ -5946,11 +6005,99 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-Additional files Used by V8
-V8 has dependencies on trace_event_common.h:
-Copyright 2015 The Chromium Authors. All rights reserved.
-Use of this source code is governed by a BSD-style license that can be
-found in the LICENSE file.
+
+LICENSE.fdlibm
+--------------
+Copyright (C) 1993-2004 by Sun Microsystems, Inc. All rights reserved.
+
+Developed at SunSoft, a Sun Microsystems, Inc. business.
+Permission to use, copy, modify, and distribute this
+software is freely granted, provided that this notice
+is preserved.
+
+
+LICENSE.strongtalk
+------------------
+Copyright (c) 1994-2006 Sun Microsystems Inc.
+All Rights Reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+- Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+- Redistribution in binary form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+- Neither the name of Sun Microsystems or the names of contributors may
+be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+=== External 4th party used in the MySQL use case
+
+Zlib
+
+LICENSE file
+------------
+=== License file has wrong version number
+version 1.2.12, March 27th, 2022
+
+Copyright (C) 1995-2022 Jean-loup Gailly and Mark Adler
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the authors be held liable for any damages
+arising from the use of this software.
+
+Permission is granted to anyone to use this software for any purpose,
+including commercial applications, and to alter it and redistribute it
+freely, subject to the following restrictions:
+
+1. The origin of this software must not be misrepresented; you must not
+   claim that you wrote the original software. If you use this software
+   in a product, an acknowledgment in the product documentation would be
+   appreciated but is not required.
+2. Altered source versions must be plainly marked as such, and must not be
+   misrepresented as being the original software.
+3. This notice may not be removed or altered from any source distribution.
+
+==========================================================================
+trace_event_common.h
+== No LICENSE file provided
+
+// Copyright 2015 The Chromium Authors
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+
+==========================================================================
+abseil-cpp
+
+LICENSE file
+------------
+
+                                 Apache License
+                           Version 2.0, January 2004
+                        https://www.apache.org/licenses/
+
+A copy of the Apache License v2.0, January 2004 license can be found
+in the 'Standard Licenses' section.
+=======================================================================
 
    ======================================================================
    ======================================================================
