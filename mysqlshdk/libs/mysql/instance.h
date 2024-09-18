@@ -64,6 +64,7 @@ struct Auth_options {
   std::string user;
   std::optional<std::string> password;
   db::Ssl_options ssl_options;
+  std::optional<std::string> openid_token;
 
   Auth_options() = default;
   Auth_options(std::string user_, std::string password_) noexcept

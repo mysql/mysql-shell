@@ -178,6 +178,20 @@ void Connection_options::set_login_options_from(
     m_ssl_options.set_tls_version(ssl.get_tls_version());
   if (ssl.has_tls_ciphersuites())
     m_ssl_options.set_tls_ciphersuites(ssl.get_tls_ciphersuites());
+
+  if (options.is_auth_method(kAuthMethodOpenIdConnect)) {
+    if (has(kAuthMethod)) {
+      remove(kAuthMethod);
+    }
+    set(kAuthMethod, kAuthMethodOpenIdConnect);
+    if (options.has(kOpenIdConnectAuthenticationClientTokenFile)) {
+      if (has(kOpenIdConnectAuthenticationClientTokenFile)) {
+        remove(kOpenIdConnectAuthenticationClientTokenFile);
+      }
+      set(kOpenIdConnectAuthenticationClientTokenFile,
+          options.get(kOpenIdConnectAuthenticationClientTokenFile));
+    }
+  }
 }
 
 void Connection_options::set_ssl_options(const Ssl_options &options) {
@@ -477,6 +491,10 @@ void Connection_options::set(const std::string &name,
                                "values: true, false, 1, 0.",
                                value.c_str(), name.c_str()));
       }
+    }
+    if (name == kOpenIdConnectAuthenticationClientTokenFile &&
+        !has_value(kAuthMethod)) {
+      set(kAuthMethod, kAuthMethodOpenIdConnect);
     }
 
     m_extra_options.set(name, value, Set_mode::CREATE);
