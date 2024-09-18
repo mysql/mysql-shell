@@ -357,8 +357,11 @@ Shell_options::Shell_options(
     (cmdline("--authentication-openid-connect-client-id-token-file=<path>"),
       "Allows defining the file path to an OpenId Connect authorization token file when using OpenId Connect authentication",
       [this](const std::string&, const char* value){
-        storage.connection_data.set(mysqlshdk::db::kOpenIdConnectAuthenticationClientTokenFile, value);
+        if (storage.connection_data.has_value(mysqlshdk::db::kAuthMethod)) {
+          storage.connection_data.remove(mysqlshdk::db::kAuthMethod);
+        }
         storage.connection_data.set(mysqlshdk::db::kAuthMethod, mysqlshdk::db::kAuthMethodOpenIdConnect);
+        storage.connection_data.set(mysqlshdk::db::kOpenIdConnectAuthenticationClientTokenFile, value);
       });
 
   add_startup_options(true)
@@ -851,6 +854,9 @@ Shell_options::Shell_options(
         "In case of X protocol session, it should be one of: AUTO, "
         "FROM_CAPABILITIES, FALLBACK, MYSQL41, PLAIN, SHA256_MEMORY.",
         [this](const std::string&, const char* value) {
+          if (storage.connection_data.has_value(mysqlshdk::db::kAuthMethod)) {
+            storage.connection_data.remove(mysqlshdk::db::kAuthMethod);
+          }
           storage.connection_data.set(mysqlshdk::db::kAuthMethod, value);
         })
     (cmdline("--disable-plugins"), "Diable loading user plugins.",

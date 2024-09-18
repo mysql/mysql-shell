@@ -220,16 +220,8 @@ void Set_instance_option::prepare() {
   // Get instance login information from the cluster session if missing.
   if (!m_instance_cnx_opts.has_user() || !m_instance_cnx_opts.has_password()) {
     std::shared_ptr<Instance> cluster_instance = m_cluster.get_cluster_server();
-    Connection_options cluster_cnx_opt =
-        cluster_instance->get_connection_options();
-
-    if (!m_instance_cnx_opts.has_user() && cluster_cnx_opt.has_user()) {
-      m_instance_cnx_opts.set_user(cluster_cnx_opt.get_user());
-    }
-
-    if (!m_instance_cnx_opts.has_password() && cluster_cnx_opt.has_password()) {
-      m_instance_cnx_opts.set_password(cluster_cnx_opt.get_password());
-    }
+    m_instance_cnx_opts.set_login_options_from(
+        cluster_instance->get_connection_options());
   }
 
   // Verify if the target cluster member is ONLINE
