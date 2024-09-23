@@ -288,6 +288,10 @@ PyTypeObject PyShMethodObjectType = {
     ,
     0  // tp_watched
 #endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
+#endif
 };
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
@@ -732,6 +736,10 @@ PyTypeObject PyShObjObjectType = {
     ,
     0  // tp_watched
 #endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
+#endif
 };
 
 PyTypeObject PyShObjIndexedObjectType = {
@@ -830,6 +838,10 @@ PyTypeObject PyShObjIndexedObjectType = {
 #if PY_VERSION_HEX >= 0x030C0000
     ,
     0  // tp_watched
+#endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
 #endif
 };
 

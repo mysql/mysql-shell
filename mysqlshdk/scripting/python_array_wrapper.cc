@@ -508,6 +508,10 @@ static PyTypeObject Array_object_type = {
     ,
     0  // tp_watched
 #endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
+#endif
 };
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
@@ -677,6 +681,10 @@ static PyTypeObject Array_object_iterator_type = {
     ,
     0  // tp_watched
 #endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
+#endif
 };
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
@@ -828,6 +836,10 @@ static PyTypeObject Array_object_reverse_iterator_type = {
 #if PY_VERSION_HEX >= 0x030C0000
     ,
     0  // tp_watched
+#endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
 #endif
 };
 
@@ -1756,7 +1768,25 @@ int ao_init(Array_object *self, PyObject *args, PyObject *kw) {
     return -1;
   }
 
-  if (!_PyArg_NoKeywords("List", kw)) {
+  static constexpr auto expect_no_keywords = [](PyObject *kwargs) {
+    if (!kwargs) {
+      return true;
+    }
+
+    if (!PyDict_CheckExact(kwargs)) {
+      PyErr_BadInternalCall();
+      return false;
+    }
+
+    if (0 == PyDict_GET_SIZE(kwargs)) {
+      return true;
+    }
+
+    PyErr_SetString(PyExc_TypeError, "List() takes no keyword arguments");
+    return false;
+  };
+
+  if (!expect_no_keywords(kw)) {
     return -1;
   }
 

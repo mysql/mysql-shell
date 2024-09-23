@@ -72,8 +72,10 @@ using Reverse_iterator = Iterator_base<Map_reverse_iterator>;
 ////////////////////////////////////////////////////////////////////////////////
 
 struct View {
-  _PyDictViewObject base;
+  // clang-format off
+  PyObject_HEAD
   py::Store o;
+  // clang-format on
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -379,6 +381,10 @@ PyTypeObject Type = {
 #if PY_VERSION_HEX >= 0x030C0000
     ,
     0  // tp_watched
+#endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
 #endif
 };
 
@@ -866,6 +872,10 @@ PyTypeObject Type = {
     ,
     0  // tp_watched
 #endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
+#endif
 };
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
@@ -1058,6 +1068,10 @@ PyTypeObject Type = {
 #if PY_VERSION_HEX >= 0x030C0000
     ,
     0  // tp_watched
+#endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
 #endif
 };
 
@@ -1254,6 +1268,10 @@ PyTypeObject Type = {
 #if PY_VERSION_HEX >= 0x030C0000
     ,
     0  // tp_watched
+#endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
 #endif
 };
 
