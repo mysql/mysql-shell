@@ -660,7 +660,7 @@ EXPECT_EQ('{"one": 1, "three": 3, "two": 2}', actual.__str__())
 
 #@<> __subclasshook__
 # __subclasshook__ comes from the object class
-EXPECT_EQ(NotImplemented, shdict.__subclasshook__())
+EXPECT_EQ(NotImplemented, shdict.__subclasshook__(None))
 
 #@<> clear
 SETUP("clear")
@@ -1345,7 +1345,7 @@ TEST_OP(set([('four', 4)]))
 #@<> items - __subclasshook__
 SETUP_VIEW("items", "__subclasshook__")
 # __subclasshook__ comes from the object class
-EXPECT_EQ(NotImplemented, actual.__class__.__subclasshook__())
+EXPECT_EQ(NotImplemented, actual.__class__.__subclasshook__(None))
 
 #@<> items - __xor__
 SETUP_VIEW("items", "__xor__")
@@ -2005,7 +2005,7 @@ TEST_OP(set(['four']))
 #@<> keys - __subclasshook__
 SETUP_VIEW("keys", "__subclasshook__")
 # __subclasshook__ comes from the object class
-EXPECT_EQ(NotImplemented, actual.__class__.__subclasshook__())
+EXPECT_EQ(NotImplemented, actual.__class__.__subclasshook__(None))
 
 #@<> keys - __xor__
 SETUP_VIEW("keys", "__xor__")
@@ -2481,7 +2481,7 @@ EXPECT_EQ("Dict_values([1, 3, 2])", actual.__str__())
 #@<> values - __subclasshook__
 SETUP_VIEW("values", "__subclasshook__")
 # __subclasshook__ comes from the object class
-EXPECT_EQ(NotImplemented, actual.__class__.__subclasshook__())
+EXPECT_EQ(NotImplemented, actual.__class__.__subclasshook__(None))
 
 #@<> values - mapping {sys.hexversion >= 0x030A0000}
 SETUP_VIEW("values", "mapping")
