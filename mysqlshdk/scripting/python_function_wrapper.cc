@@ -197,6 +197,10 @@ PyTypeObject PyShFuncObjectType = {
     ,
     0  // tp_watched
 #endif
+#if PY_VERSION_HEX >= 0x030D0000
+    ,
+    0  // tp_versions_used
+#endif
 };
 
 #if PY_VERSION_HEX >= 0x03080000 && PY_VERSION_HEX < 0x03090000
