@@ -220,14 +220,14 @@ def sample(data):
 
 sample("some text"
 )*",
-       "{\"error\":\"SyntaxError\"}"},
+       "{\"error\":\"SyntaxError"},
       {R"*(
 def sample(data):
   print(data)
 
 sample("some text)
 )*",
-       "\"error\":\"SyntaxError\"}"}};
+       "\"error\":\"SyntaxError"}};
 
   for (const auto &input : invalid_inputs) {
     shcore::JSON_dumper doc;
