@@ -367,8 +367,8 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                     # Use dict comprehension syntax compatible with Python 2.6:
                     # inline_prefixes = {p: -1 for p in
                     #                    self._inline_comment_prefixes}
-                    inline_prefixes = dict(
-                        (p, -1) for p in self._inline_comment_prefixes)
+                    inline_prefixes = self._inline_comment_prefixes if hasattr(self, '_inline_comment_prefixes') else self._prefixes.inline
+                    inline_prefixes = dict((p, -1) for p in inline_prefixes)
                     while comment_start == sys.maxsize and inline_prefixes:
                         next_prefixes = {}
                         for prefix, index in inline_prefixes.items():
@@ -381,7 +381,8 @@ class MySQLOptionsParser(object):  # pylint: disable=R0901
                                 comment_start = min(comment_start, index)
                         inline_prefixes = next_prefixes
                     # strip full line comments
-                    for prefix in self._comment_prefixes:
+                    comment_prefixes = self._comment_prefixes if hasattr(self, '_comment_prefixes') else self._prefixes.full
+                    for prefix in comment_prefixes:
                         if line.strip().startswith(prefix):
                             comment_start = 0
                             break
