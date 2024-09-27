@@ -27,80 +27,99 @@
 #define MYSQLSHDK_INCLUDE_SHELLCORE_INTERRUPT_HANDLER_H_
 
 #include <atomic>
-#include <exception>
+#include <cstdint>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <thread>
 
 #include "mysqlshdk/include/shellcore/sigint_event.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 
 namespace shcore {
+
+class Interrupts;
 
 class Interrupt_helper {
  public:
   virtual ~Interrupt_helper() = default;
-  virtual void setup() = 0;
-  virtual void block() = 0;
-  virtual void unblock(bool clean_pending) = 0;
+  virtual void setup(Interrupts *) = 0;
 };
 
 class Interrupts final {
-  // Max number of SIGINT handlers to allow at a time in the stack
-  static constexpr int k_max_interrupt_handlers = 8;
-
  public:
   static std::shared_ptr<Interrupts> create(Interrupt_helper *helper);
-  void setup();
 
-  bool in_creator_thread();
-
-  void push_handler(const std::function<bool()> &handler);
-  void pop_handler();
-
-  void set_propagate_interrupt(bool flag);
-  bool propagates_interrupt();
-
-  void block();
-  void unblock(bool clear_pending = false);
+  ~Interrupts();
 
   void interrupt();
 
   void wait(uint32_t ms);
 
  private:
+  friend class Interrupt_handler;
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Interrupt, basics);
+#endif
+
+  class Lock_guard;
+
   explicit Interrupts(Interrupt_helper *helper);
 
+  void push_handler(const std::function<bool()> &signal_safe,
+                    const std::function<void()> &signal_unsafe);
+  void pop_handler();
+
+  bool in_creator_thread() const;
+
+  void setup();
+
+  void lock() noexcept;
+  bool try_lock() noexcept;
+  void unlock() noexcept;
+
+  void init_thread();
+  void terminate_thread();
+  void background_thread();
+  bool write_to_thread(std::int8_t code);
+
+  // Max number of SIGINT handlers to allow at a time in the stack
+  static constexpr std::uint8_t k_max_interrupt_handlers = 8;
+
   Interrupt_helper *m_helper;
-  std::function<bool()> m_handlers[k_max_interrupt_handlers];
-  int m_num_handlers;
-  std::mutex m_handler_mutex;
-  bool m_propagates_interrupt;
   std::thread::id m_creator_thread_id;
-  Sigint_event s_sigint_event;
+
+  std::function<bool()> m_safe_handlers[k_max_interrupt_handlers];
+  std::function<void()> m_unsafe_handlers[k_max_interrupt_handlers];
+  // this counts the number of handlers in both arrays above
+  std::int8_t m_num_handlers = 0;
+
+  shcore::atomic_flag m_lock;
+
+  Sigint_event m_sigint_event;
+
+  std::thread m_thread;
+  int m_pipe[2] = {0};
 };
 
 std::shared_ptr<Interrupts> current_interrupt(bool allow_empty = false);
-
-struct Block_interrupts {
-  explicit Block_interrupts(bool clear_on_unblock = false)
-      : m_clear_on_unblock(clear_on_unblock) {
-    current_interrupt()->block();
-  }
-
-  ~Block_interrupts() { current_interrupt()->unblock(m_clear_on_unblock); }
-
-  void clear_pending(bool flag = true) { m_clear_on_unblock = flag; }
-
-  bool m_clear_on_unblock;
-};
 
 class Interrupt_handler final {
  public:
   Interrupt_handler() = delete;
 
-  explicit Interrupt_handler(const std::function<bool()> &handler,
-                             bool skip = false);
+  /**
+   * The first callback may only execute async-signal-safe code, i.e. read from
+   * and write to lock-free atomic objects and variables of type `volatile
+   * std::sig_atomic_t`, call async-safe functions (man 7 signal-safety). Note
+   * that std::atomic is not guaranteed to be lock-free (only std::atomic_flag
+   * is, but unfortunately std::atomic_flag::test() is not available in GCC10).
+   *
+   * The second callback may execute any code, it's going to be asynchronously
+   * called once the signal-safe callbacks are done.
+   */
+  explicit Interrupt_handler(const std::function<bool()> &signal_safe,
+                             const std::function<void()> &signal_unsafe = {});
 
   Interrupt_handler(const Interrupt_handler &) = delete;
   Interrupt_handler(Interrupt_handler &&) = delete;
@@ -109,9 +128,6 @@ class Interrupt_handler final {
   Interrupt_handler &operator=(Interrupt_handler &&) = delete;
 
   ~Interrupt_handler();
-
- private:
-  bool m_skip;
 };
 
 }  // namespace shcore

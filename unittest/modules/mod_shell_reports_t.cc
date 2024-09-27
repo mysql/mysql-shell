@@ -74,7 +74,6 @@ class Mock_shell_base_session : public ShellBaseSession {
   MOCK_METHOD0(start_transaction, void());
   MOCK_METHOD0(commit, void());
   MOCK_METHOD0(rollback, void());
-  MOCK_METHOD0(kill_query, void());
   MOCK_CONST_METHOD0(get_core_session, std::shared_ptr<ISession>());
   MOCK_METHOD0(get_shared_this, std::shared_ptr<ShellBaseSession>());
 };

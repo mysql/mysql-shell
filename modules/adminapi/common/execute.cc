@@ -36,7 +36,9 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/textui/progress.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -1130,12 +1132,12 @@ std::vector<shcore::Value> Execute::execute_parallel(
     uint64_t conn_id;
   };
   Scheduler scheduler;
-  std::atomic<bool> canceled{false};
+  shcore::atomic_flag canceled;
   std::mutex mutex_instances;
   std::vector<Instance_data> instances_cancel;
 
-  shcore::Interrupt_handler handler([&]() {
-    canceled = true;
+  shcore::Interrupt_handler handler([&canceled]() {
+    canceled.test_and_set();
     return false;
   });
 
@@ -1153,7 +1155,7 @@ std::vector<shcore::Value> Execute::execute_parallel(
           std::lock_guard l(mutex_instances);
           if (result.size() == instances.size()) break;
 
-          if (canceled && !std::exchange(cancel_done, true)) {
+          if (canceled.test() && !std::exchange(cancel_done, true)) {
             for (const auto &i : instances_cancel)
               cancel_query(i.address, i.conn_options, i.conn_id);
 
@@ -1166,7 +1168,7 @@ std::vector<shcore::Value> Execute::execute_parallel(
       }
 
       if (spinner.has_value())
-        spinner->done(canceled ? "canceled." : "finished.");
+        spinner->done(canceled.test() ? "canceled." : "finished.");
     });
   }
 
@@ -1228,7 +1230,7 @@ std::vector<shcore::Value> Execute::execute_parallel(
         }
 
         shcore::Value res;
-        if (canceled)
+        if (canceled.test())
           res = gen_output_canceled(i->descr(), i_data.label);
         else
           res = execute_query(i, i_data.label, cmd);
@@ -1251,7 +1253,7 @@ std::vector<shcore::Value> Execute::execute_parallel(
   // spawn threads to execute tasks
   scheduler.spawn_threads(num_threads);
 
-  DBUG_EXECUTE_IF("execute_cancel", { canceled = true; });
+  DBUG_EXECUTE_IF("execute_cancel", { canceled.test_and_set(); });
 
   scheduler.wait_all();  // waits for current tasks to finish
   scheduler.finish();    // informs scheduler to exit and blocks until it does

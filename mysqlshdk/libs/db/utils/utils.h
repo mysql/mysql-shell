@@ -26,10 +26,13 @@
 #ifndef MYSQLSHDK_LIBS_DB_UTILS_UTILS_H_
 #define MYSQLSHDK_LIBS_DB_UTILS_UTILS_H_
 
+#include <memory>
 #include <ostream>
 #include <string>
+
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/row.h"
+#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 namespace mysqlshdk {
@@ -46,6 +49,13 @@ inline std::ostream &operator<<(std::ostream &s, const IRow &row) {
 }
 
 void feed_field(shcore::sqlstring *sql, const IRow &row, uint32_t field);
+
+/**
+ * Kills any pending query for the given session.
+ *
+ * @param session Session which executes a query.
+ */
+void kill_query(const std::weak_ptr<ISession> &session);
 
 }  // namespace db
 }  // namespace mysqlshdk

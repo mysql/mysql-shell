@@ -36,6 +36,7 @@
 #include "mysqlsh/history.h"
 #include "mysqlsh/mysql_shell.h"
 #include "mysqlsh/prompt_manager.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/syslog.h"
 #include "mysqlshdk/shellcore/shell_prompt_options.h"
@@ -87,7 +88,7 @@ class Command_line_shell : public Mysql_shell,
 
  private:
   void handle_interrupt();
-  bool _interrupted = false;
+  shcore::atomic_flag _interrupted;
 
  protected:
   void pause_history(bool flag);

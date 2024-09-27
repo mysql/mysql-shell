@@ -37,6 +37,7 @@
 #include "modules/util/dump/progress_thread.h"
 #include "modules/util/import_table/chunk_file.h"
 #include "modules/util/import_table/import_table_options.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 #include "modules/util/import_table/import_stats.h"
@@ -62,7 +63,13 @@ class Import_table final {
 
   ~Import_table();
 
-  void interrupt(volatile bool *interrupt) { m_interrupt = interrupt; }
+  void setup_interrupt(shcore::atomic_flag *interrupt) {
+    m_interrupt = interrupt;
+  }
+
+  inline bool interrupted() const {
+    return (m_interrupt && m_interrupt->test()) || any_exception();
+  }
 
   void import();
   bool any_exception() const;
@@ -79,10 +86,6 @@ class Import_table final {
   void progress_setup();
   void progress_shutdown();
   void scan_file();
-
-  inline bool interrupted() const {
-    return (m_interrupt && *m_interrupt) || any_exception();
-  }
 
   std::atomic<size_t> m_prog_sent_bytes{0};
   std::atomic<size_t> m_prog_file_bytes{0};
@@ -101,7 +104,7 @@ class Import_table final {
   uint64_t m_skip_rows_count;
   Stats m_stats;
 
-  volatile bool *m_interrupt;
+  shcore::atomic_flag *m_interrupt;
   std::vector<std::thread> m_threads;
   std::vector<std::exception_ptr> m_thread_exception;
 

@@ -28,28 +28,23 @@
 
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 
-#ifdef _WIN32
-class Interrupt_windows_helper {
-  std::thread m_scoped_thread;
+namespace shcore {
 
+class Signal_interrupt_helper : public Interrupt_helper {
  public:
-  Interrupt_windows_helper();
-  Interrupt_windows_helper(const Interrupt_windows_helper &) = delete;
-  Interrupt_windows_helper(Interrupt_windows_helper &&) = delete;
-  Interrupt_windows_helper &operator=(const Interrupt_windows_helper &) =
-      delete;
-  Interrupt_windows_helper &operator=(Interrupt_windows_helper &&) = delete;
-  ~Interrupt_windows_helper();
+  Signal_interrupt_helper() = default;
+
+  Signal_interrupt_helper(const Signal_interrupt_helper &) = delete;
+  Signal_interrupt_helper(Signal_interrupt_helper &&) = delete;
+
+  Signal_interrupt_helper &operator=(const Signal_interrupt_helper &) = delete;
+  Signal_interrupt_helper &operator=(Signal_interrupt_helper &&) = delete;
+
+  ~Signal_interrupt_helper() override = default;
+
+  void setup(Interrupts *) override;
 };
-#endif
 
-class Interrupt_helper : public shcore::Interrupt_helper {
- public:
-  void setup() override;
-
-  void block() override;
-
-  void unblock(bool) override;
-};
+}  // namespace shcore
 
 #endif  // MYSQLSHDK_INCLUDE_SHELLCORE_INTERRUPT_HELPER_H_

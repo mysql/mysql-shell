@@ -528,7 +528,7 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
   std::string output;
   size_t total_count = 0;
   shcore::Interrupt_handler intr([this]() {
-    m_cancelled = true;
+    m_cancelled.test_and_set();
     return true;
   });
 
@@ -590,9 +590,9 @@ size_t Resultset_dumper::dump(const std::string &item_label, bool is_query,
       // Prints the warnings if there were any
       if (warning_count && m_show_warnings) dump_warnings();
     }
-  } while (m_result->next_resultset() && !m_cancelled);
+  } while (m_result->next_resultset() && !m_cancelled.test());
 
-  if (m_cancelled) {
+  if (m_cancelled.test()) {
     m_printer->println(
         "Result printing interrupted, rows may be missing from the output.");
   } else if (!wrapping_json) {
@@ -727,7 +727,7 @@ size_t Resultset_dumper_base::dump_tabbed() {
   }
 
   // Now prints the records
-  while (row && !m_cancelled) {
+  while (row && !m_cancelled.test()) {
     for (size_t field_index = 0; field_index < field_count; field_index++) {
       auto column = metadata[field_index];
       if (fmt[field_index].put(row, field_index)) {
@@ -768,7 +768,7 @@ size_t Resultset_dumper_base::format_vertical(bool has_header, bool align_right,
 
   auto row = m_result->fetch_one();
   size_t row_index = 0;
-  while (row && !m_cancelled) {
+  while (row && !m_cancelled.test()) {
     if (has_header) {
       std::string row_header = star_separator + " " +
                                std::to_string(row_index + 1) + ". row " +
@@ -928,7 +928,7 @@ size_t Resultset_dumper_base::dump_table() {
   pre_fetched_rows.reserve(k_pre_fetch_result_rows);
   {
     auto row = m_result->fetch_one();
-    while (row && !m_cancelled) {
+    while (row && !m_cancelled.test()) {
       pre_fetched_rows.emplace_back(*row);
 
       for (size_t field_index = 0; field_index < field_count; field_index++) {
@@ -940,7 +940,7 @@ size_t Resultset_dumper_base::dump_table() {
       row = m_result->fetch_one();
     }
   }
-  if (m_cancelled || pre_fetched_rows.empty()) return 0;
+  if (m_cancelled.test() || pre_fetched_rows.empty()) return 0;
 
   //-----------
 
@@ -990,12 +990,12 @@ size_t Resultset_dumper_base::dump_table() {
     }
     m_printer->print(" |\n");
 
-    if (m_cancelled) break;
+    if (m_cancelled.test()) break;
   }
   // Now prints the remaining records
-  if (!m_cancelled) {
+  if (!m_cancelled.test()) {
     auto row = m_result->fetch_one();
-    while (row && !m_cancelled) {
+    while (row && !m_cancelled.test()) {
       ++num_records;
       m_printer->print("| ");
 
@@ -1059,7 +1059,7 @@ int Resultset_dumper::get_warning_and_execution_time_stats(
 
 void Resultset_dumper_base::dump_warnings() {
   auto warning = m_result->fetch_one_warning();
-  while (warning && !m_cancelled) {
+  while (warning && !m_cancelled.test()) {
     std::string type;
     switch (warning->level) {
       case mysqlshdk::db::Warning::Level::Note:

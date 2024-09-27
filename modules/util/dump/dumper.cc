@@ -47,8 +47,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
@@ -711,7 +710,7 @@ class Dumper::Table_worker final {
       while (true) {
         auto work = m_dumper->m_worker_tasks.pop();
 
-        if (m_dumper->m_worker_interrupt) {
+        if (m_dumper->m_worker_interrupt.test()) {
           return;
         }
 
@@ -725,13 +724,13 @@ class Dumper::Table_worker final {
         shcore::on_leave_scope session_releaser(
             [this]() { release_session(); });
 
-        if (m_dumper->m_worker_interrupt) {
+        if (m_dumper->m_worker_interrupt.test()) {
           return;
         }
 
         work.task(this);
 
-        if (m_dumper->m_worker_interrupt) {
+        if (m_dumper->m_worker_interrupt.test()) {
           return;
         }
       }
@@ -828,7 +827,7 @@ class Dumper::Table_worker final {
         controller->start_writing(result->get_metadata(), pre_encoded_columns);
 
         while (const auto row = result->fetch_one()) {
-          if (m_dumper->m_worker_interrupt) {
+          if (m_dumper->m_worker_interrupt.test()) {
             return;
           }
 
@@ -1327,7 +1326,7 @@ class Dumper::Table_worker final {
     bool last_chunk = false;
 
     while (!last_chunk) {
-      if (m_dumper->m_worker_interrupt) {
+      if (m_dumper->m_worker_interrupt.test()) {
         return ranges_count;
       }
 
@@ -1415,7 +1414,7 @@ class Dumper::Table_worker final {
 
       result = query(select + condition + order_by_and_limit + comment);
 
-      if (m_dumper->m_worker_interrupt) {
+      if (m_dumper->m_worker_interrupt.test()) {
         return 0;
       }
 
@@ -1927,21 +1926,26 @@ void Dumper::run() {
     translate_current_exception(m_progress_thread);
   }
 
-  if (m_worker_interrupt) {
+  if (m_worker_interrupt.test()) {
     // m_worker_interrupt is also used to signal exceptions from workers,
     // if we're here, then no exceptions were thrown and user pressed ^C
     throw shcore::cancelled("Interrupted by user");
   }
 }
 
-void Dumper::interrupt() {
-  current_console()->print_warning("Interrupted by user. Canceling...");
-  abort();
+void Dumper::interrupt() { m_worker_interrupt.test_and_set(); }
+
+void Dumper::interruption_notification() {
+  // this method may be called from another thread, make sure we're using a
+  // console that is able to synchronize with the progress that's being
+  // displayed
+  m_progress_thread.console()->print_warning(
+      "Interrupted by user. Canceling...");
 }
 
 void Dumper::abort() {
   emergency_shutdown();
-  kill_query();
+  mysqlshdk::db::kill_query(session());
 }
 
 void Dumper::do_run() {
@@ -1995,7 +1999,7 @@ void Dumper::do_run() {
   shcore::on_leave_scope terminate_session([this]() { close_session(); });
 
   {
-    m_worker_interrupt = false;
+    m_worker_interrupt.clear();
     m_progress_thread.start();
     shcore::on_leave_scope cleanup_progress([this]() { shutdown_progress(); });
     const auto init_stage = m_progress_thread.start_stage("Initializing");
@@ -2011,7 +2015,7 @@ void Dumper::do_run() {
 
       acquire_read_locks();
 
-      if (m_worker_interrupt) {
+      if (m_worker_interrupt.test()) {
         return;
       }
 
@@ -2024,12 +2028,12 @@ void Dumper::do_run() {
       // initialize cache while threads are starting up
       initialize_instance_cache();
 
-      if (m_options.consistent_dump() && !m_worker_interrupt) {
+      if (m_options.consistent_dump() && !m_worker_interrupt.test()) {
         current_console()->print_info("All transactions have been started");
         lock_instance();
       }
 
-      if (!m_worker_interrupt && !m_options.is_export_only() &&
+      if (!m_worker_interrupt.test() && !m_options.is_export_only() &&
           is_gtid_executed_inconsistent()) {
         current_console()->print_warning(
             "The dumped value of gtid_executed is not guaranteed to be "
@@ -2065,7 +2069,7 @@ void Dumper::do_run() {
     create_schema_ddl_tasks();
     create_table_tasks();
 
-    if (!m_worker_interrupt) {
+    if (!m_worker_interrupt.test()) {
       std::string msg;
 
       if (!m_options.is_dry_run()) {
@@ -2105,14 +2109,14 @@ void Dumper::do_run() {
     maybe_push_shutdown_tasks();
     wait_for_all_tasks();
 
-    if (!m_worker_interrupt) {
+    if (!m_worker_interrupt.test()) {
       finalize_dump();
     }
 
     rethrow();
   }
 
-  if (!m_options.is_dry_run() && !m_worker_interrupt) {
+  if (!m_options.is_dry_run() && !m_worker_interrupt.test()) {
     summarize();
   }
 
@@ -2514,7 +2518,7 @@ void Dumper::release_read_locks() const {
     execute("UNLOCK TABLES;");
   }
 
-  if (!m_worker_interrupt) {
+  if (!m_worker_interrupt.test()) {
     // we've been interrupted, we still need to release locks, but don't
     // inform the user
     current_console()->print_info("Global read lock has been released");
@@ -4134,11 +4138,9 @@ void Dumper::rethrow() const {
 }
 
 void Dumper::emergency_shutdown() {
-  m_worker_interrupt = true;
+  m_worker_interrupt.test_and_set();
 
-  const auto workers = m_workers.size();
-
-  if (workers > 0) {
+  if (const auto workers = m_workers.size()) {
     m_worker_tasks.shutdown(workers);
   }
 }
@@ -4297,38 +4299,6 @@ std::string Dumper::get_basename(const std::string &basename) {
 
 bool Dumper::compressed() const {
   return mysqlshdk::storage::Compression::NONE != m_options.compression();
-}
-
-void Dumper::kill_query() const {
-  const auto &s = session();
-
-  if (s) {
-    try {
-      // establish_session() cannot be used here, as it's going to create
-      // interrupt handler of its own
-      const auto &co = s->get_connection_options();
-      std::shared_ptr<mysqlshdk::db::ISession> kill_session;
-
-      switch (co.get_session_type()) {
-        case mysqlsh::SessionType::X:
-          kill_session = mysqlshdk::db::mysqlx::Session::create();
-          break;
-
-        case mysqlsh::SessionType::Classic:
-          kill_session = mysqlshdk::db::mysql::Session::create();
-          break;
-
-        default:
-          throw std::runtime_error("Unsupported session type.");
-      }
-
-      kill_session->connect(co);
-      executef(kill_session, "KILL QUERY ?", s->get_connection_id());
-      kill_session->close();
-    } catch (const std::exception &e) {
-      log_warning("Error canceling SQL query: %s", e.what());
-    }
-  }
 }
 
 std::string Dumper::get_query_comment(const std::string &quoted_name,

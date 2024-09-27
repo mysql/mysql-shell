@@ -54,10 +54,7 @@ void Shell_javascript::handle_input(std::string &code, bool flush) {
   // Undefined to be returned in case of errors
   Value result;
 
-  shcore::Interrupt_handler inth([this]() {
-    abort();
-    return true;
-  });
+  shcore::Interrupt_handler inth([]() { return true; }, [this]() { abort(); });
 
   bool got_error = true;
   if (_owner->interactive())

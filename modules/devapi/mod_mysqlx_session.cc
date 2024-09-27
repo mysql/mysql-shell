@@ -46,9 +46,11 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"  // for options
+#include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -651,7 +653,6 @@ void Session::drop_schema(const std::string &name) {
 std::string Session::db_object_exists(std::string &type,
                                       const std::string &name,
                                       const std::string &owner) {
-  Interruptible intr(this);
   // match must be exact, since both branches below use LIKE and both escape
   // their arguments it's enough to just escape the wildcards
   std::string escaped_name = escape_wildcards(name);
@@ -916,19 +917,6 @@ std::string Session::query_one_string(const std::string &query, int field) {
   return "";
 }
 
-void Session::kill_query() {
-  uint64_t cid = get_connection_id();
-
-  auto session = mysqlshdk::db::mysqlx::Session::create();
-  try {
-    session->connect(_connection_options);
-    const auto query = shcore::sqlstring("kill query ?", 0) << cid;
-    session->query(query.str_view());
-  } catch (const std::exception &e) {
-    log_warning("Error cancelling SQL query: %s", e.what());
-  }
-}
-
 static ::xcl::Argument_value convert(const shcore::Value &value);
 
 static ::xcl::Argument_object convert_map(const shcore::Dictionary_t &args) {
@@ -1021,7 +1009,11 @@ shcore::Value Session::_execute_stmt(const std::string &ns,
 std::shared_ptr<mysqlshdk::db::mysqlx::Result> Session::execute_stmt(
     const std::string &ns, std::string_view command,
     const ::xcl::Argument_array &args) {
-  Interruptible intr(this);
+  shcore::Interrupt_handler intr(
+      []() { return true; },
+      [weak_session = std::weak_ptr{get_core_session()}]() {
+        kill_query(weak_session);
+      });
   auto result = std::static_pointer_cast<mysqlshdk::db::mysqlx::Result>(
       _session->execute_stmt(ns, command, args));
   result->pre_fetch_rows();
@@ -1140,7 +1132,6 @@ std::shared_ptr<SqlResult> Session::run_sql(const std::string sql,
   if (!_session || !_session->is_open())
     throw Exception::logic_error("Not connected.");
 
-  Interruptible intr(this);
   auto sql_execute = std::make_shared<SqlExecute>(
       std::static_pointer_cast<Session>(shared_from_this()));
   sql_execute->set_sql(sql);

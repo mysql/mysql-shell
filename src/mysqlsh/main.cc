@@ -30,6 +30,7 @@
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -44,6 +45,7 @@
 #include <cstdio>
 #include <ctime>
 #include <iostream>
+#include <memory>
 #include <sstream>
 
 #ifdef _WIN32
@@ -617,7 +619,7 @@ int main(int argc, char **argv) {
   // with the main thread id.
   mysqlshdk::utils::in_main_thread();
   int ret_val = 0;
-  Interrupt_helper sighelper;
+  shcore::Signal_interrupt_helper sighelper;
 
   mysqlsh::Scoped_ssh_manager ssh_manager(
       std::make_shared<mysqlshdk::ssh::Ssh_manager>());
@@ -662,12 +664,15 @@ int main(int argc, char **argv) {
   });
 
   try {
-    bool interrupted = false;
+    shcore::atomic_flag interrupted;
+    std::unique_ptr<shcore::Interrupt_handler> intr_handler;
+
     if (!options.interactive) {
-      shcore::current_interrupt()->push_handler([&interrupted]() {
-        interrupted = true;
-        return false;
-      });
+      intr_handler =
+          std::make_unique<shcore::Interrupt_handler>([&interrupted]() {
+            interrupted.test_and_set();
+            return false;
+          });
     }
 
     bool valid_color_capability = detect_color_capability();
@@ -700,10 +705,6 @@ int main(int argc, char **argv) {
         !warning.empty()) {
       mysqlsh::current_console()->print_warning(warning);
     }
-
-#ifdef _WIN32
-    Interrupt_windows_helper whelper;
-#endif
 
     log_debug("Using color mode %i",
               static_cast<int>(mysqlshdk::textui::get_color_capability()));
@@ -891,7 +892,7 @@ int main(int argc, char **argv) {
         ret_val = shell->process_stream(std::cin, "STDIN", {});
       }
     }
-    if (interrupted) {
+    if (interrupted.test()) {
 #ifdef _WIN32
       ret_val = 130;
 #else

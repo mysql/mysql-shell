@@ -28,6 +28,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -42,9 +43,9 @@ bool Command_watch::execute(const std::vector<std::string> &args) {
   } else {
     const auto new_args = parse_arguments(args);
 
-    volatile bool iterrupted = false;
+    shcore::atomic_flag iterrupted;
     shcore::Interrupt_handler inth([&iterrupted]() {
-      iterrupted = true;
+      iterrupted.test_and_set();
       return true;
     });
 
@@ -66,12 +67,12 @@ bool Command_watch::execute(const std::vector<std::string> &args) {
     const auto remove_handler = shcore::on_leave_scope(
         [this]() { current_console()->remove_print_handler(&m_handler); });
 
-    while (!iterrupted) {
+    while (!iterrupted.test()) {
       m_first_line = true;
 
       Command_show::execute(new_args);
 
-      if (!iterrupted) {
+      if (!iterrupted.test()) {
         shcore::sleep_ms(interval);
       }
     }

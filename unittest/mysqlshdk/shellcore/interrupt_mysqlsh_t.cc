@@ -79,37 +79,9 @@ Process_type current_process_type() {
 
 }  // namespace
 
-class Interrupt_tester : public shcore::Interrupt_helper {
- public:
-  void setup() override {
-    setup_ = true;
-    unblocked_ = 1;
-  }
-
-  void block() override {
-    // we're not supposed to get called while we're already blocked
-    unblocked_++;
-  }
-
-  void unblock(bool /* clear_pending */) override { unblocked_--; }
-
-  int unblocked_ = 0;
-  bool setup_ = false;
-};
-
-static Interrupt_tester interrupt_tester;
-
 // The following tests check interruption of the shell in batch mode
-
 class Interrupt_mysqlsh : public tests::Command_line_test {
- public:
-  Interrupt_mysqlsh() {
-    m_current_interrupt = shcore::Interrupts::create(&interrupt_tester);
-  }
-
  protected:
-  std::shared_ptr<shcore::Interrupts> m_current_interrupt;
-
   static void SetUpTestCase() {
     run_script_classic(
         {"drop schema if exists itst;", "create schema if not exists itst;",
@@ -309,7 +281,6 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
   }
 
   void SetUp() override {
-    m_current_interrupt->setup();
     tests::Command_line_test::SetUp();
 
     kill_thread = std::thread();
@@ -563,7 +534,6 @@ TEST_F(Interrupt_mysqlsh, dba_js) {
 //------------------------------------------------------------------------------
 
 TEST_F(Interrupt_mysqlsh, sql_cli) {
-  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // FR8-a-7 FR9-b-7
   kill_on_ready();
 
@@ -580,7 +550,6 @@ TEST_F(Interrupt_mysqlsh, sql_cli) {
 }
 
 TEST_F(Interrupt_mysqlsh, sqlx_cli) {
-  mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // FR8-b-7 FR9-b-7
   kill_on_ready();
 

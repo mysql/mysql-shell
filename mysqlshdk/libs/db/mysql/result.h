@@ -40,6 +40,8 @@
 
 #include <mysql.h>
 
+#include "mysqlshdk/libs/utils/atomic_flag.h"
+
 namespace mysqlshdk {
 namespace db {
 namespace mysql {
@@ -85,7 +87,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   std::deque<mysqlshdk::db::Row_copy> _pre_fetched_rows;
   // size_t _fetched_row_count = 0;
   // size_t _fetched_warning_count = 0;
-  bool _stop_pre_fetch = false;
+  shcore::atomic_flag _stop_pre_fetch;
   bool _pre_fetched = false;
   bool _persistent_pre_fetch = false;
   bool _pre_fetched_clear_at_end = false;

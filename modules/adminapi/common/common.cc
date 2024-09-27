@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <iterator>
 #include <map>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -53,6 +54,7 @@
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/script.h"
 #include "mysqlshdk/libs/textui/progress.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -1800,13 +1802,15 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
                             const std::string &gtid_set,
                             const std::string &channel_name, int timeout,
                             bool cancelable, bool silent) {
-  bool stop = false;
-  shcore::Interrupt_handler intr(
-      [&stop]() {
-        stop = true;
-        return true;
-      },
-      !cancelable);
+  shcore::atomic_flag stop;
+  std::unique_ptr<shcore::Interrupt_handler> intr;
+
+  if (cancelable) {
+    intr = std::make_unique<shcore::Interrupt_handler>([&stop]() {
+      stop.test_and_set();
+      return true;
+    });
+  }
 
   // Get the Progress_reporting style option in use
   const auto update_progress = [](mysqlshdk::textui::Progress_vt100 *bar,
@@ -1913,9 +1917,9 @@ bool wait_for_gtid_set_safe(const mysqlshdk::mysql::IInstance &target_instance,
       }
       break;
     }
-  } while ((timeout == 0 || time_elapsed < timeout) && !stop);
+  } while ((timeout == 0 || time_elapsed < timeout) && !stop.test());
 
-  if (stop) throw cancel_sync();
+  if (stop.test()) throw cancel_sync();
 
   return sync_res;
 }

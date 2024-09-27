@@ -26,9 +26,11 @@
 #include "src/mysqlsh/commands/command_show.h"
 
 #include <algorithm>
+#include <memory>
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 
 namespace mysqlsh {
 
@@ -38,12 +40,16 @@ bool Command_show::execute(const std::vector<std::string> &args) {
     list_reports();
   } else {
     const auto session = _shell->get_dev_session();
-    shcore::Interrupt_handler inth([&session]() {
-      if (session) {
-        session->kill_query();
-      }
-      return true;
-    });
+    std::unique_ptr<shcore::Interrupt_handler> inth;
+
+    if (session) {
+      inth = std::make_unique<shcore::Interrupt_handler>(
+          []() { return true; },
+          [weak_session = std::weak_ptr{session->get_core_session()}]() {
+            mysqlshdk::db::kill_query(weak_session);
+          });
+    }
+
     current_console()->print(m_reports->call_report(
         args[1], session, {args.begin() + 2, args.end()}));
   }

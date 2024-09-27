@@ -29,9 +29,8 @@
 #include <functional>
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
@@ -150,12 +149,13 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
         timer.stage_begin("query");
 
         {
-          shcore::Interrupt_handler interrupt([]() {
-            // query is going to be interrupted by the handler installed by
-            // the session, here we just print the notification
-            mysqlsh::current_console()->print("-- query aborted\n");
-            return true;
-          });
+          shcore::Interrupt_handler interrupt(
+              []() { return true; },
+              []() {
+                // query is going to be interrupted by the handler installed by
+                // the session, here we just print the notification
+                mysqlsh::current_console()->print("-- query aborted\n");
+              });
 
           result = session->execute_sql(query, {}, session->query_attributes(),
                                         true);

@@ -38,6 +38,8 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/utils/atomic_flag.h"
+
 #include "mysqlshdk/libs/db/mysqlx/mysqlxclient_clean.h"
 #include "mysqlshdk/libs/db/mysqlx/row.h"
 #include "mysqlshdk/libs/db/row_copy.h"
@@ -97,7 +99,7 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   /// Tracks the number of rows retrieved by fetch_one before pre_fetch happened
   size_t m_fetched_before_prefetch = 0;
   std::string _info;
-  bool _stop_pre_fetch = false;
+  shcore::atomic_flag _stop_pre_fetch;
   bool _pre_fetched = false;
   bool _persistent_pre_fetch = false;
 };

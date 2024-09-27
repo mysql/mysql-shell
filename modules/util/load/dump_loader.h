@@ -55,6 +55,7 @@
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace mysqlsh {
@@ -78,7 +79,7 @@ class Dump_loader {
 
   void hard_interrupt();
 
-  void abort();
+  void interruption_notification();
 
   void run();
 
@@ -714,8 +715,8 @@ class Dump_loader {
   std::unordered_set<std::string> m_skip_schemas;
   std::unordered_set<std::string> m_skip_tables;
   std::vector<std::exception_ptr> m_thread_exceptions;
-  volatile bool m_worker_hard_interrupt = false;
-  bool m_worker_interrupt = false;
+  shcore::atomic_flag m_worker_hard_interrupt;
+  shcore::atomic_flag m_worker_interrupt;
   bool m_abort = false;
 
   std::string m_character_set;

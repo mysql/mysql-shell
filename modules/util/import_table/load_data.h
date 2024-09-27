@@ -42,6 +42,7 @@
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
@@ -139,7 +140,8 @@ struct File_info {
   std::atomic<size_t>
       *prog_data_bytes;  //< Cumulative bytes send to MySQL Server
   std::atomic<size_t> *prog_file_bytes;  //< Cumulative bytes read from the file
-  volatile bool *user_interrupt = nullptr;  //< Pointer to user interrupt flag
+  //< Pointer to user interrupt flag
+  shcore::atomic_flag *user_interrupt = nullptr;
 
   // data for transaction size limiter
   Transaction_buffer buffer;  //< buffered file wrapper
@@ -166,7 +168,7 @@ class Load_data_worker final {
   Load_data_worker(const Import_table_options &opt, int64_t thread_id,
                    std::atomic<size_t> *prog_data_bytes,
                    std::atomic<size_t> *prog_file_bytes,
-                   volatile bool *interrupt,
+                   shcore::atomic_flag *interrupt,
                    shcore::Synchronized_queue<File_import_info> *range_queue,
                    std::exception_ptr *thread_exception, Stats *stats,
                    const std::string &query_comment = "");
@@ -198,7 +200,7 @@ class Load_data_worker final {
   int64_t m_thread_id;
   std::atomic<size_t> *m_prog_data_bytes;
   std::atomic<size_t> *m_prog_file_bytes;
-  volatile bool *m_interrupt;
+  shcore::atomic_flag *m_interrupt;
   shcore::Synchronized_queue<File_import_info> *m_range_queue;
   std::exception_ptr *m_thread_exception;
   Stats *m_stats;

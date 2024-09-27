@@ -37,6 +37,7 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -442,9 +443,9 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
 std::shared_ptr<mysqlshdk::db::ISession> create_session(
     const Connection_options &connection_options) {
   // allow SIGINT to interrupt the connect()
-  bool cancelled = false;
+  shcore::atomic_flag cancelled;
   shcore::Interrupt_handler intr([&cancelled]() {
-    cancelled = true;
+    cancelled.test_and_set();
     return true;
   });
 
@@ -452,7 +453,7 @@ std::shared_ptr<mysqlshdk::db::ISession> create_session(
 
   auto session = create_and_connect(connection_options);
 
-  if (cancelled) throw shcore::cancelled("Cancelled");
+  if (cancelled.test()) throw shcore::cancelled("Cancelled");
 
   return session;
 }

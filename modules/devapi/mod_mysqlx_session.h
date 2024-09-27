@@ -204,8 +204,6 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   std::string query_one_string(const std::string &query,
                                int field = 0) override;
 
-  void kill_query() override;
-
   mysqlshdk::db::mysqlx::Session *session() { return _session.get(); }
 
   std::shared_ptr<mysqlshdk::db::ISession> get_core_session() const override {

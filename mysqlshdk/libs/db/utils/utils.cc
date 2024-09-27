@@ -24,8 +24,12 @@
  */
 
 #include "mysqlshdk/libs/db/utils/utils.h"
+
 #include <vector>
 
+#include "mysqlshdk/include/shellcore/shell_init.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/mysqlx/session.h"
 #include "mysqlshdk/libs/db/row.h"
 
 namespace mysqlshdk {
@@ -107,6 +111,43 @@ void feed_field(shcore::sqlstring *sql, const IRow &row, uint32_t field) {
         assert(0);
         throw std::logic_error("not implemented");
     }
+  }
+}
+
+void kill_query(const std::weak_ptr<ISession> &weak_session) {
+  const auto report_error = [](const char *msg) {
+    log_warning("Error canceling SQL query: %s", msg);
+  };
+
+  if (const auto session = weak_session.lock()) {
+    try {
+      mysqlsh::Mysql_thread mysql_thread;
+      const auto &co = session->get_connection_options();
+      std::shared_ptr<ISession> kill_session;
+
+      switch (co.get_session_type()) {
+        case mysqlsh::SessionType::X:
+          kill_session = mysqlx::Session::create();
+          break;
+
+        case mysqlsh::SessionType::Classic:
+          kill_session = mysql::Session::create();
+          break;
+
+        default:
+          report_error("Unsupported session type.");
+          return;
+      }
+
+      kill_session->connect(co);
+      kill_session->execute("KILL QUERY " +
+                            std::to_string(session->get_connection_id()));
+      kill_session->close();
+    } catch (const std::exception &e) {
+      report_error(e.what());
+    }
+  } else {
+    report_error("Session does not exist any more.");
   }
 }
 

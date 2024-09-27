@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/storage/idirectory.h"
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 
 #include "mysqlshdk/libs/storage/backend/in_memory/allocator.h"
 
@@ -314,7 +315,7 @@ class Virtual_fs final {
   Allocator m_allocator;
   std::unordered_map<std::string, std::unique_ptr<Directory>> m_dirs;
   mutable std::mutex m_mutex;
-  std::atomic<bool> m_interrupted = false;
+  shcore::atomic_flag m_interrupted;
   std::function<bool(std::string_view)> m_uses_synchronized_io;
 };
 
