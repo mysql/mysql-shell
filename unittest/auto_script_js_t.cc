@@ -245,14 +245,6 @@ class Auto_script_js : public Shell_js_script_tester,
       execute_setup();
     }
 
-    // todo(kg): _norecord files haven't defined functions from script.js, e.g.
-    // `EXPECT_NE`. reset_replayable_shell call reset_shell therefore we lost
-    // those previously defined and called in constructor functions.
-    // I run setup.js script here once again, but this should be done somewhere
-    // else, but I don't know where.
-    set_setup_script(shcore::path::join_path(g_test_home, "scripts", "setup_js",
-                                             "setup.js"));
-
     if (g_mysqld_path_variables && folder == "js_mixed_versions") {
       auto variables = shcore::str_split(g_mysqld_path_variables, ",");
 
@@ -283,9 +275,6 @@ class Auto_script_js : public Shell_js_script_tester,
         }
       }
     }
-
-    const std::vector<std::string> argv;
-    _interactive_shell->process_file(_setup_script, argv);
 
     execute("const __script_file = '" + GetParam() + "'");
 
