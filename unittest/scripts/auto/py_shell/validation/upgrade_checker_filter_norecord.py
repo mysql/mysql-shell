@@ -15,10 +15,6 @@ Excluded:
   Usage of old temporal type
   Condition: When the upgrade reaches any of the following versions: 8.0.11
 
-- routineSyntax
-  MySQL syntax check for routine-like objects
-  Condition: When the upgrade reaches any of the following versions: 8.0.11
-
 - reservedKeywords
   Usage of db objects with names conflicting with new reserved keywords
   Condition: When the upgrade reaches any of the following versions: 8.0.11,
@@ -133,6 +129,11 @@ Excluded:
   Check for deprecated '.<table>' syntax used in routines.
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
+- syntax
+  MySQL syntax check for routine-like objects
+  Condition: When the major.minor version of the source and target servers is
+  different.
+
 - invalidEngineForeignKey
   Check for columns that have foreign keys pointing to tables from a different
   database engine.
@@ -193,10 +194,6 @@ Included:
 
 - oldTemporal
   Usage of old temporal type
-  Condition: When the upgrade reaches any of the following versions: 8.0.11
-
-- routineSyntax
-  MySQL syntax check for routine-like objects
   Condition: When the upgrade reaches any of the following versions: 8.0.11
 
 - reservedKeywords
@@ -315,6 +312,11 @@ Included:
 - emptyDotTableSyntax
   Check for deprecated '.<table>' syntax used in routines.
   Condition: When the upgrade reaches any of the following versions: 8.0.0
+
+- syntax
+  MySQL syntax check for routine-like objects
+  Condition: When the major.minor version of the source and target servers is
+  different.
 
 - invalidEngineForeignKey
   Check for columns that have foreign keys pointing to tables from a different

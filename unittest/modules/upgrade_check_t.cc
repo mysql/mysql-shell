@@ -40,9 +40,21 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/yparser/parser.h"
 #include "unittest/modules/util/upgrade_checker/test_utils.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
+
+#define SKIP_IF_NOT_BETWEEN(min_version, max_version)                       \
+  do {                                                                      \
+    if (_target_server_version < min_version ||                             \
+        _target_server_version > max_version) {                             \
+      SKIP_TEST(                                                            \
+          "This test requires running against MySQL server version between" \
+          " (" +                                                            \
+          min_version.get_full() + "-" + max_version.get_full() + ")");     \
+    }                                                                       \
+  } while (false)
 
 #define SKIP_IF_NOT_5_7_UP_TO(version)                                      \
   do {                                                                      \
@@ -974,6 +986,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
 
 TEST_F(MySQL_upgrade_check_test, syntax_check) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+
   static const char *test_objects[] = {
       R"*(CREATE PROCEDURE testsp1()
 BEGIN
@@ -1046,7 +1059,8 @@ END)*",
       DECLARE `ROW` INT DEFAULT 4;
      end)*"};
 
-  auto check = get_routine_syntax_check();
+  auto server_info = upgrade_info(Version(8, 0, 0), Version(8, 0, 0));
+  auto check = get_syntax_check(server_info);
   EXPECT_STREQ("https://dev.mysql.com/doc/refman/en/keywords.html",
                check->get_doc_link().c_str());
   EXPECT_NO_ISSUES(check.get());
@@ -1083,7 +1097,7 @@ END)*",
   TEST_TABLE_FILTERING(check.get(), "testdb.testbl", all_issues.size(),
                        {all_issues[3]}, {});
 
-  auto json_issues = execute_check_as_json(ids::k_routine_syntax_check);
+  auto json_issues = execute_check_as_json(ids::k_syntax_check);
   ASSERT_NE(nullptr, json_issues);
 
   EXPECT_JSON_CONTAINS(
@@ -1096,6 +1110,357 @@ END)*",
       json_issues, "{'dbObject':'testdb.mytrigger', 'dbObjectType':'Trigger'}");
   EXPECT_JSON_CONTAINS(json_issues,
                        "{'dbObject':'testdb.myevent', 'dbObjectType':'Event'}");
+}
+
+const char *k_syntax_objects_rem_80[] = {
+    // vars after 8.0 need to be identifier quoted.
+    R"*(CREATE PROCEDURE test_r_80_01()
+BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+END)*",
+    R"*(CREATE PROCEDURE test_r_80_01_ok()
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW`  INT DEFAULT 4;
+END)*",
+    R"*(CREATE FUNCTION test_r_80_02() RETURNS INT
+BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+  RETURN 0;
+END)*",
+    R"*(CREATE FUNCTION test_r_80_02_ok() RETURNS INT
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW`  INT DEFAULT 4;
+  RETURN 0;
+END)*",
+    // EXPLAIN after 8.0 is by default EXTENDED and the keyword was removed
+    R"(CREATE PROCEDURE test_r_80_03()
+BEGIN
+  EXPLAIN EXTENDED select * from information_schema.innodb_sys_tables;
+END)",
+    R"(CREATE PROCEDURE test_r_80_03_ok()
+BEGIN
+  EXPLAIN select * from information_schema.innodb_sys_tables;
+END)",
+    "CREATE TABLE testbl (a int primary key)",
+    R"*(CREATE TRIGGER test_t_80_01 BEFORE INSERT ON testbl FOR EACH ROW
+BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+END)*",
+    R"*(CREATE TRIGGER test_t_80_01_ok BEFORE INSERT ON testbl
+  FOR EACH ROW
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW` INT DEFAULT 4;
+END)*",
+    R"*(CREATE EVENT test_e_80_01 ON SCHEDULE AT '2000-01-01 00:00:00'
+ON COMPLETION PRESERVE DO
+begin
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW INT DEFAULT 4;
+end)*",
+    R"*(CREATE EVENT test_e_80_01_ok ON SCHEDULE AT '2000-01-01 00:00:00'
+ON COMPLETION PRESERVE DO
+begin
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW` INT DEFAULT 4;
+end)*"};
+const char *k_syntax_objects_rem_84[] = {
+    // SLAVE keyword was renemed REPLICA after 8.4
+    R"(CREATE PROCEDURE test_r_84_01()
+BEGIN
+  START SLAVE UNTIL SQL_AFTER_MTS_GAPS;
+  START SLAVE SQL_THREAD;
+END)",
+    R"*(CREATE EVENT test_e_84_01 ON SCHEDULE AT '2000-01-01 00:00:00'
+ON COMPLETION PRESERVE DO
+begin
+  START SLAVE UNTIL SQL_AFTER_MTS_GAPS;
+  START SLAVE SQL_THREAD;
+end)*"};
+
+TEST_F(MySQL_upgrade_check_test, syntax_check_from_5_7) {
+  SKIP_IF_NOT_BETWEEN(Version(5, 7, 0), Version(5, 7, 255));
+
+  auto check =
+      get_syntax_check(upgrade_info(Version(5, 7, 44), Version(MYSH_VERSION)));
+  EXPECT_NO_ISSUES(check.get());
+
+  PrepareTestDatabase("testdb");
+  auto on_exit = shcore::on_leave_scope(
+      [&]() { session->execute("DROP SCHEMA testdb;"); });
+
+  for (const char *sql : k_syntax_objects_rem_80) {
+    ASSERT_NO_THROW(session->execute(sql));
+  }
+  for (const char *sql : k_syntax_objects_rem_84) {
+    ASSERT_NO_THROW(session->execute(sql));
+  }
+
+  check = get_syntax_check(upgrade_info(Version(5, 7, 44), Version(5, 7, 44)));
+  EXPECT_NO_ISSUES(check.get());
+
+  check = get_syntax_check(upgrade_info(Version(5, 7, 44), Version(8, 0, 40)));
+
+  EXPECT_ISSUES(check.get(), 5);
+  EXPECT_ISSUE(issues[0], "testdb", "test_r_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[1], "testdb", "test_r_80_03", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[2], "testdb", "test_r_80_02", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[3], "testdb", "test_t_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[4], "testdb", "test_e_80_01", "", Upgrade_issue::ERROR);
+
+  check = get_syntax_check(upgrade_info(Version(5, 7, 44), Version(8, 4, 0)));
+
+  EXPECT_ISSUES(check.get(), 7);
+  std::ranges::sort(issues,
+                    [](const Upgrade_issue &left, const Upgrade_issue &right) {
+                      return left.table < right.table;
+                    });
+
+  EXPECT_ISSUE(issues[0], "testdb", "test_e_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[1], "testdb", "test_e_84_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[2], "testdb", "test_r_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[3], "testdb", "test_r_80_02", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[4], "testdb", "test_r_80_03", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[5], "testdb", "test_r_84_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[6], "testdb", "test_t_80_01", "", Upgrade_issue::ERROR);
+
+  check = get_syntax_check(upgrade_info(Version(5, 7, 44), Version(9, 0, 0)));
+
+  EXPECT_ISSUES(check.get(), 7);
+  std::ranges::sort(issues,
+                    [](const Upgrade_issue &left, const Upgrade_issue &right) {
+                      return left.table < right.table;
+                    });
+
+  EXPECT_ISSUE(issues[0], "testdb", "test_e_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[1], "testdb", "test_e_84_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[2], "testdb", "test_r_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[3], "testdb", "test_r_80_02", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[4], "testdb", "test_r_80_03", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[5], "testdb", "test_r_84_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[6], "testdb", "test_t_80_01", "", Upgrade_issue::ERROR);
+}
+
+TEST_F(MySQL_upgrade_check_test, syntax_parser_sql_mode_check) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
+  static const char *test_objects[] = {
+      R"*(CREATE PROCEDURE testsp1()
+BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+END)*",
+      R"*(CREATE PROCEDURE testsp1_ok()
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW`  INT DEFAULT 4;
+END)*",
+      R"*(CREATE PROCEDURE testsp1_quotes()
+BEGIN
+  DECLARE "rows" INT DEFAULT 0;
+  DECLARE "ROW"  INT DEFAULT 4;
+END)*",
+      R"*(CREATE FUNCTION testf1() RETURNS INT
+BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+  RETURN 0;
+END)*",
+      R"*(CREATE FUNCTION testf1_ok() RETURNS INT
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW`  INT DEFAULT 4;
+  RETURN 0;
+END)*",
+      R"*(CREATE FUNCTION testf1_quotes() RETURNS INT
+BEGIN
+  DECLARE "rows" INT DEFAULT 0;
+  DECLARE "ROW"  INT DEFAULT 4;
+  RETURN 0;
+END)*",
+      "CREATE TABLE testbl (a int primary key)",
+      R"*(CREATE TRIGGER mytrigger BEFORE INSERT ON testbl FOR EACH ROW
+  BEGIN
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW  INT DEFAULT 4;
+END)*",
+      R"*(CREATE TRIGGER mytrigger_ok BEFORE INSERT ON testbl
+  FOR EACH ROW
+BEGIN
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW` INT DEFAULT 4;
+END)*",
+      R"*(CREATE TRIGGER mytrigger_quotes BEFORE INSERT ON testbl
+  FOR EACH ROW
+BEGIN
+  DECLARE "rows" INT DEFAULT 0;
+  DECLARE "ROW" INT DEFAULT 4;
+END)*",
+      R"*(CREATE EVENT myevent ON SCHEDULE AT '2000-01-01 00:00:00'
+ON COMPLETION PRESERVE DO
+begin
+  DECLARE rows INT DEFAULT 0;
+  DECLARE ROW INT DEFAULT 4;
+end)*",
+      R"*(CREATE EVENT myevent_ok ON SCHEDULE AT '2000-01-01 00:00:00'
+ON COMPLETION PRESERVE DO
+begin
+  DECLARE `rows` INT DEFAULT 0;
+  DECLARE `ROW` INT DEFAULT 4;
+end)*",
+      R"*(CREATE EVENT myevent_quotes ON SCHEDULE AT '2000-01-01 00:00:00'
+ON COMPLETION PRESERVE DO
+begin
+  DECLARE "rows" INT DEFAULT 0;
+  DECLARE "ROW" INT DEFAULT 4;
+end)*"};
+
+  PrepareTestDatabase("testsyntaxdb");
+  auto onexit = shcore::on_leave_scope(
+      [&]() { session->execute("DROP SCHEMA IF EXISTS testsyntaxdb"); });
+
+  EXPECT_NO_THROW(session->execute("SET sql_mode='ANSI_QUOTES'"));
+
+  for (auto sql : test_objects) {
+    EXPECT_NO_THROW(session->execute(sql));
+  }
+
+  Version targets[] = {Version(8, 0, 0), Version(8, 4, 0), Version(9, 0, 0)};
+
+  for (auto target : targets) {
+    EXPECT_NO_THROW(session->execute("SET sql_mode=''"));
+    auto upg_info = upgrade_info("5.7.44", target.get_base());
+    auto check = get_syntax_check(upg_info);
+
+    EXPECT_ISSUES(check.get(), 4);
+    EXPECT_ISSUE(issues[0], "testsyntaxdb", "testsp1", "",
+                 Upgrade_issue::ERROR);
+    EXPECT_ISSUE(issues[1], "testsyntaxdb", "testf1", "", Upgrade_issue::ERROR);
+    EXPECT_ISSUE(issues[2], "testsyntaxdb", "mytrigger", "",
+                 Upgrade_issue::ERROR);
+    EXPECT_ISSUE(issues[3], "testsyntaxdb", "myevent", "",
+                 Upgrade_issue::ERROR);
+
+    EXPECT_NO_THROW(session->execute("SET sql_mode='ANSI_QUOTES'"));
+
+    EXPECT_ISSUES(check.get(), 4);
+    EXPECT_ISSUE(issues[0], "testsyntaxdb", "testsp1", "",
+                 Upgrade_issue::ERROR);
+    EXPECT_ISSUE(issues[1], "testsyntaxdb", "testf1", "", Upgrade_issue::ERROR);
+    EXPECT_ISSUE(issues[2], "testsyntaxdb", "mytrigger", "",
+                 Upgrade_issue::ERROR);
+    EXPECT_ISSUE(issues[3], "testsyntaxdb", "myevent", "",
+                 Upgrade_issue::ERROR);
+  }
+}
+
+TEST_F(MySQL_upgrade_check_test, syntax_parser_version_warning) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 4, 0));
+
+  PrepareTestDatabase("testsyntaxverdb");
+  auto onexit = shcore::on_leave_scope(
+      [&]() { session->execute("DROP SCHEMA IF EXISTS testsyntaxverdb"); });
+
+  auto get_parser_version_str = [](const Version &version) {
+    auto parser = mysqlshdk::yacc::Parser(version);
+    return parser.version().get_base();
+  };
+
+  session->execute("CREATE PROCEDURE test_procedure() BEGIN FLUSH HOSTS; END");
+
+  // No warning
+  auto upg_info = upgrade_info("8.0.0", "9.2.0");
+  auto check = get_syntax_check(upg_info);
+
+  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_ISSUE(issues[0], "testsyntaxverdb", "test_procedure", "",
+               Upgrade_issue::ERROR);
+
+  std::string parser_version_str = get_parser_version_str(Version(9, 2, 0));
+
+  EXPECT_STREQ(
+      check->get_description().c_str(),
+      ("The following objects did not pass a syntax check with the latest "
+       "MySQL grammar. A common reason is that they reference names that "
+       "conflict with new reserved keywords. You must update these routine "
+       "definitions and `quote` any such references before upgrading.\nThese "
+       "checks were performed using the MySQL " +
+       parser_version_str + " syntax.")
+          .c_str());
+
+  // Warning
+  upg_info = upgrade_info("8.0.0", "8.1.0");
+  check = get_syntax_check(upg_info);
+
+  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_ISSUE(issues[0], "testsyntaxverdb", "test_procedure", "",
+               Upgrade_issue::ERROR);
+
+  parser_version_str = get_parser_version_str(Version(8, 1, 0));
+
+  EXPECT_STREQ(
+      check->get_description().c_str(),
+      ("The following objects did not pass a syntax check with the latest "
+       "MySQL grammar. A common reason is that they reference names that "
+       "conflict with new reserved keywords. You must update these routine "
+       "definitions and `quote` any such references before upgrading.\nThese "
+       "checks were performed using the MySQL " +
+       parser_version_str +
+       " syntax.\n\nWARNING: SQL syntax checks were performed for a version "
+       "newer than the target 8.1.0. Some syntax errors may not apply to the "
+       "actual target version, but it is recommended that they be fixed anyway "
+       "to make future upgrades easier. You may skip this check by using the "
+       "{\"exclude\":[\"syntax\"]} option.")
+          .c_str());
+
+  // Warning
+  upg_info = upgrade_info("8.4.0", "8.7.0");
+  check = get_syntax_check(upg_info);
+
+  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_ISSUE(issues[0], "testsyntaxverdb", "test_procedure", "",
+               Upgrade_issue::ERROR);
+
+  parser_version_str = get_parser_version_str(Version(8, 7, 0));
+
+  EXPECT_STREQ(
+      check->get_description().c_str(),
+      ("The following objects did not pass a syntax check with the latest "
+       "MySQL grammar. A common reason is that they reference names that "
+       "conflict with new reserved keywords. You must update these routine "
+       "definitions and `quote` any such references before upgrading.\nThese "
+       "checks were performed using the MySQL " +
+       parser_version_str +
+       " syntax.\n\nWARNING: SQL syntax checks were performed for a version "
+       "newer than the target 8.7.0. Some syntax errors may not apply to the "
+       "actual target version, but it is recommended that they be fixed anyway "
+       "to make future upgrades easier. You may skip this check by using the "
+       "{\"exclude\":[\"syntax\"]} option.")
+          .c_str());
+
+  // No warning
+  upg_info = upgrade_info("8.7.0", "9.0.0");
+  check = get_syntax_check(upg_info);
+
+  EXPECT_ISSUES(check.get(), 1);
+  EXPECT_ISSUE(issues[0], "testsyntaxverdb", "test_procedure", "",
+               Upgrade_issue::ERROR);
+
+  parser_version_str = get_parser_version_str(Version(9, 0, 0));
+
+  EXPECT_STREQ(
+      check->get_description().c_str(),
+      ("The following objects did not pass a syntax check with the latest "
+       "MySQL grammar. A common reason is that they reference names that "
+       "conflict with new reserved keywords. You must update these routine "
+       "definitions and `quote` any such references before upgrading.\nThese "
+       "checks were performed using the MySQL " +
+       parser_version_str + " syntax.")
+          .c_str());
 }
 
 TEST_F(MySQL_upgrade_check_test, utf8mb3) {
@@ -4890,6 +5255,5 @@ TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
 
   EXPECT_NO_ISSUES(check.get());
 }
-
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

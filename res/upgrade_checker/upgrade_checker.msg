@@ -46,15 +46,21 @@ the table using 'ALTER TABLE <table_name> FORCE' command
 * oldTemporal.docLink
 https://dev.mysql.com/blog-archive/mysql-8-0-removing-support-for-old-temporal-datatypes/
 
-* routineSyntax.title
+* syntax.title
 MySQL syntax check for routine-like objects
 
-* routineSyntax.description
+* syntax.description
 The following objects did not pass a syntax check with the latest MySQL grammar. A common reason
 is that they reference names that conflict with new reserved keywords. You must update these
-routine definitions and `quote` any such references before upgrading.
+routine definitions and `quote` any such references before upgrading.\n
+These checks were performed using the MySQL %selected_version% syntax.
 
-* routineSyntax.docLink
+* syntax.warning
+WARNING: SQL syntax checks were performed for a version newer than the target %target_version%.
+Some syntax errors may not apply to the actual target version, but it is recommended that they
+be fixed anyway to make future upgrades easier. You may skip this check by using the {"exclude":["syntax"]} option.
+
+* syntax.docLink
 https://dev.mysql.com/doc/refman/en/keywords.html
 
 * reservedKeywords.title

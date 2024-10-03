@@ -106,11 +106,31 @@ TEST(Upgrade_check_registry, messages) {
       false,
       {"fkToNonUniqueKey", "fkToPartialKey", "solution", "solution1",
        "solution2"}};
+  additional_checks[ids::k_syntax_check] = {true, {"warning"}};
+
+  using Tag_token_list = std::unordered_map<std::string, Token_definitions>;
+  std::unordered_map<std::string_view, Tag_token_list> additional_tokens;
+
+  additional_tokens[ids::k_syntax_check] = {
+      {"description", {{"selected_version", "8.0.36"}}},
+  };
 
   for (const auto &check : checklist) {
     std::string name = check->get_name();
 
     std::vector<std::string> tags{"title", "description", "docLink"};
+
+    auto replace_tokens = [&](const std::string &tag,
+                              const std::string &value) {
+      if (!additional_tokens.contains(name)) {
+        return value;
+      }
+      const auto &tokens = additional_tokens.at(name);
+      if (!tokens.contains(tag)) {
+        return value;
+      }
+      return resolve_tokens(value, tokens.at(tag));
+    };
 
     for (const std::string &tag : tags) {
       std::string full_tag = name;
@@ -133,7 +153,8 @@ TEST(Upgrade_check_registry, messages) {
       if (tag.compare("title") == 0) {
         EXPECT_STREQ(check->get_title().c_str(), value.c_str());
       } else if (tag.compare("description") == 0) {
-        EXPECT_STREQ(check->get_description().c_str(), value.c_str());
+        EXPECT_STREQ(check->get_description().c_str(),
+                     replace_tokens(tag, value).c_str());
       }
     }
 
@@ -144,7 +165,8 @@ TEST(Upgrade_check_registry, messages) {
               .c_str());
       const std::string &value = get_translation(full_tag.c_str());
       EXPECT_FALSE(value.empty());
-      EXPECT_STREQ(check->get_text(tag.c_str()).c_str(), value.c_str());
+      EXPECT_STREQ(check->get_text(tag.c_str()).c_str(),
+                   replace_tokens(tag, value).c_str());
     }
   }
 }  // namespace upgrade_checker
@@ -229,10 +251,10 @@ TEST(Upgrade_check_registry, create_checklist) {
         ids::k_index_too_large_check, ids::k_empty_dot_table_syntax_check,
         ids::k_invalid_engine_foreign_key_check}},
       {Version(8, 0, 11),
-       {ids::k_old_temporal_check, ids::k_routine_syntax_check,
-        ids::k_utf8mb3_check, ids::k_mysql_schema_check,
-        ids::k_nonnative_partitioning_check, ids::k_foreign_key_length_check,
-        ids::k_maxdb_sql_mode_flags_check, ids::k_obsolete_sql_mode_flags_check,
+       {ids::k_old_temporal_check, ids::k_utf8mb3_check,
+        ids::k_mysql_schema_check, ids::k_nonnative_partitioning_check,
+        ids::k_foreign_key_length_check, ids::k_maxdb_sql_mode_flags_check,
+        ids::k_obsolete_sql_mode_flags_check,
         ids::k_enum_set_element_length_check, ids::k_removed_functions_check,
         ids::k_zero_dates_check, ids::k_schema_inconsistency_check,
         ids::k_engine_mixup_check,
@@ -359,6 +381,119 @@ TEST(Upgrade_check_registry, create_checklist) {
                            {Version(8, 0, 14), Version(8, 0, 16)},
                            {Version(8, 0, 17), Version(8, 0, 30)},
                            {Version(8, 0, 31), vShell}});
+
+  // syntax_check:
+  // available: always between series versions
+  {
+    std::vector<std::pair<Version, Version>> version_checks;
+    // bugfix series
+    for (auto patch = 0; patch <= k_latest_versions["8.0"].get_patch();
+         patch++) {
+      version_checks.emplace_back(v5_7_0, Version(8, 0, patch));
+      for (auto patch2 = 0; patch2 <= k_latest_versions["8.4"].get_patch();
+           patch2++) {
+        version_checks.emplace_back(Version(8, 0, patch),
+                                    Version(8, 4, patch2));
+      }
+    }
+    for (auto major = 9; major <= mysqlshdk::utils::k_shell_version.get_major();
+         major++) {
+      // series innovation
+      for (auto minor =
+               mysqlshdk::utils::get_first_innovation_version(Version(major, 0))
+                   .get_minor();
+           minor < mysqlshdk::utils::get_first_lts_version(Version(major, 0))
+                       .get_minor();
+           minor++) {
+        // between bugfix and innovation
+        for (auto patch = 0; patch <= k_latest_versions["8.0"].get_patch();
+             patch++) {
+          version_checks.emplace_back(Version(8, 0, patch),
+                                      Version(major, minor));
+        }
+        // between lts and innovation
+        for (auto patch = 0; patch <= k_latest_versions["8.4"].get_patch();
+             patch++) {
+          version_checks.emplace_back(Version(8, 4, patch),
+                                      Version(major, minor));
+        }
+        // between innovation and same series lts
+        for (auto lts_minor =
+                 mysqlshdk::utils::get_first_lts_version(Version(major, 0))
+                     .get_minor();
+             lts_minor < 10; lts_minor++) {
+          version_checks.emplace_back(Version(major, minor),
+                                      Version(major, lts_minor));
+        }
+      }
+      // series lts
+      for (auto minor =
+               mysqlshdk::utils::get_first_lts_version(Version(major, 0))
+                   .get_minor();
+           minor < 10; minor++) {
+        // between lts and next series innovation
+        for (auto inno_minor = mysqlshdk::utils::get_first_innovation_version(
+                                   Version(major + 1, 0))
+                                   .get_minor();
+             inno_minor <
+             mysqlshdk::utils::get_first_lts_version(Version(major + 1, 0))
+                 .get_minor();
+             inno_minor++) {
+          version_checks.emplace_back(Version(major, minor),
+                                      Version(major + 1, inno_minor));
+        }
+        // between lts and next series lts
+        for (auto lts_minor =
+                 mysqlshdk::utils::get_first_lts_version(Version(major + 1, 0))
+                     .get_minor();
+             lts_minor < 10; lts_minor++) {
+          version_checks.emplace_back(Version(major, minor),
+                                      Version(major + 1, lts_minor));
+        }
+      }
+    }
+    test_check_availability(ids::k_syntax_check, true, version_checks);
+  }
+  // not available: on the same series, different patch
+  {
+    std::vector<std::pair<Version, Version>> version_checks;
+    // bugfix series
+    for (auto patch = 0; patch <= k_latest_versions["8.0"].get_patch();
+         patch++) {
+      for (auto patch2 = patch + 1;
+           patch2 <= k_latest_versions["8.0"].get_patch(); patch2++) {
+        version_checks.emplace_back(Version(8, 0, patch),
+                                    Version(8, 0, patch2));
+      }
+    }
+    for (auto patch = 0; patch <= k_latest_versions["8.4"].get_patch();
+         patch++) {
+      for (auto patch2 = patch + 1;
+           patch2 <= k_latest_versions["8.4"].get_patch(); patch2++) {
+        version_checks.emplace_back(Version(8, 4, patch),
+                                    Version(8, 4, patch2));
+      }
+    }
+    // other
+    for (auto major = 9; major <= mysqlshdk::utils::k_shell_version.get_major();
+         major++) {
+      for (auto minor = 0; minor < 10; minor++) {
+        auto it = k_latest_versions.find(Version(major, minor).get_short());
+        if (it == k_latest_versions.end()) {
+          continue;
+        }
+        auto latest = it->second;
+        for (auto patch = 0; patch <= latest.get_patch(); patch++) {
+          for (auto patch2 = patch + 1; patch2 <= latest.get_patch();
+               patch2++) {
+            version_checks.emplace_back(Version(major, minor, patch),
+                                        Version(major, minor, patch2));
+          }
+        }
+      }
+    }
+    test_check_availability(ids::k_syntax_check, false, version_checks);
+  }
 
   // Check unavaliability impossible due to present deprecated sysvars that ware
   // never removed

@@ -45,7 +45,7 @@ namespace upgrade_checker {
 namespace ids {
 inline constexpr std::string_view k_reserved_keywords_check =
     "reservedKeywords";
-inline constexpr std::string_view k_routine_syntax_check = "routineSyntax";
+inline constexpr std::string_view k_syntax_check = "syntax";
 inline constexpr std::string_view k_utf8mb3_check = "utf8mb3";
 inline constexpr std::string_view k_innodb_rowformat_check = "innodbRowFormat";
 inline constexpr std::string_view k_nonnative_partitioning_check =
@@ -266,7 +266,6 @@ struct Feature_definition {
 
 Upgrade_issue::Level get_issue_level(const Feature_definition &feature,
                                      const Upgrade_info &server_info);
-
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 

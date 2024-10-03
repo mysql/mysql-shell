@@ -36,18 +36,19 @@
 namespace mysqlsh {
 namespace upgrade_checker {
 
-TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
-  auto check = get_routine_syntax_check();
+TEST(Upgrade_check_creators, get_syntax_check_test) {
+  auto server_info = upgrade_info(Version(8, 0, 0), Version(8, 0, 0));
+
+  auto check = get_syntax_check(server_info);
 
   {
     // Verifies the original queries are created
     auto msession = std::make_shared<testing::Mock_session>();
-    auto server_info = upgrade_info(Version(8, 0, 0), Version(8, 0, 0));
     Checker_cache cache;
 
     msession
         ->expect_query(
-            {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME FROM "
+            {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
              "information_schema.routines WHERE ROUTINE_TYPE = 'PROCEDURE' AND "
              "(ROUTINE_SCHEMA NOT "
              "IN('mysql','sys','performance_schema','information_schema'))",
@@ -58,7 +59,7 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
 
     msession
         ->expect_query(
-            {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME FROM "
+            {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
              "information_schema.routines WHERE ROUTINE_TYPE = 'FUNCTION' AND "
              "(ROUTINE_SCHEMA NOT "
              "IN('mysql','sys','performance_schema','information_schema'))",
@@ -70,7 +71,7 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
 
     msession
         ->expect_query(
-            {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME FROM "
+            {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE FROM "
              "information_schema.triggers WHERE (TRIGGER_SCHEMA NOT "
              "IN('mysql','sys','performance_schema','information_schema'))",
              [](const std::string &query) {
@@ -80,7 +81,7 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
 
     msession
         ->expect_query(
-            {"SELECT EVENT_SCHEMA, EVENT_NAME FROM "
+            {"SELECT EVENT_SCHEMA, EVENT_NAME, SQL_MODE FROM "
              "information_schema.events WHERE (EVENT_SCHEMA NOT "
              "IN('mysql','sys','performance_schema','information_schema'))",
              [](const std::string &query) {
@@ -96,7 +97,6 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
   {
     // Verifies queries using filtered objects
     auto msession = std::make_shared<testing::Mock_session>();
-    auto server_info = upgrade_info(Version(8, 0, 0), Version(8, 0, 0));
     mysqlshdk::db::Filtering_options options;
     options.schemas().include("sakila");
     options.schemas().exclude("exclude");
@@ -110,7 +110,7 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
 
     msession
         ->expect_query(
-            "SELECT ROUTINE_SCHEMA, ROUTINE_NAME FROM "
+            "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
             "information_schema.routines WHERE ROUTINE_TYPE = 'PROCEDURE' AND "
             "(STRCMP(ROUTINE_SCHEMA COLLATE utf8_bin,'sakila'))=0 AND "
             "(STRCMP(ROUTINE_SCHEMA COLLATE utf8_bin,'exclude'))<>0 AND "
@@ -122,7 +122,7 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
 
     msession
         ->expect_query(
-            "SELECT ROUTINE_SCHEMA, ROUTINE_NAME FROM "
+            "SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
             "information_schema.routines WHERE ROUTINE_TYPE = 'FUNCTION' AND "
             "(STRCMP(ROUTINE_SCHEMA COLLATE utf8_bin,'sakila'))=0 AND "
             "(STRCMP(ROUTINE_SCHEMA COLLATE utf8_bin,'exclude'))<>0 AND "
@@ -134,7 +134,7 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
 
     msession
         ->expect_query(
-            "SELECT TRIGGER_SCHEMA, TRIGGER_NAME FROM "
+            "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE FROM "
             "information_schema.triggers WHERE (STRCMP(TRIGGER_SCHEMA COLLATE "
             "utf8_bin,'sakila'))=0 AND (STRCMP(TRIGGER_SCHEMA COLLATE "
             "utf8_bin,'exclude'))<>0 AND ((STRCMP(TRIGGER_SCHEMA COLLATE "
@@ -146,7 +146,8 @@ TEST(Upgrade_check_creators, get_routine_syntax_check_test) {
 
     msession
         ->expect_query(
-            "SELECT EVENT_SCHEMA, EVENT_NAME FROM information_schema.events "
+            "SELECT EVENT_SCHEMA, EVENT_NAME, SQL_MODE FROM "
+            "information_schema.events "
             "WHERE (STRCMP(EVENT_SCHEMA COLLATE utf8_bin,'sakila'))=0 AND "
             "(STRCMP(EVENT_SCHEMA COLLATE utf8_bin,'exclude'))<>0 AND "
             "((STRCMP(EVENT_SCHEMA COLLATE utf8_bin,'sakila')=0 AND "

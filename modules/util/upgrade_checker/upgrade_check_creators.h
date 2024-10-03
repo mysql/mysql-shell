@@ -42,7 +42,7 @@ namespace upgrade_checker {
 
 std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
     const Upgrade_info &info);
-std::unique_ptr<Upgrade_check> get_routine_syntax_check();
+std::unique_ptr<Upgrade_check> get_syntax_check(const Upgrade_info &info);
 std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check();
 std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check();
 std::unique_ptr<Sql_upgrade_check> get_nonnative_partitioning_check();

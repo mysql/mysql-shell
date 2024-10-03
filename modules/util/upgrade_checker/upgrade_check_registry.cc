@@ -73,11 +73,6 @@ bool UNUSED_VARIABLE(register_old_temporal) =
     Upgrade_check_registry::register_check(std::bind(&get_old_temporal_check),
                                            Target::INNODB_INTERNALS, "8.0.11");
 
-bool UNUSED_VARIABLE(register_routine_syntax) =
-    Upgrade_check_registry::register_check(std::bind(&get_routine_syntax_check),
-                                           Target::OBJECT_DEFINITIONS,
-                                           "8.0.11");
-
 bool UNUSED_VARIABLE(register_reserved) =
     Upgrade_check_registry::register_check(&get_reserved_keywords_check,
                                            Target::OBJECT_DEFINITIONS, "8.0.11",
@@ -230,6 +225,29 @@ bool UNUSED_VARIABLE(register_get_empty_dot_table_syntax_check) =
     Upgrade_check_registry::register_check(
         std::bind(&get_empty_dot_table_syntax_check),
         Target::OBJECT_DEFINITIONS, "8.0.0");
+
+/*
+ * The "syntax" check should be registered after:
+ *  - reservedKeywords
+ *  - removedFunctions
+ *  - groupByAscSyntax
+ *  - orphanedObjects
+ *  - dollarSignName
+ *  - emptyDotTableSyntax
+ *  - maxdbSqlModeFlags
+ *  - obsoleteSqlModeFlags
+ */
+bool UNUSED_VARIABLE(register_syntax) = Upgrade_check_registry::register_check(
+    &get_syntax_check, Target::OBJECT_DEFINITIONS,
+    [](const Upgrade_info &info) {
+      if (info.server_version.get_major() == info.target_version.get_major() &&
+          info.server_version.get_minor() == info.target_version.get_minor()) {
+        return false;
+      }
+      return true;
+    },
+    "When the major.minor version of the source and target servers is "
+    "different.");
 
 bool UNUSED_VARIABLE(register_get_invalid_engine_foreign_key_check) =
     Upgrade_check_registry::register_check(

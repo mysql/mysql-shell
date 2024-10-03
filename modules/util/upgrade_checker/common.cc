@@ -44,7 +44,7 @@ namespace ids {
 
 const std::set<std::string_view> all = {
     k_reserved_keywords_check,
-    k_routine_syntax_check,
+    k_syntax_check,
     k_utf8mb3_check,
     k_innodb_rowformat_check,
     k_nonnative_partitioning_check,
@@ -394,6 +394,5 @@ Upgrade_issue::Level get_issue_level(const Feature_definition &feature,
   // UC target is after removal
   return Upgrade_issue::Level::ERROR;
 }
-
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

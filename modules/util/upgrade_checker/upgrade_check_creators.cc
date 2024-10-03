@@ -38,14 +38,13 @@
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
-#include "mysqlshdk/libs/parser/mysql_parser_utils.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/yparser/parser.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
-
 std::unique_ptr<Sql_upgrade_check> get_old_temporal_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_old_temporal_check,
@@ -124,7 +123,7 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
       Upgrade_issue::WARNING);
 }
 
-class Routine_syntax_check : public Upgrade_check {
+class Syntax_check : public Upgrade_check {
   // This check works through a simple syntax check to find whether reserved
   // keywords are used somewhere unexpected, without checking for specific
   // keywords
@@ -133,7 +132,25 @@ class Routine_syntax_check : public Upgrade_check {
   // routines, view definitions, event definitions and trigger definitions
 
  public:
-  Routine_syntax_check() : Upgrade_check(ids::k_routine_syntax_check) {}
+  Syntax_check(const Upgrade_info &info)
+      : Upgrade_check(ids::k_syntax_check),
+        m_parser(info.target_version),
+        m_target_version(info.target_version) {}
+
+  [[nodiscard]] std::string get_description(
+      const std::string &group,
+      const Token_definitions &tokens) const override {
+    auto local_tokens = tokens;
+
+    local_tokens["target_version"] = m_target_version.get_base();
+    local_tokens["selected_version"] = m_parser.version().get_base();
+
+    if (!is_parser_same_series()) {
+      return resolve_tokens(
+          get_text("description") + "\n\n" + get_text("warning"), local_tokens);
+    }
+    return Upgrade_check::get_description(group, local_tokens);
+  }
 
   bool is_runnable() const override { return true; }
 
@@ -146,27 +163,25 @@ class Routine_syntax_check : public Upgrade_check {
       int code_field;
       Upgrade_issue::Object_type object_type;
     };
-    // Don't need to check views because they get auto-quoted
+
     const auto &qh = cache->query_helper();
-
     Check_info object_info[] = {
-
-        {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME"
+        {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE"
          " FROM information_schema.routines WHERE ROUTINE_TYPE = 'PROCEDURE'"
          " AND " +
              qh.schema_and_routine_filter(),
          "SHOW CREATE PROCEDURE !.!", 2, Upgrade_issue::Object_type::ROUTINE},
-        {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME"
+        {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE"
          " FROM information_schema.routines WHERE ROUTINE_TYPE = 'FUNCTION'"
          " AND " +
              qh.schema_and_routine_filter(),
          "SHOW CREATE FUNCTION !.!", 2, Upgrade_issue::Object_type::ROUTINE},
-        {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME"
+        {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE"
          " FROM information_schema.triggers"
          " WHERE " +
              qh.schema_and_trigger_filter(),
          "SHOW CREATE TRIGGER !.!", 2, Upgrade_issue::Object_type::TRIGGER},
-        {"SELECT EVENT_SCHEMA, EVENT_NAME"
+        {"SELECT EVENT_SCHEMA, EVENT_NAME, SQL_MODE"
          " FROM information_schema.events"
          " WHERE " +
              qh.schema_and_event_filter(),
@@ -180,46 +195,106 @@ class Routine_syntax_check : public Upgrade_check {
       result->buffer();
 
       while (auto row = result->fetch_one()) {
-        auto issue = process_item(row, obj.show_query, obj.code_field,
-                                  obj.object_type, session.get());
-        if (!issue.description.empty()) issues.push_back(std::move(issue));
+        auto syntax_issues = process_item(row, obj.show_query, obj.code_field,
+                                          obj.object_type, session.get());
+
+        issues.insert(issues.end(),
+                      std::make_move_iterator(syntax_issues.begin()),
+                      std::make_move_iterator(syntax_issues.end()));
       }
     }
     return issues;
   }
 
  protected:
-  std::string check_routine_syntax(mysqlshdk::db::ISession *session,
-                                   const std::string &show_template,
-                                   int show_sql_field,
-                                   const std::string &schema,
-                                   const std::string &name) {
+  /*
+   * This method should return false if the selected parser sql syntax version
+   * is higher than targetVersion and in the next LTS/innovation series
+   * For ex. case when upgrading from 8.0 to 8.2, and parser will select
+   * 8.4 SQL syntax (where major changes to SQL language ware made). This was
+   * probably not the intention of the user and a warning should be displayed.
+   */
+  [[nodiscard]] bool is_parser_same_series() const {
+    const auto &selected_version = m_parser.version();
+    if (m_target_version == selected_version) {
+      return true;
+    }
+    /*
+     * Condition for the case, when we skip to the next major release of SQL
+     * syntax In normal usage this shouldn't happen: but it's possible when
+     * manually selecting targetVersion, ex:
+     * targetVersion: 8.7 (not existent) -> higher than 8.4 (possible SQL syntax
+     * library) so the parser will select next possible -> 9.x
+     */
+    if (m_target_version.get_major() < selected_version.get_major()) {
+      return false;
+    }
+    /*
+     * This case is mostly for the 8 series. There is a possibility to set the
+     * targetVersion to 8.1. We don't have SQL syntax plugin for that version
+     * because of size reasons, so parser will select the next possible -> 8.4
+     * (the LTS version). For future releases, (when 9 series LTS sql syntax
+     * plugin will be added) there is a possibility, that setting targetVersion
+     * to 9.3 (ex. we are upgrading from 9.0), the parser will select 9.7 (the
+     * LTS version).
+     */
+    const auto lts_version =
+        mysqlshdk::utils::get_first_lts_version(m_target_version);
+    if (m_target_version < lts_version && lts_version <= selected_version) {
+      return false;
+    }
+    return true;
+  }
+
+  std::string remove_obsolete_modes(const std::string &modes) {
+    static constexpr std::array<const std::string_view, 11>
+        k_obsolete_80_modes = {{"DB2", "MSSQL", "MYSQL323", "MYSQL40",
+                                "NO_AUTO_CREATE_USER", "NO_FIELD_OPTIONS",
+                                "NO_KEY_OPTIONS", "NO_TABLE_OPTIONS", "ORACLE",
+                                "POSTGRESQL", "MAXDB"}};
+
+    auto list = shcore::split_string(modes, ",");
+    if (m_target_version >= Version(8, 0, 0)) {
+      for (auto mode : k_obsolete_80_modes) {
+        std::erase(list, mode);
+      }
+    }
+    return shcore::str_join(list, ",");
+  }
+
+  std::vector<std::string> check_routine_syntax(
+      mysqlshdk::db::ISession *session, const std::string &show_template,
+      int show_sql_field, const std::string &schema, const std::string &name,
+      const std::string &sql_mode) {
     auto result = session->queryf(show_template, schema, name);
     if (auto row = result->fetch_one()) {
       std::string sql = row->get_as_string(show_sql_field);
       try {
-        sql = "DELIMITER $$$\n" + sql + "$$$\n";
+        std::vector<std::string> syntax_issues;
 
-        mysqlshdk::parser::check_sql_syntax(sql);
-      } catch (const mysqlshdk::parser::Sql_syntax_error &err) {
-        return shcore::str_format("at line %i,%i: unexpected token '%s'",
-                                  static_cast<int>(err.line() - 1),
-                                  static_cast<int>(err.offset()),
-                                  err.token_text().c_str());
+        m_parser.set_sql_mode(remove_obsolete_modes(sql_mode));
+        auto syntax_errors = m_parser.check_syntax(sql);
+        syntax_issues.reserve(syntax_errors.size());
+        for (auto &err : syntax_errors) {
+          syntax_issues.push_back(err.format());
+        }
+
+        return syntax_issues;
+      } catch (const mysqlshdk::yacc::Parser_error &err) {
+        return {err.what()};
       }
     } else {
       log_warning("Upgrade check query %s returned no rows for %s.%s",
                   show_template.c_str(), schema.c_str(), name.c_str());
     }
 
-    return "";
+    return {};
   }
 
-  Upgrade_issue process_item(const mysqlshdk::db::IRow *row,
-                             const std::string &show_template,
-                             int show_sql_field,
-                             Upgrade_issue::Object_type object_type,
-                             mysqlshdk::db::ISession *session) {
+  std::vector<Upgrade_issue> process_item(
+      const mysqlshdk::db::IRow *row, const std::string &show_template,
+      int show_sql_field, Upgrade_issue::Object_type object_type,
+      mysqlshdk::db::ISession *session) {
     auto issue = create_issue();
 
     issue.schema = row->get_as_string(0);
@@ -227,21 +302,36 @@ class Routine_syntax_check : public Upgrade_check {
     issue.level = Upgrade_issue::ERROR;
     issue.object_type = object_type;
 
+    const auto sql_mode = row->get_as_string(2);
+
     // we need to get routine definitions with the SHOW command
     // because INFORMATION_SCHEMA will eat up things like backslashes
     // Bug#34534696	unparseable code returned in
     // INFORMATION_SCHEMA.ROUTINES.ROUTINE_DEFINITION
+    std::vector<Upgrade_issue> result;
 
-    issue.description = check_routine_syntax(
-        session, show_template, show_sql_field, issue.schema, issue.table);
+    auto syntax_issues =
+        check_routine_syntax(session, show_template, show_sql_field,
+                             issue.schema, issue.table, sql_mode);
+    for (auto &syntax_issue : syntax_issues) {
+      if (syntax_issue.empty()) {
+        continue;
+      }
 
-    if (issue.description.empty()) return {};
-    return issue;
+      auto new_issue = issue;
+      new_issue.description = syntax_issue;
+      result.emplace_back(std::move(new_issue));
+    }
+
+    return result;
   }
+
+  mysqlshdk::yacc::Parser m_parser;
+  const Version m_target_version;
 };
 
-std::unique_ptr<Upgrade_check> get_routine_syntax_check() {
-  return std::make_unique<Routine_syntax_check>();
+std::unique_ptr<Upgrade_check> get_syntax_check(const Upgrade_info &info) {
+  return std::make_unique<Syntax_check>(info);
 }
 
 /// In this check we are only interested if any such table/database exists
