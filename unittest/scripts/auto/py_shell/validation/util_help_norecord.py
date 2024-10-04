@@ -978,17 +978,6 @@ DESCRIPTION
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
 
-      When using a PAR, a temporary directory is created to be used as staging
-      area; each file is initially buffered to disk and then sent to the target
-      bucket, deleting it when it is transferred.
-
-      This will be done on the system temporary directory, defined by any of
-      the following environment variables:
-
-      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
-      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
-        directory.
-
       Enabling dump loading using pre-authenticated requests
 
       The load_dump utility supports loading a dump using a pre-authenticated
@@ -1682,17 +1671,6 @@ DESCRIPTION
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
 
-      When using a PAR, a temporary directory is created to be used as staging
-      area; each file is initially buffered to disk and then sent to the target
-      bucket, deleting it when it is transferred.
-
-      This will be done on the system temporary directory, defined by any of
-      the following environment variables:
-
-      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
-      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
-        directory.
-
       Enabling dump loading using pre-authenticated requests
 
       The load_dump utility supports loading a dump using a pre-authenticated
@@ -2380,17 +2358,6 @@ DESCRIPTION
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
 
-      When using a PAR, a temporary directory is created to be used as staging
-      area; each file is initially buffered to disk and then sent to the target
-      bucket, deleting it when it is transferred.
-
-      This will be done on the system temporary directory, defined by any of
-      the following environment variables:
-
-      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
-      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
-        directory.
-
       Enabling dump loading using pre-authenticated requests
 
       The load_dump utility supports loading a dump using a pre-authenticated
@@ -2823,17 +2790,6 @@ DESCRIPTION
 
       Note that both the bucket and the prefix PAR URLs must end with a slash,
       otherwise it will be considered invalid.
-
-      When using a PAR, a temporary directory is created to be used as staging
-      area; each file is initially buffered to disk and then sent to the target
-      bucket, deleting it when it is transferred.
-
-      This will be done on the system temporary directory, defined by any of
-      the following environment variables:
-
-      - POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
-      - Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows
-        directory.
 
       Dumping to a Bucket in the AWS S3 Object Storage
 

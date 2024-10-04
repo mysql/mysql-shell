@@ -1847,16 +1847,6 @@ create a dump at the 'dump' folder of the 'test' bucket. The PAR was created usi
 
 Note that both the bucket and the prefix PAR URLs must end with a slash, otherwise
 it will be considered invalid.
-
-When using a PAR, a temporary directory is created to be used as staging area; each
-file is initially buffered to disk and then sent to the target bucket, deleting it
-when it is transferred.
-
-This will be done on the system temporary directory, defined by any of the following
-environment variables:
-
-@li POSIX: TMPDIR, TMP, TEMP, TEMPDIR. If none is defined, uses /tmp.
-@li Windows: TMP, TEMP, USERPROFILE. If none is defined, uses the Windows directory.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS, R"*(
