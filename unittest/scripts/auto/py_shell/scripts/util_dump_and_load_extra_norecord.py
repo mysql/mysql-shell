@@ -237,8 +237,9 @@ shell.connect(__sandbox_uri2)
 class Binlog(NamedTuple):
     file: str
     position: int
+    gtid_executed: str
 
-def set_binlog_info(binlog: Binlog, gtid):
+def set_binlog_info(binlog: Binlog):
     with open(metadata_file, "r+", encoding="utf-8") as json_file:
         # read contents
         metadata = json.load(json_file)
@@ -249,10 +250,7 @@ def set_binlog_info(binlog: Binlog, gtid):
         else:
             source.setdefault('binlog', {})['file'] = binlog.file
             source.setdefault('binlog', {})['position'] = binlog.position
-        if gtid is None:
-            source['sysvars'].pop('gtid_executed', None)
-        else:
-            source['sysvars']['gtid_executed'] = gtid
+            source.setdefault('binlog', {})['gtidExecuted'] = binlog.gtid_executed
         # write back to file
         json_file.seek(0)
         json.dump(metadata, json_file)
@@ -283,23 +281,19 @@ EXPECT_BINLOG_INFO(binlog_file, binlog_position, gtid_executed)
 testutil.cpfile(metadata_file, metadata_file + ".bak")
 
 #@<> no binary log information
-set_binlog_info(None, None)
+set_binlog_info(None)
 EXPECT_BINLOG_INFO("", 0, "", { "loadData": True, "loadDdl": False, "loadUsers": False })
 
-#@<> only executed GTID set
-set_binlog_info(None, "gtid_executed")
-EXPECT_BINLOG_INFO("", 0, "gtid_executed", { "loadData": False, "loadDdl": True, "loadUsers": False })
-
 #@<> executed GTID set + empty binlog file + zero binlog position
-set_binlog_info(Binlog("", 0), "gtid_executed")
+set_binlog_info(Binlog("", 0, "gtid_executed"))
 EXPECT_BINLOG_INFO("", 0, "gtid_executed", { "loadData": False, "loadDdl": False, "loadUsers": True })
 
 #@<> executed GTID set + empty binlog file + non-zero binlog position
-set_binlog_info(Binlog("", 5), "gtid_executed")
+set_binlog_info(Binlog("", 5, "gtid_executed"))
 EXPECT_BINLOG_INFO("", 5, "gtid_executed")
 
 #@<> everything is available
-set_binlog_info(Binlog("binlog.file", 1234), "gtid_executed")
+set_binlog_info(Binlog("binlog.file", 1234, "gtid_executed"))
 EXPECT_BINLOG_INFO("binlog.file", "1234", "gtid_executed")
 
 #@<> restore backup of @.json

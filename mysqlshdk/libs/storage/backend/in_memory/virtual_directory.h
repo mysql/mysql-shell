@@ -27,6 +27,7 @@
 #define MYSQLSHDK_LIBS_STORAGE_BACKEND_IN_MEMORY_VIRTUAL_DIRECTORY_H_
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 #include "mysqlshdk/libs/storage/idirectory.h"
@@ -55,15 +56,22 @@ class Virtual_directory : public IDirectory {
 
   void create() override;
 
+  void remove() override {
+    throw std::logic_error{"Virtual_directory::remove()"};
+  }
+
+  bool is_empty() const override;
+
   Masked_string full_path() const override;
 
-  std::unordered_set<File_info> list_files(bool) const override;
-
-  std::unordered_set<File_info> filter_files(
-      const std::string &pattern) const override;
+  Directory_listing list(bool) const override;
 
   std::unique_ptr<IFile> file(const std::string &name,
                               const File_options &) const override;
+
+  std::unique_ptr<IDirectory> directory(const std::string &) const override {
+    throw std::logic_error{"Virtual_directory::directory()"};
+  }
 
   bool is_local() const override { return true; }
 

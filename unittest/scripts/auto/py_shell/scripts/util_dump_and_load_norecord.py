@@ -2334,7 +2334,7 @@ if __version_num >= 90000:
 
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "'root'@'%'" ], "ignoreVersion": True, "showProgress": False }), "Loading should not throw")
 EXPECT_STDOUT_CONTAINS(f"Loading DDL, Data and Users from '{dump_dir}' using 4 threads.")
-EXPECT_STDOUT_CONTAINS("NOTE: Dump format has version 1.0.0 and was created by an older version of MySQL Shell. If you experience problems loading it, please recreate the dump using the current version of MySQL Shell and try again.")
+EXPECT_STDOUT_CONTAINS("NOTE: Dump format has version 1.0.0 and was created by an older version of MySQL Shell. If you experience problems using it, please recreate the dump using the current version of MySQL Shell and try again.")
 EXPECT_STDOUT_CONTAINS("62 chunks (5.45K rows, 199.62 KB) for 62 tables in 8 schemas were loaded")
 
 if __version_num < 90000:
@@ -3332,7 +3332,7 @@ EXPECT_NO_THROWS(lambda: util.dump_schemas([ test_schema ], dump_dir, { "showPro
 
 # alter the @.json, set lower_case_table_names to -1
 j = read_json(os.path.join(dump_dir, "@.json"))
-j["source"]["sysvars"]["lower_case_table_names"] = -1
+j["source"]["sysvars"]["lower_case_table_names"] = "-1"
 write_json(os.path.join(dump_dir, "@.json"), j)
 
 #@<> BUG#36509026 - test

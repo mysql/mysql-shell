@@ -66,7 +66,10 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/mod_utils.h"
+#include "modules/util/common/dump/constants.h"
+#include "modules/util/common/dump/dump_version.h"
 #include "modules/util/common/dump/utils.h"
+#include "modules/util/common/utils.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/dump/decimal.h"
@@ -94,6 +97,15 @@ namespace {
 
 static constexpr const int k_mysql_server_net_write_timeout = 30 * 60;
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
+
+// 255 characters total:
+// - 225 - base name
+// -   5 - base name ordinal number
+// -   2 - '@@'
+// -   5 - chunk ordinal number
+// -  10 - extension
+// -   8 - '.dumping' extension
+static constexpr std::size_t k_max_basename_length = 225;
 
 FI_DEFINE(dumper, [](const mysqlshdk::utils::FI::Args &args) {
   const auto op = args.get_string("op");
@@ -228,7 +240,7 @@ using mysqlshdk::mysql::Gtid_set;
 
 bool check_if_transactions_are_ddl_safe(
     const mysqlshdk::mysql::IInstance &instance,
-    const Instance_cache::Binlog &from, const Instance_cache::Binlog &to,
+    const common::Binlog::File &from, const common::Binlog::File &to,
     const Gtid_set &gtid_set = {}) {
   std::vector<Gtid_range> gtid_ranges;
   uint64_t count = 0;
@@ -245,13 +257,13 @@ bool check_if_transactions_are_ddl_safe(
 
   std::vector<std::string> binlogs;
 
-  if (from.file == to.file) {
-    binlogs.emplace_back(from.file);
+  if (from.name == to.name) {
+    binlogs.emplace_back(from.name);
   } else {
     auto all_binlogs = list_binlogs(instance);
     const auto end =
-        std::find(all_binlogs.rbegin(), all_binlogs.rend(), to.file);
-    const auto begin = std::find(end, all_binlogs.rend(), from.file);
+        std::find(all_binlogs.rbegin(), all_binlogs.rend(), to.name);
+    const auto begin = std::find(end, all_binlogs.rend(), from.name);
     binlogs.insert(
         binlogs.end(),
         std::make_move_iterator(begin == all_binlogs.rend()
@@ -314,11 +326,11 @@ bool check_if_transactions_are_ddl_safe(
   for (const auto &binlog : binlogs) {
     std::optional<uint64_t> start_position;
 
-    if (binlog == from.file) {
+    if (binlog == from.name) {
       start_position = from.position;
     }
 
-    const auto last_file = binlog == to.file;
+    const auto last_file = binlog == to.name;
 
     list_binlog_events(
         instance, binlog,
@@ -1796,7 +1808,9 @@ class Dumper::Memory_dumper final {
 };
 
 Dumper::Dumper(const Dump_options &options)
-    : m_options(options), m_progress_thread("Dump", options.show_progress()) {
+    : m_options(options),
+      m_basenames(k_max_basename_length),
+      m_progress_thread("Dump", options.show_progress()) {
   if (m_options.use_single_file()) {
     m_output_file =
         m_options.make_file(m_options.output_url(), m_options.compression(),
@@ -1821,9 +1835,10 @@ Dumper::Dumper(const Dump_options &options)
     m_output_dir = m_options.make_directory(m_options.output_url());
 
     if (m_output_dir->exists()) {
-      const auto files = m_output_dir->list_files_sorted(true);
+      if (!m_output_dir->is_empty()) {
+        const auto files =
+            mysqlshdk::storage::sort(m_output_dir->list(true).files);
 
-      if (!files.empty()) {
         std::vector<std::string> file_data;
         const auto full_path = m_output_dir->full_path();
 
@@ -1903,7 +1918,7 @@ Dumper::Dumper(const Dump_options &options)
 
 void Dumper::run() {
   if (m_options.is_dry_run()) {
-    current_console()->print_info(
+    current_console()->print_note(
         "dryRun enabled, no locks will be acquired and no files will be "
         "created.");
   }
@@ -3060,7 +3075,7 @@ void Dumper::dump_global_ddl() const {
 
   {
     // file with the DDL setup
-    const auto output = make_file("@.sql");
+    const auto output = make_file(common::k_preamble_sql_file);
     output->open(Mode::WRITE);
 
     dumper->write_comment(output.get());
@@ -3070,7 +3085,7 @@ void Dumper::dump_global_ddl() const {
 
   {
     // post DDL file (cleanup)
-    const auto output = make_file("@.post.sql");
+    const auto output = make_file(common::k_postamble_sql_file);
     output->open(Mode::WRITE);
 
     dumper->write_comment(output.get());
@@ -3088,7 +3103,7 @@ void Dumper::dump_users_ddl() const {
 
   const auto dumper = schema_dumper(session());
 
-  write_ddl(*dump_users(dumper.get()), "@.users.sql");
+  write_ddl(*dump_users(dumper.get()), common::k_users_sql_file);
 }
 
 void Dumper::write_ddl(const Memory_dumper &in_memory,
@@ -3579,165 +3594,131 @@ void Dumper::write_dump_started_metadata() const {
     return;
   }
 
-  using rapidjson::Document;
-  using rapidjson::StringRef;
-  using rapidjson::Type;
-  using rapidjson::Value;
+  shcore::JSON_dumper json{true};
 
-  Document doc{Type::kObjectType};
-  auto &a = doc.GetAllocator();
+  json.start_object();
 
-  const auto mysqlsh = std::string("mysqlsh ") + shcore::get_long_version();
-  doc.AddMember(StringRef("dumper"), refs(mysqlsh), a);
-  doc.AddMember(StringRef("version"), StringRef(Schema_dumper::version()), a);
-  doc.AddMember(StringRef("origin"), StringRef(name()), a);
+  json.append("dumper", std::string("mysqlsh ") + shcore::get_long_version());
+  json.append("version", common::k_dumper_version);
+  json.append("origin", name());
 
   if (const auto &options = m_options.original_options()) {
-    Document o{Type::kObjectType, &a};
-    o.Parse(shcore::Value(options).json().c_str());
-    doc.AddMember(StringRef("options"), std::move(o), a);
+    json.append("options", options);
   }
 
   {
     // list of schemas
-    Value schemas{Type::kArrayType};
+    json.append("schemas");
+    json.start_array();
 
     for (const auto &schema : m_schema_infos) {
-      schemas.PushBack(refs(schema.name), a);
+      json.append(schema.name);
     }
 
-    doc.AddMember(StringRef("schemas"), std::move(schemas), a);
+    json.end_array();
   }
 
   {
     // map of basenames
-    Value basenames{Type::kObjectType};
+    json.append("basenames");
+    json.start_object();
 
     for (const auto &schema : m_schema_infos) {
-      basenames.AddMember(refs(schema.name), refs(schema.basename), a);
+      json.append(schema.name, schema.basename);
     }
 
-    doc.AddMember(StringRef("basenames"), std::move(basenames), a);
+    json.end_object();
   }
 
   if (dump_users()) {
     const auto dumper = schema_dumper(session());
 
     // list of users
-    Value users{Type::kArrayType};
+    json.append("users");
+    json.start_array();
 
     for (const auto &user : dumper->get_users(m_options.filters().users())) {
-      users.PushBack({shcore::make_account(user).c_str(), a}, a);
+      json.append(shcore::make_account(user));
     }
 
-    doc.AddMember(StringRef("users"), std::move(users), a);
+    json.end_array();
   }
 
-  doc.AddMember(StringRef("defaultCharacterSet"),
-                refs(m_options.character_set()), a);
-  doc.AddMember(StringRef("tzUtc"), m_options.use_timezone_utc(), a);
-  doc.AddMember(StringRef("bytesPerChunk"), m_options.bytes_per_chunk(), a);
+  json.append("defaultCharacterSet", m_options.character_set());
+  json.append("tzUtc", m_options.use_timezone_utc());
+  json.append("bytesPerChunk", m_options.bytes_per_chunk());
 
-  doc.AddMember(StringRef("user"), refs(m_cache.user), a);
-  doc.AddMember(StringRef("hostname"), refs(m_cache.hostname), a);
+  json.append("user", m_cache.user);
+  json.append("hostname", m_cache.hostname);
 
-  doc.AddMember(StringRef("gtidExecutedInconsistent"),
-                is_gtid_executed_inconsistent(), a);
-  doc.AddMember(StringRef("consistent"), m_options.consistent_dump(), a);
+  json.append("gtidExecutedInconsistent", is_gtid_executed_inconsistent());
+  json.append("consistent", m_options.consistent_dump());
 
   if (m_options.mds_compatibility()) {
-    doc.AddMember(StringRef("mdsCompatibility"), true, a);
+    json.append("mdsCompatibility", true);
   }
 
-  doc.AddMember(StringRef("targetVersion"),
-                {m_options.target_version().get_full().c_str(), a}, a);
+  json.append("targetVersion", m_options.target_version().get_full());
 
   {
-    Value source{Type::kObjectType};
+    // source server
+    json.append("source");
 
-    // this does not necessarily has to be equal to @@GLOBAL.hostname
-    source.AddMember(StringRef("hostname"), refs(m_cache.server.hostname), a);
-
-    if (m_options.dump_binlog_info()) {
-      Value binlog{Type::kObjectType};
-
-      binlog.AddMember(StringRef("file"), refs(m_cache.server.binlog.file), a);
-      binlog.AddMember(StringRef("position"), m_cache.server.binlog.position,
-                       a);
-
-      source.AddMember(StringRef("binlog"), std::move(binlog), a);
-    }
-
-    {
-      Value sysvars{Type::kObjectType};
-
-      for (const auto &var : m_cache.server.sysvars) {
-        sysvars.AddMember(refs(var.first), refs(var.second), a);
-      }
-
-      source.AddMember(StringRef("sysvars"), std::move(sysvars), a);
-    }
-
-    doc.AddMember(StringRef("source"), std::move(source), a);
+    common::serialize(m_cache.server, &json, m_options.dump_binlog_info());
   }
 
   // TODO(pawel): remove these when dumper's version changes
   {
-    doc.AddMember(StringRef("server"), refs(m_cache.server.hostname), a);
-    doc.AddMember(StringRef("serverVersion"),
-                  {m_cache.server.version.number.get_full().c_str(), a}, a);
+    json.append("server", m_cache.server.sysvars.hostname);
+    json.append("serverVersion", m_cache.server.version.number.get_full());
 
     if (m_options.dump_binlog_info()) {
-      doc.AddMember(StringRef("binlogFile"), refs(m_cache.server.binlog.file),
-                    a);
-      doc.AddMember(StringRef("binlogPosition"), m_cache.server.binlog.position,
-                    a);
+      json.append("binlogFile", m_cache.server.binlog.file.name);
+      json.append("binlogPosition", m_cache.server.binlog.file.position);
     }
 
-    doc.AddMember(StringRef("gtidExecuted"), refs(m_cache.server.gtid_executed),
-                  a);
-    doc.AddMember(StringRef("partialRevokes"), m_cache.server.partial_revokes,
-                  a);
+    json.append("gtidExecuted", m_cache.server.binlog.gtid_executed);
+    json.append("partialRevokes",
+                m_cache.server.sysvars.partial_revokes.value_or(false));
   }
 
   {
     // list of compatibility options
-    Value compatibility{Type::kArrayType};
+    json.append("compatibilityOptions");
+    json.start_array();
 
     for (const auto &option : m_options.compatibility_options().values()) {
-      compatibility.PushBack({to_string(option).c_str(), a}, a);
+      json.append(to_string(option));
     }
 
-    doc.AddMember(StringRef("compatibilityOptions"), std::move(compatibility),
-                  a);
+    json.end_array();
   }
 
   {
     // list of used capabilities
-    Value capabilities{Type::kArrayType};
+    json.append("capabilities");
+    json.start_array();
 
     for (const auto &c : m_used_capabilities) {
-      Value capability{Type::kObjectType};
+      json.start_object();
 
-      capability.AddMember(StringRef("id"), {capability::id(c).c_str(), a}, a);
-      capability.AddMember(StringRef("description"),
-                           {capability::description(c).c_str(), a}, a);
-      capability.AddMember(
-          StringRef("versionRequired"),
-          {capability::version_required(c).get_base().c_str(), a}, a);
+      json.append("id", capability::id(c));
+      json.append("description", capability::description(c));
+      json.append("versionRequired",
+                  capability::version_required(c).get_base());
 
-      capabilities.PushBack(std::move(capability), a);
+      json.end_object();
     }
 
-    doc.AddMember(StringRef("capabilities"), std::move(capabilities), a);
+    json.end_array();
   }
 
-  doc.AddMember(StringRef("checksum"), m_options.checksum(), a);
+  json.append("checksum", m_options.checksum());
+  json.append("begin", m_progress_thread.duration().started_at());
 
-  doc.AddMember(StringRef("begin"),
-                refs(m_progress_thread.duration().started_at()), a);
+  json.end_object();
 
-  write_json(make_file("@.json"), &doc);
+  common::write_json(make_file(common::k_root_metadata_file), json);
 }
 
 void Dumper::write_dump_finished_metadata() const {
@@ -3799,7 +3780,7 @@ void Dumper::write_dump_finished_metadata() const {
     }
   }
 
-  write_json(make_file("@.done.json"), &doc);
+  write_json(make_file(common::k_done_metadata_file), &doc);
 }
 
 void Dumper::write_checksum_metadata() const {
@@ -3807,7 +3788,7 @@ void Dumper::write_checksum_metadata() const {
     return;
   }
 
-  m_checksum->serialize(make_file("@.checksums.json"));
+  m_checksum->serialize(make_file(common::k_checksums_metadata_file));
 }
 
 void Dumper::write_schema_metadata(const Schema_info &schema) const {
@@ -4059,13 +4040,14 @@ void Dumper::summarize() const {
   const auto console = current_console();
 
   if (!m_options.consistent_dump() && m_options.threads() > 1) {
-    const auto gtid_executed = schema_dumper(session())->gtid_executed();
+    const auto &prev_gtid_executed = m_cache.server.binlog.gtid_executed;
+    const auto gtid_executed = this->gtid_executed();
 
-    if (gtid_executed != m_cache.server.gtid_executed) {
+    if (gtid_executed != prev_gtid_executed) {
       console->print_warning(
           "The value of the gtid_executed system variable has changed during "
           "the dump, from: '" +
-          m_cache.server.gtid_executed + "' to: '" + gtid_executed + "'.");
+          prev_gtid_executed + "' to: '" + gtid_executed + "'.");
     }
   }
 
@@ -4257,35 +4239,13 @@ mysqlshdk::storage::IDirectory *Dumper::directory() const {
 
 std::unique_ptr<mysqlshdk::storage::IFile> Dumper::make_file(
     const std::string &filename, bool use_mmap) const {
-  static const char *s_mmap_mode = std::invoke([]() {
-    if (const char *mode = getenv("MYSQLSH_MMAP"); mode) return mode;
-    return "on";
-  });
-
   mysqlshdk::storage::File_options options;
-  if (use_mmap) options["file.mmap"] = s_mmap_mode;
+  if (use_mmap) options = mysqlshdk::storage::mmap_options();
   return directory()->file(filename, options);
 }
 
 std::string Dumper::get_basename(const std::string &basename) {
-  // 255 characters total:
-  // - 225 - base name
-  // -   5 - base name ordinal number
-  // -   2 - '@@'
-  // -   5 - chunk ordinal number
-  // -  10 - extension
-  // -   8 - '.dumping' extension
-  static const std::size_t max_length = 225;
-  const auto wbasename = shcore::utf8_to_wide(basename);
-  const auto wtruncated = shcore::truncate(wbasename, max_length);
-
-  if (wbasename.length() != wtruncated.length()) {
-    const auto truncated = shcore::wide_to_utf8(wtruncated);
-    const auto ordinal = m_truncated_basenames[truncated]++;
-    return truncated + std::to_string(ordinal);
-  } else {
-    return basename;
-  }
+  return m_basenames.get(basename);
 }
 
 bool Dumper::compressed() const {
@@ -4295,9 +4255,8 @@ bool Dumper::compressed() const {
 std::string Dumper::get_query_comment(const std::string &quoted_name,
                                       const std::string &id,
                                       const char *context) const {
-  return "/* mysqlsh " +
-         shcore::get_member_name(name(), shcore::current_naming_style()) +
-         ", " + context + " table " +
+  return "/* mysqlsh " + mysqlsh::common::member_name(name()) + ", " + context +
+         " table " +
          // sanitize schema/table names in case they contain a '*/'
          // *\/ isn't really a valid escape, but it doesn't matter because we
          // just want the lexer to not see */
@@ -4535,7 +4494,6 @@ void Dumper::validate_dump_consistency(
   }
 
   bool consistent = false;
-  const auto dumper = schema_dumper(session);
   const auto instance = mysqlshdk::mysql::Instance(session);
   const auto console = current_console();
   const auto skip_check = [&console, &consistent]() {
@@ -4546,14 +4504,15 @@ void Dumper::validate_dump_consistency(
   };
 
   if (m_gtid_enabled) {
-    const auto gtid_executed = dumper->gtid_executed();
-    consistent = gtid_executed == m_cache.server.gtid_executed;
+    const auto &prev_gtid_executed = m_cache.server.binlog.gtid_executed;
+    const auto gtid_executed = this->gtid_executed();
+    consistent = gtid_executed == prev_gtid_executed;
 
     if (!consistent) {
       console->print_note(
           "The value of the gtid_executed system variable has changed during "
           "the dump, from: '" +
-          m_cache.server.gtid_executed + "' to: '" + gtid_executed + "'.");
+          prev_gtid_executed + "' to: '" + gtid_executed + "'.");
 
       if (m_options.skip_consistency_checks()) {
         skip_check();
@@ -4561,32 +4520,32 @@ void Dumper::validate_dump_consistency(
         // check if executed statements are safe
         // get GTID sets which were executed since the dump has started
 
-        const auto set = Gtid_set::from_normalized_string(gtid_executed)
-                             .subtract(Gtid_set::from_normalized_string(
-                                           m_cache.server.gtid_executed),
-                                       instance);
+        const auto set =
+            Gtid_set::from_normalized_string(gtid_executed)
+                .subtract(Gtid_set::from_normalized_string(prev_gtid_executed),
+                          instance);
 
         consistent = check_if_transactions_are_ddl_safe(
-            instance, m_cache.server.binlog, dumper->binlog(true), set);
+            instance, m_cache.server.binlog.file, binlog().file, set);
       }
     }
   } else {
     // gtid_mode is not enabled, check binlog
-    const auto binlog = dumper->binlog(true);
-    consistent = m_cache.server.binlog == binlog;
+    const auto binlog = this->binlog().file;
+    consistent = m_cache.server.binlog.file == binlog;
 
     if (!consistent) {
       console->print_note(
           "The binlog position has changed during the dump, from: '" +
-          m_cache.server.binlog.to_string() + "' to: '" + binlog.to_string() +
-          "'.");
+          m_cache.server.binlog.file.to_string() + "' to: '" +
+          binlog.to_string() + "'.");
 
       if (m_options.skip_consistency_checks()) {
         skip_check();
       } else {
         // check if executed statements are safe
         consistent = check_if_transactions_are_ddl_safe(
-            instance, m_cache.server.binlog, binlog);
+            instance, m_cache.server.binlog.file, binlog);
       }
     }
   }
@@ -4617,7 +4576,7 @@ void Dumper::validate_dump_consistency(
 void Dumper::fetch_server_information() {
   const auto instance = mysqlshdk::mysql::Instance(session());
 
-  m_server_version = Schema_dumper{session()}.server_version();
+  m_server_version = common::server_version(session());
   m_binlog_enabled = instance.get_sysvar_bool("log_bin").value_or(false);
   m_gtid_enabled = shcore::str_ibeginswith(
       instance.get_sysvar_string("gtid_mode").value_or("OFF"), "ON");
@@ -4748,6 +4707,25 @@ void Dumper::handle_invalid_view_references(issues::Status_set status,
   console->print_info(
       "Loading them in a system that uses lower_case_table_names=0 (such as "
       "in the MySQL HeatWave Service) will fail unless they are fixed.");
+}
+
+std::string Dumper::gtid_executed() const {
+  try {
+    const auto result = query("SELECT @@GLOBAL.GTID_EXECUTED");
+
+    if (const auto row = result->fetch_one()) {
+      return row->get_string(0);
+    }
+  } catch (const mysqlshdk::db::Error &e) {
+    log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED: %s.",
+              e.format().c_str());
+  }
+
+  return {};
+}
+
+common::Binlog Dumper::binlog() const {
+  return common::binlog(session(), m_server_version, true);
 }
 
 }  // namespace dump

@@ -29,6 +29,7 @@
 
 #include <mutex>
 #include <regex>
+#include <utility>
 #include <vector>
 
 #include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
@@ -795,6 +796,18 @@ void Session_impl::setup_default_character_set() {
   // compiled-in default, which in case of 5.7 server is 'latin1'
   if (get_server_version() < mysqlshdk::utils::Version(8, 0, 0)) {
     execute("SET NAMES 'utf8mb4';");
+  }
+}
+
+MYSQL *Session_impl::release_connection() {
+  return std::exchange(_mysql, nullptr);
+}
+
+void Session_impl::set_character_set(const std::string &charset_name) {
+  if (!_mysql) throw std::runtime_error("Not connected");
+
+  if (mysql_set_character_set(_mysql, charset_name.c_str())) {
+    throw_on_connection_fail();
   }
 }
 

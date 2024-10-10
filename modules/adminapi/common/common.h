@@ -490,6 +490,8 @@ Instance_rejoinability validate_instance_rejoinable(
 bool validate_instance_standalone(const Instance &instance,
                                   TargetType::Type *target_type = nullptr);
 
+bool is_instance_standalone(TargetType::Type type);
+
 bool is_sandbox(const mysqlshdk::mysql::IInstance &instance,
                 std::string *cnfPath = nullptr);
 

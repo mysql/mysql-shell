@@ -74,7 +74,7 @@ class Azure_tests : public Shell_core_test_wrapper {
 
     auto config = testing::get_config(container_name());
     if (!config || !config->valid()) {
-      skip("Missing or invalid Azure Storage Connection setitings");
+      skip("Missing or invalid Azure Storage Connection settings");
     }
   }
 

@@ -30,12 +30,16 @@
 #include <numeric>
 #include <utility>
 
+#include "modules/util/common/dump/constants.h"
+#include "modules/util/common/dump/server_info.h"
 #include "modules/util/common/dump/utils.h"
+#include "modules/util/common/utils.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -46,19 +50,9 @@ namespace mysqlsh {
 
 namespace {
 
+using dump::common::fetch_file;
+using dump::common::fetch_json;
 using mysqlshdk::utils::Version;
-
-std::string fetch_file(mysqlshdk::storage::IDirectory *dir,
-                       const std::string &fn) {
-  auto file = dir->file(fn);
-  file->open(mysqlshdk::storage::Mode::READ);
-
-  std::string data = mysqlshdk::storage::read_file(file.get());
-
-  file->close();
-
-  return data;
-}
 
 shcore::Dictionary_t parse_metadata(const std::string &data,
                                     const std::string &fn) {
@@ -73,10 +67,9 @@ shcore::Dictionary_t parse_metadata(const std::string &data,
                 e.format().c_str());
   }
 }
-
 shcore::Dictionary_t fetch_metadata(mysqlshdk::storage::IDirectory *dir,
                                     const std::string &fn) {
-  return parse_metadata(fetch_file(dir, fn), fn);
+  return parse_metadata(fetch_file(dir->file(fn)), fn);
 }
 
 auto to_vector_of_strings(const shcore::Array_t &arr) {
@@ -149,105 +142,36 @@ Dump_reader::Dump_reader(
     : m_dir(std::move(dump_dir)), m_options(options) {}
 
 Dump_reader::Status Dump_reader::open() {
-  shcore::Dictionary_t md(fetch_metadata(m_dir.get(), "@.json"));
+  const auto md = fetch_json(m_dir->file(dump::common::k_root_metadata_file));
 
-  shcore::Dictionary_t basenames(md->get_map("basenames"));
+  {
+    const auto basenames =
+        shcore::json::required_unordered_map(md, "basenames");
 
-  for (const auto &schema : *md->get_array("schemas")) {
-    if (include_schema(schema.as_string())) {
-      auto info = std::make_shared<Schema_info>();
+    for (auto &schema : shcore::json::required_string_array(md, "schemas")) {
+      if (include_schema(schema)) {
+        auto info = std::make_shared<Schema_info>();
 
-      info->parent = nullptr;
-      info->name = schema.get_string();
-      if (basenames->has_key(info->name)) {
-        info->basename = basenames->get_string(info->name);
+        info->parent = nullptr;
+        info->name = std::move(schema);
+
+        if (const auto it = basenames.find(info->name); basenames.end() != it) {
+          info->basename = it->second;
+        } else {
+          info->basename = info->name;
+        }
+
+        m_contents.schemas.emplace(info->name, std::move(info));
       } else {
-        info->basename = info->name;
+        log_debug("Skipping schema '%s'", schema.c_str());
       }
-
-      m_contents.schemas.emplace(info->name, std::move(info));
-    } else {
-      log_debug("Skipping schema '%s'", schema.as_string().c_str());
     }
   }
 
-  if (md->has_key("version"))
-    m_contents.dump_version = Version(md->get_string("version"));
+  m_contents.dump = dump::common::dump_info(md);
 
-  if (md->has_key("targetVersion"))
-    m_contents.target_version = Version(md->get_string("targetVersion"));
-
-  if (md->has_key("origin")) m_contents.origin = md->get_string("origin");
-
-  if (md->has_key("defaultCharacterSet"))
-    m_contents.default_charset = md->get_string("defaultCharacterSet");
-
-  if (md->has_key("gtidExecutedInconsistent")) {
-    m_contents.gtid_executed_inconsistent =
-        md->get_bool("gtidExecutedInconsistent");
-  }
-
-  if (md->has_key("tzUtc")) m_contents.tz_utc = md->get_bool("tzUtc");
-
-  if (md->has_key("mdsCompatibility"))
-    m_contents.mds_compatibility = md->get_bool("mdsCompatibility");
-
-  if (md->has_key("source")) {
-    const auto source = md->at("source").as_map();
-
-    if (source->has_key("binlog")) {
-      const auto binlog = source->at("binlog").as_map();
-
-      m_contents.binlog_file = binlog->get_string("file");
-      m_contents.binlog_position = binlog->get_uint("position");
-    }
-
-    {
-      const auto sysvars = source->at("sysvars").as_map();
-
-      if (const auto version = sysvars->find("version");
-          sysvars->end() != version) {
-        m_contents.server_version = Version{version->second.as_string()};
-      }
-
-      if (const auto gtid_executed = sysvars->find("gtid_executed");
-          sysvars->end() != gtid_executed) {
-        m_contents.gtid_executed = gtid_executed->second.as_string();
-      }
-
-      if (const auto partial_revokes = sysvars->find("partial_revokes");
-          sysvars->end() != partial_revokes) {
-        m_contents.partial_revokes = mysqlshdk::mysql::sysvar_to_bool(
-            "partial_revokes", partial_revokes->second.as_string());
-      }
-
-      if (const auto lower_case_table_names =
-              sysvars->find("lower_case_table_names");
-          sysvars->end() != lower_case_table_names) {
-        m_contents.lower_case_table_names = shcore::lexical_cast<int8_t>(
-            lower_case_table_names->second.as_string());
-      }
-    }
-  } else {
-    if (md->has_key("serverVersion"))
-      m_contents.server_version = Version(md->get_string("serverVersion"));
-
-    if (md->has_key("binlogFile"))
-      m_contents.binlog_file = md->get_string("binlogFile");
-
-    if (md->has_key("binlogPosition"))
-      m_contents.binlog_position = md->get_uint("binlogPosition");
-
-    if (md->has_key("gtidExecuted"))
-      m_contents.gtid_executed = md->get_string("gtidExecuted");
-
-    if (md->has_key("partialRevokes"))
-      m_contents.partial_revokes = md->get_bool("partialRevokes");
-  }
-
-  if (md->has_key("compatibilityOptions")) {
-    const auto options = md->at("compatibilityOptions")
-                             .to_string_container<std::vector<std::string>>();
+  {
+    const auto &options = m_contents.dump.compatibility_options;
 
     m_contents.create_invisible_pks =
         std::find(options.begin(), options.end(), "create_invisible_pks") !=
@@ -258,36 +182,16 @@ Dump_reader::Status Dump_reader::open() {
         options.end();
   }
 
-  if (md->has_key("tableOnly"))
-    m_contents.table_only = md->get_bool("tableOnly");
+  // deprecated entry
+  m_contents.table_only =
+      shcore::json::optional_bool(md, "tableOnly").value_or(false);
 
-  if (md->has_key("bytesPerChunk"))
-    m_contents.bytes_per_chunk = md->get_uint("bytesPerChunk");
-
-  m_contents.has_users = md->has_key("users");
-
-  if (md->has_key("capabilities")) {
-    const auto capabilities = md->at("capabilities").as_array();
-
-    for (const auto &entry : *capabilities) {
-      const auto capability = entry.as_map();
-
-      m_contents.capabilities.emplace_back(Capability_info{
-          capability->at("id").as_string(),
-          capability->at("description").as_string(),
-          Version(capability->at("versionRequired").as_string())});
-    }
-  }
-
-  if (md->has_key("checksum"))
-    m_contents.has_checksum = md->get_bool("checksum");
-
-  if (m_dir->file("@.done.json")->exists()) {
+  if (m_dir->file(dump::common::k_done_metadata_file)->exists()) {
     m_contents.parse_done_metadata(m_dir.get(), m_options.checksum(),
                                    m_options.session());
     m_dump_status = Status::COMPLETE;
   } else {
-    log_info("@.done.json: not found");
+    log_info("%s: not found", dump::common::k_done_metadata_file);
     m_dump_status = Status::DUMPING;
   }
 
@@ -512,7 +416,7 @@ std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
 
   if (s->has_sql) {
     // Get the base script for the schema
-    script = fetch_file(m_dir.get(), s->script_name());
+    script = fetch_file(m_dir->file(s->script_name()));
   }
 
   return script;
@@ -847,7 +751,7 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
       }
     }
 
-    files = m_dir->list_files();
+    files = std::move(m_dir->list().files);
   }
 
   log_debug("Finished listing files, starting rescan");
@@ -857,7 +761,7 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
   log_debug("Rescan done");
 
   if (m_dump_status != Status::COMPLETE &&
-      files.find({"@.done.json"}) != files.end()) {
+      files.find({dump::common::k_done_metadata_file}) != files.end()) {
     m_contents.parse_done_metadata(m_dir.get(), m_options.checksum(),
                                    m_options.session());
     m_dump_status = Status::COMPLETE;
@@ -927,7 +831,7 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
 }
 
 void Dump_reader::validate_options() {
-  if (m_options.load_users() && !m_contents.has_users) {
+  if (m_options.load_users() && !m_contents.dump.has_users) {
     current_console()->print_warning(
         "The 'loadUsers' option is set to true, but the dump does not contain "
         "the user data.");
@@ -939,8 +843,7 @@ void Dump_reader::validate_options() {
       // user didn't provide the new schema name, we cannot proceed
       current_console()->print_error(
           "The dump was created by an older version of the util." +
-          shcore::get_member_name("dumpTables",
-                                  shcore::current_naming_style()) +
+          common::member_name("dumpTables") +
           "() function and needs to be loaded into an existing schema. "
           "Please set the target schema using the 'schema' option.");
 
@@ -964,7 +867,7 @@ void Dump_reader::validate_options() {
   }
 
   if (m_options.checksum()) {
-    if (!m_contents.has_checksum) {
+    if (!m_contents.dump.has_checksum) {
       throw std::invalid_argument(
           "The 'checksum' option cannot be used when the dump does not contain "
           "checksum information.");
@@ -1439,7 +1342,7 @@ void Dump_reader::Schema_info::rescan(mysqlshdk::storage::IDirectory *dir,
 
           pool->add_task(
               [dir, mdpath = t.second->metadata_name()]() {
-                return fetch_file(dir, mdpath);
+                return fetch_file(dir->file(mdpath));
               },
               [table = t.second.get(), &files, reader](std::string &&data) {
                 table->update_metadata(data, reader);
@@ -1523,14 +1426,19 @@ bool Dump_reader::Dump_info::ready() const {
 void Dump_reader::Dump_info::rescan(mysqlshdk::storage::IDirectory *dir,
                                     const Files &files, Dump_reader *reader,
                                     dump::Progress_thread *progress_thread) {
-  if (!sql && files.find({"@.sql"}) != files.end()) {
-    sql = std::make_unique<std::string>(fetch_file(dir, "@.sql"));
+  if (!sql && files.find({dump::common::k_preamble_sql_file}) != files.end()) {
+    sql = std::make_unique<std::string>(
+        fetch_file(dir->file(dump::common::k_preamble_sql_file)));
   }
-  if (!post_sql && files.find({"@.post.sql"}) != files.end()) {
-    post_sql = std::make_unique<std::string>(fetch_file(dir, "@.post.sql"));
+  if (!post_sql &&
+      files.find({dump::common::k_postamble_sql_file}) != files.end()) {
+    post_sql = std::make_unique<std::string>(
+        fetch_file(dir->file(dump::common::k_postamble_sql_file)));
   }
-  if (has_users && !users_sql && files.find({"@.users.sql"}) != files.end()) {
-    users_sql = std::make_unique<std::string>(fetch_file(dir, "@.users.sql"));
+  if (dump.has_users && !users_sql &&
+      files.find({dump::common::k_users_sql_file}) != files.end()) {
+    users_sql = std::make_unique<std::string>(
+        fetch_file(dir->file(dump::common::k_users_sql_file)));
   }
 
   if (!md_done) {
@@ -1584,7 +1492,7 @@ void Dump_reader::Dump_info::rescan_metadata(
 
         pool->add_task(
             [dir, mdpath = s.second->metadata_name()]() {
-              return fetch_file(dir, mdpath);
+              return fetch_file(dir->file(mdpath));
             },
             [&maybe_shutdown, schema = s.second.get(), dir, &files, reader,
              pool](std::string &&data) {
@@ -1641,13 +1549,14 @@ void Dump_reader::Dump_info::parse_done_metadata(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   log_info("Dump %s is complete", dir->full_path().masked().c_str());
 
-  if (const auto metadata = fetch_metadata(dir, "@.done.json")) {
+  if (const auto metadata =
+          fetch_metadata(dir, dump::common::k_done_metadata_file)) {
     if (metadata->has_key("dataBytes")) {
       total_data_size = metadata->get_uint("dataBytes");
     } else {
       log_warning(
-          "Dump metadata file @.done.json does not contain dataBytes "
-          "information");
+          "Dump metadata file %s does not contain dataBytes information",
+          dump::common::k_done_metadata_file);
     }
 
     if (metadata->has_key("tableDataBytes")) {
@@ -1658,8 +1567,8 @@ void Dump_reader::Dump_info::parse_done_metadata(
       }
     } else {
       log_warning(
-          "Dump metadata file @.done.json does not contain tableDataBytes "
-          "information");
+          "Dump metadata file %s does not contain tableDataBytes information",
+          dump::common::k_done_metadata_file);
     }
 
     // only exists in 1.0.1+
@@ -1678,10 +1587,11 @@ void Dump_reader::Dump_info::parse_done_metadata(
       }
     }
   } else {
-    log_warning("Dump metadata file @.done.json is invalid");
+    log_warning("Dump metadata file %s is invalid",
+                dump::common::k_done_metadata_file);
   }
 
-  if (get_checksum && has_checksum) {
+  if (get_checksum && dump.has_checksum) {
     initialize_checksums(dir, session);
   }
 }
@@ -1690,7 +1600,7 @@ void Dump_reader::Dump_info::initialize_checksums(
     mysqlshdk::storage::IDirectory *dir,
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   checksum = std::make_unique<dump::common::Checksums>();
-  checksum->deserialize(dir->file("@.checksums.json"));
+  checksum->deserialize(dir->file(dump::common::k_checksums_metadata_file));
   checksum->configure(session);
 
   // initialize tables which were parsed before dump was complete

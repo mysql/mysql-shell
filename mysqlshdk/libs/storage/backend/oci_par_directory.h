@@ -86,22 +86,21 @@ class Oci_par_directory : public Http_directory {
 
   void create() override;
 
+  void remove() override;
+
   std::unique_ptr<IFile> file(const std::string &name,
                               const File_options &options = {}) const override;
 
- private:
-  std::string get_list_url() const override;
+  std::unique_ptr<IDirectory> directory(const std::string &) const override;
 
-  bool is_list_files_complete() const override;
+ private:
+  class Par_listing_context;
+
+  std::unique_ptr<Listing_context> listing_context(size_t limit) const override;
 
   void init_rest();
 
-  std::unordered_set<IDirectory::File_info> parse_file_list(
-      const std::string &data, const std::string &pattern = "") const override;
-
   Oci_par_directory_config_ptr m_config;
-
-  mutable std::string m_next_start_with;
 
   mutable std::optional<bool> m_exists;
 };

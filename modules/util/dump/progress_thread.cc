@@ -197,7 +197,8 @@ class Throughput_progress : public Progress_thread::Stage {
 }  // namespace
 
 std::string Progress_thread::Duration::current_time() {
-  return mysqlshdk::utils::fmttime("%Y-%m-%d %T");
+  return mysqlshdk::utils::fmttime("%Y-%m-%d %T",
+                                   mysqlshdk::utils::Time_type::GMT);
 }
 
 const std::string &Progress_thread::Duration::started_at() const {

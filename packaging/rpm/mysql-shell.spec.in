@@ -188,6 +188,9 @@ cmake .. \
 %if 0%{?bundled_mysql_config_editor:1}
     -DBUNDLED_MYSQL_CONFIG_EDITOR=%{bundled_mysql_config_editor} \
 %endif
+%if 0%{?bundled_mysqlbinlog:1}
+    -DBUNDLED_MYSQLBINLOG=%{bundled_mysqlbinlog} \
+%endif
 %if 0%{?bundled_ssh:1}
     -DBUNDLED_SSH_DIR=%{bundled_ssh} \
 %endif
@@ -254,6 +257,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %if 0%{?bundled_mysql_config_editor:1}
 %{_libexecdir}/mysqlsh/mysql_config_editor
 %endif
+%{_libexecdir}/mysqlsh/mysqlbinlog
 %if 0%{?with_mysql_source:1}
 %{_prefix}/lib/mysql/plugins/*
 %if 0%{?rhel}

@@ -88,22 +88,28 @@ class Directory : public mysqlshdk::storage::IDirectory {
   void create() override;
 
   /**
+   * Emulates the directory deletion.
+   */
+  void remove() override;
+
+  /**
+   * Checks if directory is empty.
+   */
+  bool is_empty() const override;
+
+  /**
    * Returns the full path to the directory.
    */
   Masked_string full_path() const override { return m_name; }
 
   /**
-   * Retrieves a list of files on the directory.
+   * Retrieves a list of entries on the directory.
    *
    * NOTE: This function emulates non recursive listing by returning ONLY those
-   * object names that reside on the emulated directory but dont have / as part
+   * object names that reside on the emulated directory but don't have / as part
    * of their name.
    */
-  std::unordered_set<File_info> list_files(
-      bool hidden_files = false) const override;
-
-  std::unordered_set<File_info> filter_files(
-      const std::string &pattern) const override;
+  Directory_listing list(bool hidden_files = false) const override;
 
   /**
    * Creates a new file handle for for a file contained on this directory.
@@ -113,6 +119,8 @@ class Directory : public mysqlshdk::storage::IDirectory {
    */
   std::unique_ptr<IFile> file(const std::string &name,
                               const File_options &options = {}) const override;
+
+  std::unique_ptr<IDirectory> directory(const std::string &) const override;
 
   bool is_local() const override { return false; }
 
@@ -127,7 +135,7 @@ class Directory : public mysqlshdk::storage::IDirectory {
                         const std::string &b) const override;
 
  private:
-  std::unordered_set<IDirectory::File_info> list_multipart_uploads() const;
+  File_list list_multipart_uploads() const;
 };
 
 /**

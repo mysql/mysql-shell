@@ -42,6 +42,7 @@
 #include <vector>
 
 #include "modules/mod_utils.h"
+#include "modules/util/common/dump/dump_version.h"
 #include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/capability.h"
 #include "modules/util/dump/schema_dumper.h"
@@ -89,10 +90,6 @@ static constexpr const int k_mysql_server_net_read_timeout = 30 * 60;
 // load can take a long time and some of the connections will be idle
 // meanwhile so this needs to be high
 static constexpr const int k_mysql_server_wait_timeout = 365 * 24 * 60 * 60;
-
-// the version of the dump we support in this code
-static constexpr const int k_supported_dump_version_major = 2;
-static constexpr const int k_supported_dump_version_minor = 0;
 
 // Multiplier for bytesPerChunk which determines how big a chunk can actually be
 // before we enable sub-chunking for it.
@@ -3058,25 +3055,7 @@ void Dump_loader::open_dump(
     status = m_dump->open();
   }
 
-  const auto console = current_console();
-
-  if (m_dump->dump_version().get_major() > k_supported_dump_version_major ||
-      (m_dump->dump_version().get_major() == k_supported_dump_version_major &&
-       m_dump->dump_version().get_minor() > k_supported_dump_version_minor)) {
-    console->print_error(
-        "Dump format has version " + m_dump->dump_version().get_full() +
-        " which is not supported by this version of MySQL Shell. "
-        "Please upgrade MySQL Shell to load it.");
-    THROW_ERROR(SHERR_LOAD_UNSUPPORTED_DUMP_VERSION);
-  }
-
-  if (m_dump->dump_version() < Version(dump::Schema_dumper::version())) {
-    console->print_note(
-        "Dump format has version " + m_dump->dump_version().get_full() +
-        " and was created by an older version of MySQL Shell. "
-        "If you experience problems loading it, please recreate the dump using "
-        "the current version of MySQL Shell and try again.");
-  }
+  dump::common::validate_dumper_version(m_dump->dump_version());
 
   std::string missing_capabilities;
   // 8.0.27 is the version where capabilities were added
@@ -3093,6 +3072,8 @@ void Dump_loader::open_dump(
       missing_capabilities += "\n\n";
     }
   }
+
+  const auto console = current_console();
 
   if (!missing_capabilities.empty()) {
     console->print_error(
@@ -4170,7 +4151,7 @@ void Dump_loader::execute_tasks(bool testing) {
   auto console = current_console();
 
   if (m_options.dry_run())
-    console->print_info("dryRun enabled, no changes will be made.");
+    console->print_note("dryRun enabled, no changes will be made.");
 
   check_server_version();
 

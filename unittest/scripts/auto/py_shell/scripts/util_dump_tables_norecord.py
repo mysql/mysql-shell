@@ -86,21 +86,6 @@ test_output_relative = "dump_output"
 test_output_absolute = os.path.abspath(test_output_relative)
 
 # helpers
-if __os_type != "windows":
-    def filename_for_file(filename):
-        return filename
-else:
-    def filename_for_file(filename):
-        return filename.replace("\\", "/")
-
-if __os_type != "windows":
-    def absolute_path_for_output(path):
-        return path
-else:
-    def absolute_path_for_output(path):
-        long_path_prefix = r"\\?" "\\"
-        return long_path_prefix + path
-
 def setup_session(u = uri):
     shell.connect(u)
     session.run_sql("SET NAMES 'utf8mb4';")
@@ -792,7 +777,7 @@ util.dump_tables(test_schema, test_schema_tables, test_output_absolute, { "dryRu
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("Tables dumped: ")
 EXPECT_STDOUT_CONTAINS("Writing global DDL files")
-EXPECT_STDOUT_CONTAINS("dryRun enabled, no locks will be acquired and no files will be created.")
+EXPECT_STDOUT_CONTAINS("NOTE: dryRun enabled, no locks will be acquired and no files will be created.")
 
 for table in test_schema_tables:
     EXPECT_SHELL_LOG_CONTAINS("Writing DDL for table `{0}`.`{1}`".format(test_schema, table))

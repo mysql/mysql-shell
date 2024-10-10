@@ -27,6 +27,8 @@
 #define MYSQLSHDK_LIBS_UTILS_UTILS_UUID_H_
 
 #include <string>
+#include <string_view>
+
 namespace shcore {
 
 class Id_generator {
@@ -55,6 +57,12 @@ class Id_generator {
     return s;
   }
 };
+
+/**
+ * Checks if the given string is a UUID.
+ */
+bool is_uuid(std::string_view str);
+
 }  // namespace shcore
 
 #endif  // MYSQLSHDK_LIBS_UTILS_UTILS_UUID_H_

@@ -29,10 +29,13 @@
 #include <rapidjson/document.h>
 
 #include <cstdint>
+#include <map>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <vector>
 
 #include "mysqlshdk/include/mysqlshdk_export.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -128,6 +131,9 @@ class SHCORE_PUBLIC JSON_dumper final {
 namespace json {
 
 using JSON = rapidjson::Document;
+using Value = rapidjson::Value;
+using Object = rapidjson::Value::ConstObject;
+using Array = rapidjson::Value::ConstArray;
 
 /**
  * Parses a JSON string.
@@ -155,7 +161,7 @@ JSON parse_object_or_throw(std::string_view json);
 /**
  * Fetches a string value of a required field.
  *
- * @param json JSON object.
+ * @param object JSON object.
  * @param name Name of the field.
  * @param allow_empty Don't throw if value is an empty string.
  *
@@ -164,13 +170,25 @@ JSON parse_object_or_throw(std::string_view json);
  * @throws std::runtime_error if field does not exist or its value is not a
  * string
  */
-std::string required(const JSON &json, const char *name,
-                     bool allow_empty = false);
+std::string required(const Value &object, const char *name, bool allow_empty);
+
+/**
+ * Fetches a Boolean value of a required field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns Boolean value
+ *
+ * @throws std::runtime_error if field does not exist or its value is not a
+ * Boolean
+ */
+bool required_bool(const Value &object, const char *name);
 
 /**
  * Fetches an unsigned integer value of a required field.
  *
- * @param json JSON object.
+ * @param object JSON object.
  * @param name Name of the field.
  *
  * @returns unsigned integer value
@@ -178,12 +196,94 @@ std::string required(const JSON &json, const char *name,
  * @throws std::runtime_error if field does not exist or its value is not an
  * unsigned integer
  */
-uint64_t required_uint(const JSON &json, const char *name);
+uint64_t required_uint(const Value &object, const char *name);
+
+/**
+ * Fetches an object associated with a required field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns object
+ *
+ * @throws std::runtime_error if field does not exist or its value is not an
+ * object
+ */
+Object required_object(const Value &object, const char *name);
+
+/**
+ * Fetches a map of strings associated with a required field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns map of strings
+ *
+ * @throws std::runtime_error if field does not exist or its value is not a map
+ * of strings
+ */
+std::map<std::string, std::string> required_map(const Value &object,
+                                                const char *name);
+
+/**
+ * Fetches an unordered map of strings associated with a required field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns unordered map of strings
+ *
+ * @throws std::runtime_error if field does not exist or its value is not a map
+ * of strings
+ */
+std::unordered_map<std::string, std::string> required_unordered_map(
+    const Value &object, const char *name);
+
+/**
+ * Fetches an array associated with a required field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns array
+ *
+ * @throws std::runtime_error if field does not exist or its value is not an
+ * array
+ */
+Array required_array(const Value &object, const char *name);
+
+/**
+ * Fetches an array of objects associated with a required field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns array of objects
+ *
+ * @throws std::runtime_error if field does not exist or its value is not an
+ * array of objects
+ */
+std::vector<Object> required_object_array(const Value &object,
+                                          const char *name);
+
+/**
+ * Fetches an array of strings associated with a required field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns array of strings
+ *
+ * @throws std::runtime_error if field does not exist or its value is not an
+ * array of strings
+ */
+std::vector<std::string> required_string_array(const Value &object,
+                                               const char *name);
 
 /**
  * Fetches a string value of an optional field.
  *
- * @param json JSON object.
+ * @param object JSON object.
  * @param name Name of the field.
  * @param allow_empty Don't throw if value is an empty string.
  *
@@ -191,20 +291,108 @@ uint64_t required_uint(const JSON &json, const char *name);
  *
  * @throws std::runtime_error if value is not a string
  */
-std::optional<std::string> optional(const JSON &json, const char *name,
-                                    bool allow_empty = false);
+std::optional<std::string> optional(const Value &object, const char *name,
+                                    bool allow_empty);
+
+/**
+ * Fetches a Boolean value of an optional field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns Boolean value if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not a Boolean
+ */
+std::optional<bool> optional_bool(const Value &object, const char *name);
 
 /**
  * Fetches an unsigned integer value of an optional field.
  *
- * @param json JSON object.
+ * @param object JSON object.
  * @param name Name of the field.
  *
  * @returns unsigned integer value if JSON contains the specified field
  *
  * @throws std::runtime_error if value is not an unsigned integer
  */
-std::optional<uint64_t> optional_uint(const JSON &json, const char *name);
+std::optional<uint64_t> optional_uint(const Value &object, const char *name);
+
+/**
+ * Fetches an object associated with an optional field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns object if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not an object
+ */
+std::optional<Object> optional_object(const Value &object, const char *name);
+
+/**
+ * Fetches a map of strings associated with an optional field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns map of strings if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not a map of strings
+ */
+std::optional<std::map<std::string, std::string>> optional_map(
+    const Value &object, const char *name);
+
+/**
+ * Fetches an unordered map of strings associated with an optional field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns unordered map of strings if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not a map of strings
+ */
+std::optional<std::unordered_map<std::string, std::string>>
+optional_unordered_map(const Value &object, const char *name);
+
+/**
+ * Fetches an array associated with an optional field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns array if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not an array
+ */
+std::optional<Array> optional_array(const Value &object, const char *name);
+
+/**
+ * Fetches an array of objects associated with an optional field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns array of objects if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not an array of objects
+ */
+std::optional<std::vector<Object>> optional_object_array(const Value &object,
+                                                         const char *name);
+
+/**
+ * Fetches an array of strings associated with an optional field.
+ *
+ * @param object JSON object.
+ * @param name Name of the field.
+ *
+ * @returns array of strings if JSON contains the specified field
+ *
+ * @throws std::runtime_error if value is not an array of strings
+ */
+std::optional<std::vector<std::string>> optional_string_array(
+    const Value &object, const char *name);
 
 /**
  * Converts a JSON object to a string.
@@ -213,7 +401,7 @@ std::optional<uint64_t> optional_uint(const JSON &json, const char *name);
  *
  * @returns String representation of a JSON object.
  */
-std::string to_string(const JSON &json);
+std::string to_string(const Value &json);
 
 /**
  * Converts a JSON object to a nicely formatted string.
@@ -222,7 +410,7 @@ std::string to_string(const JSON &json);
  *
  * @returns String representation of a JSON object.
  */
-std::string to_pretty_string(const JSON &json);
+std::string to_pretty_string(const Value &json);
 
 }  // namespace json
 

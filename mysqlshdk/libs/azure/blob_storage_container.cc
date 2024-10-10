@@ -294,15 +294,16 @@ std::vector<Object_details> Blob_container::parse_list_objects(
       }
     }
 
-    if (out_prefixes) {
-      if (const auto prefix = get_optional_child(blobs, "BlobPrefix")) {
-        if (const auto prefix_name = get_optional_child_text(prefix, "Name")) {
-          out_prefixes->emplace(prefix_name);
-        }
+    objects.emplace_back(std::move(details));
+  }
+
+  if (out_prefixes) {
+    for (auto prefix = get_optional_child(blobs, "BlobPrefix"); prefix;
+         prefix = prefix->NextSiblingElement("BlobPrefix")) {
+      if (const auto prefix_name = get_optional_child_text(prefix, "Name")) {
+        out_prefixes->emplace(prefix_name);
       }
     }
-
-    objects.emplace_back(std::move(details));
   }
 
   if (next_start_from) {

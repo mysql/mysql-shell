@@ -1017,7 +1017,7 @@ OperatingSystem get_os_type() {
   OperatingSystem os;
 
 #ifdef WIN32
-  os = OperatingSystem::WINDOWS;
+  os = OperatingSystem::WINDOWS_OS;
 #elif __APPLE__
   os = OperatingSystem::MACOS;
 #elif __sun
@@ -1085,7 +1085,7 @@ std::string to_string(OperatingSystem os_type) {
       return "redhat";
     case OperatingSystem::LINUX:
       return "linux";
-    case OperatingSystem::WINDOWS:
+    case OperatingSystem::WINDOWS_OS:
       return "windows";
     case OperatingSystem::MACOS:
       return "macos";

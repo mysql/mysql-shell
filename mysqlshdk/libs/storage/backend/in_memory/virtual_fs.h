@@ -173,6 +173,11 @@ class Virtual_fs final {
     const std::string &name() const { return m_name; }
 
     /**
+     * Checks if this directory is empty.
+     */
+    bool is_empty() const;
+
+    /**
      * Fetches a file with the given name.
      *
      * @param name Name of the file to fetch.
@@ -197,12 +202,9 @@ class Virtual_fs final {
     /**
      * Lists files in this directory.
      *
-     * @param pattern List only files matching this glob pattern.
-     *
-     * @returns List of all or matching files.
+     * @returns List of all files.
      */
-    std::unordered_set<IDirectory::File_info> list_files(
-        const std::string &pattern = {}) const;
+    File_list list_files() const;
 
     /**
      * Renames a file.

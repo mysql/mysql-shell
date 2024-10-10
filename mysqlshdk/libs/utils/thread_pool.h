@@ -34,6 +34,7 @@
 #include <thread>
 #include <vector>
 
+#include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 
 namespace shcore {
@@ -62,8 +63,10 @@ class Thread_pool final {
    * Sets the number of threads the pool is going to use.
    *
    * @param threads Number of threads to use.
+   * @param interrupted Flag to signalize an interrupt.
    */
-  explicit Thread_pool(uint64_t threads);
+  explicit Thread_pool(uint64_t threads,
+                       shcore::atomic_flag *interrupted = nullptr);
 
   Thread_pool(const Thread_pool &) = delete;
   Thread_pool(Thread_pool &&) = delete;
@@ -125,7 +128,7 @@ class Thread_pool final {
    * @returns value which can be used to check the current state of asynchronous
    *          processing
    */
-  volatile const Async_state &process_async();
+  const std::atomic<Async_state> &process_async();
 
   /**
    * Waits for the asynchronous process() call to finish.
@@ -154,6 +157,10 @@ class Thread_pool final {
 
   void shutdown_main_thread();
 
+  inline bool interrupted() const noexcept {
+    return m_worker_interrupt || (m_interrupted && m_interrupted->test());
+  }
+
   uint64_t m_threads;
 
   std::atomic<uint64_t> m_active_threads;
@@ -162,15 +169,17 @@ class Thread_pool final {
 
   std::vector<std::exception_ptr> m_worker_exceptions;
 
-  volatile bool m_worker_interrupt = false;
+  std::atomic_bool m_worker_interrupt{false};
 
-  volatile bool m_all_tasks_pushed = false;
+  shcore::atomic_flag *m_interrupted;
+
+  std::atomic_bool m_all_tasks_pushed{false};
 
   Synchronized_queue<Task> m_worker_tasks;
 
   Synchronized_queue<std::function<void()>> m_main_thread_tasks;
 
-  volatile Async_state m_async_state = Async_state::IDLE;
+  std::atomic<Async_state> m_async_state{Async_state::IDLE};
 
   std::unique_ptr<std::thread> m_async_thread;
 

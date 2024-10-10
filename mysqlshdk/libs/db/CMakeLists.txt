@@ -47,6 +47,7 @@ set(db_SOURCE
     mysql/session.cc
     mysql/result.cc
     mysql/row.cc
+    mysql/binary_log.cc
     mysql/auth_plugins/mysql_event_handler_plugin.cc
     mysql/auth_plugins/common.cc
     mysql/auth_plugins/fido.cc

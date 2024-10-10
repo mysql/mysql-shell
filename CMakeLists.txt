@@ -465,6 +465,10 @@ set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
 )
 
+include(TestBigEndian)
+TEST_BIG_ENDIAN(IS_BIG_ENDIAN)
+add_definitions(-DIS_BIG_ENDIAN=${IS_BIG_ENDIAN})
+
 ### Configuring package year
 IF(NOT PACKAGE_YEAR)
   SET(PACKAGE_YEAR "2024")
@@ -657,6 +661,9 @@ INCLUDE(CheckFunctionExists)
 
 include(curl)
 MYSQL_CHECK_CURL()
+
+include(zlib)
+MYSQL_CHECK_ZLIB()
 
 IF (PYTHON_DEPS AND NOT HAVE_PYTHON)
   MESSAGE(FATAL_ERROR "PYTHON_DEPS should not be used when python is not available.")
@@ -1039,13 +1046,15 @@ endif()
 ## Installation location
 ##
 SET(INSTALL_BINDIR "bin")
+
 IF(LIBEXECDIR)
-ADD_DEFINITIONS(-DLIBEXECDIR="${LIBEXECDIR}")
-SET(INSTALL_LIBEXECDIR "${LIBEXECDIR}/mysqlsh")
+  ADD_DEFINITIONS(-DLIBEXECDIR="${LIBEXECDIR}")
+  SET(INSTALL_LIBEXECDIR "${LIBEXECDIR}/mysqlsh")
 ELSE()
-ADD_DEFINITIONS(-DLIBEXECDIR="libexec")
-SET(INSTALL_LIBEXECDIR "libexec/mysqlsh")
+  ADD_DEFINITIONS(-DLIBEXECDIR="libexec")
+  SET(INSTALL_LIBEXECDIR "libexec/mysqlsh")
 ENDIF()
+
 SET(INSTALL_LIBDIR "lib/mysqlsh")
 
 IF(MYSQL_BUILD_DIR)
@@ -1235,7 +1244,19 @@ IF(PYTHON_DEPS)
   ADD_DEFINITIONS(-DPYTHON_DEPS)
 ENDIF()
 
-IF(BUNDLED_MYSQL_CONFIG_EDITOR)
+IF(NOT BUNDLED_MYSQLBINLOG)
+  IF(WIN32)
+    SET(BUNDLED_MYSQLBINLOG "${MYSQL_BUILD_DIR}/runtime_output_directory/${CMAKE_BUILD_TYPE}/mysqlbinlog.exe")
+  ELSE()
+    SET(BUNDLED_MYSQLBINLOG "${MYSQL_BUILD_DIR}/runtime_output_directory/mysqlbinlog")
+  ENDIF()
+ENDIF()
+
+IF(NOT BUILD_SOURCE_PACKAGE AND NOT EXISTS "${BUNDLED_MYSQLBINLOG}")
+  message(FATAL_ERROR "The bundled 'mysqlbinlog' binary was not found, please compile it using: cmake --build '${MYSQL_BUILD_DIR}' --target mysqlbinlog")
+ENDIF()
+
+IF(BUNDLED_MYSQL_CONFIG_EDITOR OR BUNDLED_MYSQLBINLOG)
   add_definitions(-DHAVE_LIBEXEC_DIR)
 ENDIF()
 

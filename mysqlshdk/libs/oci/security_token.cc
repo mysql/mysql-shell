@@ -38,7 +38,7 @@ Security_token::Security_token(std::string token)
 
 Security_token Security_token::from_json(std::string_view json) {
   const auto parsed = shcore::json::parse_object_or_throw(json);
-  return Security_token{shcore::json::required(parsed, "token")};
+  return Security_token{shcore::json::required(parsed, "token", false)};
 }
 
 std::string Security_token::auth_key_id() const {

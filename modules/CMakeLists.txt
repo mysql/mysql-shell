@@ -35,10 +35,21 @@ INCLUDE_DIRECTORIES(BEFORE
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
+      "util/binlog/binlog_dump_info.cc"
+      "util/binlog/binlog_dumper.cc"
+      "util/binlog/binlog_loader.cc"
+      "util/binlog/dump_binlogs_options.cc"
+      "util/binlog/load_binlogs_options.cc"
+      "util/binlog/utils.cc"
       "util/common/common_options.cc"
       "util/common/storage_options.cc"
+      "util/common/utils.cc"
+      "util/common/dump/basenames.cc"
       "util/common/dump/checksums.cc"
+      "util/common/dump/dump_info.cc"
+      "util/common/dump/dump_version.cc"
       "util/common/dump/filtering_options.cc"
+      "util/common/dump/server_info.cc"
       "util/common/dump/utils.cc"
       "util/copy/copy_instance_options.cc"
       "util/copy/copy_operation.cc"
@@ -119,9 +130,51 @@ IF(CMAKE_COMPILER_IS_GNUCXX)
     )
 ENDIF()
 
-add_convenience_library(api_modules ${api_module_SOURCES})
-target_link_libraries(api_modules utils adminapi_modules)
+static_mysql_lib(NAME "mysql_binlog_event_standalone" PATH MYSQL_BINLOG_EVENT_LIB)
+
+if(NOT BUILD_SOURCE_PACKAGE AND NOT EXISTS "${MYSQL_BINLOG_EVENT_LIB}")
+    message(FATAL_ERROR "The binlog event library was not found, please compile it using: cmake --build '${MYSQL_BUILD_DIR}' --target mysql_binlog_event_standalone")
+else()
+    message(STATUS "MYSQL_BINLOG_EVENT_LIB: ${MYSQL_BINLOG_EVENT_LIB}")
+endif()
+
+set(MYSQL_BINLOG_LIBS "${MYSQL_BINLOG_EVENT_LIB}")
+
+foreach(__lib "mysql_serialization" "mysql_gtid")
+    static_mysql_lib(NAME "${__lib}" PATH __path)
+    list(APPEND MYSQL_BINLOG_LIBS "${__path}")
+endforeach()
+
+add_convenience_library(api_modules ${api_module_SOURCES} INCLUDE_DIRECTORIES "${MYSQL_SOURCE_DIR}/libs" COMPILE_DEFINITIONS STANDALONE_BINLOG)
+target_link_libraries(api_modules utils adminapi_modules ${MYSQL_BINLOG_LIBS})
 
 ADD_SUBDIRECTORY(adminapi)
 
 ADD_STAN_TARGET(api_modules ${api_module_SOURCES})
+
+# If defined, installs the mysqlbinlog binary into the shell bundle
+IF(BUNDLED_MYSQLBINLOG)
+  # there are some issues in case of RPM builds if an ELF is patched with patchelf < 0.16.0 and then binary is stripped;
+  # we don't bundle OpenSSL there, so we make patching conditional
+  IF(BUNDLED_OPENSSL)
+    SET(WRITE_RPATH TRUE)
+  ELSE()
+    SET(WRITE_RPATH FALSE)
+  ENDIF()
+
+  if(APPLE)
+    # add rpath to allow executable to import bundled dylibs
+    get_filename_component(_file_name "${BUNDLED_MYSQLBINLOG}" NAME)
+    file(RELATIVE_PATH __relative_path "${CMAKE_BINARY_DIR}/${INSTALL_LIBEXECDIR}" "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}")
+    set(EXTRA_COPY_COMMANDS COMMAND install_name_tool -add_rpath "@executable_path/${__relative_path}" "${CMAKE_BINARY_DIR}/${INSTALL_LIBEXECDIR}/${_file_name}")
+  endif()
+
+  install_bundled_binaries(
+      DESCRIPTION "mysqlbinlog binary"
+      BINARIES "${BUNDLED_MYSQLBINLOG}"
+      DESTINATION "${INSTALL_LIBEXECDIR}"
+      TARGET api_modules
+      WRITE_RPATH ${WRITE_RPATH}
+      EXTRA_COPY_COMMANDS ${EXTRA_COPY_COMMANDS}
+  )
+ENDIF()

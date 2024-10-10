@@ -26,8 +26,6 @@
 // Dump a table's contents and format to a text file.
 // Adapted from mysqldump.cc
 
-#define DUMP_VERSION "2.0.1"
-
 #include "include/mysh_config.h"
 
 #include "modules/util/dump/schema_dumper.h"
@@ -61,6 +59,7 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/common/dump/dump_version.h"
 #include "modules/util/dump/dump_errors.h"
 
 namespace mysqlsh {
@@ -430,9 +429,10 @@ void Schema_dumper::write_footer(IFile *sql_file) {
 void Schema_dumper::write_comment(IFile *sql_file, const std::string &db_name,
                                   const std::string &table_name) {
   if (!opt_compact) {
-    print_comment(
-        sql_file, false, "-- MySQLShell dump %s  Distrib %s, for %s (%s)\n--\n",
-        DUMP_VERSION, shcore::get_long_version(), SYSTEM_TYPE, MACHINE_TYPE);
+    print_comment(sql_file, false,
+                  "-- MySQLShell dump %s  Distrib %s, for %s (%s)\n--\n",
+                  common::k_dumper_version, shcore::get_long_version(),
+                  SYSTEM_TYPE, MACHINE_TYPE);
 
     std::string host;
     const auto &co = m_mysql->get_connection_options();
@@ -3303,8 +3303,6 @@ std::vector<shcore::Account> Schema_dumper::get_roles(
                      filters);
 }
 
-const char *Schema_dumper::version() { return DUMP_VERSION; }
-
 std::vector<Schema_dumper::User_statements>
 Schema_dumper::preprocess_users_script(
     const std::string &script,
@@ -3509,95 +3507,9 @@ std::vector<shcore::Account> Schema_dumper::fetch_users(
           std::make_move_iterator(users.end())};
 }
 
-std::string Schema_dumper::gtid_executed() {
-  try {
-    const auto result = m_mysql->query("SELECT @@GLOBAL.GTID_EXECUTED;");
-
-    if (const auto row = result->fetch_one()) {
-      return row->get_string(0);
-    }
-  } catch (const mysqlshdk::db::Error &e) {
-    log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED: %s.",
-              e.format().c_str());
-  }
-
-  return {};
-}
-
-Instance_cache::Binlog Schema_dumper::binlog(bool quiet) {
-  Instance_cache::Binlog binlog;
-
-  const auto &version = m_cache ? m_cache->server.version : server_version();
-
-  try {
-    auto keyword =
-        version.is_maria_db
-            ? "MASTER"
-            : mysqlshdk::mysql::get_binary_logs_keyword(version.number, true);
-
-    DBUG_EXECUTE_IF("dumper_dump_mariadb", {
-      // We need the binlog query to not be affected by this dbug flag, because
-      // it has to work even when running in mysql.
-      keyword = mysqlshdk::mysql::get_binary_logs_keyword(
-          m_mysql->get_server_version(), true);
-    });
-
-    const auto result =
-        m_mysql->query(shcore::str_format("SHOW %s STATUS", keyword));
-
-    if (const auto row = result->fetch_one()) {
-      binlog.file = row->get_string(0);    // File
-      binlog.position = row->get_uint(1);  // Position
-    }
-  } catch (const mysqlshdk::db::Error &e) {
-    if (e.code() == ER_SPECIFIC_ACCESS_DENIED_ERROR) {
-      if (!quiet) {
-        current_console()->print_warning(
-            "Could not fetch the binary log information: " + e.format());
-      }
-    } else {
-      throw;
-    }
-  }
-
-  return binlog;
-}
-
-Instance_cache::Server_version Schema_dumper::server_version() const {
-  const auto result = m_mysql->query("SELECT @@GLOBAL.VERSION;");
-  Instance_cache::Server_version ret_val;
-
-  if (const auto row = result->fetch_one()) {
-    ret_val.number = Version(row->get_string(0));
-
-    DBUG_EXECUTE_IF("dumper_dump_mariadb", {
-      ret_val.number = Version("10.4.18-MariaDB-1:10.4.18+maria~focal");
-    });
-
-    if (std::string::npos !=
-        shcore::str_lower(ret_val.number.get_extra()).find("mariadb")) {
-      // we don't want the numbering used by MariaDB to interfere with various
-      // conditions we have in our code, just fall-back to an old version
-      ret_val.number = Version("5.6.0-" + ret_val.number.get_full());
-      ret_val.is_5_6 = true;
-      ret_val.is_maria_db = true;
-    } else if (ret_val.number < Version(5, 7, 0)) {
-      ret_val.is_5_6 = true;
-    } else if (ret_val.number < Version(8, 0, 0)) {
-      ret_val.is_5_7 = true;
-    } else {
-      ret_val.is_8_0 = true;
-    }
-  } else {
-    THROW_ERROR(SHERR_DUMP_IC_FAILED_TO_FETCH_VERSION);
-  }
-
-  return ret_val;
-}
-
 bool Schema_dumper::partial_revokes() const {
   if (m_cache) {
-    return m_cache->server.partial_revokes;
+    return m_cache->server.sysvars.partial_revokes.value_or(false);
   }
 
   if (!m_partial_revokes.has_value()) {
@@ -3661,11 +3573,11 @@ void Schema_dumper::check_view_for_table_references(
     return;
   }
 
-  assert(m_cache->server.lower_case_table_names >= 0 &&
-         m_cache->server.lower_case_table_names <= 2);
+  assert(m_cache->server.sysvars.lower_case_table_names >= 0 &&
+         m_cache->server.sysvars.lower_case_table_names <= 2);
 
   const auto case_insensitive_search =
-      2 == m_cache->server.lower_case_table_names;
+      2 == m_cache->server.sysvars.lower_case_table_names;
 
   // NOTE: Invalid views (i.e. referencing non-existing tables/columns) are
   // detected earlier (when fetching view information by instance cache) and

@@ -868,7 +868,7 @@ std::vector<std::string> get_default_config_paths(shcore::OperatingSystem os) {
       default_paths.push_back("/etc/mysql/my.cnf");
       if (!sysconfdir.empty()) default_paths.push_back(sysconfdir + "/my.cnf");
       break;
-    case shcore::OperatingSystem::WINDOWS: {
+    case shcore::OperatingSystem::WINDOWS_OS: {
       char *program_data_ptr = getenv("PROGRAMDATA");
       if (program_data_ptr) {
         default_paths.push_back(std::string(program_data_ptr) +

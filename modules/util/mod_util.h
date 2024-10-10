@@ -32,6 +32,8 @@
 #include <vector>
 
 #include "modules/mod_extensible_object.h"
+#include "modules/util/binlog/dump_binlogs_options.h"
+#include "modules/util/binlog/load_binlogs_options.h"
 #include "modules/util/copy/copy_instance_options.h"
 #include "modules/util/copy/copy_schemas_options.h"
 #include "modules/util/copy/copy_tables_options.h"
@@ -186,6 +188,24 @@ class SHCORE_PUBLIC Util : public Extensible_object {
       const std::string &schema, const std::vector<std::string> &tables,
       const mysqlshdk::db::Connection_options &connection_options,
       const shcore::Option_pack_ref<copy::Copy_tables_options> &options = {});
+
+#if DOXYGEN_JS
+  Undefined dumpBinlogs(String outputUrl, Dictionary options);
+#elif DOXYGEN_PY
+  None dump_binlogs(str outputUrl, dict options);
+#endif
+  void dump_binlogs(
+      const std::string &url,
+      const shcore::Option_pack_ref<binlog::Dump_binlogs_options> &options);
+
+#if DOXYGEN_JS
+  Undefined loadBinlogs(String url, Dictionary options);
+#elif DOXYGEN_PY
+  None load_binlogs(str url, dict options);
+#endif
+  void load_binlogs(
+      const std::string &url,
+      const shcore::Option_pack_ref<binlog::Load_binlogs_options> &options);
 
  private:
   std::shared_ptr<mysqlshdk::db::ISession> global_session() const;

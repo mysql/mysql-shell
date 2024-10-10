@@ -23,12 +23,14 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/libs/azure/signer.h"
 #include "mysqlshdk/libs/db/replay/setup.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
+#include "unittest/mysqlshdk/libs/azure/test_utils.h"
 #include "unittest/shell_script_tester.h"
 
 #include <stdlib.h>
@@ -53,12 +55,21 @@ class Auto_script_py : public Shell_py_script_tester,
                                              "setup.py"));
   }
 
- protected:
-  void set_defaults() override {
+  bool skip_set_defaults() {
     if (_skip_set_defaults) {
       _skip_set_defaults = false;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+ protected:
+  void set_defaults() override {
+    if (skip_set_defaults()) {
       return;
     }
+
     Shell_py_script_tester::set_defaults();
 
     std::string user, host, password;
@@ -190,87 +201,92 @@ class Auto_script_py : public Shell_py_script_tester,
     code = "__mysqlsh = " + shcore::quote_string(get_path_to_mysqlsh(), '\'');
     exec_and_out_equals(code);
   }
+
+  void run_and_check() {
+    // Enable interactive/wizard mode if the test file ends with _interactive.py
+    _options->wizards =
+        strstr(GetParam().c_str(), "_interactive.") ? true : false;
+
+    // if the test concerns the AdminAPI (without the "record" suffix) and the
+    // current server version is not supported, we might as well skip it
+    if (shcore::str_beginswith(GetParam(), "py_adminapi") &&
+        !shcore::str_endswith(GetParam(), "_norecord")) {
+      if (!Shell_test_env::check_min_version_skip_test()) return;
+    }
+
+    SCOPED_TRACE(GetParam());
+
+    std::string folder;
+    std::string name;
+    std::tie(folder, name) = shcore::str_partition(GetParam(), "/");
+
+    // Does not enable recording engine for the devapi tests
+    // Recording for CRUD is not available
+    if (folder != "py_devapi" &&
+        GetParam().find("_norecord") == std::string::npos) {
+      reset_replayable_shell(name.c_str());
+    } else {
+      set_defaults();
+      execute_setup();
+    }
+
+    if (folder == "py_shell")
+      output_handler.set_answers_to_stdout(true);
+    else
+      output_handler.set_answers_to_stdout(false);
+
+    if (g_mysqld_path_variables) {
+      auto variables = shcore::str_split(g_mysqld_path_variables, ",");
+
+      std::string secondary_var_name{"MYSQLD_SECONDARY_SERVER_A"};
+
+      exec_and_out_equals("import os");
+      for (const auto &variable : variables) {
+        auto serverParts = shcore::str_split(variable, ";");
+        assert(serverParts.size() == 2);
+
+        auto &serverVersion = serverParts[0];
+        auto &serverPath = serverParts[1];
+
+        {
+          std::string code = shcore::str_format(
+              "%s = os.getenv('%s')", serverPath.c_str(), serverPath.c_str());
+          exec_and_out_equals(code);
+        }
+
+        if (secondary_var_name.back() <= 'Z') {
+          auto code = shcore::str_format(
+              "%s = { \"path\": os.getenv('%s'), \"version\": \"%s\" }",
+              secondary_var_name.c_str(), serverPath.c_str(),
+              serverVersion.c_str());
+          execute(code);
+
+          secondary_var_name.back()++;
+        }
+      }
+    }
+
+    fprintf(stdout, "Test script: %s\n", GetParam().c_str());
+    exec_and_out_equals("__script_file = '" + GetParam() + "'");
+
+    set_config_folder(shcore::path::join_path("auto", folder));
+
+    // To allow handling python modules on the path of the scripts
+    execute("import sys");
+    std::string code = "sys.path.append('" + _scripts_home + "')";
+
+#ifdef WIN32
+    code = shcore::str_replace(code, "\\", "\\\\");
+#endif
+    execute(code);
+
+    validate_interactive(name);
+  }
 };
 
 TEST_P(Auto_script_py, run_and_check) {
-  // Enable interactive/wizard mode if the test file ends with _interactive.py
-  _options->wizards =
-      strstr(GetParam().c_str(), "_interactive.") ? true : false;
-
-  // if the test concerns the AdminAPI (without the "record" suffix) and the
-  // current server version is not supported, we might as well skip it
-  if (shcore::str_beginswith(GetParam(), "py_adminapi") &&
-      !shcore::str_endswith(GetParam(), "_norecord")) {
-    if (!Shell_test_env::check_min_version_skip_test()) return;
-  }
-
-  SCOPED_TRACE(GetParam());
-
-  std::string folder;
-  std::string name;
-  std::tie(folder, name) = shcore::str_partition(GetParam(), "/");
-
-  // Does not enable recording engine for the devapi tests
-  // Recording for CRUD is not available
-  if (folder != "py_devapi" &&
-      GetParam().find("_norecord") == std::string::npos) {
-    reset_replayable_shell(name.c_str());
-  } else {
-    set_defaults();
-    execute_setup();
-  }
-
-  if (folder == "py_shell")
-    output_handler.set_answers_to_stdout(true);
-  else
-    output_handler.set_answers_to_stdout(false);
-
-  if (g_mysqld_path_variables) {
-    auto variables = shcore::str_split(g_mysqld_path_variables, ",");
-
-    std::string secondary_var_name{"MYSQLD_SECONDARY_SERVER_A"};
-
-    exec_and_out_equals("import os");
-    for (const auto &variable : variables) {
-      auto serverParts = shcore::str_split(variable, ";");
-      assert(serverParts.size() == 2);
-
-      auto &serverVersion = serverParts[0];
-      auto &serverPath = serverParts[1];
-
-      {
-        std::string code = shcore::str_format(
-            "%s = os.getenv('%s')", serverPath.c_str(), serverPath.c_str());
-        exec_and_out_equals(code);
-      }
-
-      if (secondary_var_name.back() <= 'Z') {
-        auto code = shcore::str_format(
-            "%s = { \"path\": os.getenv('%s'), \"version\": \"%s\" }",
-            secondary_var_name.c_str(), serverPath.c_str(),
-            serverVersion.c_str());
-        execute(code);
-
-        secondary_var_name.back()++;
-      }
-    }
-  }
-
-  fprintf(stdout, "Test script: %s\n", GetParam().c_str());
-  exec_and_out_equals("__script_file = '" + GetParam() + "'");
-
-  set_config_folder(shcore::path::join_path("auto", folder));
-
-  // To allow handling python modules on the path of the scripts
-  execute("import sys");
-  std::string code = "sys.path.append('" + _scripts_home + "')";
-
-#ifdef WIN32
-  code = shcore::str_replace(code, "\\", "\\\\");
-#endif
-  execute(code);
-
-  validate_interactive(name);
+  SCOPED_TRACE("Auto_script_py::run_and_check()");
+  run_and_check();
 }
 
 std::vector<std::string> find_py_tests(const std::string &subdir,
@@ -339,4 +355,88 @@ INSTANTIATE_TEST_SUITE_P(Mixed_versions, Auto_script_py,
                          testing::ValuesIn(find_py_tests("py_mixed_versions",
                                                          ".py")),
                          fmt_param);
+
+class Azure_tests_py : public Auto_script_py {
+ public:
+  void SetUp() override {
+    Auto_script_py::SetUp();
+
+    const auto config = testing::get_config(s_container_name);
+    m_azure_configured = (config && config->valid());
+
+    if (m_azure_configured) {
+      m_endpoint = config->endpoint() + config->endpoint_path();
+      m_using_emulator = m_endpoint.find("127.0.0.1") != std::string::npos;
+      m_account = config->account_name();
+      m_key = config->account_key();
+
+      const auto signer = config->signer();
+      const auto azure_signer =
+          dynamic_cast<mysqlshdk::azure::Signer *>(signer.get());
+
+      m_account_rwl_sas_token = azure_signer->create_account_sas_token();
+      m_account_rl_sas_token =
+          azure_signer->create_account_sas_token(mysqlshdk::azure::k_read_list);
+    }
+  }
+
+  void TearDown() override {
+    Auto_script_py::TearDown();
+
+    if (m_azure_configured) {
+      mysqlshdk::azure::Blob_container container(
+          testing::get_config(s_container_name));
+
+      testing::clean_container(container);
+    }
+  }
+
+  static void SetUpTestCase() { testing::create_container(s_container_name); }
+
+  static void TearDownTestCase() {
+    testing::delete_container(s_container_name);
+  }
+
+  void set_defaults() override {
+    if (skip_set_defaults()) {
+      return;
+    }
+
+    Auto_script_py::set_defaults();
+
+    execute(shcore::str_format("__container_name = '%s'",
+                               s_container_name.c_str()));
+    execute(shcore::str_format("__azure_configured = %s",
+                               m_azure_configured ? "True" : "False"));
+    execute(shcore::str_format("__azure_emulator = %s",
+                               m_using_emulator ? "True" : "False"));
+    execute(shcore::str_format("__azure_endpoint = '%s'", m_endpoint.c_str()));
+    execute(shcore::str_format("__azure_account = '%s'", m_account.c_str()));
+    execute(shcore::str_format("__azure_key = '%s'", m_key.c_str()));
+    execute(shcore::str_format("__azure_account_rwl_sas_token = '%s'",
+                               m_account_rwl_sas_token.c_str()));
+    execute(shcore::str_format("__azure_account_rl_sas_token = '%s'",
+                               m_account_rl_sas_token.c_str()));
+  }
+
+ private:
+  static constexpr std::string s_container_name = "devtestingpy";
+  bool m_azure_configured = false;
+  std::string m_account;
+  std::string m_key;
+  std::string m_endpoint;
+  std::string m_account_rwl_sas_token;
+  std::string m_account_rl_sas_token;
+  bool m_using_emulator;
+};
+
+TEST_P(Azure_tests_py, run_and_check) {
+  SCOPED_TRACE("Azure_tests_py::run_and_check()");
+  run_and_check();
+}
+
+INSTANTIATE_TEST_SUITE_P(Azure_scripted, Azure_tests_py,
+                         testing::ValuesIn(find_py_tests("py_azure", ".py")),
+                         fmt_param);
+
 }  // namespace tests

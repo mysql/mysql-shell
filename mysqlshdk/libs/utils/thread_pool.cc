@@ -25,15 +25,18 @@
 
 #include "mysqlshdk/libs/utils/thread_pool.h"
 
+#include <utility>
+
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 
 namespace shcore {
 
-Thread_pool::Thread_pool(uint64_t threads)
+Thread_pool::Thread_pool(uint64_t threads, shcore::atomic_flag *interrupted)
     : m_threads(threads),
       m_active_threads(threads),
       m_workers(threads),
-      m_worker_exceptions(threads) {}
+      m_worker_exceptions(threads),
+      m_interrupted(interrupted) {}
 
 Thread_pool::~Thread_pool() {
   kill_threads();
@@ -48,7 +51,7 @@ void Thread_pool::start_threads() {
             while (true) {
               auto task = m_worker_tasks.pop();
 
-              if (m_worker_interrupt) {
+              if (interrupted()) {
                 return;
               }
 
@@ -64,7 +67,7 @@ void Thread_pool::start_threads() {
                     process_data(std::move(data));
                   });
 
-              if (m_worker_interrupt) {
+              if (interrupted()) {
                 return;
               }
             }
@@ -106,18 +109,18 @@ void Thread_pool::process() {
     while (true) {
       auto task = m_main_thread_tasks.pop();
 
-      if (m_worker_interrupt || !task) {
+      if (interrupted() || !task) {
         break;
       }
 
       task();
 
-      if (m_worker_interrupt) {
+      if (interrupted()) {
         break;
       }
     }
 
-    if (!m_worker_interrupt) {
+    if (!interrupted()) {
       m_async_state = Async_state::DONE;
     }
   } catch (...) {
@@ -129,7 +132,7 @@ void Thread_pool::process() {
   rethrow();
 }
 
-volatile const Thread_pool::Async_state &Thread_pool::process_async() {
+const std::atomic<Thread_pool::Async_state> &Thread_pool::process_async() {
   m_async_state = Async_state::PRODUCING;
 
   m_async_thread =
@@ -153,8 +156,11 @@ void Thread_pool::wait_for_process() {
 }
 
 void Thread_pool::emergency_shutdown() {
+  // we check only local flag here, as we want to modify our internal state
+  // regardless of the external state
   if (!m_worker_interrupt) {
     m_worker_interrupt = true;
+    if (m_interrupted) m_interrupted->test_and_set();
     m_async_state = Async_state::TERMINATED;
     m_worker_tasks.shutdown(m_threads);
     shutdown_main_thread();
@@ -185,8 +191,10 @@ void Thread_pool::rethrow() {
 }
 
 void Thread_pool::kill_threads() {
-  emergency_shutdown();
-  wait_for_worker_threads();
+  if (!m_workers.empty()) {
+    emergency_shutdown();
+    wait_for_worker_threads();
+  }
 }
 
 void Thread_pool::maybe_shutdown_main_thread() {

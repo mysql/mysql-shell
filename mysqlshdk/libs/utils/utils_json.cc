@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <utility>
 
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/dtoa.h"
@@ -468,10 +469,80 @@ auto missing_value(const char *name) {
       "JSON object should contain a '%s' key with a string value", name)};
 }
 
+auto missing_bool_value(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with a Boolean value", name)};
+}
+
 auto missing_uint_value(const char *name) {
   return std::runtime_error{shcore::str_format(
       "JSON object should contain a '%s' key with an unsigned integer value",
       name)};
+}
+
+auto missing_object(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with an object value", name)};
+}
+
+auto missing_map(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with a map of strings value",
+      name)};
+}
+
+auto missing_array(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with an array value", name)};
+}
+
+auto missing_object_array(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with an array of objects value",
+      name)};
+}
+
+auto missing_string_array(const char *name) {
+  return std::runtime_error{shcore::str_format(
+      "JSON object should contain a '%s' key with an array of strings value",
+      name)};
+}
+
+inline std::string as_string(const Value &v) {
+  return std::string{v.GetString(), v.GetStringLength()};
+}
+
+template <typename Map>
+inline std::optional<Map> optional_x_map(const Value &object,
+                                         const char *name) {
+  const auto o = optional_object(object, name);
+
+  if (!o.has_value()) {
+    return {};
+  }
+
+  Map result;
+
+  for (const auto &m : *o) {
+    if (!m.value.IsString()) {
+      throw missing_map(name);
+    }
+
+    result.emplace(as_string(m.name), as_string(m.value));
+  }
+
+  return std::make_optional(std::move(result));
+}
+
+template <typename Map>
+inline Map required_x_map(const Value &object, const char *name) {
+  auto result = optional_x_map<Map>(object, name);
+
+  if (!result.has_value()) {
+    throw missing_map(name);
+  }
+
+  return Map{std::move(*result)};
 }
 
 }  // namespace
@@ -499,32 +570,94 @@ JSON parse_object_or_throw(std::string_view json) {
   return doc;
 }
 
-std::string required(const JSON &json, const char *name, bool allow_empty) {
-  const auto it = json.FindMember(name);
+std::string required(const Value &object, const char *name, bool allow_empty) {
+  auto result = optional(object, name, allow_empty);
 
-  if (json.MemberEnd() == it || !it->value.IsString() ||
-      (!allow_empty && !it->value.GetStringLength())) {
+  if (!result.has_value()) {
     throw missing_value(name);
   }
 
-  return {it->value.GetString(), it->value.GetStringLength()};
+  return std::string{std::move(*result)};
 }
 
-uint64_t required_uint(const JSON &json, const char *name) {
-  const auto it = json.FindMember(name);
+bool required_bool(const Value &object, const char *name) {
+  auto result = optional_bool(object, name);
 
-  if (json.MemberEnd() == it || !it->value.IsUint64()) {
+  if (!result.has_value()) {
+    throw missing_bool_value(name);
+  }
+
+  return *result;
+}
+
+uint64_t required_uint(const Value &object, const char *name) {
+  auto result = optional_uint(object, name);
+
+  if (!result.has_value()) {
     throw missing_uint_value(name);
   }
 
-  return it->value.GetUint64();
+  return *result;
 }
 
-std::optional<std::string> optional(const JSON &json, const char *name,
-                                    bool allow_empty) {
-  const auto it = json.FindMember(name);
+Object required_object(const Value &object, const char *name) {
+  auto result = optional_object(object, name);
 
-  if (json.MemberEnd() == it) {
+  if (!result.has_value()) {
+    throw missing_object(name);
+  }
+
+  return Object{std::move(*result)};
+}
+
+std::map<std::string, std::string> required_map(const Value &object,
+                                                const char *name) {
+  return required_x_map<std::map<std::string, std::string>>(object, name);
+}
+
+std::unordered_map<std::string, std::string> required_unordered_map(
+    const Value &object, const char *name) {
+  return required_x_map<std::unordered_map<std::string, std::string>>(object,
+                                                                      name);
+}
+
+Array required_array(const Value &object, const char *name) {
+  auto result = optional_array(object, name);
+
+  if (!result.has_value()) {
+    throw missing_array(name);
+  }
+
+  return Array{std::move(*result)};
+}
+
+std::vector<Object> required_object_array(const Value &object,
+                                          const char *name) {
+  auto result = optional_object_array(object, name);
+
+  if (!result.has_value()) {
+    throw missing_object_array(name);
+  }
+
+  return std::vector<Object>{std::move(*result)};
+}
+
+std::vector<std::string> required_string_array(const Value &object,
+                                               const char *name) {
+  auto result = optional_string_array(object, name);
+
+  if (!result.has_value()) {
+    throw missing_string_array(name);
+  }
+
+  return std::vector<std::string>{std::move(*result)};
+}
+
+std::optional<std::string> optional(const Value &object, const char *name,
+                                    bool allow_empty) {
+  const auto it = object.FindMember(name);
+
+  if (object.MemberEnd() == it) {
     return {};
   }
 
@@ -532,31 +665,140 @@ std::optional<std::string> optional(const JSON &json, const char *name,
     throw missing_value(name);
   }
 
-  return std::string{it->value.GetString(), it->value.GetStringLength()};
+  return as_string(it->value);
 }
 
-std::optional<uint64_t> optional_uint(const JSON &json, const char *name) {
-  const auto it = json.FindMember(name);
+std::optional<bool> optional_bool(const Value &object, const char *name) {
+  const auto it = object.FindMember(name);
 
-  if (json.MemberEnd() == it) {
+  if (object.MemberEnd() == it) {
     return {};
   }
 
-  if (!it->value.IsString()) {
+  if (!it->value.IsBool()) {
+    throw missing_bool_value(name);
+  }
+
+  return it->value.GetBool();
+}
+
+std::optional<uint64_t> optional_uint(const Value &object, const char *name) {
+  const auto it = object.FindMember(name);
+
+  if (object.MemberEnd() == it) {
+    return {};
+  }
+
+  if (!it->value.IsUint64()) {
     throw missing_uint_value(name);
   }
 
   return it->value.GetUint64();
 }
 
-std::string to_string(const JSON &json) {
+std::optional<Object> optional_object(const Value &object, const char *name) {
+  const auto it = object.FindMember(name);
+
+  if (object.MemberEnd() == it) {
+    return {};
+  }
+
+  if (!it->value.IsObject()) {
+    throw missing_object(name);
+  }
+
+  return std::make_optional(it->value.GetObject());
+}
+
+std::optional<std::map<std::string, std::string>> optional_map(
+    const Value &object, const char *name) {
+  return optional_x_map<std::map<std::string, std::string>>(object, name);
+}
+
+std::optional<std::unordered_map<std::string, std::string>>
+optional_unordered_map(const Value &object, const char *name) {
+  return optional_x_map<std::unordered_map<std::string, std::string>>(object,
+                                                                      name);
+}
+
+std::optional<Array> optional_array(const Value &object, const char *name) {
+  const auto it = object.FindMember(name);
+
+  if (object.MemberEnd() == it) {
+    return {};
+  }
+
+  if (!it->value.IsArray()) {
+    throw missing_array(name);
+  }
+
+  return std::make_optional(it->value.GetArray());
+}
+
+std::optional<std::vector<Object>> optional_object_array(const Value &object,
+                                                         const char *name) {
+  const auto it = object.FindMember(name);
+
+  if (object.MemberEnd() == it) {
+    return {};
+  }
+
+  if (!it->value.IsArray()) {
+    throw missing_object_array(name);
+  }
+
+  const auto a = it->value.GetArray();
+  std::vector<Object> result;
+
+  result.reserve(a.Size());
+
+  for (const auto &v : a) {
+    if (!v.IsObject()) {
+      throw missing_object_array(name);
+    }
+
+    result.emplace_back(v.GetObject());
+  }
+
+  return std::make_optional(std::move(result));
+}
+
+std::optional<std::vector<std::string>> optional_string_array(
+    const Value &object, const char *name) {
+  const auto it = object.FindMember(name);
+
+  if (object.MemberEnd() == it) {
+    return {};
+  }
+
+  if (!it->value.IsArray()) {
+    throw missing_string_array(name);
+  }
+
+  const auto a = it->value.GetArray();
+  std::vector<std::string> result;
+
+  result.reserve(a.Size());
+
+  for (const auto &v : a) {
+    if (!v.IsString()) {
+      throw missing_string_array(name);
+    }
+
+    result.emplace_back(as_string(v));
+  }
+
+  return std::make_optional(std::move(result));
+}
+
+std::string to_string(const Value &json) {
   String_stream stream;
   My_writer<String_stream> writer{stream};
   json.Accept(writer);
   return stream.data;
 }
 
-std::string to_pretty_string(const JSON &json) {
+std::string to_pretty_string(const Value &json) {
   String_stream stream;
   My_pretty_writer<String_stream> writer{stream};
   json.Accept(writer);

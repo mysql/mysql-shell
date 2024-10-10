@@ -56,26 +56,25 @@ void Virtual_directory::create() {
   m_dir = m_fs->create_directory(m_name);
 }
 
+bool Virtual_directory::is_empty() const {
+  if (!exists()) {
+    throw std::runtime_error("Failed to check if directory " + m_name +
+                             "is empty, it does not exist");
+  }
+
+  return m_dir->is_empty();
+}
+
 Masked_string Virtual_directory::full_path() const { return m_name; }
 
-std::unordered_set<IDirectory::File_info> Virtual_directory::list_files(
-    bool) const {
+Directory_listing Virtual_directory::list(bool) const {
   if (!exists()) {
     throw std::runtime_error("Failed to list files, directory " + m_name +
                              " does not exist");
   }
 
-  return m_dir->list_files();
-}
-
-std::unordered_set<IDirectory::File_info> Virtual_directory::filter_files(
-    const std::string &pattern) const {
-  if (!exists()) {
-    throw std::runtime_error("Failed to filter files, directory " + m_name +
-                             " does not exist");
-  }
-
-  return m_dir->list_files(pattern);
+  // NOTE: subdirectories are not supported
+  return {m_dir->list_files(), {}};
 }
 
 std::unique_ptr<IFile> Virtual_directory::file(const std::string &name,

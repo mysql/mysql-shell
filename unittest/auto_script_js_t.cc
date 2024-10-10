@@ -53,9 +53,17 @@ class Auto_script_js : public Shell_js_script_tester,
                                              "setup.js"));
   }
 
-  void set_defaults() override {
+  bool skip_set_defaults() {
     if (_skip_set_defaults) {
       _skip_set_defaults = false;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  void set_defaults() override {
+    if (skip_set_defaults()) {
       return;
     }
 
@@ -380,6 +388,10 @@ class Credential_store_test : public Auto_script_js {
   }
 
   void set_defaults() override {
+    if (skip_set_defaults()) {
+      return;
+    }
+
     Auto_script_js::set_defaults();
 
     std::string user = std::string(k_first_user);
@@ -496,6 +508,10 @@ class Pager_test : public Auto_script_js {
   }
 
   void set_defaults() override {
+    if (skip_set_defaults()) {
+      return;
+    }
+
     Auto_script_js::set_defaults();
 
     std::string code = "var __pager = {};";
@@ -560,6 +576,10 @@ class Azure_tests : public Auto_script_js {
   static void TearDownTestCase() { testing::delete_container("devtesting"); }
 
   void set_defaults() override {
+    if (skip_set_defaults()) {
+      return;
+    }
+
     Auto_script_js::set_defaults();
 
     execute("let __container_name = 'devtesting';");

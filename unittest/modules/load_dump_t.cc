@@ -236,7 +236,7 @@ namespace {
 
 class Schedule_checker {
  public:
-  Schedule_checker(const mysqlshdk::storage::IDirectory::File_info *file_list,
+  Schedule_checker(const mysqlshdk::storage::File_info *file_list,
                    size_t file_list_size, size_t num_threads)
       : m_num_threads(num_threads) {
     for (size_t i = 0; i < file_list_size; i++) {

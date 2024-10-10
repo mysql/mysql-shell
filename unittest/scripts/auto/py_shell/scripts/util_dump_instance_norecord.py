@@ -226,21 +226,6 @@ test_output_relative = "dump_output"
 test_output_absolute = os.path.abspath(test_output_relative)
 
 # helpers
-if __os_type != "windows":
-    def filename_for_file(filename):
-        return filename
-else:
-    def filename_for_file(filename):
-        return filename.replace("\\", "/")
-
-if __os_type != "windows":
-    def absolute_path_for_output(path):
-        return path
-else:
-    def absolute_path_for_output(path):
-        long_path_prefix = r"\\?" "\\"
-        return long_path_prefix + path
-
 def setup_session(u = uri):
     shell.connect(u)
     session.run_sql("SET NAMES 'utf8mb4';")
@@ -2444,14 +2429,6 @@ else:
 EXPECT_EQ(binlog_file, new_binlog_file, "binlog file should not change")
 EXPECT_EQ(binlog_position, new_binlog_position, "binlog position should not change")
 
-#@<> BUG#32515696 dump should not fail if GTID_EXECUTED system variable is not available {not __dbug_off}
-testutil.dbug_set("+d,dumper_gtid_executed_missing")
-
-EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
-EXPECT_STDOUT_CONTAINS("WARNING: Failed to fetch value of @@GLOBAL.GTID_EXECUTED.")
-
-testutil.dbug_set("")
-
 #@<> BUG#32515696 dump should not fail if table histograms are not available {VER(>=8.0.0) and not __dbug_off}
 testutil.set_trap("mysql", ["sql regex .*number-of-buckets-specified.*"], { "code": 1109, "msg": "Unknown table 'COLUMN_STATISTICS' in information_schema.", "state": "42S02" })
 
@@ -2469,7 +2446,7 @@ with open(os.path.join(test_output_absolute, "@.json"), encoding="utf-8") as jso
     EXPECT_EQ(True, "binlogPosition" in metadata, "'binlogPosition' should be in metadata")
 
 #@<> BUG#32528110 shell could crash if exception is thrown from the main thread and one of the worker threads is slow to start {not __dbug_off}
-testutil.set_trap("mysql", ["sql == SELECT @@GLOBAL.HOSTNAME;"], { "code": 7777, "msg": "Internal error.", "state": "HY000" })
+testutil.set_trap("mysql", ["sql == SHOW GLOBAL VARIABLES"], { "code": 7777, "msg": "Internal error.", "state": "HY000" })
 testutil.set_trap("dumper", ["op == WORKER_SLEEP_AT_START", "id == 0"], { "sleep": 1000 })
 
 EXPECT_FAIL("DBError: MySQL Error (7777)", "Internal error.", test_output_absolute, { "showProgress": False })

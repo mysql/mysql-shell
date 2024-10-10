@@ -51,6 +51,11 @@ bool contains_path_separator(const std::string &name) {
 Virtual_fs::Directory::Directory(const std::string &name, Virtual_fs *fs)
     : m_fs(fs), m_name(name) {}
 
+bool Virtual_fs::Directory::is_empty() const {
+  std::lock_guard lock{m_mutex};
+  return m_files.empty();
+}
+
 Virtual_fs::IFile *Virtual_fs::Directory::file(const std::string &name) const {
   std::lock_guard lock{m_mutex};
   const auto d = m_files.find(name);
@@ -90,15 +95,12 @@ Virtual_fs::IFile *Virtual_fs::Directory::create_file(const std::string &name) {
   }
 }
 
-std::unordered_set<IDirectory::File_info> Virtual_fs::Directory::list_files(
-    const std::string &pattern) const {
-  std::unordered_set<IDirectory::File_info> result;
+File_list Virtual_fs::Directory::list_files() const {
+  File_list result;
   std::lock_guard lock{m_mutex};
 
   for (const auto &file : m_files) {
-    if (pattern.empty() || shcore::match_glob(pattern, file.second->name())) {
-      result.emplace(file.second->name(), file.second->size());
-    }
+    result.emplace(file.second->name(), file.second->size());
   }
 
   return result;

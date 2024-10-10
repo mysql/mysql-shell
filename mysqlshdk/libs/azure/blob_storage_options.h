@@ -71,6 +71,8 @@ class Blob_storage_options
 
   static const shcore::Option_pack_def<Blob_storage_options> &options();
 
+  std::shared_ptr<Blob_storage_config> azure_config() const;
+
  private:
   friend class Blob_storage_config;
 
@@ -79,8 +81,6 @@ class Blob_storage_options
   }
   std::vector<const char *> get_secondary_options() const override;
   bool has_value(const char *option) const override;
-
-  std::shared_ptr<Blob_storage_config> azure_config() const;
 
   std::shared_ptr<storage::backend::object_storage::Config> create_config()
       const override;

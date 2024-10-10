@@ -1008,6 +1008,17 @@ bool validate_instance_standalone(const Instance &instance,
     *target_type = type;
   }
 
+  return is_instance_standalone(type);
+}
+
+/**
+ * Checks whether the type of an instance is standalone or not
+ *
+ * @param  type TargetType of the instance
+ *
+ * @return      True if the instance is standalone, False otherwise
+ */
+bool is_instance_standalone(TargetType::Type type) {
   if (type == TargetType::Standalone ||
       type == TargetType::StandaloneWithMetadata ||
       type == TargetType::AsyncReplication) {

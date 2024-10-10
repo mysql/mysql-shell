@@ -260,7 +260,7 @@ bool Import_table_option_pack::check_if_multifile() {
   if (m_filelist_from_user.size() == 1) {
     if (const auto storage = storage_config(m_filelist_from_user[0]);
         (storage && storage->valid()) ||
-        shcore::OperatingSystem::WINDOWS != shcore::get_os_type()) {
+        shcore::OperatingSystem::WINDOWS_OS != shcore::get_os_type()) {
       // local non-Windows and remote filesystems allow for * and ? characters
       // in file names
       // BUG#35895247: if all wildcard characters are escaped, load the file in

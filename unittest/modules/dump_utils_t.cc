@@ -145,9 +145,8 @@ class Dump_scheduler : public ::testing::Test {
     while (di.available_chunks.size() < total_chunks) {
       size_t size = min_chunk_size + rand() % size_variation;
       if (size > 0)
-        di.available_chunks.emplace_back(
-            mysqlshdk::storage::IDirectory::File_info{
-                "file" + std::to_string(di.available_chunks.size()), size});
+        di.available_chunks.emplace_back(mysqlshdk::storage::File_info{
+            "file" + std::to_string(di.available_chunks.size()), size});
     }
 
     assert(di.has_data_available());

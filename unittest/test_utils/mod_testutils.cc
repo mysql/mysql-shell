@@ -81,6 +81,9 @@
 #include "modules/mod_utils.h"
 #include "mysqlshdk/libs/aws/s3_bucket.h"
 #include "mysqlshdk/libs/aws/s3_bucket_options.h"
+#include "mysqlshdk/libs/azure/blob_storage_config.h"
+#include "mysqlshdk/libs/azure/blob_storage_container.h"
+#include "mysqlshdk/libs/azure/blob_storage_options.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
 #include "mysqlshdk/libs/oci/oci_bucket.h"
 #include "mysqlshdk/libs/oci/oci_bucket_config.h"
@@ -156,6 +159,20 @@ std::unique_ptr<mysqlshdk::aws::S3_bucket> s3_bucket(
     return options.s3_config()->s3_bucket();
   } else {
     throw std::runtime_error("Missing AWS S3 options");
+  }
+}
+
+std::unique_ptr<mysqlshdk::azure::Blob_container> azure_container(
+    const shcore::Dictionary_t &opts) {
+  using Operation = mysqlshdk::azure::Blob_storage_options::Operation;
+
+  mysqlshdk::azure::Blob_storage_options options{Operation::WRITE};
+  mysqlshdk::azure::Blob_storage_options::options().unpack(opts, &options);
+
+  if (options) {
+    return options.azure_config()->blob_container();
+  } else {
+    throw std::runtime_error("Missing Azure options");
   }
 }
 
@@ -360,6 +377,8 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("deleteS3Object", &Testutils::delete_s3_object, "name", "aws_options");
   expose("deleteS3Objects", &Testutils::delete_s3_objects, "names",
          "aws_options");
+
+  expose("cleanAzureContainer", &Testutils::clean_azure_container, "options");
 
   expose("traceSyslog", &Testutils::trace_syslog, "file");
   expose("stopTracingSyslog", &Testutils::stop_tracing_syslog);
@@ -4866,6 +4885,42 @@ void Testutils::delete_s3_objects(const std::vector<std::string> &names,
                                   const shcore::Dictionary_t &opts) {
   const auto bucket = s3_bucket(opts);
   bucket->delete_objects(names);
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Cleans an Azure container.
+ *
+ * @param options Azure container options: azureContainerName, azureConfigFile,
+ *                azureStorageAccount, azureStorageSasToken.
+ *
+ * @returns true if container exists
+ */
+#if DOXYGEN_JS
+Boolean Testutils::cleanAzureContainer(Dictionary options);
+#elif DOXYGEN_PY
+bool Testutils::clean_azure_container(dict options);
+#endif
+///@}
+bool Testutils::clean_azure_container(const shcore::Dictionary_t &opts) {
+  const auto container = azure_container(opts);
+
+  if (container->exists()) {
+    const auto objects = container->list_objects();
+
+    for (const auto &object : objects) {
+      container->delete_object(object.name);
+    }
+
+    for (const auto &upload : container->list_multipart_uploads()) {
+      container->abort_multipart_upload(upload);
+    }
+
+    return true;
+  } else {
+    return false;
+  }
 }
 
 }  // namespace tests

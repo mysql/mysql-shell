@@ -49,6 +49,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <termios.h>
+#include <time.h>
 #include <unistd.h>
 #endif
 
@@ -695,11 +696,35 @@ void Process::close() {
   if (fd_in[1] >= 0) ::close(fd_in[1]);
   if (m_master_device >= 0) ::close(m_master_device);
 
-  if (::kill(childpid, SIGTERM) < 0 && errno != ESRCH) report_error(NULL);
-  if (errno != ESRCH) {
-    ::sleep(1);
-    if (::kill(childpid, SIGKILL) < 0 && errno != ESRCH) report_error(NULL);
+  // allow process to gracefully shut down
+  if (::kill(childpid, SIGTERM) < 0) {
+    if (ESRCH == errno) {
+      // no such process
+      return;
+    } else {
+      report_error(NULL);
+    }
   }
+
+  struct timespec ts;
+  ts.tv_sec = 0;
+  ts.tv_nsec = 50'000'000;  // 50ms
+
+  // wait up to 1 second for process to terminate
+  for (int i = 0; i < 20; ++i) {
+    nanosleep(&ts, nullptr);
+
+    if (check()) {
+      // process has terminated
+      return;
+    }
+  }
+
+  // terminate the process, this signal cannot be ignored
+  if (::kill(childpid, SIGKILL) < 0 && errno != ESRCH) report_error(NULL);
+
+  // wait for process to terminate, avoid zombie processes
+  wait();
 }
 
 int Process::do_read(char *buf, size_t count) {

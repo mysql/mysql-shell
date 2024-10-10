@@ -37,6 +37,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include "modules/util/common/dump/server_info.h"
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/query_helper.h"
@@ -147,41 +148,10 @@ struct Instance_cache {
     uint64_t users = 0;
   };
 
-  struct Binlog {
-    std::string file;
-    uint64_t position = 0;
-
-    bool operator==(const Binlog &other) const {
-      return file == other.file && position == other.position;
-    }
-
-    std::string to_string() const {
-      return file + ':' + std::to_string(position);
-    }
-  };
-
-  struct Server_version {
-    mysqlshdk::utils::Version number;
-    bool is_5_6 = false;
-    bool is_5_7 = false;
-    bool is_8_0 = false;
-    bool is_maria_db = false;
-  };
-
-  struct Server_info {
-    Server_version version;
-    Binlog binlog;
-    std::string gtid_executed;
-    std::string hostname;
-    int8_t lower_case_table_names = 0;
-    bool partial_revokes = false;
-    std::map<std::string, std::string> sysvars;
-  };
-
   bool has_ndbinfo = false;
   std::string user;
   std::string hostname;
-  Server_info server;
+  common::Server_info server;
 
   std::unordered_map<std::string, Schema> schemas;
   std::unordered_map<std::string, Schema *> schemas_lowercase;

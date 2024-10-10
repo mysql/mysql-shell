@@ -32,6 +32,7 @@
 #include <mutex>
 #include <string_view>
 
+#include "modules/util/common/dump/constants.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
@@ -262,7 +263,8 @@ void copy(dump::Ddl_dumper *dumper, Dump_loader *loader,
 
     try {
       // need to wait for dump to start
-      const auto file = directory(storage)->file("@.json");
+      const auto file =
+          directory(storage)->file(dump::common::k_root_metadata_file);
 
       while (!file->exists()) {
         using namespace std::chrono_literals;
@@ -277,7 +279,8 @@ void copy(dump::Ddl_dumper *dumper, Dump_loader *loader,
 
         if (finished > 0 && !file->exists()) {
           throw std::runtime_error(
-              "Dumper finished, but '@.json' file was not found");
+              shcore::str_format("Dumper finished, but '%s' file was not found",
+                                 dump::common::k_root_metadata_file));
         }
       }
 

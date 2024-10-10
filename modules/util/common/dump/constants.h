@@ -56,6 +56,14 @@ constexpr inline std::array k_mhs_excluded_schemas = {
     "mysql_option",
 };
 
+constexpr inline auto k_root_metadata_file = "@.json";
+constexpr inline auto k_done_metadata_file = "@.done.json";
+constexpr inline auto k_checksums_metadata_file = "@.checksums.json";
+
+constexpr inline auto k_preamble_sql_file = "@.sql";
+constexpr inline auto k_postamble_sql_file = "@.post.sql";
+constexpr inline auto k_users_sql_file = "@.users.sql";
+
 }  // namespace common
 }  // namespace dump
 }  // namespace mysqlsh

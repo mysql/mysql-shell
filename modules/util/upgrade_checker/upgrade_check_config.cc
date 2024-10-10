@@ -35,7 +35,7 @@ namespace upgrade_checker {
 namespace {
 std::string get_shell_os(shcore::OperatingSystem system) {
   switch (system) {
-    case shcore::OperatingSystem::WINDOWS:
+    case shcore::OperatingSystem::WINDOWS_OS:
       return "W";
     case shcore::OperatingSystem::MACOS:
       return "M";

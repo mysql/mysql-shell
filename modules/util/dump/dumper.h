@@ -52,7 +52,9 @@
 #include "mysqlshdk/libs/utils/synchronized_queue.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/common/dump/basenames.h"
 #include "modules/util/common/dump/checksums.h"
+#include "modules/util/common/dump/server_info.h"
 #include "modules/util/dump/capability.h"
 #include "modules/util/dump/dump_options.h"
 #include "modules/util/dump/dump_writer.h"
@@ -442,10 +444,14 @@ class Dumper {
   void handle_invalid_view_references(issues::Status_set status,
                                       bool as_error) const;
 
+  std::string gtid_executed() const;
+
+  common::Binlog binlog() const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
-  Instance_cache::Server_version m_server_version;
+  common::Server_version m_server_version;
   bool m_binlog_enabled = false;
   bool m_gtid_enabled = false;
 
@@ -462,7 +468,7 @@ class Dumper {
   std::unique_ptr<mysqlshdk::storage::IFile> m_output_file;
   Instance_cache m_cache;
   std::vector<Schema_info> m_schema_infos;
-  std::unordered_map<std::string, std::size_t> m_truncated_basenames;
+  common::Basenames m_basenames;
   std::string m_table_data_extension;
 
   // status variables

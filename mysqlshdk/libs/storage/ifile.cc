@@ -26,7 +26,10 @@
 #include "mysqlshdk/libs/storage/ifile.h"
 
 #include <cstdarg>
+#include <cstdlib>
 #include <cstring>
+#include <functional>
+#include <string>
 #include <vector>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -112,6 +115,18 @@ std::string read_file(IFile *file) {
   buffer.resize(data_read);
 
   return buffer;
+}
+
+File_options mmap_options() {
+  static std::string s_mmap_mode = std::invoke([]() {
+    if (const char *mode = ::getenv("MYSQLSH_MMAP")) return mode;
+    return "on";
+  });
+  static std::string s_mmap_key = "file.mmap";
+
+  File_options options;
+  options.emplace(s_mmap_key, s_mmap_mode);
+  return options;
 }
 
 }  // namespace storage

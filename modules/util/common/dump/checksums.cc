@@ -43,7 +43,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/libs/utils/version.h"
 
-#include "modules/util/dump/schema_dumper.h"
+#include "modules/util/common/dump/server_info.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -262,7 +262,7 @@ void Checksums::configure(
   m_generator_template =
       "sha2(concat_ws('#',{})," + std::to_string(bits(m_hash)) + ')';
 
-  if (Schema_dumper(session).server_version().is_8_0) {
+  if (server_version(session).is_8_0) {
     m_select_expr_template = "hex(bit_xor(unhex({})))";
   } else {
     // versions older than 8.0 can only use 64bit unsigned integers in bit_xor()

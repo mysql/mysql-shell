@@ -196,7 +196,11 @@ if(PYTHON_DEPS)
 endif()
 
 if (BUNDLED_MYSQL_CONFIG_EDITOR)
-list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_MYSQL_CONFIG_EDITOR=${BUNDLED_MYSQL_CONFIG_EDITOR}")
+  list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_MYSQL_CONFIG_EDITOR=${BUNDLED_MYSQL_CONFIG_EDITOR}")
+endif()
+
+if (BUNDLED_MYSQLBINLOG)
+  list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_MYSQLBINLOG=${BUNDLED_MYSQLBINLOG}")
 endif()
 
 if(BUNDLED_ANTLR_DIR)
@@ -257,6 +261,7 @@ usr/share/mysqlsh/sysvars.json
 usr/lib/mysqlsh/plugins
 usr/lib/mysqlsh/python-packages
 usr/lib/mysqlsh/yparser
+usr/libexec/mysqlsh/mysqlbinlog
 usr/share/man/man1/mysqlsh.1
 ")
 
@@ -320,4 +325,3 @@ file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 usr/lib/mysqlsh/libpolyglot.so
 ")
 endif()
-

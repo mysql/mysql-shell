@@ -746,29 +746,33 @@ bool iterate_sql_stream(
              size_t /* line_num */, size_t /* offset */)> &callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes,
     bool no_backslash_escapes, bool dollar_quoted_strings,
-    std::string *delimiter, Sql_splitter **splitter_ptr) {
+    std::string *delimiter, Sql_splitter **splitter_ptr,
+    const std::function<std::pair<size_t, bool>(std::string_view, bool, size_t)>
+        &command_callback) {
   assert(chunk_size > 0);
 
   bool stop = false;
   std::string buffer;
+  const auto &cmd_callback = command_callback
+                                 ? command_callback
+                                 : [&callback, &stop, &buffer](
+                                       std::string_view s, bool bol,
+                                       size_t lnum) -> std::pair<size_t, bool> {
+    assert((s.data() >= buffer.data()) &&
+           (s.data() < (buffer.data() + buffer.size())));
 
-  Sql_splitter splitter(
-      [&callback, &stop, &buffer](std::string_view s, bool bol,
-                                  size_t lnum) -> std::pair<size_t, bool> {
-        assert((s.data() >= buffer.data()) &&
-               (s.data() < (buffer.data() + buffer.size())));
+    auto sdata = s.data();
+    if (!bol) s = s.substr(0, 2);
+    assert(s.size() >= 2);
 
-        auto sdata = s.data();
-        if (!bol) s = s.substr(0, 2);
-        assert(s.size() >= 2);
+    if (s[1] != 'g' && s[1] != 'G') {
+      if (!callback(s, {}, lnum, sdata - &buffer[0])) stop = true;
+      return std::make_pair(s.size(), false);
+    }
+    return std::make_pair(2U, true);
+  };
 
-        if (s[1] != 'g' && s[1] != 'G') {
-          if (!callback(s, {}, lnum, sdata - &buffer[0])) stop = true;
-          return std::make_pair(s.size(), false);
-        }
-        return std::make_pair(2U, true);
-      },
-      err_callback, {"source"});
+  Sql_splitter splitter(cmd_callback, err_callback, {"source"});
   splitter.set_ansi_quotes(ansi_quotes);
   splitter.set_no_backslash_escapes(no_backslash_escapes);
   splitter.set_dollar_quoted_strings(dollar_quoted_strings);

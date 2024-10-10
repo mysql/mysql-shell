@@ -69,12 +69,12 @@ TEST_F(Azure_blob_storage_tests, directory_list_files) {
   EXPECT_TRUE(sakila.exists());
 
   // Normal listing doesn't include multipart uploads
-  auto root_files = root_directory.list_files();
+  auto root_files = root_directory.list().files;
   auto expected_files = root_files;
   EXPECT_TRUE(root_files.empty());
 
   // With hidden files we get active multipart uploads
-  root_files = root_directory.list_files(true);
+  root_files = root_directory.list(true).files;
   expected_files = {{"multipart_object.txt"}};
   EXPECT_EQ(expected_files, root_files);
 
@@ -82,7 +82,7 @@ TEST_F(Azure_blob_storage_tests, directory_list_files) {
 
   EXPECT_STREQ("", root_directory.full_path().real().c_str());
 
-  root_files = root_directory.list_files();
+  root_files = root_directory.list().files;
   expected_files = {{"sakila.sql"},
                     {"sakila_metadata.txt"},
                     {"sakila_tables.txt"},
@@ -90,7 +90,7 @@ TEST_F(Azure_blob_storage_tests, directory_list_files) {
                     {"uncommon's name.txt"}};
   EXPECT_EQ(expected_files, root_files);
 
-  root_files = root_directory.list_files(true);
+  root_files = root_directory.list(true).files;
   expected_files = {{"sakila.sql"},          {"sakila_metadata.txt"},
                     {"sakila_tables.txt"},   {"uncommon%25%name.txt"},
                     {"uncommon's name.txt"}, {"multipart_object.txt"}};
@@ -98,13 +98,13 @@ TEST_F(Azure_blob_storage_tests, directory_list_files) {
 
   EXPECT_STREQ("sakila", sakila.full_path().real().c_str());
 
-  auto files = sakila.list_files();
+  auto files = sakila.list().files;
   expected_files = {{"actor.csv"},    {"actor_metadata.txt"},
                     {"address.csv"},  {"address_metadata.txt"},
                     {"category.csv"}, {"category_metadata.txt"}};
   EXPECT_EQ(expected_files, files);
 
-  files = sakila.list_files(true);
+  files = sakila.list(true).files;
   expected_files = {{"actor.csv"},
                     {"actor_metadata.txt"},
                     {"address.csv"},
@@ -115,7 +115,8 @@ TEST_F(Azure_blob_storage_tests, directory_list_files) {
   EXPECT_EQ(expected_files, files);
 
   {
-    auto filtered = root_directory.filter_files("*");
+    auto filtered =
+        mysqlshdk::storage::filter(root_directory.list().files, "*");
     expected_files = {{"sakila.sql"},
                       {"sakila_metadata.txt"},
                       {"sakila_tables.txt"},
@@ -124,13 +125,14 @@ TEST_F(Azure_blob_storage_tests, directory_list_files) {
     EXPECT_EQ(expected_files, filtered);
   }
   {
-    auto filtered = root_directory.filter_files("sakila*");
+    auto filtered =
+        mysqlshdk::storage::filter(root_directory.list().files, "sakila*");
     expected_files = {
         {"sakila.sql"}, {"sakila_metadata.txt"}, {"sakila_tables.txt"}};
     EXPECT_EQ(expected_files, filtered);
   }
   {
-    auto filtered = sakila.filter_files("*");
+    auto filtered = mysqlshdk::storage::filter(sakila.list().files, "*");
     expected_files = {{"actor.csv"},    {"actor_metadata.txt"},
                       {"address.csv"},  {"address_metadata.txt"},
                       {"category.csv"}, {"category_metadata.txt"}};
@@ -141,6 +143,103 @@ TEST_F(Azure_blob_storage_tests, directory_list_files) {
   EXPECT_FALSE(unexisting.exists());
   unexisting.create();
   EXPECT_TRUE(unexisting.exists());
+}
+
+TEST_F(Azure_blob_storage_tests, subdirectory) {
+  SKIP_IF_NO_AZURE_CONFIGURATION;
+
+  const auto create_file =
+      [](const std::unique_ptr<mysqlshdk::storage::IDirectory> &d,
+         const std::string &name) {
+        const auto file = d->file(name);
+        const auto full_path = file->full_path().real();
+
+        file->open(mysqlshdk::storage::Mode::WRITE);
+        file->write(full_path.c_str(), full_path.length());
+        file->close();
+      };
+
+  mysqlshdk::storage::File_list expected_files;
+  mysqlshdk::storage::Directory_list expected_dirs;
+
+  const auto config = get_config();
+  const auto root = mysqlshdk::storage::make_directory("", config);
+
+  EXPECT_TRUE(root->is_empty());
+  EXPECT_TRUE(root->list().files.empty());
+  EXPECT_TRUE(root->list().directories.empty());
+
+  create_file(root, "one.txt");
+  create_file(root, "two.txt");
+
+  EXPECT_FALSE(root->is_empty());
+  expected_files = {{"one.txt"}, {"two.txt"}};
+  EXPECT_EQ(expected_files, root->list().files);
+
+  const auto first = root->directory("first");
+
+  EXPECT_TRUE(first->is_empty());
+  EXPECT_TRUE(first->list().files.empty());
+  EXPECT_TRUE(first->list().directories.empty());
+
+  create_file(first, "three.txt");
+  create_file(first, "four.txt");
+
+  EXPECT_FALSE(first->is_empty());
+  expected_files = {{"three.txt"}, {"four.txt"}};
+  EXPECT_EQ(expected_files, first->list().files);
+
+  const auto second = root->directory("second");
+
+  EXPECT_TRUE(second->is_empty());
+  EXPECT_TRUE(second->list().files.empty());
+  EXPECT_TRUE(second->list().directories.empty());
+
+  create_file(second, "five.txt");
+  create_file(second, "six.txt");
+
+  EXPECT_FALSE(second->is_empty());
+  expected_files = {{"five.txt"}, {"six.txt"}};
+  EXPECT_EQ(expected_files, second->list().files);
+
+  const auto third = first->directory("third");
+
+  EXPECT_TRUE(third->is_empty());
+  EXPECT_TRUE(third->list().files.empty());
+  EXPECT_TRUE(third->list().directories.empty());
+
+  create_file(third, "seven.txt");
+  create_file(third, "eight.txt");
+
+  EXPECT_FALSE(third->is_empty());
+  expected_files = {{"seven.txt"}, {"eight.txt"}};
+  EXPECT_EQ(expected_files, third->list().files);
+
+  const auto fourth = first->directory("fourth");
+
+  EXPECT_TRUE(fourth->is_empty());
+  EXPECT_TRUE(fourth->list().files.empty());
+  EXPECT_TRUE(fourth->list().directories.empty());
+
+  create_file(fourth, "nine.txt");
+  create_file(fourth, "ten.txt");
+
+  EXPECT_FALSE(fourth->is_empty());
+  expected_files = {{"nine.txt"}, {"ten.txt"}};
+  EXPECT_EQ(expected_files, fourth->list().files);
+
+  // directories are visible only once all files are created
+  expected_dirs = {{"first"}, {"second"}};
+  EXPECT_EQ(expected_dirs, root->list().directories);
+
+  expected_dirs = {{"third"}, {"fourth"}};
+  EXPECT_EQ(expected_dirs, first->list().directories);
+
+  EXPECT_TRUE(second->list().directories.empty());
+  EXPECT_TRUE(third->list().directories.empty());
+  EXPECT_TRUE(fourth->list().directories.empty());
+
+  EXPECT_NO_THROW(fourth->remove());
 }
 
 TEST_F(Azure_blob_storage_tests, file_errors) {
@@ -503,7 +602,7 @@ TEST_F(Azure_blob_storage_tests, file_rename) {
   EXPECT_STREQ("sample.txt", file->filename().c_str());
   EXPECT_STREQ("sample.txt", file->full_path().real().c_str());
 
-  auto files = root.list_files();
+  auto files = root.list().files;
   auto expected_files = files;
   expected_files = {{"sample.txt"}};
   EXPECT_EQ(expected_files, files);

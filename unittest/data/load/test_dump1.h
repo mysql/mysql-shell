@@ -23,7 +23,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-static mysqlshdk::storage::IDirectory::File_info test_dump1_files[] = {
+static mysqlshdk::storage::File_info test_dump1_files[] = {
     {"@.done.json", 411},
     {"@.json", 498},
     {"@.post.sql", 240},

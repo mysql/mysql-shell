@@ -28,8 +28,10 @@
 
 #include <algorithm>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
+
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -99,6 +101,9 @@ class Dummy_dump_file : public mysqlshdk::storage::IFile {
 // Mocks a dump directory based on a file list
 class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
  public:
+  using Directory_listing = mysqlshdk::storage::Directory_listing;
+  using File_info = mysqlshdk::storage::File_info;
+
   Dummy_dump_directory(const std::string &dumpdir, const File_info *file_list,
                        size_t file_count)
       : m_dumpdir(dumpdir), m_file_list(file_list, file_list + file_count) {}
@@ -107,21 +112,14 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
 
   void create() override {}
 
+  void remove() override {}
+
+  bool is_empty() const override { return m_file_list.empty(); }
+
   mysqlshdk::Masked_string full_path() const override { return m_dumpdir; }
 
-  std::unordered_set<File_info> list_files(bool) const override {
-    return {m_file_list.begin(), m_file_list.end()};
-  }
-
-  std::unordered_set<File_info> filter_files(
-      const std::string &pattern) const override {
-    std::unordered_set<File_info> filtered_files;
-    for (const auto &f : m_file_list) {
-      if (shcore::match_glob(pattern, f.name())) {
-        filtered_files.emplace(f);
-      }
-    }
-    return filtered_files;
+  Directory_listing list(bool) const override {
+    return {{m_file_list.begin(), m_file_list.end()}, {}};
   }
 
   std::unique_ptr<mysqlshdk::storage::IFile> file(
@@ -141,6 +139,10 @@ class Dummy_dump_directory : public mysqlshdk::storage::IDirectory {
     } else {
       throw std::logic_error("Unexpected file type " + name);
     }
+  }
+
+  std::unique_ptr<IDirectory> directory(const std::string &) const override {
+    throw std::logic_error{"Dummy_dump_directory::directory()"};
   }
 
   bool is_local() const override { return false; }

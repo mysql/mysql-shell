@@ -150,6 +150,13 @@ std::unique_ptr<IFile> Oci_par_directory::file(
   return make_file(name, m_config);
 }
 
+std::unique_ptr<IDirectory> Oci_par_directory::directory(
+    const std::string &name) const {
+  return std::make_unique<Oci_par_directory>(
+      std::make_shared<Oci_par_directory_config>(full_path().real() + name +
+                                                 "/"));
+}
+
 Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)
     : Http_directory(config, true), m_config(config) {
   init_rest();
@@ -164,7 +171,7 @@ bool Oci_par_directory::exists() const {
   // PAR and there are no objects with that prefix as the result will be an
   // empty list, otherwise, an exception describing the issue would be raised
   if (!m_exists.has_value()) {
-    list_files();
+    is_empty();
     m_exists = true;
   }
 
@@ -175,57 +182,103 @@ void Oci_par_directory::create() {
   // NOOP
 }
 
-std::string Oci_par_directory::get_list_url() const {
-  // use delimiter to limit the number of results, we're just interested in the
-  // files in the current directory
-  std::string url = "?fields=name,size&delimiter=/";
-
-  if (!m_config->par().object_prefix().empty()) {
-    url += "&prefix=" + pctencode_query_value(m_config->par().object_prefix());
-  }
-
-  if (!m_next_start_with.empty()) {
-    url += "&start=" + pctencode_query_value(m_next_start_with);
-  }
-
-  return url;
+void Oci_par_directory::remove() {
+  // NOOP
 }
 
-std::unordered_set<IDirectory::File_info> Oci_par_directory::parse_file_list(
-    const std::string &data, const std::string &pattern) const {
-  std::unordered_set<IDirectory::File_info> list;
+class Oci_par_directory::Par_listing_context : public Listing_context {
+ public:
+  Par_listing_context(std::size_t limit, const std::string &prefix)
+      : Listing_context(limit), m_prefix(prefix), m_remaining(limit) {}
 
-  const auto response =
-      shcore::Value::parse({data.data(), data.size()}).as_map();
-  const auto objects = response->get_array("objects");
-  m_next_start_with = response->get_string("nextStartWith", "");
-  const auto prefix_length = m_config->par().object_prefix().length();
+  std::string get_url() const override {
+    // use delimiter to limit the number of results, we're just interested in
+    // the files in the current directory
+    std::string url = "?fields=name,size&delimiter=/";
 
-  list.reserve(objects->size());
-
-  for (const auto &object : *objects) {
-    const auto file = object.as_map();
-    auto name = file->get_string("name").substr(prefix_length);
-
-    // The OCI Console UI allows creating an empty folder in a bucket. A prefix
-    // PAR for such folder should be valid as long as the folder does not
-    // contain files. On a scenario like this, using the prefix PAR to list the
-    // objects will return 1 object named as <prefix>/.
-    // Since we are taking as name, everything after the <prefix>/, that means
-    // in a case like this, an empty named object will be returned.
-    // Such object should be ignored from the listing.
-    if (!name.empty() &&
-        (pattern.empty() || shcore::match_glob(pattern, name))) {
-      list.emplace(std::move(name),
-                   static_cast<size_t>(file->get_uint("size")));
+    if (!m_prefix.empty()) {
+      url += "&prefix=" + pctencode_query_value(m_prefix);
     }
+
+    if (!m_next_start_with.empty()) {
+      url += "&start=" + pctencode_query_value(m_next_start_with);
+    }
+
+    if (const auto l = m_remaining < k_list_limit ? m_remaining : 0) {
+      url += "&limit=" + std::to_string(l);
+    }
+
+    return url;
   }
 
-  return list;
-}
+  Directory_listing parse(const std::string &data) const override {
+    Directory_listing list;
 
-bool Oci_par_directory::is_list_files_complete() const {
-  return m_next_start_with.empty();
+    const auto response =
+        shcore::Value::parse({data.data(), data.size()}).as_map();
+    const auto objects = response->get_array("objects");
+    const auto prefix_length = m_prefix.length();
+
+    list.files.reserve(objects->size());
+
+    for (const auto &object : *objects) {
+      const auto file = object.as_map();
+      auto name = file->get_string("name").substr(prefix_length);
+
+      // The OCI Console UI allows creating an empty folder in a bucket. A
+      // prefix PAR for such folder should be valid as long as the folder does
+      // not contain files. On a scenario like this, using the prefix PAR to
+      // list the objects will return 1 object named as <prefix>/. Since we are
+      // taking as name, everything after the <prefix>/, that means in a case
+      // like this, an empty named object will be returned. Such object should
+      // be ignored from the listing.
+      if (!name.empty()) {
+        list.files.emplace(std::move(name),
+                           static_cast<size_t>(file->get_uint("size")));
+      }
+    }
+
+    if (const auto prefixes = response->get_array("prefixes")) {
+      for (const auto &prefix : *prefixes) {
+        auto name = prefix.as_string().substr(prefix_length);
+        // last character is '/'
+        name.pop_back();
+        list.directories.emplace(std::move(name));
+      }
+    }
+
+    const auto total = list.files.size() + list.directories.size();
+    m_total += total;
+
+    if (m_remaining) {
+      if (total >= m_remaining) {
+        m_remaining = 0;
+      } else {
+        m_remaining -= total;
+      }
+    }
+
+    m_next_start_with = response->get_string("nextStartWith", "");
+
+    return list;
+  }
+
+  bool is_complete() const override {
+    return m_next_start_with.empty() || (limit() && m_total >= limit());
+  }
+
+ private:
+  static constexpr size_t k_list_limit = 1000;
+  const std::string &m_prefix;
+  mutable std::string m_next_start_with;
+  mutable std::size_t m_remaining;
+  mutable std::size_t m_total = 0;
+};
+
+std::unique_ptr<Oci_par_directory::Listing_context>
+Oci_par_directory::listing_context(size_t limit) const {
+  return std::make_unique<Par_listing_context>(limit,
+                                               m_config->par().object_prefix());
 }
 
 void Oci_par_directory::init_rest() {

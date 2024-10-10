@@ -50,45 +50,53 @@ void Directory::create() {
   shcore::create_directory(full_path().real(), false, 0750);
 }
 
-Masked_string Directory::full_path() const { return m_path; }
-
-std::unordered_set<IDirectory::File_info> Directory::list_files(
-    bool /*hidden_files*/) const {
-  return filter_files("");
+void Directory::remove() {
+  shcore::remove_directory(full_path().real(), false);
 }
 
-std::unordered_set<IDirectory::File_info> Directory::filter_files(
-    const std::string &pattern) const {
+bool Directory::is_empty() const {
   const auto path =
 #ifdef _WIN32
       shcore::utf8_to_wide
 #endif  // _WIN32
       (full_path().real());
-  std::unordered_set<IDirectory::File_info> files;
+
   std::error_code ec;
 
-  for (auto &entry : std::filesystem::directory_iterator(path, ec)) {
-    if (entry.is_regular_file()
-#if (__GNUC__ < 8 || (__GNUC__ == 8 && __GNUC_MINOR__ < 4)) && \
-    !defined(__clang__)
-        // older versions of GCC do not handle filesystems which do not support
-        // dirent.d_type (OS sets this field to DT_UNKNOWN in such case) and are
-        // unable to detect the entry type; newer versions fall back to stat(),
-        // we do the same here
-        || (std::filesystem::file_type::regular == entry.status().type())
-#endif
-    ) {
-      auto name =
-#ifdef _WIN32
-          shcore::wide_to_utf8
-#endif  // _WIN32
-          (entry.path().filename().native());
+  const auto empty = std::filesystem::is_empty(path, ec);
 
-      if (pattern.empty() || shcore::match_glob(pattern, name)) {
-        files.emplace(std::move(name), [entry = std::move(entry)]() {
-          return entry.file_size();
-        });
-      }
+  if (ec) {
+    throw std::runtime_error(full_path().masked() + ": " + ec.message());
+  }
+
+  return empty;
+}
+
+Masked_string Directory::full_path() const { return m_path; }
+
+Directory_listing Directory::list(bool /*hidden_files*/) const {
+  Directory_listing list;
+
+  const auto path =
+#ifdef _WIN32
+      shcore::utf8_to_wide
+#endif  // _WIN32
+      (full_path().real());
+
+  std::error_code ec;
+
+  for (const auto &entry : std::filesystem::directory_iterator(path, ec)) {
+    auto name =
+#ifdef _WIN32
+        shcore::wide_to_utf8
+#endif  // _WIN32
+        (entry.path().filename().native());
+
+    if (entry.is_directory()) {
+      list.directories.emplace(std::move(name));
+    } else {
+      list.files.emplace(std::move(name),
+                         [entry]() { return entry.file_size(); });
     }
   }
 
@@ -96,7 +104,7 @@ std::unordered_set<IDirectory::File_info> Directory::filter_files(
     throw std::runtime_error(full_path().masked() + ": " + ec.message());
   }
 
-  return files;
+  return list;
 }
 
 std::string Directory::join_path(const std::string &a,

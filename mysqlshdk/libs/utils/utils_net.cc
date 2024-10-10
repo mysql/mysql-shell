@@ -782,27 +782,25 @@ std::optional<bool> check_ipv6_is_in_range(const char *const ip,
 uint64_t host_to_network(uint64_t v) {
 #ifdef htonll
   return htonll(v);
-#else
-  int le = 1;
-  if (*(char *)&le == 1) {
-    return ((uint64_t)htonl(v & 0xFFFFFFFFLL) << 32) | htonl(v >> 32);
-  } else {
-    return v;
-  }
-#endif
+#else  // !htonll
+#if IS_BIG_ENDIAN
+  return v;
+#else   // !IS_BIG_ENDIAN
+  return ((uint64_t)htonl(v & 0xFFFFFFFFLL) << 32) | htonl(v >> 32);
+#endif  // !IS_BIG_ENDIAN
+#endif  // !htonll
 }
 
 uint64_t network_to_host(uint64_t v) {
 #ifdef ntohll
   return ntohll(v);
-#else
-  int le = 1;
-  if (*(char *)&le == 1) {
-    return ((uint64_t)ntohl(v & 0xFFFFFFFFLL) << 32) | ntohl(v >> 32);
-  } else {
-    return v;
-  }
-#endif
+#else  // !ntohll
+#if IS_BIG_ENDIAN
+  return v;
+#else   // !IS_BIG_ENDIAN
+  return ((uint64_t)ntohl(v & 0xFFFFFFFFLL) << 32) | ntohl(v >> 32);
+#endif  // !IS_BIG_ENDIAN
+#endif  // !ntohll
 }
 
 bool are_endpoints_equal(std::string_view endpointA,

@@ -124,7 +124,7 @@
 
 #define SHERR_LOAD_PARSING_METADATA_FILE_FAILED 53024
 #define SHERR_LOAD_PARSING_METADATA_FILE_FAILED_MSG \
-  "Could not parse metadata file %s: %s"
+  "Could not parse metadata file '%s': %s"
 
 #define SHERR_LOAD_LOCAL_INFILE_DISABLED 53025
 #define SHERR_LOAD_LOCAL_INFILE_DISABLED_MSG "local_infile disabled in server"

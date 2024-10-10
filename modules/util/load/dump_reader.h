@@ -40,11 +40,10 @@
 #include <vector>
 
 #include "modules/util/common/dump/checksums.h"
+#include "modules/util/common/dump/dump_info.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/progress_thread.h"
-
 #include "modules/util/import_table/dialect.h"
-
 #include "modules/util/load/load_dump_options.h"
 
 #include "mysqlshdk/libs/storage/compressed_file.h"
@@ -60,26 +59,28 @@ class Dump_reader {
  public:
   using Name_and_file =
       std::pair<std::string, std::shared_ptr<mysqlshdk::storage::IFile>>;
-  using Files = std::unordered_set<mysqlshdk::storage::IDirectory::File_info>;
+  using Files = mysqlshdk::storage::File_list;
   struct Object_info;
 
   Dump_reader(std::unique_ptr<mysqlshdk::storage::IDirectory> dump_dir,
               const Load_dump_options &options);
 
   const std::string &default_character_set() const {
-    return m_contents.default_charset;
+    return m_contents.dump.default_charset;
   }
 
   const mysqlshdk::utils::Version &dump_version() const {
-    return m_contents.dump_version;
+    return m_contents.dump.version;
   }
 
-  bool mds_compatibility() const { return m_contents.mds_compatibility; }
+  bool mds_compatibility() const { return m_contents.dump.mds_compatibility; }
 
-  bool partial_revokes() const { return m_contents.partial_revokes; }
+  bool partial_revokes() const {
+    return m_contents.dump.source.sysvars.partial_revokes.value_or(false);
+  }
 
   inline const std::optional<int8_t> &lower_case_table_names() const noexcept {
-    return m_contents.lower_case_table_names;
+    return m_contents.dump.source.sysvars.lower_case_table_names;
   }
 
   inline bool has_invalid_view_references() const noexcept {
@@ -93,24 +94,30 @@ class Dump_reader {
   }
 
   const mysqlshdk::utils::Version &server_version() const {
-    return m_contents.server_version;
+    return m_contents.dump.source.version.number;
   }
 
   const std::optional<mysqlshdk::utils::Version> &target_version() const {
-    return m_contents.target_version;
+    return m_contents.dump.target_version;
   }
 
-  const std::string &binlog_file() const { return m_contents.binlog_file; }
+  const std::string &binlog_file() const {
+    return m_contents.dump.source.binlog.file.name;
+  }
 
-  uint64_t binlog_position() const { return m_contents.binlog_position; }
+  uint64_t binlog_position() const {
+    return m_contents.dump.source.binlog.file.position;
+  }
 
-  const std::string &gtid_executed() const { return m_contents.gtid_executed; }
+  const std::string &gtid_executed() const {
+    return m_contents.dump.source.binlog.gtid_executed;
+  }
 
   bool gtid_executed_inconsistent() const {
-    return m_contents.gtid_executed_inconsistent;
+    return m_contents.dump.gtid_executed_inconsistent;
   }
 
-  bool tz_utc() const { return m_contents.tz_utc; }
+  bool tz_utc() const { return m_contents.dump.tz_utc; }
 
   /**
    * Checks whether this is a dump created by an old version of dumpTables(),
@@ -122,7 +129,7 @@ class Dump_reader {
    * Checks whether this is a dump created by any version of dumpTables().
    */
   bool is_dump_tables() const {
-    return table_only() || "dumpTables" == m_contents.origin;
+    return table_only() || "dumpTables" == m_contents.dump.origin;
   }
 
   void replace_target_schema(const std::string &schema);
@@ -242,7 +249,7 @@ class Dump_reader {
                              const std::string &table,
                              const std::string &partition) const;
 
-  uint64_t bytes_per_chunk() const { return m_contents.bytes_per_chunk; }
+  uint64_t bytes_per_chunk() const { return m_contents.dump.bytes_per_chunk; }
 
   void rescan(dump::Progress_thread *progress_thread = nullptr);
 
@@ -321,14 +328,8 @@ class Dump_reader {
 
   void consume_table(const Table_chunk &chunk);
 
-  struct Capability_info {
-    std::string id;
-    std::string description;
-    mysqlshdk::utils::Version version_required;
-  };
-
-  const std::vector<Capability_info> &capabilities() const {
-    return m_contents.capabilities;
+  const std::vector<dump::common::Capability_info> &capabilities() const {
+    return m_contents.dump.capabilities;
   }
 
   struct Object_info {
@@ -363,8 +364,7 @@ class Dump_reader {
     bool last_chunk_seen = false;
 
     size_t chunks_seen = 0;
-    std::vector<std::optional<mysqlshdk::storage::IDirectory::File_info>>
-        available_chunks;
+    std::vector<std::optional<mysqlshdk::storage::File_info>> available_chunks;
     // number of chunks scheduled to be loaded
     size_t chunks_consumed = 0;
     // number of chunks which were loaded
@@ -524,26 +524,14 @@ class Dump_reader {
     std::unique_ptr<std::string> post_sql;
     std::unique_ptr<std::string> users_sql;
 
-    bool has_users = false;
-
-    std::string default_charset;
-    std::string binlog_file;
-    uint64_t binlog_position = 0;
-    std::string gtid_executed;
-    bool gtid_executed_inconsistent = false;
-    bool tz_utc = true;
-    bool mds_compatibility = false;
-    bool partial_revokes = false;
-    std::optional<int8_t> lower_case_table_names;
     bool has_invalid_view_references = false;
+
+    dump::common::Dump_info dump;
+
     bool create_invisible_pks = false;
     bool force_non_standard_fks = false;
     bool table_only = false;
-    mysqlshdk::utils::Version server_version;
-    mysqlshdk::utils::Version dump_version;
-    std::optional<mysqlshdk::utils::Version> target_version;
-    std::string origin;
-    uint64_t bytes_per_chunk = 0;
+
     std::unordered_map<std::string, uint64_t> chunk_data_sizes;
 
     volatile bool md_done = false;
@@ -556,9 +544,6 @@ class Dump_reader {
     // total file sizes available in the dump location
     size_t total_file_size = 0;
 
-    std::vector<Capability_info> capabilities;
-
-    bool has_checksum = false;
     std::unique_ptr<dump::common::Checksums> checksum;
 
     bool ready() const;

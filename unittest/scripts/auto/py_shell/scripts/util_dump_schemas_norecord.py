@@ -81,21 +81,6 @@ test_output_relative = "dump_output"
 test_output_absolute = os.path.abspath(test_output_relative)
 
 # helpers
-if __os_type != "windows":
-    def filename_for_file(filename):
-        return filename
-else:
-    def filename_for_file(filename):
-        return filename.replace("\\", "/")
-
-if __os_type != "windows":
-    def absolute_path_for_output(path):
-        return path
-else:
-    def absolute_path_for_output(path):
-        long_path_prefix = r"\\?" "\\"
-        return long_path_prefix + path
-
 def setup_session(u = uri):
     shell.connect(u)
     session.run_sql("SET NAMES 'utf8mb4';")
@@ -1038,7 +1023,7 @@ EXPECT_FALSE(os.path.isdir(test_output_absolute))
 util.dump_schemas([test_schema], test_output_absolute, { "dryRun": True, "showProgress": False })
 EXPECT_FALSE(os.path.isdir(test_output_absolute))
 EXPECT_STDOUT_NOT_CONTAINS("Schemas dumped: 1")
-EXPECT_STDOUT_CONTAINS("dryRun enabled, no locks will be acquired and no files will be created.")
+EXPECT_STDOUT_CONTAINS("NOTE: dryRun enabled, no locks will be acquired and no files will be created.")
 
 #@<> WL13807-FR4.9.2 - If the `dryRun` option is not given, a default value of `false` must be used instead.
 # WL13807-TSFR4_26

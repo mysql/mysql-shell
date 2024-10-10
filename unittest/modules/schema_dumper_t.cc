@@ -156,7 +156,7 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
                                                     "mysqlaas_compat.sql");
       run_directory_tests =
           _target_server_version < mysqlshdk::utils::Version(8, 0, 0) &&
-          shcore::get_os_type() != shcore::OperatingSystem::WINDOWS;
+          shcore::get_os_type() != shcore::OperatingSystem::WINDOWS_OS;
       if (run_directory_tests)
         testutil->preprocess_file(
             shcore::path::join_path(g_test_home, "data", "sql",

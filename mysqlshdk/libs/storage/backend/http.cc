@@ -371,46 +371,49 @@ void Http_directory::create() {
   throw std::logic_error("Http_directory::create() - not implemented");
 }
 
+void Http_directory::remove() {
+  throw std::logic_error("Http_directory::remove() - not implemented");
+}
+
+bool Http_directory::is_empty() const {
+  const auto list = get_listing(1);
+  return list.files.empty() && list.directories.empty();
+}
+
 Masked_string Http_directory::full_path() const { return m_url; }
 
-std::unordered_set<IDirectory::File_info> Http_directory::get_file_list(
-    const std::string &context, const std::string &pattern) const {
-  std::unordered_set<IDirectory::File_info> file_info;
+Directory_listing Http_directory::get_listing(size_t limit) const {
+  Directory_listing list;
   const auto rest = get_rest_service(m_url);
+  const auto context = listing_context(limit);
 
   do {
     // This may throw but we just let it bubble up
-    auto request = Http_request(get_list_url(), m_use_retry);
+    auto request = Http_request(context->get_url(), m_use_retry);
     auto response = rest->get(&request);
 
     throw_if_error(response, m_url);
 
     try {
-      auto list = parse_file_list(response.buffer.raw(), pattern);
-      file_info.reserve(list.size() + file_info.size());
-      std::move(list.begin(), list.end(),
-                std::inserter(file_info, file_info.begin()));
+      auto parsed = context->parse(response.buffer.raw());
+
+      list.files.merge(std::move(parsed.files));
+      list.directories.merge(std::move(parsed.directories));
     } catch (const shcore::Exception &error) {
-      std::string msg = "Error " + context;
-      msg.append(": ").append(error.what());
+      std::string msg = "Error listing directory: ";
+      msg.append(error.what());
 
       log_debug2("%s\n%s", msg.c_str(), response.buffer.data());
 
       throw shcore::Exception::runtime_error(msg);
     }
-  } while (!is_list_files_complete());
+  } while (!context->is_complete());
 
-  return file_info;
+  return list;
 }
 
-std::unordered_set<IDirectory::File_info> Http_directory::list_files(
-    bool /*hidden_files*/) const {
-  return get_file_list("listing files");
-}
-
-std::unordered_set<IDirectory::File_info> Http_directory::filter_files(
-    const std::string &pattern) const {
-  return get_file_list("listing files matching " + pattern, pattern);
+Directory_listing Http_directory::list(bool /*hidden_files*/) const {
+  return get_listing(0);
 }
 
 std::unique_ptr<IFile> Http_directory::file(

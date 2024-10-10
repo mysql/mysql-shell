@@ -21,9 +21,6 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-include(zlib)
-MYSQL_CHECK_ZLIB()
-
 include(zstd)
 MYSQL_CHECK_ZSTD()
 
@@ -37,6 +34,7 @@ endif()
 set(library_SRC
   compressed_file.cc
   config.cc
+  entry.cc
   idirectory.cc
   ifile.cc
   utils.cc

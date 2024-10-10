@@ -87,6 +87,10 @@ The following operations are available at 'util':
       instance. Requires an open global Shell session to the source instance,
       if there is none, an exception is raised.
 
+   dump-binlogs
+      Dumps binary logs generated since a specific point in time to the given
+      local or remote directory.
+
    dump-instance
       Dumps the whole database to files in the output directory.
 
@@ -107,6 +111,10 @@ The following operations are available at 'util':
    import-table
       Import table dump stored in files to target table using LOAD DATA LOCAL
       INFILE calls in parallel connections.
+
+   load-binlogs
+      Loads binary log dumps created by MySQL Shell from a local or remote
+      directory.
 
    load-dump
       Loads database dumps created by MySQL Shell.
@@ -803,6 +811,109 @@ OPTIONS
             A key-value pair of a table name in the format of schema.table and
             a valid SQL condition expression used to filter the data being
             copied. Default: not set.
+
+//@<OUT> CLI util dump-binlogs --help
+NAME
+      dump-binlogs - Dumps binary logs generated since a specific point in time
+                     to the given local or remote directory.
+
+SYNTAX
+      util dump-binlogs <outputUrl> [<options>]
+
+WHERE
+      outputUrl: Target directory to store the dump files.
+
+OPTIONS
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
+
+--compression=<str>
+            Compression used when writing the binary log dump files, one of:
+            "none", "gzip", "zstd". Compression level may be specified as
+            "gzip;level=8" or "zstd;level=8". Default: "zstd;level=1".
+
+--dryRun=<bool>
+            Print information about what would be dumped, but do not dump
+            anything. Default: false.
+
+--ignoreDdlChanges=<bool>
+            Proceeds with the dump even if the since option points to a dump
+            created by util.dumpInstance() which contains modified DDL.
+            Default: false.
+
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
+            not set.
+
+--ociConfigFile=<str>
+            Use the specified OCI configuration file instead of the one at the
+            default location. Default: not set.
+
+--ociProfile=<str>
+            Use the specified OCI profile instead of the default one. Default:
+            not set.
+
+--osBucketName=<str>
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
+
+--osNamespace=<str>
+            Specifies the namespace where the bucket is located, if not given
+            it will be obtained using the tenancy ID on the OCI configuration.
+            Default: not set.
+
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file. Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file. Default: not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
+
+--showProgress=<bool>
+            Enable or disable dump progress information. Default: true if
+            stdout is a TTY device, false otherwise.
+
+--since=<str>
+            URL to a local or remote directory containing dump created either
+            by util.dumpInstance() or util.dumpBinlogs(). Binary logs since the
+            specified dump are going to be dumped. Default: not set.
+
+--startFrom=<str>
+            Specifies the name of the binary log file and its position to start
+            the dump from. Accepted format:
+            <binary-log-file>[:<binary-log-file-position>]. Default: not set.
+
+--threads=<uint>
+            unsigned int. Use N threads to dump the data from the instance.
+            Default: 4.
 
 //@<OUT> CLI util dump-instance --help
 NAME
@@ -1868,6 +1979,103 @@ OPTIONS
 
 --threads=<int>
             Use N threads to sent file chunks to the server. Default: 8.
+
+//@<OUT> CLI util load-binlogs --help
+NAME
+      load-binlogs - Loads binary log dumps created by MySQL Shell from a local
+                     or remote directory.
+
+SYNTAX
+      util load-binlogs <urls> [<options>]
+
+WHERE
+      url: URL to a local or remote directory containing dump created by
+           util.dumpBinlogs().
+
+OPTIONS
+--azureConfigFile=<str>
+            Use the specified Azure configuration file instead of the one at
+            the default location. Default: not set.
+
+--azureContainerName=<str>
+            Name of the Azure container to use. The container must already
+            exist. Default: not set.
+
+--azureStorageAccount=<str>
+            The account to be used for the operation. Default: not set.
+
+--azureStorageSasToken=<str>
+            Azure Shared Access Signature (SAS) token, to be used for the
+            authentication of the operation, instead of a key. Default: not
+            set.
+
+--dryRun=<bool>
+            Print information about what would be loaded, but do not load
+            anything. Default: false.
+
+--ignoreGtidGap=<bool>
+            Load the dumps even if the current value of gtid_executed in the
+            target instance does not fully contain the starting value of
+            gtid_executed of the first binary log file to be loaded. Default:
+            false.
+
+--ignoreVersion=<bool>
+            Load the dumps even if version of the target instance is
+            incompatible with version of the source instance where the binary
+            logs were dumped from. Default: false.
+
+--ociAuth=<str>
+            Use the specified authentication method when connecting to the OCI.
+            Allowed values: api_key (used when not explicitly set),
+            instance_principal, resource_principal, security_token. Default:
+            not set.
+
+--ociConfigFile=<str>
+            Use the specified OCI configuration file instead of the one at the
+            default location. Default: not set.
+
+--ociProfile=<str>
+            Use the specified OCI profile instead of the default one. Default:
+            not set.
+
+--osBucketName=<str>
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
+
+--osNamespace=<str>
+            Specifies the namespace where the bucket is located, if not given
+            it will be obtained using the tenancy ID on the OCI configuration.
+            Default: not set.
+
+--s3BucketName=<str>
+            Name of the AWS S3 bucket to use. The bucket must already exist.
+            Default: not set.
+
+--s3ConfigFile=<str>
+            Use the specified AWS config file. Default: not set.
+
+--s3CredentialsFile=<str>
+            Use the specified AWS credentials file. Default: not set.
+
+--s3EndpointOverride=<str>
+            Use the specified AWS S3 API endpoint instead of the default one.
+            Default: not set.
+
+--s3Profile=<str>
+            Use the specified AWS profile. Default: not set.
+
+--s3Region=<str>
+            Use the specified AWS region. Default: not set.
+
+--showProgress=<bool>
+            Enable or disable dump progress information. Default: true if
+            stdout is a TTY device, false otherwise.
+
+--stopBefore=<str>
+            Stops the load right before the specified binary log event is
+            applied. Accepted format:
+            <binary-log-file>:<binary-log-file-position> or GTID:
+            <UUID>[:tag]:<transaction-id>. Default: not set.
 
 //@<OUT> CLI util load-dump --help
 NAME

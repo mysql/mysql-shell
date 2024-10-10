@@ -218,6 +218,10 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   MYSQL *get_handle() { return _mysql; }
 
+  MYSQL *release_connection();
+
+  void set_character_set(const std::string &charset_name);
+
   std::string _uri;
   MYSQL *_mysql = nullptr;
   std::shared_ptr<MYSQL_RES> _prev_result;
@@ -298,6 +302,22 @@ class SHCORE_PUBLIC Session : public ISession,
 
   uint32_t get_server_status() const override {
     return _impl->get_server_status();
+  }
+
+  /**
+   * Releases ownership of the underlying MySQL connection, meaning that this
+   * session becomes closed after this call.
+   */
+  MYSQL *release_connection() { return _impl->release_connection(); }
+
+  /**
+   * Sets the default character set for the current connection.
+   *
+   * This function works like the SET NAMES statement, but also sets the value
+   * of mysql->charset.
+   */
+  void set_character_set(const std::string &charset_name) {
+    _impl->set_character_set(charset_name);
   }
 
   // function callback registration for local infile support

@@ -157,7 +157,9 @@ bool iterate_sql_stream(
                              size_t)> &stmt_callback,
     const Sql_splitter::Error_callback &err_callback, bool ansi_quotes = false,
     bool no_backslash_escapes = false, bool dollar_quotes = true,
-    std::string *delimiter = nullptr, Sql_splitter **splitter_ptr = nullptr);
+    std::string *delimiter = nullptr, Sql_splitter **splitter_ptr = nullptr,
+    const std::function<std::pair<size_t, bool>(std::string_view, bool, size_t)>
+        &command_callback = {});
 
 }  // namespace utils
 }  // namespace mysqlshdk

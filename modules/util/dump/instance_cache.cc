@@ -273,7 +273,7 @@ Instance_cache_builder &Instance_cache_builder::triggers() {
 Instance_cache_builder &Instance_cache_builder::binlog_info() {
   Profiler profiler{"fetching binlog info"};
 
-  m_cache.server.binlog = Schema_dumper{m_session}.binlog();
+  m_cache.server.binlog = common::binlog(m_session, m_cache.server.version);
 
   return *this;
 }
@@ -386,64 +386,22 @@ void Instance_cache_builder::fetch_metadata(
 void Instance_cache_builder::fetch_version() {
   Profiler profiler{"fetching version"};
 
-  m_cache.server.version = Schema_dumper{m_session}.server_version();
+  m_cache.server.version = common::server_version(m_session);
 }
 
 void Instance_cache_builder::fetch_server_metadata() {
   Profiler profiler{"fetching server metadata"};
 
-  const auto &co = m_session->get_connection_options();
-
-  m_cache.user = co.get_user();
+  m_cache.user = m_session->get_connection_options().get_user();
   m_cache.hostname = mysqlshdk::utils::Net::get_hostname();
 
-  {
-    const auto result = query("SELECT @@GLOBAL.HOSTNAME;");
+  m_cache.server.sysvars = common::server_variables(m_session);
 
-    if (const auto row = result->fetch_one()) {
-      m_cache.server.hostname = row->get_string(0);
-    } else {
-      m_cache.server.hostname = co.has_host() ? co.get_host() : "localhost";
-    }
+  if (2 == m_cache.server.sysvars.lower_case_table_names) {
+    initialize_lowercase_names();
   }
 
-  {
-    const auto result = query("SHOW GLOBAL VARIABLES");
-
-    while (const auto row = result->fetch_one()) {
-      m_cache.server.sysvars.emplace(row->get_string(0), row->get_string(1));
-    }
-  }
-
-  if (const auto gtid_executed = m_cache.server.sysvars.find("gtid_executed");
-      m_cache.server.sysvars.end() != gtid_executed &&
-      !DBUG_EVALUATE_IF("dumper_gtid_executed_missing", true, false)) {
-    m_cache.server.gtid_executed = gtid_executed->second;
-  } else {
-    log_error("Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
-    current_console()->print_warning(
-        "Failed to fetch value of @@GLOBAL.GTID_EXECUTED.");
-  }
-
-  if (m_cache.server.version.number >= mysqlshdk::utils::Version(8, 0, 16)) {
-    if (const auto partial_revokes =
-            m_cache.server.sysvars.find("partial_revokes");
-        m_cache.server.sysvars.end() != partial_revokes) {
-      m_cache.server.partial_revokes = mysqlshdk::mysql::sysvar_to_bool(
-          "partial_revokes", partial_revokes->second);
-    }
-  }
-
-  if (const auto lower_case_table_names =
-          m_cache.server.sysvars.find("lower_case_table_names");
-      m_cache.server.sysvars.end() != lower_case_table_names) {
-    m_cache.server.lower_case_table_names =
-        shcore::lexical_cast<int8_t>(lower_case_table_names->second);
-
-    if (2 == m_cache.server.lower_case_table_names) {
-      initialize_lowercase_names();
-    }
-  }
+  m_cache.server.topology = common::replication_topology(m_session);
 }
 
 void Instance_cache_builder::fetch_ndbinfo() {

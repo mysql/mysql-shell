@@ -26,11 +26,12 @@
 #include "modules/util/common/dump/utils.h"
 
 #include <string>
-#include <vector>
+#include <utility>
 
-#include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+
+#include "modules/util/load/load_errors.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -127,6 +128,36 @@ std::string get_table_data_filename(const std::string &basename,
                                     bool last_chunk) {
   return basename + k_separator + (last_chunk ? k_separator : "") +
          std::to_string(index) + "." + ext;
+}
+
+std::string fetch_file(std::unique_ptr<mysqlshdk::storage::IFile> file) {
+  file->open(mysqlshdk::storage::Mode::READ);
+
+  auto data = mysqlshdk::storage::read_file(file.get());
+
+  file->close();
+
+  return data;
+}
+
+shcore::json::JSON fetch_json(std::unique_ptr<mysqlshdk::storage::IFile> file) {
+  const auto file_name = file->filename();
+  const auto text = fetch_file(std::move(file));
+
+  try {
+    return shcore::json::parse_object_or_throw(text);
+  } catch (const std::exception &e) {
+    THROW_ERROR(SHERR_LOAD_PARSING_METADATA_FILE_FAILED, file_name.c_str(),
+                e.what());
+  }
+}
+
+void write_json(std::unique_ptr<mysqlshdk::storage::IFile> file,
+                const shcore::JSON_dumper &dumper) {
+  const auto &json = dumper.str();
+  file->open(mysqlshdk::storage::Mode::WRITE);
+  file->write(json.c_str(), json.length());
+  file->close();
 }
 
 }  // namespace common

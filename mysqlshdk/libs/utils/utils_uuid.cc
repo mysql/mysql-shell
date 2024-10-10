@@ -24,8 +24,12 @@
  */
 
 #include "mysqlshdk/libs/utils/utils_uuid.h"
+
+#include <algorithm>
 #include <ctime>
+#include <limits>
 #include <random>
+
 #include "mysqlshdk/libs/utils/uuid_gen.h"
 
 namespace shcore {
@@ -76,6 +80,29 @@ std::string Id_generator::new_document_id() {
   std::copy(src + 10, std::end(uuid), tgt);
 
   return hexify(document_id);
+}
+
+bool is_uuid(std::string_view str) {
+  if (36 != str.length()) {
+    return false;
+  }
+
+  int idx = 0;
+
+  for (auto c : str) {
+    if (8 == idx || 13 == idx || 18 == idx || 23 == idx) {
+      if ('-' != c) {
+        return false;
+      }
+    } else if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+                 (c >= 'A' && c <= 'F'))) {
+      return false;
+    }
+
+    ++idx;
+  }
+
+  return true;
 }
 
 }  // namespace shcore

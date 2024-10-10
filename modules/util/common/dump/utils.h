@@ -28,10 +28,9 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
-#include "mysqlshdk/libs/oci/oci_par.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -62,6 +61,13 @@ std::string get_table_data_filename(const std::string &basename,
 std::string get_table_data_filename(const std::string &basename,
                                     const std::string &ext, size_t index,
                                     bool last_chunk);
+
+std::string fetch_file(std::unique_ptr<mysqlshdk::storage::IFile> file);
+
+shcore::json::JSON fetch_json(std::unique_ptr<mysqlshdk::storage::IFile> file);
+
+void write_json(std::unique_ptr<mysqlshdk::storage::IFile> file,
+                const shcore::JSON_dumper &json);
 
 }  // namespace common
 }  // namespace dump

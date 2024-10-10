@@ -42,6 +42,12 @@ util.help('copy_tables')
 # WL15298_TSFR_4_4_1
 \? copy_tables
 
+#@ util dump_binlogs help
+util.help('dump_binlogs')
+
+#@ util dump_binlogs help, \? [USE:util dump_binlogs help]
+\? dump_binlogs
+
 # WL13807-TSFR_1_1
 #@ util dump_instance help
 util.help('dump_instance')
@@ -81,6 +87,12 @@ util.help('import_table')
 
 #@ util import_table help, \? [USE:util import_table help]
 \? import_table
+
+#@ util load_binlogs help
+util.help('load_binlogs')
+
+#@ util load_binlogs help, \? [USE:util load_binlogs help]
+\? load_binlogs
 
 #@ util load_dump help
 util.help('load_dump')

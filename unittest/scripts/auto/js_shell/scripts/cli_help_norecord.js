@@ -150,6 +150,9 @@ callMysqlsh(["--", "util", "copy-schemas", "--help"])
 //@ CLI util copy-tables --help
 callMysqlsh(["--", "util", "copy-tables", "--help"])
 
+//@ CLI util dump-binlogs --help
+callMysqlsh(["--", "util", "dump-binlogs", "--help"])
+
 //@ CLI util dump-instance --help
 callMysqlsh(["--", "util", "dump-instance", "--help"])
 
@@ -167,6 +170,9 @@ callMysqlsh(["--", "util", "import-json", "--help"])
 
 //@ CLI util import-table --help
 callMysqlsh(["--", "util", "import-table", "--help"])
+
+//@ CLI util load-binlogs --help
+callMysqlsh(["--", "util", "load-binlogs", "--help"])
 
 //@ CLI util load-dump --help
 callMysqlsh(["--", "util", "load-dump", "--help"])

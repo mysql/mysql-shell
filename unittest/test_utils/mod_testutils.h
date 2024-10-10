@@ -528,6 +528,8 @@ class Testutils : public mysqlsh::Extensible_object {
 
   void delete_s3_objects(const std::vector<std::string> &names,
                          const shcore::Dictionary_t &opts);
+
+  bool clean_azure_container(const shcore::Dictionary_t &opts);
 };
 
 }  // namespace tests

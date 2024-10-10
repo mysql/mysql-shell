@@ -154,13 +154,13 @@ class Http_directory : public IDirectory {
 
   void create() override;
 
+  void remove() override;
+
+  bool is_empty() const override;
+
   Masked_string full_path() const override;
 
-  std::unordered_set<IDirectory::File_info> list_files(
-      bool hidden_files = false) const override;
-
-  std::unordered_set<IDirectory::File_info> filter_files(
-      const std::string &pattern) const override;
+  Directory_listing list(bool hidden_files = false) const override;
 
   std::unique_ptr<IFile> file(const std::string &name,
                               const File_options &options = {}) const override;
@@ -171,28 +171,44 @@ class Http_directory : public IDirectory {
                         const std::string &b) const override;
 
  protected:
+  class Listing_context {
+   public:
+    explicit Listing_context(size_t limit) : m_limit(limit) {}
+
+    virtual ~Listing_context() = default;
+
+    /**
+     * Returns the URL to be used to pull the directory listing.
+     */
+    virtual std::string get_url() const = 0;
+
+    /**
+     * Parses the response from the list GET request to generate the entry list
+     */
+    virtual Directory_listing parse(const std::string &data) const = 0;
+
+    /**
+     * Checks if listing is complete.
+     */
+    virtual bool is_complete() const = 0;
+
+   protected:
+    std::size_t limit() const noexcept { return m_limit; }
+
+   private:
+    std::size_t m_limit;
+  };
+
   explicit Http_directory(const Config_ptr &config, bool use_retry = false)
       : m_config(config), m_use_retry(use_retry) {}
+
   void init_rest(const Masked_string &url);
 
-  /**
-   * Returns the URL to be used to pull the file list.
-   *
-   * The URL might either be exactly m_url or some modified version of it.
-   */
-  virtual std::string get_list_url() const { return ""; }
-
-  /**
-   * Parses the response from the list GET request to generate the file list
-   */
-  virtual std::unordered_set<IDirectory::File_info> parse_file_list(
-      const std::string &data, const std::string &pattern = "") const = 0;
-
-  virtual bool is_list_files_complete() const = 0;
+  virtual std::unique_ptr<Listing_context> listing_context(
+      size_t limit) const = 0;
 
  protected:
-  std::unordered_set<IDirectory::File_info> get_file_list(
-      const std::string &context, const std::string &pattern = "") const;
+  Directory_listing get_listing(size_t limit) const;
 
   Masked_string m_url;
   Config_ptr m_config;

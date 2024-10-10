@@ -253,6 +253,21 @@ def get_user_account_for_output(name):
 def test_user_uri(port):
     return f"mysql://{get_test_user_name(test_user)}:{test_user_pwd}@{__host}:{port}"
 
+if __os_type != "windows":
+    def filename_for_file(filename):
+        return filename
+else:
+    def filename_for_file(filename):
+        return filename.replace("\\", "/")
+
+if __os_type != "windows":
+    def absolute_path_for_output(path):
+        return os.path.abspath(path)
+else:
+    def absolute_path_for_output(path):
+        long_path_prefix = r"\\?" "\\"
+        return long_path_prefix + os.path.abspath(path)
+
 class Compatibility_issue:
     def __init__(self, error, fixed, warning=None):
         self.__error_msg = "ERROR: SRC: " + error if error else ""
@@ -540,6 +555,7 @@ def backup_file(path):
         backup += suffix
         os.rename(path, backup)
         stack.callback(lambda: os.rename(backup, path))
+        stack.callback(lambda: os.remove(path) if os.path.isfile(path) else None)
     return stack
 
 def create_test_table(sess, schema, table, create_definition, nrows = 1000):
@@ -557,12 +573,12 @@ def create_test_table(sess, schema, table, create_definition, nrows = 1000):
     for c in sess.run_sql("SELECT COLUMN_NAME, COLUMN_TYPE, COLUMN_KEY='PRI' FROM information_schema.columns WHERE TABLE_SCHEMA=? AND TABLE_NAME=? AND EXTRA NOT LIKE '% GENERATED'", [ schema, table ]).fetch_all():
         fun = None
         if c[2]:
-            if c[1].endswith("int"):
+            if c[1].endswith("int") or "int(" in c[1]:
                 fun = pk
             else:
                 raise Exception("Only integer PKs are supported")
         else:
-            if c[1].endswith("int"):
+            if c[1].endswith("int") or "int(" in c[1]:
                 fun = lambda: str(random.randint(-100, 100))
             elif c[1].startswith("varchar(") or c[1].startswith("char(") or c[1].startswith("varbinary(") or c[1].startswith("binary("):
                 count = int(re.findall(r'\d+', c[1])[0])

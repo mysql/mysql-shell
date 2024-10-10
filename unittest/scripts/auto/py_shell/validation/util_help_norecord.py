@@ -31,6 +31,10 @@ FUNCTIONS
             target instance. Requires an open global Shell session to the
             source instance, if there is none, an exception is raised.
 
+      dump_binlogs(outputUrl[, options])
+            Dumps binary logs generated since a specific point in time to the
+            given local or remote directory.
+
       dump_instance(outputUrl[, options])
             Dumps the whole database to files in the output directory.
 
@@ -54,6 +58,10 @@ FUNCTIONS
       import_table(urls[, options])
             Import table dump stored in files to target table using LOAD DATA
             LOCAL INFILE calls in parallel connections.
+
+      load_binlogs(url[, options])
+            Loads binary log dumps created by MySQL Shell from a local or
+            remote directory.
 
       load_dump(url[, options])
             Loads database dumps created by MySQL Shell.
@@ -555,6 +563,122 @@ DESCRIPTION
         contents or appending to it the gtid set present in the copy.
 
       For discussion of all options see: dump_tables() and load_dump().
+
+#@<OUT> util dump_binlogs help
+NAME
+      dump_binlogs - Dumps binary logs generated since a specific point in time
+                     to the given local or remote directory.
+
+SYNTAX
+      util.dump_binlogs(outputUrl[, options])
+
+WHERE
+      outputUrl: Target directory to store the dump files.
+      options: Dictionary with the dump options.
+
+DESCRIPTION
+      The outputUrl specifies URL to a directory where the dump is going to be
+      stored. Allowed values:
+
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to a bucket or a prefix - dumps to the
+        OCI Object Storage using a PAR
+
+      For additional information on remote storage support use \? remote
+      storage.
+
+      The options dictionary supports the following options:
+
+      - since: string (default: not set) - URL to a local or remote directory
+        containing dump created either by util.dump_instance() or
+        util.dump_binlogs(). Binary logs since the specified dump are going to
+        be dumped.
+      - startFrom: string (default: not set) - Specifies the name of the binary
+        log file and its position to start the dump from. Accepted format:
+        <binary-log-file>[:<binary-log-file-position>].
+      - ignoreDdlChanges: bool (default: false) - Proceeds with the dump even
+        if the since option points to a dump created by util.dump_instance()
+        which contains modified DDL.
+      - threads: unsigned int (default: 4) - Use N threads to dump the data
+        from the instance.
+      - dryRun: bool (default: false) - Print information about what would be
+        dumped, but do not dump anything.
+      - compression: string (default: "zstd;level=1") - Compression used when
+        writing the binary log dump files, one of: "none", "gzip", "zstd".
+        Compression level may be specified as "gzip;level=8" or "zstd;level=8".
+      - showProgress: bool (default: true if stdout is a TTY device, false
+        otherwise) - Enable or disable dump progress information.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy ID on the OCI configuration.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
+        configuration file instead of the one at the default location.
+      - ociProfile: string (default: not set) - Use the specified OCI profile
+        instead of the default one.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file.
+      - s3Profile: string (default: not set) - Use the specified AWS profile.
+      - s3Region: string (default: not set) - Use the specified AWS region.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
+
+      Details
+
+      The starting point can be automatically determined from a previous dump
+      (either by reusing the same output directory created previously by
+      util.dump_binlogs(), or by setting the since option to a directory
+      containing dump created either by util.dump_instance() or
+      util.dump_binlogs()) or as a explicitly specified binlog file and
+      position in the startFrom option.
+
+      Use util.load_binlogs() to apply binary log dumps created with this
+      command.
+
+      The Shell must be connected to the server from where binlogs will be
+      dumped from.
+
+      If directory specified by the outputUrl parameter does not exist, either
+      since or startFrom option must also be given.
+
+      If directory specified by the outputUrl parameter exists, neither since
+      nor startFrom options may be given, as they will be automatically
+      determined.
+
+      By default, the since option assumes the same storage location as
+      outputUrl:
+
+      - if outputUrl is set to a prefix PAR, since option denotes a path
+        relative to this PAR
+      - if any of the remote storages is used (i.e. osBucketName is set), since
+        option denotes a path in that remote storage
+
+      In order to use a different storage, prefix the option value with file://
+      for a local storage, or use a PAR URL.
 
 #@<OUT> util dump_instance help
 NAME
@@ -2165,6 +2289,94 @@ DESCRIPTION
       Note: because of storage engine limitations, table locks held by MyISAM
       will cause imports of such tables to be sequential, regardless of the
       number of threads used.
+
+#@<OUT> util load_binlogs help
+NAME
+      load_binlogs - Loads binary log dumps created by MySQL Shell from a local
+                     or remote directory.
+
+SYNTAX
+      util.load_binlogs(url[, options])
+
+WHERE
+      url: URL to a local or remote directory containing dump created by
+           util.dump_binlogs().
+      options: Dictionary with the load options.
+
+DESCRIPTION
+      The url parameter specifies the location of the dump to be loaded.
+      Allowed values:
+
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to a bucket or a prefix - loads a dump
+        from OCI Object Storage using a PAR URL
+
+      For additional information on remote storage support use \? remote
+      storage.
+
+      The options dictionary supports the following options:
+
+      - ignoreVersion: bool (default: false) - Load the dumps even if version
+        of the target instance is incompatible with version of the source
+        instance where the binary logs were dumped from.
+      - ignoreGtidGap: bool (default: false) - Load the dumps even if the
+        current value of gtid_executed in the target instance does not fully
+        contain the starting value of gtid_executed of the first binary log
+        file to be loaded.
+      - stopBefore: string (default: not set) - Stops the load right before the
+        specified binary log event is applied. Accepted format:
+        <binary-log-file>:<binary-log-file-position> or GTID:
+        <UUID>[:tag]:<transaction-id>.
+      - dryRun: bool (default: false) - Print information about what would be
+        loaded, but do not load anything.
+      - showProgress: bool (default: true if stdout is a TTY device, false
+        otherwise) - Enable or disable dump progress information.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
+      - osNamespace: string (default: not set) - Specifies the namespace where
+        the bucket is located, if not given it will be obtained using the
+        tenancy ID on the OCI configuration.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
+        configuration file instead of the one at the default location.
+      - ociProfile: string (default: not set) - Use the specified OCI profile
+        instead of the default one.
+      - ociAuth: string (default: not set) - Use the specified authentication
+        method when connecting to the OCI. Allowed values: api_key (used when
+        not explicitly set), instance_principal, resource_principal,
+        security_token.
+      - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
+        use. The bucket must already exist.
+      - s3CredentialsFile: string (default: not set) - Use the specified AWS
+        credentials file.
+      - s3ConfigFile: string (default: not set) - Use the specified AWS config
+        file.
+      - s3Profile: string (default: not set) - Use the specified AWS profile.
+      - s3Region: string (default: not set) - Use the specified AWS region.
+      - s3EndpointOverride: string (default: not set) - Use the specified AWS
+        S3 API endpoint instead of the default one.
+      - azureContainerName: string (default: not set) - Name of the Azure
+        container to use. The container must already exist.
+      - azureConfigFile: string (default: not set) - Use the specified Azure
+        configuration file instead of the one at the default location.
+      - azureStorageAccount: string (default: not set) - The account to be used
+        for the operation.
+      - azureStorageSasToken: string (default: not set) - Azure Shared Access
+        Signature (SAS) token, to be used for the authentication of the
+        operation, instead of a key.
+
+      Details
+
+      The Shell must be connected to the server where binlogs will be loaded
+      to.
+
+      The binary logs to be loaded are automatically selected based on the
+      contents of the dump and the current state of the target instance.
 
 #@<OUT> util load_dump help
 NAME

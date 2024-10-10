@@ -48,7 +48,7 @@ std::shared_ptr<Oci_par_directory_config> create_config(
 
 class Oci_par_directory_tests : public mysqlshdk::oci::Oci_os_tests {};
 
-TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
+TEST_F(Oci_par_directory_tests, list_files) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   const auto config = get_config();
@@ -89,7 +89,7 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
 
     Oci_par_directory par_dir(create_config(config, par));
 
-    const auto objects = par_dir.list_files();
+    const auto objects = par_dir.list().files;
 
     // DEFAULT LIST: returns name and size only
     ASSERT_EQ(expected_objects.size(), objects.size());
@@ -109,7 +109,7 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_list_files) {
   clean_bucket(bucket);
 }
 
-TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
+TEST_F(Oci_par_directory_tests, filter_files) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   const auto config = get_config();
@@ -152,7 +152,8 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
 
     Oci_par_directory par_dir(create_config(config, par));
 
-    const auto objects = par_dir.filter_files(filter);
+    const auto objects =
+        mysqlshdk::storage::filter(par_dir.list().files, filter);
 
     // DEFAULT LIST: returns name and size only
     ASSERT_EQ(expected_objects.size(), objects.size());
@@ -172,7 +173,113 @@ TEST_F(Oci_par_directory_tests, oci_par_directory_filter_files) {
   clean_bucket(bucket);
 }
 
-TEST_F(Oci_par_directory_tests, oci_par_directory_file) {
+TEST_F(Oci_par_directory_tests, subdirectory) {
+  SKIP_IF_NO_OCI_CONFIGURATION;
+
+  const auto create_file =
+      [](const std::unique_ptr<mysqlshdk::storage::IDirectory> &d,
+         const std::string &name) {
+        const auto file = d->file(name);
+        const auto full_path = file->full_path().real();
+
+        file->open(mysqlshdk::storage::Mode::WRITE);
+        file->write(full_path.c_str(), full_path.length());
+        file->close();
+      };
+
+  mysqlshdk::storage::File_list expected_files;
+  mysqlshdk::storage::Directory_list expected_dirs;
+
+  const auto config = get_config();
+  auto bucket = Oci_bucket{config};
+
+  const auto par = bucket.create_pre_authenticated_request(
+      mysqlshdk::oci::PAR_access_type::ANY_OBJECT_READ_WRITE,
+      shcore::future_time_rfc3339(std::chrono::hours(24)), "sample-par", "",
+      mysqlshdk::oci::PAR_list_action::LIST_OBJECTS);
+  const auto par_config = create_config(config, par);
+
+  const auto root = mysqlshdk::storage::make_directory(
+      par_config->anonymized_full_url().real(), par_config);
+
+  EXPECT_TRUE(root->is_empty());
+  EXPECT_TRUE(root->list().files.empty());
+  EXPECT_TRUE(root->list().directories.empty());
+
+  create_file(root, "one.txt");
+  create_file(root, "two.txt");
+
+  EXPECT_FALSE(root->is_empty());
+  expected_files = {{"one.txt"}, {"two.txt"}};
+  EXPECT_EQ(expected_files, root->list().files);
+
+  const auto first = root->directory("first");
+
+  EXPECT_TRUE(first->is_empty());
+  EXPECT_TRUE(first->list().files.empty());
+  EXPECT_TRUE(first->list().directories.empty());
+
+  create_file(first, "three.txt");
+  create_file(first, "four.txt");
+
+  EXPECT_FALSE(first->is_empty());
+  expected_files = {{"three.txt"}, {"four.txt"}};
+  EXPECT_EQ(expected_files, first->list().files);
+
+  const auto second = root->directory("second");
+
+  EXPECT_TRUE(second->is_empty());
+  EXPECT_TRUE(second->list().files.empty());
+  EXPECT_TRUE(second->list().directories.empty());
+
+  create_file(second, "five.txt");
+  create_file(second, "six.txt");
+
+  EXPECT_FALSE(second->is_empty());
+  expected_files = {{"five.txt"}, {"six.txt"}};
+  EXPECT_EQ(expected_files, second->list().files);
+
+  const auto third = first->directory("third");
+
+  EXPECT_TRUE(third->is_empty());
+  EXPECT_TRUE(third->list().files.empty());
+  EXPECT_TRUE(third->list().directories.empty());
+
+  create_file(third, "seven.txt");
+  create_file(third, "eight.txt");
+
+  EXPECT_FALSE(third->is_empty());
+  expected_files = {{"seven.txt"}, {"eight.txt"}};
+  EXPECT_EQ(expected_files, third->list().files);
+
+  const auto fourth = first->directory("fourth");
+
+  EXPECT_TRUE(fourth->is_empty());
+  EXPECT_TRUE(fourth->list().files.empty());
+  EXPECT_TRUE(fourth->list().directories.empty());
+
+  create_file(fourth, "nine.txt");
+  create_file(fourth, "ten.txt");
+
+  EXPECT_FALSE(fourth->is_empty());
+  expected_files = {{"nine.txt"}, {"ten.txt"}};
+  EXPECT_EQ(expected_files, fourth->list().files);
+
+  // directories are visible only once all files are created
+  expected_dirs = {{"first"}, {"second"}};
+  EXPECT_EQ(expected_dirs, root->list().directories);
+
+  expected_dirs = {{"third"}, {"fourth"}};
+  EXPECT_EQ(expected_dirs, first->list().directories);
+
+  EXPECT_TRUE(second->list().directories.empty());
+  EXPECT_TRUE(third->list().directories.empty());
+  EXPECT_TRUE(fourth->list().directories.empty());
+
+  EXPECT_NO_THROW(fourth->remove());
+}
+
+TEST_F(Oci_par_directory_tests, file) {
   SKIP_IF_NO_OCI_CONFIGURATION;
 
   const auto config = get_config();

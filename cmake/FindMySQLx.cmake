@@ -83,7 +83,6 @@ set(MYSQLX_INCLUDES
   "${MYSQL_SOURCE_DIR}/include"
   "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}"
   "${MYSQL_SOURCE_DIR}${MYSQL_XPLUGIN_FOLDER}/plugin/x/client"
-  "${MYSQL_SOURCE_DIR}/libbinlogevents/export"
 )
 
 set(MYSQLX_LIBRARY_PATHS

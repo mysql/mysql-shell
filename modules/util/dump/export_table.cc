@@ -40,6 +40,8 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/common/utils.h"
+
 namespace mysqlsh {
 namespace dump {
 
@@ -53,8 +55,7 @@ void Export_table::summary() const {
 
   const auto quoted_filename =
       shcore::quote_string(m_options.output_url(), '"');
-  const auto import_table =
-      shcore::get_member_name("importTable", shcore::current_naming_style());
+  const auto import_table = mysqlsh::common::member_name("importTable");
   shcore::Dictionary_t options = shcore::make_dict();
 
   // original table which was dumped

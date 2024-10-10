@@ -180,7 +180,8 @@ void Import_table::build_queue() {
       }
 
       const auto list_files =
-          dir->filter_files_sorted(shcore::path::basename(glob_item));
+          mysqlshdk::storage::sort(mysqlshdk::storage::filter(
+              dir->list().files, shcore::path::basename(glob_item)));
 
       for (const auto &file_info : list_files) {
         File_import_info task;

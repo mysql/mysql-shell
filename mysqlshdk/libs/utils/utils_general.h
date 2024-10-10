@@ -169,7 +169,7 @@ enum class OperatingSystem {
   DEBIAN,
   REDHAT,
   LINUX,
-  WINDOWS,
+  WINDOWS_OS,  // WINDOWS conflicts with a zlib #define
   MACOS,
   SOLARIS
 };

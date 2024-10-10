@@ -48,8 +48,6 @@ namespace mysqlshdk {
 namespace storage {
 namespace in_memory {
 
-using set = std::unordered_set<IDirectory::File_info>;
-
 TEST(Virtual_fs, join_path) {
   EXPECT_EQ("a/b", Virtual_fs::join_path("a", "b"));
   EXPECT_EQ("a/b/c", Virtual_fs::join_path("a/b", "c"));
@@ -112,6 +110,7 @@ TEST(Virtual_fs, directory_create_file) {
   ASSERT_NE(nullptr, dir);
   EXPECT_EQ(dir, fs.directory("dir"));
   EXPECT_EQ("dir", dir->name());
+  EXPECT_TRUE(dir->is_empty());
 
   // invalid names
   EXPECT_THROW(dir->create_file(""), std::runtime_error);
@@ -122,14 +121,17 @@ TEST(Virtual_fs, directory_create_file) {
   // file does not exist, it's created, it's not visible until it's published
   EXPECT_EQ(nullptr, dir->file("file"));
   EXPECT_TRUE(dir->list_files().empty());
+  EXPECT_TRUE(dir->is_empty());
   EXPECT_NE(nullptr, dir->create_file("file"));
   EXPECT_EQ(nullptr, dir->file("file"));
   EXPECT_TRUE(dir->list_files().empty());
+  EXPECT_TRUE(dir->is_empty());
 
   // file was not published, but still it's not possible to create a file with
   // the same name
   EXPECT_THROW(dir->create_file("file"), std::runtime_error);
   EXPECT_TRUE(dir->list_files().empty());
+  EXPECT_TRUE(dir->is_empty());
 
   // create another file, it's not visible until it's published
   auto file = dir->create_file("another_file");
@@ -137,6 +139,7 @@ TEST(Virtual_fs, directory_create_file) {
   EXPECT_EQ("another_file", file->name());
   EXPECT_EQ(nullptr, dir->file("another_file"));
   EXPECT_TRUE(dir->list_files().empty());
+  EXPECT_TRUE(dir->is_empty());
 
   // publish the file
   EXPECT_NO_THROW(dir->publish_created_file("another_file"));
@@ -149,7 +152,8 @@ TEST(Virtual_fs, directory_create_file) {
   // file was published it's now visible
   ASSERT_EQ(file, dir->file("another_file"));
   EXPECT_EQ("another_file", dir->file("another_file")->name());
-  EXPECT_EQ((set{{"another_file", 0}}), dir->list_files());
+  EXPECT_EQ((File_list{{"another_file", 0}}), dir->list_files());
+  EXPECT_FALSE(dir->is_empty());
 
   // it's not possible to create a file with the same name as the published one
   EXPECT_THROW(dir->create_file("another_file"), std::runtime_error);
@@ -180,32 +184,13 @@ TEST(Virtual_fs, directory_list_files) {
   create_file("a6", 21);
 
   // list all files
-  EXPECT_EQ((set{{"a1", 0},
-                 {"a22", 3},
-                 {"a3", 10},
-                 {"a4", 11},
-                 {"a5", 20},
-                 {"a6", 21}}),
+  EXPECT_EQ((File_list{{"a1", 0},
+                       {"a22", 3},
+                       {"a3", 10},
+                       {"a4", 11},
+                       {"a5", 20},
+                       {"a6", 21}}),
             dir->list_files());
-
-  // filter files, exact name
-  EXPECT_EQ((set{{"a3", 10}}), dir->list_files("a3"));
-
-  // filter files with ?
-  EXPECT_EQ((set{{"a1", 0}, {"a3", 10}, {"a4", 11}, {"a5", 20}, {"a6", 21}}),
-            dir->list_files("a?"));
-
-  // filter files with *
-  EXPECT_EQ((set{{"a1", 0},
-                 {"a22", 3},
-                 {"a3", 10},
-                 {"a4", 11},
-                 {"a5", 20},
-                 {"a6", 21}}),
-            dir->list_files("a*"));
-
-  // filter returns no files
-  EXPECT_EQ((set{}), dir->list_files("b*"));
 }
 
 TEST(Virtual_fs, directory_rename_file) {

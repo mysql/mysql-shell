@@ -46,58 +46,77 @@ Directory::Directory(const Config_ptr &config, const std::string &name)
       m_created(false) {}
 
 bool Directory::exists() const {
-  try {
-    const auto objects = m_container->list_objects(m_prefix, 1, false);
-
-    // an empty prefix represents the root directory, in that case we've just
-    // checked that connection can be established
-    if (!objects.empty() || m_prefix.empty() || m_created) {
-      return true;
-    }
-  } catch (const rest::Response_error &error) {
-    throw rest::to_exception(error);
-  }
-
-  // use multipart uploads as the last resort
-  return !list_multipart_uploads().empty();
+  // an empty prefix represents the root directory, in that case we've just
+  // checked that connection can be established
+  return !is_empty() || m_prefix.empty() || m_created;
 }
 
 void Directory::create() { m_created = true; }
 
-std::unordered_set<IDirectory::File_info> Directory::list_files(
-    bool hidden_files) const {
-  std::unordered_set<IDirectory::File_info> files;
+void Directory::remove() { m_created = false; }
+
+bool Directory::is_empty() const {
   std::vector<Object_details> objects;
+  std::unordered_set<std::string> prefixes;
 
   try {
-    objects = m_container->list_objects(m_prefix, 0, false);
+    objects = m_container->list_objects(m_prefix, 1, false,
+                                        Object_details::NAME, &prefixes);
   } catch (const rest::Response_error &error) {
     throw rest::to_exception(error);
   }
 
-  if (m_prefix.empty()) {
-    for (auto &object : objects) {
-      files.emplace(std::move(object.name), object.size);
+  return objects.empty() && prefixes.empty() &&
+         list_multipart_uploads().empty();
+}
+
+Directory_listing Directory::list(bool hidden_files) const {
+  std::vector<Object_details> objects;
+  std::unordered_set<std::string> prefixes;
+
+  try {
+    objects = m_container->list_objects(m_prefix, 0, false,
+                                        Object_details::NAME_SIZE, &prefixes);
+  } catch (const rest::Response_error &error) {
+    throw rest::to_exception(error);
+  }
+
+  Directory_listing list;
+  const auto prefix_length = m_prefix.length();
+
+  for (auto &object : objects) {
+    auto name = std::move(object.name);
+
+    if (prefix_length) {
+      name = name.substr(prefix_length);
     }
-  } else {
-    for (const auto &object : objects) {
-      files.emplace(object.name.substr(m_prefix.size()), object.size);
+
+    list.files.emplace(std::move(name), object.size);
+  }
+
+  while (!prefixes.empty()) {
+    auto name = std::move(prefixes.extract(prefixes.begin()).value());
+
+    if (prefix_length) {
+      name = name.substr(prefix_length);
     }
+
+    // last character is '/'
+    name.pop_back();
+
+    list.directories.emplace(std::move(name));
   }
 
   if (hidden_files) {
     // Active multipart uploads to the target path should be considered files
-    auto uploads = list_multipart_uploads();
-    files.insert(std::make_move_iterator(uploads.begin()),
-                 std::make_move_iterator(uploads.end()));
+    list.files.merge(list_multipart_uploads());
   }
 
-  return files;
+  return list;
 }
 
-std::unordered_set<IDirectory::File_info> Directory::list_multipart_uploads()
-    const {
-  std::unordered_set<IDirectory::File_info> files;
+File_list Directory::list_multipart_uploads() const {
+  File_list files;
   std::vector<Multipart_object> uploads;
 
   try {
@@ -124,35 +143,6 @@ std::unordered_set<IDirectory::File_info> Directory::list_multipart_uploads()
   return files;
 }
 
-std::unordered_set<IDirectory::File_info> Directory::filter_files(
-    const std::string &pattern) const {
-  std::unordered_set<IDirectory::File_info> files;
-  std::vector<Object_details> objects;
-
-  try {
-    objects = m_container->list_objects(m_prefix, 0, false);
-  } catch (const rest::Response_error &error) {
-    throw rest::to_exception(error);
-  }
-
-  if (m_prefix.empty()) {
-    for (auto &object : objects) {
-      if (shcore::match_glob(pattern, object.name)) {
-        files.emplace(std::move(object.name), object.size);
-      }
-    }
-  } else {
-    for (const auto &object : objects) {
-      auto file_name = object.name.substr(m_prefix.size());
-      if (!file_name.empty() && shcore::match_glob(pattern, file_name)) {
-        files.emplace(std::move(file_name), object.size);
-      }
-    }
-  }
-
-  return files;
-}
-
 std::string Directory::join_path(const std::string &a,
                                  const std::string &b) const {
   return a.empty() ? b : a + "/" + b;
@@ -162,6 +152,12 @@ std::unique_ptr<IFile> Directory::file(const std::string &name,
                                        const File_options &) const {
   return std::make_unique<Object>(m_container->config(), name,
                                   join_path(m_name, ""));
+}
+
+std::unique_ptr<IDirectory> Directory::directory(
+    const std::string &name) const {
+  return std::make_unique<Directory>(m_container->config(),
+                                     join_path(m_name, name));
 }
 
 Object::Object(const Config_ptr &config, const std::string &name,

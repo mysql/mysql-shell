@@ -105,6 +105,8 @@ int fputs(std::string_view s, IFile *file);
 
 std::string read_file(IFile *file);
 
+File_options mmap_options();
+
 }  // namespace storage
 }  // namespace mysqlshdk
 

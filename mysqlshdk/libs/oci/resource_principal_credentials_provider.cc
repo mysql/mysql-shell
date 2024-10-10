@@ -180,8 +180,10 @@ class Rpt_client final : public Oci_client {
 
   Rpst_request tokens() {
     const auto json = shcore::json::parse_object_or_throw(get(m_path));
-    return {shcore::json::required(json, "resourcePrincipalToken"),
-            shcore::json::required(json, "servicePrincipalSessionToken")};
+    return {
+        shcore::json::required(json, "resourcePrincipalToken", false),
+        shcore::json::required(json, "servicePrincipalSessionToken", false),
+    };
   }
 
   const mysqlshdk::rest::Headers &response_headers() {

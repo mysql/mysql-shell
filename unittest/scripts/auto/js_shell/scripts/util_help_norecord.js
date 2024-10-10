@@ -42,6 +42,12 @@ util.help('copyTables');
 // WL15298_TSFR_4_4_1
 \? copyTables
 
+//@ util dumpBinlogs help
+util.help('dumpBinlogs');
+
+//@ util dumpBinlogs help, \? [USE:util dumpBinlogs help]
+\? dumpBinlogs
+
 // WL13807-TSFR_1_1
 //@ util dumpInstance help
 util.help('dumpInstance');
@@ -81,6 +87,12 @@ util.help('importTable');
 
 //@ util importTable help, \? [USE:util importTable help]
 \? importTable
+
+//@ util loadBinlogs help
+util.help('loadBinlogs');
+
+//@ util loadBinlogs help, \? [USE:util loadBinlogs help]
+\? loadBinlogs
 
 //@ util loadDump help
 util.help('loadDump');

@@ -94,7 +94,8 @@ std::vector<Object_details> Container::list_objects(
         remaining -= result.size();
       }
 
-      std::move(list.begin(), list.end(), std::back_inserter(result));
+      result.insert(result.end(), std::make_move_iterator(list.begin()),
+                    std::make_move_iterator(list.end()));
     } catch (const shcore::Exception &error) {
       const auto msg = "Failed to parse 'list objects' (with prefix '" +
                        prefix + "') response: " + error.what();

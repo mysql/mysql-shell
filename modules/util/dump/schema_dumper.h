@@ -107,8 +107,6 @@ class Schema_dumper {
       const std::function<bool(const std::string &, const std::string &)>
           &strip_revoked_privilege_cb = {});
 
-  static const char *version();
-
   void dump_all_tablespaces_ddl(IFile *file);
   void dump_tablespaces_ddl_for_dbs(IFile *file,
                                     const std::vector<std::string> &dbs);
@@ -153,12 +151,6 @@ class Schema_dumper {
                      const std::string &table_name = "");
 
   void use_cache(const Instance_cache *cache) { m_cache = cache; }
-
-  std::string gtid_executed();
-
-  Instance_cache::Binlog binlog(bool quiet = false);
-
-  Instance_cache::Server_version server_version() const;
 
   bool partial_revokes() const;
 

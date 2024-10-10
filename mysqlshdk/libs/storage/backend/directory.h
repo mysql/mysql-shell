@@ -53,13 +53,13 @@ class Directory : public IDirectory {
 
   void create() override;
 
+  void remove() override;
+
+  bool is_empty() const override;
+
   Masked_string full_path() const override;
 
-  std::unordered_set<IDirectory::File_info> list_files(
-      bool hidden_files = false) const override;
-
-  std::unordered_set<IDirectory::File_info> filter_files(
-      const std::string &pattern) const override;
+  Directory_listing list(bool hidden_files = false) const override;
 
   bool is_local() const override { return true; }
 

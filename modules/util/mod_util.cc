@@ -31,6 +31,8 @@
 #include <vector>
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
+#include "modules/util/binlog/binlog_dumper.h"
+#include "modules/util/binlog/binlog_loader.h"
 #include "modules/util/copy/copy_operation.h"
 #include "modules/util/dump/dump_instance.h"
 #include "modules/util/dump/dump_instance_options.h"
@@ -95,6 +97,9 @@ Util::Util(shcore::IShell_core *owner)
   expose("copyTables", &Util::copy_tables, "schema", "tables", "connectionData",
          "?options")
       ->cli();
+
+  expose("dumpBinlogs", &Util::dump_binlogs, "outputUrl", "?options")->cli();
+  expose("loadBinlogs", &Util::load_binlogs, "urls", "?options")->cli();
 }
 
 REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
@@ -2402,6 +2407,200 @@ std::shared_ptr<mysqlshdk::db::ISession> Util::global_session() const {
   }
 
   return session->get_core_session();
+}
+
+REGISTER_HELP_FUNCTION(dumpBinlogs, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_DUMPBINLOGS, R"*(
+Dumps binary logs generated since a specific point in time to the given local or
+remote directory.
+
+@param outputUrl Target directory to store the dump files.
+@param options Optional dictionary with the dump options.
+
+The <b>outputUrl</b> specifies URL to a directory where the dump is going to be
+stored. Allowed values:
+
+${TOPIC_REMOTE_STORAGE_COMMON_PATHS}
+@li <b>OCI Pre-Authenticated Request to a bucket or a prefix</b> - dumps to the
+OCI Object Storage using a PAR
+
+${TOPIC_REMOTE_STORAGE_MORE_INFO}
+
+The <b>options</b> dictionary supports the following options:
+@li <b>since</b>: string (default: not set) - URL to a local or remote directory
+containing dump created either by <b>util.<<<dumpInstance>>>()</b> or
+<b>util.<<<dumpBinlogs>>>()</b>. Binary logs since the specified dump are going
+to be dumped.
+@li <b>startFrom</b>: string (default: not set) - Specifies the name of the
+binary log file and its position to start the dump from. Accepted format:
+<b>@<binary-log-file@>[:@<binary-log-file-position@>]</b>.
+@li <b>ignoreDdlChanges</b>: bool (default: false) - Proceeds with the dump even
+if the <b>since</b> option points to a dump created by
+<b>util.<<<dumpInstance>>>()</b> which contains modified DDL.
+
+@li <b>threads</b>: unsigned int (default: 4) - Use N threads to dump the data
+from the instance.
+@li <b>dryRun</b>: bool (default: false) - Print information about what would be
+dumped, but do not dump anything.
+@li <b>compression</b>: string (default: "zstd;level=1") - Compression used when
+writing the binary log dump files, one of: "none", "gzip", "zstd". Compression
+level may be specified as "gzip;level=8" or "zstd;level=8".
+@li <b>showProgress</b>: bool (default: true if stdout is a TTY device, false
+otherwise) - Enable or disable dump progress information.
+
+${TOPIC_REMOTE_STORAGE_OPTIONS}
+
+<b>Details</b>
+
+The starting point can be automatically determined from a previous dump (either
+by reusing the same output directory created previously by
+<b>util.<<<dumpBinlogs>>>()</b>, or by setting the <b>since</b> option to a
+directory containing dump created either by <b>util.<<<dumpInstance>>>()</b> or
+<b>util.<<<dumpBinlogs>>>()</b>) or as a explicitly specified binlog file and
+position in the <b>startFrom</b> option.
+
+Use <b>util.<<<loadBinlogs>>>()</b> to apply binary log dumps created with this
+command.
+
+The %Shell must be connected to the server from where binlogs will be dumped
+from.
+
+If directory specified by the <b>outputUrl</b> parameter does not exist, either
+<b>since</b> or <b>startFrom</b> option must also be given.
+
+If directory specified by the <b>outputUrl</b> parameter exists, neither
+<b>since</b> nor <b>startFrom</b> options may be given, as they will be
+automatically determined.
+
+By default, the <b>since</b> option assumes the same storage location as
+<b>outputUrl</b>:
+
+@li if <b>outputUrl</b> is set to a prefix PAR, <b>since</b> option denotes a
+path relative to this PAR
+@li if any of the remote storages is used (i.e. <b>osBucketName</b> is set),
+<b>since</b> option denotes a path in that remote storage
+
+In order to use a different storage, prefix the option value with
+<b>%file://</b> for a local storage, or use a PAR URL.
+)*");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_DUMPBINLOGS_BRIEF)
+ *
+ * $(UTIL_DUMPBINLOGS)
+ */
+#if DOXYGEN_JS
+Undefined Util::dumpBinlogs(String outputUrl, Dictionary options);
+#elif DOXYGEN_PY
+None Util::dump_binlogs(str outputUrl, dict options);
+#endif
+void Util::dump_binlogs(
+    const std::string &url,
+    const shcore::Option_pack_ref<binlog::Dump_binlogs_options> &options) {
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.dumpBinlogs()"};
+
+  const auto session = global_session();
+
+  auto opts = *options;
+  opts.set_url(url);
+  opts.set_session(session);
+  opts.validate_and_configure();
+
+  binlog::Binlog_dumper dumper{opts};
+
+  shcore::Interrupt_handler intr_handler(
+      [&dumper]() {
+        dumper.interrupt();
+        return false;
+      },
+      [&dumper]() { dumper.async_interrupt(); });
+
+  dumper.run();
+}
+
+REGISTER_HELP_FUNCTION(loadBinlogs, util);
+REGISTER_HELP_FUNCTION_TEXT(UTIL_LOADBINLOGS, R"*(
+Loads binary log dumps created by MySQL %Shell from a local or remote directory.
+
+@param url URL to a local or remote directory containing dump created by
+<b>util.<<<dumpBinlogs>>>()</b>.
+@param options Optional dictionary with the load options.
+
+The <b>url</b> parameter specifies the location of the dump to be loaded.
+Allowed values:
+
+${TOPIC_REMOTE_STORAGE_COMMON_PATHS}
+@li <b>OCI Pre-Authenticated Request to a bucket or a prefix</b> - loads a dump
+from OCI Object Storage using a PAR URL
+
+${TOPIC_REMOTE_STORAGE_MORE_INFO}
+
+The <b>options</b> dictionary supports the following options:
+@li <b>ignoreVersion</b>: bool (default: false) - Load the dumps even if version
+of the target instance is incompatible with version of the source instance where
+the binary logs were dumped from.
+@li <b>ignoreGtidGap</b>: bool (default: false) - Load the dumps even if the
+current value of <b>gtid_executed</b> in the target instance does not fully
+contain the starting value of <b>gtid_executed</b> of the first binary log file
+to be loaded.
+@li <b>stopBefore</b>: string (default: not set) - Stops the load right before
+the specified binary log event is applied. Accepted format:
+<b>@<binary-log-file@>:@<binary-log-file-position@></b> or GTID:
+<b>@<UUID@>[:tag]:@<transaction-id@></b>.
+
+@li <b>dryRun</b>: bool (default: false) - Print information about what would be
+loaded, but do not load anything.
+@li <b>showProgress</b>: bool (default: true if stdout is a TTY device, false
+otherwise) - Enable or disable dump progress information.
+
+${TOPIC_REMOTE_STORAGE_OPTIONS}
+
+<b>Details</b>
+
+The %Shell must be connected to the server where binlogs will be loaded to.
+
+The binary logs to be loaded are automatically selected based on the contents of
+the dump and the current state of the target instance.
+)*");
+
+/**
+ * \ingroup util
+ *
+ * $(UTIL_LOADBINLOGS_BRIEF)
+ *
+ * $(UTIL_LOADBINLOGS)
+ */
+#if DOXYGEN_JS
+Undefined Util::loadBinlogs(String url, Dictionary options);
+#elif DOXYGEN_PY
+None Util::load_binlogs(str url, dict options);
+#endif
+void Util::load_binlogs(
+    const std::string &url,
+    const shcore::Option_pack_ref<binlog::Load_binlogs_options> &options) {
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.loadBinlogs()"};
+
+  const auto session = global_session();
+
+  auto opts = *options;
+  opts.set_url(url);
+  opts.set_session(session);
+  opts.validate_and_configure();
+
+  binlog::Binlog_loader loader{opts};
+
+  shcore::Interrupt_handler intr_handler(
+      [&loader]() {
+        loader.interrupt();
+        return false;
+      },
+      [&loader]() { loader.async_interrupt(); });
+
+  loader.run();
 }
 
 }  // namespace mysqlsh
