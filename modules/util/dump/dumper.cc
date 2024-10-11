@@ -50,9 +50,6 @@
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
-#include "mysqlshdk/libs/storage/compressed_file.h"
-#include "mysqlshdk/libs/storage/idirectory.h"
-#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 
@@ -1801,42 +1798,27 @@ class Dumper::Memory_dumper final {
 Dumper::Dumper(const Dump_options &options)
     : m_options(options), m_progress_thread("Dump", options.show_progress()) {
   if (m_options.use_single_file()) {
-    {
-      using mysqlshdk::storage::utils::get_scheme;
-      using mysqlshdk::storage::utils::scheme_matches;
-      using mysqlshdk::storage::utils::strip_scheme;
-
-      const auto scheme = get_scheme(m_options.output_url());
-
-      if (!scheme.empty() && !scheme_matches(scheme, "file")) {
-        throw std::invalid_argument("File handling for " + scheme +
-                                    " protocol is not supported.");
-      }
-
-      if (m_options.output_url().empty() ||
-          (!scheme.empty() &&
-           strip_scheme(m_options.output_url(), scheme).empty())) {
-        throw std::invalid_argument(
-            "The name of the output file cannot be empty.");
-      }
-    }
-
-    using mysqlshdk::storage::make_file;
     m_output_file =
-        make_file(make_file(m_options.output_url(), m_options.storage_config()),
-                  m_options.compression(), m_options.compression_options());
-    m_output_dir = m_output_file->parent();
+        m_options.make_file(m_options.output_url(), m_options.compression(),
+                            m_options.compression_options());
 
-    if (m_output_dir->is_local() && !m_output_dir->exists()) {
-      throw std::invalid_argument(
-          "Cannot proceed with the dump, the directory containing '" +
-          m_options.output_url() + "' does not exist at the target location '" +
-          m_output_dir->full_path().masked() + "'.");
+    if (m_output_file->is_local()) {
+      const auto parent = m_output_file->parent();
+
+      if (!parent->exists()) {
+        throw std::invalid_argument(
+            "Cannot proceed with the dump, the directory containing '" +
+            m_options.output_url() +
+            "' does not exist at the target location '" +
+            parent->full_path().masked() + "'.");
+      }
+    } else {
+      // verify if file is writeable
+      m_output_file->open(mysqlshdk::storage::Mode::WRITE);
+      m_output_file->close();
     }
   } else {
-    using mysqlshdk::storage::make_directory;
-    m_output_dir =
-        make_directory(m_options.output_url(), m_options.storage_config());
+    m_output_dir = m_options.make_directory(m_options.output_url());
 
     if (m_output_dir->exists()) {
       const auto files = m_output_dir->list_files_sorted(true);
@@ -1858,10 +1840,11 @@ Dumper::Dumper(const Dump_options &options)
             full_path.masked().c_str(),
             shcore::str_join(file_data, "\n  ").c_str());
 
-        if (m_options.storage_config() && m_options.storage_config()->valid()) {
+        const auto config = m_options.storage_config(m_options.output_url());
+
+        if (config && config->valid()) {
           throw std::invalid_argument(
-              "Cannot proceed with the dump, " +
-              m_options.storage_config()->description() +
+              "Cannot proceed with the dump, " + config->description() +
               " already contains files with the specified prefix '" +
               m_options.output_url() + "'.");
         } else {
@@ -2188,21 +2171,7 @@ void Dumper::on_init_thread_session(
 }
 
 void Dumper::open_session() {
-  auto co = get_classic_connection_options(m_options.session());
-
-  // set read timeout, if not already set by user
-  if (!co.has_net_read_timeout()) {
-    const auto k_one_day = 86400000;
-    co.set_net_read_timeout(k_one_day);
-  }
-
-  // set size of max packet (~size of 1 row) we can get from server
-  if (!co.has(mysqlshdk::db::kMaxAllowedPacket)) {
-    const auto k_one_gb = "1073741824";
-    co.set(mysqlshdk::db::kMaxAllowedPacket, k_one_gb);
-  }
-
-  m_session = establish_session(co, false);
+  m_session = establish_session(m_options.connection_options(), false);
   on_init_thread_session(m_session);
 
   fetch_server_information();
@@ -2974,7 +2943,7 @@ void Dumper::finalize_dump() {
 void Dumper::create_output_directory() {
   const auto dir = directory();
 
-  if (!dir->exists()) {
+  if (dir && !dir->exists()) {
     dir->create();
   }
 }
@@ -3062,13 +3031,13 @@ void Dumper::wait_for_all_tasks() {
     worker.join();
   }
 
+  m_workers.clear();
+
   // when using a single file as an output, it's not closed until the whole
   // dump is done
   if (m_output_file && m_output_file->is_open()) {
     m_output_file->close();
   }
-
-  m_workers.clear();
 }
 
 void Dumper::dump_ddl() const {

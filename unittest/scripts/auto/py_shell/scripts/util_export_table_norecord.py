@@ -11,6 +11,7 @@ import re
 import shutil
 import stat
 import urllib.parse
+from http.server import BaseHTTPRequestHandler
 
 # constants
 world_x_schema = "world_x_cities"
@@ -191,11 +192,6 @@ def get_all_columns(schema, table):
     for column in session.run_sql("SELECT COLUMN_NAME FROM information_schema.columns WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION;", [schema, table]).fetch_all():
         columns.append(column[0])
     return columns
-
-def compute_crc(schema, table, columns):
-    session.run_sql("SET @crc = '';")
-    session.run_sql("SELECT @crc := MD5(CONCAT_WS('#',@crc,{0})) FROM !.! ORDER BY {0};".format(("!," * len(columns))[:-1]), columns + [schema, table] + columns)
-    return session.run_sql("SELECT @crc;").fetch_one()[0]
 
 def TEST_LOAD(schema, table, options = {}, source_table = None):
     print("---> testing: `{0}`.`{1}` with options: {2}".format(schema, table, options))
@@ -409,10 +405,6 @@ EXPECT_FAIL("ValueError", "The requested table `{0}`.`\n` was not found in the d
 
 #@<> WL13804-FR4.1 - If the dump is going to be stored on the local filesystem, the `outputUrl` parameter may be optionally prefixed with `file://` scheme.
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), "file://" + test_output_absolute, { "showProgress": False })
-
-#@<> WL13804-TSFR_4_1_2
-EXPECT_FAIL("ValueError", "File handling for http protocol is not supported.", quote(types_schema, types_schema_tables[0]), "http://example.com", { "showProgress": False })
-EXPECT_FAIL("ValueError", "File handling for HTTPS protocol is not supported.", quote(types_schema, types_schema_tables[0]), "HTTPS://www.example.com", { "showProgress": False })
 
 #@<> WL13804-FR4.2 - If the dump is going to be stored on the local filesystem and the `outputUrl` parameter holds a relative path, its absolute value is computed as relative to the current working directory.
 EXPECT_SUCCESS(quote(types_schema, types_schema_tables[0]), test_output_relative, { "showProgress": False })
@@ -1182,9 +1174,9 @@ EXPECT_FILE_CONTAINS("222", os.path.join(test_output_absolute_parent, "file_b"))
 EXPECT_FILE_CONTAINS("333", os.path.join(test_output_absolute_parent, "nested", "file_c"))
 
 #@<> BUG#31552502 empty outputUrl should be disallowed
-EXPECT_FAIL("ValueError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "")
-EXPECT_FAIL("ValueError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "file://")
-EXPECT_FAIL("ValueError", "The name of the output file cannot be empty.", quote(types_schema, types_schema_tables[0]), "FIle://")
+EXPECT_FAIL("ValueError", "The URL to a file cannot be empty.", quote(types_schema, types_schema_tables[0]), "")
+EXPECT_FAIL("ValueError", "The URL to a file cannot be empty.", quote(types_schema, types_schema_tables[0]), "file://")
+EXPECT_FAIL("ValueError", "The URL to a file cannot be empty.", quote(types_schema, types_schema_tables[0]), "FIle://")
 
 #@<> BUG#31545679
 # setup
@@ -1199,22 +1191,17 @@ session.run_sql("INSERT INTO !.! (something) values (char(0))", [ tested_schema,
 EXPECT_SUCCESS(quote(tested_schema, tested_table), test_output_absolute, { "linesTerminatedBy": "\n", "fieldsTerminatedBy": "\0", "showProgress": False })
 
 # capture and update the import command
-output = testutil.fetch_captured_stdout(False)
-index = output.find("util.")
-EXPECT_NE(-1, index)
-code = output[index:]
-code = code.replace('"schema": "{0}"'.format(tested_schema), '"schema": "{0}"'.format(verification_schema))
+import_table_code = extract_import_table_code().replace(f'"schema": "{tested_schema}"', f'"schema": "{verification_schema}"')
 
 # prepare verification table
 recreate_verification_schema()
 session.run_sql("CREATE TABLE !.! LIKE !.!", [ verification_schema, tested_table, tested_schema, tested_table ])
 
 # import data
-EXPECT_NO_THROWS(lambda: exec(code), "importing data")
+EXPECT_NO_THROWS(lambda: exec(import_table_code), "importing data")
 
 # check data
-all_columns = ["id", "something"]
-EXPECT_EQ(compute_crc(tested_schema, tested_table, all_columns), compute_crc(verification_schema, tested_table, all_columns))
+EXPECT_EQ(md5_table(session, tested_schema, tested_table), md5_table(session, verification_schema, tested_table))
 
 #@<> WL15311 - setup
 schema_name = "wl15311"
@@ -1361,6 +1348,104 @@ TEST_LOAD(schema_name, test_view, { "where": "id > 12345" }, source_table = no_p
 
 #@<> WL15311 - cleanup
 session.run_sql("DROP SCHEMA !;", [schema_name])
+
+#@<> export to an HTTP URL - setup
+# setup
+tested_schema = world_x_schema
+tested_table = world_x_table
+# __tmp_dir is used in the definition of Http_file_server, unfortunately Python automatically mangles variables starting with double underscore
+tmp_dir = __tmp_dir
+
+# prepare verification table
+recreate_verification_schema()
+session.run_sql("CREATE TABLE !.! LIKE !.!", [ verification_schema, tested_table, tested_schema, tested_table ])
+
+def EXPECT_EXPORT_IMPORT(output_url, options={}):
+    if "showProgress" not in options:
+        options["showProgress"] = False
+    # export data
+    EXPECT_NO_THROWS(lambda: util.export_table(quote(tested_schema, tested_table), output_url, options))
+    # capture and update the import command
+    import_table_code = extract_import_table_code().replace(f'"schema": "{tested_schema}"', f'"schema": "{verification_schema}"')
+    # import data
+    session.run_sql("TRUNCATE TABLE !.!", [ verification_schema, tested_table ])
+    EXPECT_NO_THROWS(lambda: exec(import_table_code), "importing data")
+    # check data
+    EXPECT_EQ(md5_table(session, tested_schema, tested_table), md5_table(session, verification_schema, tested_table))
+
+class Http_file_server(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+    __debug = False
+    def do_PUT(self):
+        path = self.__file_path()
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "wb") as f:
+            f.write(self.rfile.read(int(self.headers.get("Content-Length", 0))))
+        self.__reply('{"status":"OK"}')
+    def do_GET(self):
+        path = self.__file_path()
+        if not os.path.exists(path):
+            self.__reply(f'{{"status":"Error","msg":"File \"{path}\" does not exist"}}', 404)
+            return
+        self.log_message("range: %s", self.headers.get("Range", ""))
+        r = [int(r) for r in re.findall(r"\b\d+\b", self.headers.get("Range", ""))]
+        with open(path, "rb") as f:
+            if r:
+                f.seek(r[0])
+                contents = f.read(r[1] - r[0] + 1)
+            else:
+                contents = f.read()
+        self.__reply(contents, 206 if r else 200, "application/octet-stream")
+    def do_HEAD(self):
+        path = self.__file_path()
+        if not os.path.exists(path):
+            self.__reply(f'{{"status":"Error","msg":"File \"{path}\" does not exist"}}', 404)
+            return
+        self.__reply("", 200, "application/octet-stream", {"Content-Length": str(os.path.getsize(path))})
+    def log_message(self, format, *args):
+        if self.__debug:
+            BaseHTTPRequestHandler.log_message(self, format, *args)
+            sys.stderr.flush()
+    def __file_path(self):
+        return os.path.join(tmp_dir, "file-server", self.path[1:].replace("/", os.path.sep))
+    def __reply(self, response, status=200, content_type="application/json", extra_headers={}):
+        self.log_message("Content-Length: %s", str(len(response)))
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(response)))
+        self.send_header("Accept-Ranges", "bytes")
+        for k, v in extra_headers.items():
+            self.send_header(k, v)
+        self.end_headers()
+        if self.command != "HEAD" and len(response) != 0:
+            self.wfile.write(response.encode('ascii') if isinstance(response, str) else response)
+        self.close_connection = True
+
+# prepare the HTTP server
+http_file_server = Http_test_server(Http_file_server)
+http_file_server.start()
+
+#@<> export to an HTTP URL - plaintext file
+EXPECT_EXPORT_IMPORT(http_file_server.url() + "/export.txt")
+
+#@<> export to an HTTP URL - compressed file
+EXPECT_EXPORT_IMPORT(http_file_server.url() + "/export.txt.zst", {"compression": "zstd"})
+
+#@<> export to an HTTP URL - multiple files
+# export data
+EXPECT_NO_THROWS(lambda: util.export_table(quote(tested_schema, tested_table), http_file_server.url() + "/export-part.txt", { "where": "ID <= 2000", "showProgress": False }))
+EXPECT_NO_THROWS(lambda: util.export_table(quote(tested_schema, tested_table), http_file_server.url() + "/export-part.txt.gz", { "compression": "gzip", "where": "ID > 2000", "showProgress": False }))
+
+# import data
+session.run_sql("TRUNCATE TABLE !.!", [ verification_schema, tested_table ])
+EXPECT_NO_THROWS(lambda: util.import_table([http_file_server.url() + "/export-part.txt", http_file_server.url() + "/export-part.txt.gz"], { "schema": verification_schema, "table": tested_table, "characterSet": "utf8mb4", "showProgress": False }), "importing data")
+
+# check data
+EXPECT_EQ(md5_table(session, tested_schema, tested_table), md5_table(session, verification_schema, tested_table))
+
+#@<> export to an HTTP URL - cleanup
+# stop the server
+http_file_server.stop()
 
 #@<> Cleanup
 drop_all_schemas()

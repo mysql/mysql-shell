@@ -26,12 +26,14 @@
 #include "mysqlshdk/libs/storage/compressed_file.h"
 
 #include <cassert>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include "mysqlshdk/libs/storage/compression/gz_file.h"
 #include "mysqlshdk/libs/storage/compression/zstd_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -163,7 +165,15 @@ Compression from_extension(const std::string &e) {
 
 #undef X
 
-  throw std::invalid_argument("Unknown compression type: " + e);
+  return Compression::NONE;
+}
+
+Compression from_file_path(const std::string &file_path) {
+  return from_extension(std::get<1>(shcore::path::split_extension(file_path)));
+}
+
+bool is_compressed(const std::string &file_path) {
+  return Compression::NONE != from_file_path(file_path);
 }
 
 std::unique_ptr<IFile> make_file(

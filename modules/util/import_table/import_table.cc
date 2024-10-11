@@ -37,6 +37,7 @@
 #include "mysqlshdk/libs/storage/backend/in_memory/allocator.h"
 #include "mysqlshdk/libs/storage/backend/in_memory/threaded_file.h"
 #include "mysqlshdk/libs/storage/backend/in_memory/virtual_file_adapter.h"
+#include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/natural_compare.h"
@@ -153,7 +154,7 @@ void Import_table::chunk_file() {
   Chunk_file chunk;
   chunk.set_chunk_size(m_opt.bytes_per_chunk());
   chunk.set_handle_creator(
-      [this]() { return m_opt.create_file_handle(m_opt.single_file()); });
+      [this]() { return m_opt.make_file(m_opt.single_file()); });
   chunk.set_dialect(m_opt.dialect());
   chunk.set_rows_to_skip(m_skip_rows_count);
   chunk.set_output_queue(&m_range_queue);
@@ -168,7 +169,7 @@ void Import_table::build_queue() {
   for (const auto &glob_item : m_opt.filelist_from_user()) {
     if (glob_item.find('*') != std::string::npos ||
         glob_item.find('?') != std::string::npos) {
-      const auto dir = m_opt.create_file_handle(glob_item)->parent();
+      const auto dir = m_opt.make_file(glob_item)->parent();
 
       if (!dir->exists()) {
         std::string errmsg{"Directory " + dir->full_path().masked() +
@@ -183,7 +184,7 @@ void Import_table::build_queue() {
 
       for (const auto &file_info : list_files) {
         File_import_info task;
-        task.file = m_opt.create_file_handle(dir->file(file_info.name()));
+        task.file = m_opt.make_file(dir->file(file_info.name()));
         task.range_read = false;
         task.is_guard = false;
 
@@ -193,7 +194,7 @@ void Import_table::build_queue() {
       }
     } else {
       File_import_info task;
-      task.file = m_opt.create_file_handle(glob_item);
+      task.file = m_opt.make_file(glob_item);
       task.range_read = false;
       task.is_guard = false;
 
@@ -221,7 +222,8 @@ void Import_table::import() {
   bool load_in_chunks = false;
 
   if (!m_opt.is_multifile()) {
-    m_has_compressed_files = m_opt.is_compressed(m_opt.single_file());
+    m_has_compressed_files =
+        mysqlshdk::storage::is_compressed(m_opt.single_file());
     load_in_chunks = m_opt.dialect_supports_chunking();
   }
 
@@ -304,7 +306,7 @@ void Import_table::scan_file() {
 
   Threaded_file_config config;
   config.file_path = m_opt.single_file();
-  config.config = m_opt.storage_config();
+  config.config = m_opt.storage_config(m_opt.single_file());
   config.threads = m_opt.threads_size();
   config.max_memory = m_opt.bytes_per_chunk();
   config.allocator = m_allocator.get();

@@ -99,6 +99,9 @@ std::string to_string(Compression c);
 std::string get_extension(Compression c);
 Compression from_extension(const std::string &e);
 
+Compression from_file_path(const std::string &file_path);
+bool is_compressed(const std::string &file_path);
+
 std::unique_ptr<IFile> make_file(
     std::unique_ptr<IFile> file, Compression c,
     const Compression_options &compression_options = {});

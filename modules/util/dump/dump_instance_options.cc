@@ -38,7 +38,8 @@
 namespace mysqlsh {
 namespace dump {
 
-Dump_instance_options::Dump_instance_options() {
+Dump_instance_options::Dump_instance_options()
+    : Dump_schemas_options("util.dumpInstance") {
   // some users are always excluded
   filters().users().exclude(common::k_excluded_users);
 
@@ -56,8 +57,7 @@ const shcore::Option_pack_def<Dump_instance_options>
           .optional("users", &Dump_instance_options::m_dump_users)
           .include(&Dump_instance_options::m_filtering_options,
                    &mysqlshdk::db::Filtering_options::users)
-          .on_done(&Dump_instance_options::on_unpacked_options)
-          .on_log(&Dump_instance_options::on_log_options);
+          .on_done(&Dump_instance_options::on_unpacked_options);
 
   return opts;
 }
@@ -88,10 +88,10 @@ void Dump_instance_options::on_unpacked_options() {
   m_filter_conflicts |= filters().users().error_on_conflicts();
 }
 
-void Dump_instance_options::validate_options() const {
+void Dump_instance_options::on_validate() const {
   // call method up the chain, Dump_schemas_options has an empty list of schemas
   // and would throw
-  Ddl_dumper_options::validate_options();
+  Ddl_dumper_options::on_validate();
 }
 
 }  // namespace dump

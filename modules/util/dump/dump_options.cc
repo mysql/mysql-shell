@@ -40,6 +40,7 @@
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -49,20 +50,19 @@
 namespace mysqlsh {
 namespace dump {
 
-Dump_options::Dump_options()
-    : m_show_progress(isatty(fileno(stdout)) ? true : false) {}
+Dump_options::Dump_options(const char *name)
+    : Common_options(Common_options::Config{name, false, false}) {}
 
 const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Dump_options>()
+          .include<Common_options>()
           .on_start(&Dump_options::on_start_unpack)
           .optional("maxRate", &Dump_options::set_string_option)
-          .optional("showProgress", &Dump_options::m_show_progress)
           .optional("compression", &Dump_options::set_string_option)
           .optional("defaultCharacterSet", &Dump_options::m_character_set)
           .include(&Dump_options::m_dialect_unpacker)
-          .on_done(&Dump_options::on_unpacked_options)
-          .on_log(&Dump_options::on_log_options);
+          .on_done(&Dump_options::on_unpacked_options);
 
   return opts;
 }
@@ -70,6 +70,16 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
 const mysqlshdk::utils::Version &Dump_options::current_version() {
   static const auto k_current_version = mysqlshdk::utils::Version(MYSH_VERSION);
   return k_current_version;
+}
+
+void Dump_options::set_output_url(const std::string &url) {
+  on_set_output_url(url);
+
+  m_output_url = url;
+}
+
+void Dump_options::on_set_output_url(const std::string &url) {
+  throw_on_url_and_storage_conflict(url, "using a URL as the target output");
 }
 
 void Dump_options::on_start_unpack(const shcore::Dictionary_t &options) {
@@ -96,22 +106,6 @@ void Dump_options::set_string_option(const std::string &option,
   }
 }
 
-void Dump_options::set_storage_config(
-    std::shared_ptr<mysqlshdk::storage::Config> storage_config) {
-  m_storage_config = std::move(storage_config);
-}
-
-void Dump_options::on_log_options(const char *msg) const {
-  log_info("Dump options: %s", msg);
-}
-
-void Dump_options::set_session(
-    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-  m_session = session;
-
-  on_set_session(session);
-}
-
 void Dump_options::on_unpacked_options() {
   m_dialect = m_dialect_unpacker;
 
@@ -120,7 +114,9 @@ void Dump_options::on_unpacked_options() {
   }
 }
 
-void Dump_options::validate() const {
+void Dump_options::on_validate() const {
+  Common_options::on_validate();
+
   // cross-filter conflicts cannot be checked earlier, as filters are not
   // initialized at the same time
   m_filter_conflicts |= filters().tables().error_on_cross_filters_conflicts();
@@ -133,8 +129,6 @@ void Dump_options::validate() const {
   }
 
   validate_partitions();
-
-  validate_options();
 }
 
 bool Dump_options::exists(const std::string &schema) const {

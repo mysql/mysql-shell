@@ -25,12 +25,15 @@
 
 #include "mysqlshdk/libs/oci/oci_par.h"
 
+#include <cassert>
 #include <memory>
 #include <regex>
+#include <stdexcept>
 #include <utility>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/storage/backend/http.h"
+#include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -57,6 +60,20 @@ const size_t PREFIX = 5;
 const size_t BASENAME = 6;
 
 }  // namespace par_tokens
+
+PAR_structure to_prefix_par(const PAR_structure &par) {
+  assert(PAR_type::GENERAL == par.type());
+
+  PAR_structure result;
+
+  if (PAR_type::PREFIX !=
+      parse_par(par.full_url().substr(0, par.full_url().find_last_of('/') + 1),
+                &result)) {
+    throw std::runtime_error("Failed to convert general PAR to prefix PAR");
+  }
+
+  return result;
+}
 
 }  // namespace
 
@@ -204,8 +221,17 @@ std::unique_ptr<storage::IFile> General_par_config::file(
     const std::string &path) const {
   validate_url(path);
 
-  return std::make_unique<storage::backend::Http_object>(anonymize_par(path),
-                                                         true);
+  auto file = std::make_unique<storage::backend::Http_object>(
+      anonymize_par(path), true);
+
+  // handle the case when file was created from a prefix PAR, if this is not
+  // actually true, access to the directory will fail
+  file->set_parent_config(
+      std::make_shared<
+          mysqlshdk::storage::backend::oci::Oci_par_directory_config>(
+          to_prefix_par(par())));
+
+  return file;
 }
 
 std::unique_ptr<storage::IDirectory> General_par_config::directory(

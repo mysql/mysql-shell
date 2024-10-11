@@ -721,7 +721,7 @@ class Option_pack_def : public IOption_pack_def {
   }
 
   Option_pack_def<C> &on_log(
-      const std::function<void(C *, const char *)> &callback) {
+      const std::function<void(C *, const std::string &)> &callback) {
     m_log_callback = callback;
 
     return *this;
@@ -734,8 +734,6 @@ class Option_pack_def : public IOption_pack_def {
    * called for primary option packs.
    */
   void unpack(const Dictionary_t &options, C *instance) const {
-    log(instance, Value(options).json());
-
     Option_unpacker unpacker;
     unpacker.set_options(options);
     unpacker.set_ignored(m_ignored);
@@ -751,6 +749,8 @@ class Option_pack_def : public IOption_pack_def {
    * This function is called for non primary option packs.
    */
   void unpack(Option_unpacker *unpacker, C *instance) const {
+    log(instance, Value(unpacker->options()).json());
+
     if (m_start_callback) m_start_callback(instance, unpacker->options());
 
     for (const auto &unpack_cb : m_unpack_callbacks) {
@@ -860,7 +860,7 @@ class Option_pack_def : public IOption_pack_def {
 
   void log(C *instance, const std::string &s) const {
     if (should_log()) {
-      m_log_callback(instance, s.c_str());
+      m_log_callback(instance, s);
     }
   }
 
@@ -874,7 +874,7 @@ class Option_pack_def : public IOption_pack_def {
 
   std::function<void(C *, const shcore::Dictionary_t &)> m_start_callback;
   std::function<void(C *)> m_done_callback;
-  std::function<void(C *, const char *)> m_log_callback;
+  std::function<void(C *, const std::string &)> m_log_callback;
   std::unordered_set<std::string_view> m_ignored;
   std::unordered_map<std::string_view, std::size_t> m_all_options;
 };

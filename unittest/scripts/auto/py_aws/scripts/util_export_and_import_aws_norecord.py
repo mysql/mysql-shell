@@ -228,10 +228,7 @@ WIPE_OUTPUT()
 util.export_table(quote_identifier(tested_schema, tested_table), dump_dir, get_options())
 
 # capture the import command
-full_stdout_output = testutil.fetch_captured_stdout(False)
-index_of_util = full_stdout_output.find("util.")
-EXPECT_NE(-1, index_of_util)
-util_import_table_code = full_stdout_output[index_of_util:]
+util_import_table_code = extract_import_table_code()
 
 #@<> BUG#34657730 - test
 wipeout_server(load_session)

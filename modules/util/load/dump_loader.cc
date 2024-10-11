@@ -3135,7 +3135,7 @@ void Dump_loader::check_server_version() {
   const auto mds = m_options.is_mds();
 
   // no reconnection here - we're using the global session
-  mysqlshdk::mysql::Instance session(m_options.base_session());
+  mysqlshdk::mysql::Instance session(m_options.session());
 
   std::string msg = "Target is MySQL " + target_server.get_full();
   if (mds) msg += " (MySQL HeatWave Service)";
@@ -3834,61 +3834,62 @@ void Dump_loader::execute_table_ddl_tasks() {
   const auto pool = thread_pool_ptr.get();
   shcore::Synchronized_queue<std::unique_ptr<Worker::Task>> worker_tasks;
 
-  const auto handle_ddl_files =
-      [this, pool, &worker_tasks, &ddl_to_execute](
-          const std::string &s, std::list<Dump_reader::Name_and_file> *list,
-          bool placeholder, Load_progress_log::Status schema_status) {
+  const auto handle_ddl_files = [this, pool, &worker_tasks, &ddl_to_execute](
+                                    const std::string &s,
+                                    std::list<Dump_reader::Name_and_file> *list,
+                                    bool placeholder,
+                                    Load_progress_log::Status schema_status) {
 // GCC 12 may warn about a possibly uninitialized usage of IFile in the lambda
 // capture
 #if __GNUC__ >= 12 && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-        if (should_fetch_table_ddl(placeholder)) {
-          for (auto &item : *list) {
-            if (!item.second) {
-              continue;
-            }
-
-            const auto exists =
-                m_options.ignore_existing_objects()
-                    ? (placeholder ? m_dump->view_exists(s, item.first)
-                                   : m_dump->table_exists(s, item.first))
-                    : false;
-
-            if (placeholder && exists) {
-              // BUG#35102738: do not recreate existing views due to
-              // BUG#35154429
-              continue;
-            }
-
-            const auto status =
-                placeholder
-                    ? schema_status
-                    : m_load_log->status(progress::Table_ddl{s, item.first});
-
-            ++ddl_to_execute;
-
-            pool->add_task(
-                [file = std::move(item.second), s, table = item.first]() {
-                  log_debug("Fetching table DDL for %s.%s", s.c_str(),
-                            table.c_str());
-                  file->open(mysqlshdk::storage::Mode::READ);
-                  auto script = mysqlshdk::storage::read_file(file.get());
-                  file->close();
-                  return script;
-                },
-                [s, table = item.first, placeholder, &worker_tasks, status,
-                 exists](std::string &&data) {
-                  worker_tasks.push(std::make_unique<Worker::Table_ddl_task>(
-                      s, table, std::move(data), placeholder, status, exists));
-                });
-          }
+    if (should_fetch_table_ddl(placeholder)) {
+      for (auto &item : *list) {
+        if (!item.second) {
+          continue;
         }
+
+        const auto exists =
+            m_options.ignore_existing_objects()
+                ? (placeholder ? m_dump->view_exists(s, item.first, m_session)
+                               : m_dump->table_exists(s, item.first, m_session))
+                : false;
+
+        if (placeholder && exists) {
+          // BUG#35102738: do not recreate existing views due to
+          // BUG#35154429
+          continue;
+        }
+
+        const auto status =
+            placeholder
+                ? schema_status
+                : m_load_log->status(progress::Table_ddl{s, item.first});
+
+        ++ddl_to_execute;
+
+        pool->add_task(
+            [file = std::move(item.second), s, table = item.first]() {
+              log_debug("Fetching table DDL for %s.%s", s.c_str(),
+                        table.c_str());
+              file->open(mysqlshdk::storage::Mode::READ);
+              auto script = mysqlshdk::storage::read_file(file.get());
+              file->close();
+              return script;
+            },
+            [s, table = item.first, placeholder, &worker_tasks, status,
+             exists](std::string &&data) {
+              worker_tasks.push(std::make_unique<Worker::Table_ddl_task>(
+                  s, table, std::move(data), placeholder, status, exists));
+            });
+      }
+    }
 #if __GNUC__ >= 12 && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
-      };
+  };
 
   log_debug("Begin loading table DDL");
 
@@ -4105,7 +4106,7 @@ void Dump_loader::execute_view_ddl_tasks() {
 #endif
         for (auto &item : views) {
           if (m_options.ignore_existing_objects() &&
-              m_dump->view_exists(schema, item.first)) {
+              m_dump->view_exists(schema, item.first, m_session)) {
             // BUG#35102738: do not recreate existing views due to BUG#35154429
             --ddl_to_execute;
             --views_per_schema[schema];
@@ -4630,7 +4631,7 @@ bool Dump_loader::maybe_push_checksum_task(
     return false;
   }
 
-  if (!m_dump->table_exists(data->schema(), data->table())) {
+  if (!m_dump->table_exists(data->schema(), data->table(), m_session)) {
     report_checksum_error("Could not verify checksum of " + format_table(data) +
                           ": table does not exist.");
     return false;

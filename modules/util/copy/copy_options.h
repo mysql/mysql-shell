@@ -27,11 +27,13 @@
 #define MODULES_UTIL_COPY_COPY_OPTIONS_H_
 
 #include <limits>
+#include <string>
 #include <type_traits>
 
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 
+#include "modules/util/common/storage_options.h"
 #include "modules/util/dump/ddl_dumper_options.h"
 #include "modules/util/load/load_dump_options.h"
 
@@ -53,9 +55,7 @@ class Copy_options {
   static const shcore::Option_pack_def<Copy_options> &options() {
     static const auto opts =
         shcore::Option_pack_def<Copy_options>()
-            .template ignore<mysqlshdk::oci::Oci_bucket_options>()
-            .template ignore<mysqlshdk::aws::S3_bucket_options>()
-            .template ignore<mysqlshdk::azure::Blob_storage_options>()
+            .template ignore<common::Storage_options>()
             .template ignore<import_table::Dialect>()
             .ignore({"backgroundThreads", "characterSet", "compression",
                      "createInvisiblePKs", "disableBulkLoad", "loadData",
@@ -64,7 +64,8 @@ class Copy_options {
                      "targetVersion", "waitDumpTimeout"})
             .include(&Copy_options::m_dump_options)
             .include(&Copy_options::m_load_options)
-            .on_done(&Copy_options::on_unpacked_options);
+            .on_done(&Copy_options::on_unpacked_options)
+            .on_log(&Copy_options::on_log_options);
 
     return opts;
   }
@@ -95,10 +96,6 @@ class Copy_options {
     m_load_options.enable_fast_sub_chunking();
   }
 
-  void on_log_options(const char *msg) const {
-    log_info("Copy options: %s", msg);
-  }
-
  private:
   void on_unpacked_options() {
     // dumper in the dry run mode writes all the files, because loader needs
@@ -121,6 +118,10 @@ class Copy_options {
           "The 'dropExistingObjects' and 'dataOnly' options cannot be both set "
           "to true.");
     }
+  }
+
+  void on_log_options(const std::string &msg) const {
+    log_info("Copy options: %s", msg.c_str());
   }
 
   T m_dump_options;

@@ -41,14 +41,14 @@ OPTIONS
 --address=<str>
             Adress location.
 
---wifeName=<str>
-            Wife name.
+--dogName[:<type>]=<value>
+            Dog name.
 
 --sonName=<str>
             Son name.
 
---dogName[:<type>]=<value>
-            Dog name.
+--wifeName=<str>
+            Wife name.
 
 //@<OUT> WL14297 - TSFR_2_6_1
 My name is John
@@ -87,47 +87,47 @@ c
 test
 {
     "testOption": [
-        "a", 
-        "b", 
+        "a",
+        "b",
         "c"
     ]
 }
 test
 {
     "testOption": [
-        "a", 
-        "b", 
+        "a",
+        "b",
         "c"
     ]
 }
 test
 {
     "testOption": [
-        "a", 
-        "b", 
+        "a",
+        "b",
         "c"
     ]
 }
 test
 {
     "testOption": [
-        "a", 
-        "b", 
+        "a",
+        "b",
         "c"
     ]
 }
 test
 {
     "testOption": [
-        "a", 
-        "b", 
+        "a",
+        "b",
         "c"
     ]
 }
 
 //@<OUT> WL14297 - TSFR_8_2_1 - Testing dictionary with no options takes options that don't belong to other dictionary
 {
-    "testOther": 23, 
+    "testOther": 23,
     "yetAnother": "sample"
 }
 {
@@ -139,4 +139,3 @@ test
 {
     "optionA": "\"testOption\""
 }
-

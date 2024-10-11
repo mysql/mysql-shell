@@ -94,7 +94,7 @@ for par_type, par in good_pars.items():
     for name, callback in dump_util_cb.items():
         for  option_name, options in conflicting_options.items():
             print(f"--> Testing util.dump_{name} using {par_type} PAR with option {option_name}")
-            EXPECT_THROWS(lambda: callback(par, options), f"The option '{option_name}' can not be used when using a PAR as the target output url.")
+            EXPECT_THROWS(lambda: callback(par, options), f"The option '{option_name}' can not be used when using a URL as the target output")
 
 
 #@<> Testing PARs with bad attributions

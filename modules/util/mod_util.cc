@@ -1028,17 +1028,9 @@ void Util::import_table_files(
   import_table::Import_table_options opt(*options);
 
   opt.set_filenames(files);
+  opt.set_session(global_session());
 
-  auto shell_session = _shell_core.get_dev_session();
-  if (!shell_session || !shell_session->is_open() ||
-      shell_session->session_type() != mysqlsh::SessionType::Classic) {
-    throw shcore::Exception::runtime_error(
-        "A classic protocol session is required to perform this operation.");
-  }
-
-  opt.set_base_session(shell_session->get_core_session());
-
-  opt.validate();
+  opt.validate_and_configure();
 
   shcore::atomic_flag interrupt;
   shcore::Interrupt_handler intr_handler(
@@ -1364,19 +1356,14 @@ None Util::load_dump(str url, dict options) {}
 void Util::load_dump(
     const std::string &url,
     const shcore::Option_pack_ref<Load_dump_options> &options) {
-  auto session = _shell_core.get_dev_session();
-  if (!session || !session->is_open()) {
-    throw std::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
+  const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.loadDump()"};
 
   Load_dump_options opt = *options;
   opt.set_url(url);
-  opt.set_session(session->get_core_session());
-  opt.validate();
+  opt.set_session(session);
+  opt.validate_and_configure();
 
   Dump_loader loader(opt);
 
@@ -1951,13 +1938,7 @@ None Util::export_table(str table, str outputUrl, dict options);
 void Util::export_table(
     const std::string &table, const std::string &file,
     const shcore::Option_pack_ref<dump::Export_table_options> &options) {
-  const auto session = _shell_core.get_dev_session();
-
-  if (!session || !session->is_open()) {
-    throw std::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
+  const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.exportTable()"};
 
@@ -1966,8 +1947,8 @@ void Util::export_table(
   mysqlsh::dump::Export_table_options opts = *options;
   opts.set_table(table);
   opts.set_output_url(file);
-  opts.set_session(session->get_core_session());
-  opts.validate();
+  opts.set_session(session);
+  opts.validate_and_configure();
 
   Export_table dumper{opts};
 
@@ -2076,13 +2057,7 @@ void Util::dump_tables(
     const std::string &schema, const std::vector<std::string> &tables,
     const std::string &directory,
     const shcore::Option_pack_ref<dump::Dump_tables_options> &options) {
-  const auto session = _shell_core.get_dev_session();
-
-  if (!session || !session->is_open()) {
-    throw std::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
+  const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.dumpTables()"};
 
@@ -2092,8 +2067,8 @@ void Util::dump_tables(
   opts.set_schema(schema);
   opts.set_tables(tables);
   opts.set_output_url(directory);
-  opts.set_session(session->get_core_session());
-  opts.validate();
+  opts.set_session(session);
+  opts.validate_and_configure();
 
   Dump_tables dumper{opts};
 
@@ -2171,13 +2146,7 @@ None Util::dump_schemas(list schemas, str outputUrl, dict options);
 void Util::dump_schemas(
     const std::vector<std::string> &schemas, const std::string &directory,
     const shcore::Option_pack_ref<dump::Dump_schemas_options> &options) {
-  const auto session = _shell_core.get_dev_session();
-
-  if (!session || !session->is_open()) {
-    throw std::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
+  const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.dumpSchemas()"};
 
@@ -2186,8 +2155,8 @@ void Util::dump_schemas(
   mysqlsh::dump::Dump_schemas_options opts = *options;
   opts.set_schemas(schemas);
   opts.set_output_url(directory);
-  opts.set_session(session->get_core_session());
-  opts.validate();
+  opts.set_session(session);
+  opts.validate_and_configure();
 
   Dump_schemas dumper{opts};
 
@@ -2286,13 +2255,7 @@ None Util::dump_instance(str outputUrl, dict options);
 void Util::dump_instance(
     const std::string &directory,
     const shcore::Option_pack_ref<dump::Dump_instance_options> &options) {
-  const auto session = _shell_core.get_dev_session();
-
-  if (!session || !session->is_open()) {
-    throw std::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
+  const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.dumpInstance()"};
 
@@ -2300,8 +2263,8 @@ void Util::dump_instance(
 
   mysqlsh::dump::Dump_instance_options opts = *options;
   opts.set_output_url(directory);
-  opts.set_session(session->get_core_session());
-  opts.validate();
+  opts.set_session(session);
+  opts.validate_and_configure();
 
   Dump_instance dumper{opts};
 
@@ -2495,18 +2458,12 @@ None Util::copy_instance(ConnectionData connectionData, dict options);
 void Util::copy_instance(
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Option_pack_ref<copy::Copy_instance_options> &options) {
-  const auto session = _shell_core.get_dev_session();
-
-  if (!session || !session->is_open()) {
-    throw std::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
+  const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copyInstance()"};
 
   auto copy_options = *options;
-  copy_options.dump_options()->set_session(session->get_core_session());
+  copy_options.dump_options()->set_session(session);
 
   copy::copy<mysqlsh::dump::Dump_instance>(connection_options, &copy_options);
 }
@@ -2550,19 +2507,13 @@ void Util::copy_schemas(
     const std::vector<std::string> &schemas,
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Option_pack_ref<copy::Copy_schemas_options> &options) {
-  const auto session = _shell_core.get_dev_session();
-
-  if (!session || !session->is_open()) {
-    throw std::runtime_error(
-        "An open session is required to perform this operation.");
-  }
-
+  const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copySchemas()"};
 
   auto copy_options = *options;
   copy_options.dump_options()->set_schemas(schemas);
-  copy_options.dump_options()->set_session(session->get_core_session());
+  copy_options.dump_options()->set_session(session);
 
   copy::copy<mysqlsh::dump::Dump_schemas>(connection_options, &copy_options);
 }
@@ -2608,6 +2559,19 @@ void Util::copy_tables(
     const std::string &schema, const std::vector<std::string> &tables,
     const mysqlshdk::db::Connection_options &connection_options,
     const shcore::Option_pack_ref<copy::Copy_tables_options> &options) {
+  const auto session = global_session();
+  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
+  shcore::Log_sql_guard log_sql_context{"util.copyTables()"};
+
+  auto copy_options = *options;
+  copy_options.dump_options()->set_schema(schema);
+  copy_options.dump_options()->set_tables(tables);
+  copy_options.dump_options()->set_session(session);
+
+  copy::copy<mysqlsh::dump::Dump_tables>(connection_options, &copy_options);
+}
+
+std::shared_ptr<mysqlshdk::db::ISession> Util::global_session() const {
   const auto session = _shell_core.get_dev_session();
 
   if (!session || !session->is_open()) {
@@ -2615,15 +2579,7 @@ void Util::copy_tables(
         "An open session is required to perform this operation.");
   }
 
-  Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
-  shcore::Log_sql_guard log_sql_context{"util.copyTables()"};
-
-  auto copy_options = *options;
-  copy_options.dump_options()->set_schema(schema);
-  copy_options.dump_options()->set_tables(tables);
-  copy_options.dump_options()->set_session(session->get_core_session());
-
-  copy::copy<mysqlsh::dump::Dump_tables>(connection_options, &copy_options);
+  return session->get_core_session();
 }
 
 }  // namespace mysqlsh

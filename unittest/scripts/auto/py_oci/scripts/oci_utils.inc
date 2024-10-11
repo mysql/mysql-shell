@@ -137,7 +137,7 @@ def PREPARE_PAR_IS_SECRET_TEST():
     WIPE_OUTPUT()
     WIPE_SHELL_LOG()
 
-def EXPECT_PAR_IS_SECRET():
+def EXPECT_PAR_IS_SECRET(ignore=[]):
     global prev_log_level
     shell.options["logLevel"] = prev_log_level
     expr = re.compile(r"/p/(.+?)/n/")
@@ -145,7 +145,13 @@ def EXPECT_PAR_IS_SECRET():
         for line in text.splitlines():
             for match in expr.findall(line):
                 if "<secret>" != match:
-                    testutil.fail(f"{context} contains unmasked PAR ({match}): {line}")
+                    report = True
+                    for i in ignore:
+                        if (is_re_instance(i) and i.match(line)) or -1 != line.find(i):
+                            report = False
+                            break
+                    if report:
+                        testutil.fail(f"{context} contains unmasked PAR ({match}): {line}")
     check_text(testutil.fetch_captured_stdout(False), "stdout")
     check_text(testutil.fetch_captured_stderr(False), "stderr")
     check_text(testutil.cat_file(testutil.get_shell_log_path()), "Shell log")

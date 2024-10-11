@@ -76,9 +76,9 @@ RETURNS
       Nothing.
 
 OPTIONS
---recoveryMethod=<str>
-            Preferred method of state recovery. May be auto, clone or
-            incremental. Default is auto.
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
 
 --cloneDonor=<str>
             Host:port of an existing replicaSet member to clone from. IPv6
@@ -88,52 +88,52 @@ OPTIONS
             If true, performs checks and logs changes that would be made, but
             does not execute them
 
---recoveryProgress=<int>
-            Integer value to indicate the recovery process verbosity level.
-
---timeout=<int>
-            Timeout in seconds for transaction sync operations; 0 disables
-            timeout and force the Shell to wait until the transaction sync
-            finishes. Defaults to 0.
-
 --label=<str>
             An identifier for the instance being added, used in the output of
             status()
 
---certSubject=<str>
-            Instance's certificate subject to use when 'memberAuthType'
-            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
+--recoveryMethod=<str>
+            Preferred method of state recovery. May be auto, clone or
+            incremental. Default is auto.
+
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+
+--replicationBind=<str>
+            String that determines which of the replica's network interfaces is
+            chosen for connecting to the source.
+
+--replicationCompressionAlgorithms=<str>
+            String that specifies the permitted compression algorithms for
+            connections to the replication source.
 
 --replicationConnectRetry=<int>
             Integer that specifies the interval in seconds between the
             reconnection attempts that the replica makes after the connection
             to the source times out.
 
---replicationRetryCount=<int>
-            Integer that sets the maximum number of reconnection attempts that
-            the replica makes after the connection to the source times out.
-
 --replicationHeartbeatPeriod=<float>
             Decimal that controls the heartbeat interval, which stops the
             connection timeout occurring in the absence of data if the
             connection is still good.
 
---replicationCompressionAlgorithms=<str>
-            String that specifies the permitted compression algorithms for
-            connections to the replication source.
+--replicationNetworkNamespace=<str>
+            String that specifies the network namespace to use for TCP/IP
+            connections to the replication source server.
+
+--replicationRetryCount=<int>
+            Integer that sets the maximum number of reconnection attempts that
+            the replica makes after the connection to the source times out.
 
 --replicationZstdCompressionLevel=<int>
             Integer that specifies the compression level to use for connections
             to the replication source server that use the zstd compression
             algorithm.
 
---replicationBind=<str>
-            String that determines which of the replica's network interfaces is
-            chosen for connecting to the source.
-
---replicationNetworkNamespace=<str>
-            String that specifies the network namespace to use for TCP/IP
-            connections to the replication source server.
+--timeout=<int>
+            Timeout in seconds for transaction sync operations; 0 disables
+            timeout and force the Shell to wait until the transaction sync
+            finishes. Defaults to 0.
 
 //@<OUT> CLI replicaset force-primary-instance --help
 NAME
@@ -156,14 +156,14 @@ OPTIONS
             performed, but will not execute them. The operations that would be
             performed can be viewed by enabling verbose output in the shell.
 
---timeout=<int>
-            Integer value with the maximum number of seconds to wait until the
-            instance being promoted catches up to the current PRIMARY.
-
 --invalidateErrorInstances=<bool>
             If false, aborts the failover if any instance other than the old
             master is unreachable or has errors. If true, such instances will
             not be failed over and be invalidated.
+
+--timeout=<int>
+            Integer value with the maximum number of seconds to wait until the
+            instance being promoted catches up to the current PRIMARY.
 
 //@<OUT> CLI replicaset list-routers --help
 NAME
@@ -205,10 +205,6 @@ RETURNS
       Nothing.
 
 OPTIONS
---recoveryMethod=<str>
-            Preferred method of state recovery. May be auto, clone or
-            incremental. Default is auto.
-
 --cloneDonor=<str>
             Host:port of an existing replicaSet member to clone from. IPv6
             addresses are not supported for this option.
@@ -216,6 +212,10 @@ OPTIONS
 --dryRun=<bool>
             If true, performs checks and logs changes that would be made, but
             does not execute them
+
+--recoveryMethod=<str>
+            Preferred method of state recovery. May be auto, clone or
+            incremental. Default is auto.
 
 --recoveryProgress=<int>
             Integer value to indicate the recovery process verbosity level.
@@ -289,11 +289,11 @@ RETURNS
       A JSON object with the list of Router configuration options.
 
 OPTIONS
---router=<str>
-            Identifier of the Router instance to be displayed.
-
 --extended=<uint>
             Verbosity level of the command output.
+
+--router=<str>
+            Identifier of the Router instance to be displayed.
 
 //@<OUT> CLI replicaset set-instance-option --help
 NAME
@@ -365,16 +365,17 @@ RETURNS
       Nothing.
 
 OPTIONS
---password=<str>
-            The password for the InnoDB ReplicaSet administrator account.
-
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.
 
---update=<bool>
-            Boolean value that must be enabled to allow updating the privileges
-            and/or password of existing accounts. Default value is False.
+--password=<str>
+            The password for the InnoDB ReplicaSet administrator account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
 
 --requireCertIssuer=<str>
             Optional SSL certificate issuer for the account.
@@ -382,10 +383,9 @@ OPTIONS
 --requireCertSubject=<str>
             Optional SSL certificate subject for the account.
 
---passwordExpiration[:<type>]=<value>
-            Password expiration setting for the account. May be set to the
-            number of days for expiration, 'NEVER' to disable expiration and
-            'DEFAULT' to use the system default.
+--update=<bool>
+            Boolean value that must be enabled to allow updating the privileges
+            and/or password of existing accounts. Default value is False.
 
 //@<OUT> CLI replicaset setup-router-account --help
 NAME
@@ -402,16 +402,17 @@ RETURNS
       Nothing.
 
 OPTIONS
---password=<str>
-            The password for the MySQL Router account.
-
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.
 
---update=<bool>
-            Boolean value that must be enabled to allow updating the privileges
-            and/or password of existing accounts. Default value is False.
+--password=<str>
+            The password for the MySQL Router account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
 
 --requireCertIssuer=<str>
             Optional SSL certificate issuer for the account.
@@ -419,10 +420,9 @@ OPTIONS
 --requireCertSubject=<str>
             Optional SSL certificate subject for the account.
 
---passwordExpiration[:<type>]=<value>
-            Password expiration setting for the account. May be set to the
-            number of days for expiration, 'NEVER' to disable expiration and
-            'DEFAULT' to use the system default.
+--update=<bool>
+            Boolean value that must be enabled to allow updating the privileges
+            and/or password of existing accounts. Default value is False.
 
 //@<OUT> CLI replicaset status --help
 NAME

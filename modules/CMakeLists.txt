@@ -35,6 +35,8 @@ INCLUDE_DIRECTORIES(BEFORE
 file(GLOB api_module_SOURCES
       "devapi/*.cc"
       "dynamic_*.cc"
+      "util/common/common_options.cc"
+      "util/common/storage_options.cc"
       "util/common/dump/checksums.cc"
       "util/common/dump/filtering_options.cc"
       "util/common/dump/utils.cc"

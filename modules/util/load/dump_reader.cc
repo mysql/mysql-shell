@@ -284,7 +284,7 @@ Dump_reader::Status Dump_reader::open() {
 
   if (m_dir->file("@.done.json")->exists()) {
     m_contents.parse_done_metadata(m_dir.get(), m_options.checksum(),
-                                   m_options.base_session());
+                                   m_options.session());
     m_dump_status = Status::COMPLETE;
   } else {
     log_info("@.done.json: not found");
@@ -859,7 +859,7 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
   if (m_dump_status != Status::COMPLETE &&
       files.find({"@.done.json"}) != files.end()) {
     m_contents.parse_done_metadata(m_dir.get(), m_options.checksum(),
-                                   m_options.base_session());
+                                   m_options.session());
     m_dump_status = Status::COMPLETE;
   }
 
@@ -946,7 +946,7 @@ void Dump_reader::validate_options() {
 
       throw std::invalid_argument("The target schema was not specified.");
     } else {
-      const auto result = m_options.base_session()->queryf(
+      const auto result = m_options.session()->queryf(
           "SELECT SCHEMA_NAME FROM information_schema.schemata WHERE "
           "SCHEMA_NAME=?",
           m_options.target_schema());
@@ -1066,14 +1066,9 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
   }
 
   if (compression_type.empty()) {
-    try {
-      // extension is either like 'tsv', where split_extension() will return an
-      // empty string, or 'tsv.zst' where it will return '.zst'
-      compression = mysqlshdk::storage::from_extension(
-          std::get<1>(shcore::path::split_extension(di.extension)));
-    } catch (...) {
-      compression = mysqlshdk::storage::Compression::NONE;
-    }
+    // extension is either like 'tsv', where split_extension() will return an
+    // empty string, or 'tsv.zst' where it will return '.zst'
+    compression = mysqlshdk::storage::from_file_path(di.extension);
   } else {
     compression = mysqlshdk::storage::to_compression(compression_type);
   }
@@ -1933,12 +1928,13 @@ Dump_reader::View_info *Dump_reader::find_view(std::string_view schema,
       const_cast<const Dump_reader *>(this)->find_view(schema, view, context));
 }
 
-bool Dump_reader::table_exists(std::string_view schema,
-                               std::string_view table) {
+bool Dump_reader::table_exists(
+    std::string_view schema, std::string_view table,
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   auto t = find_table(schema, table, "existence is being checked");
 
   if (!t->exists.has_value()) {
-    const auto result = m_options.base_session()->queryf(
+    const auto result = session->queryf(
         "SELECT table_name FROM information_schema.tables WHERE table_schema = "
         "? AND table_name = ?",
         schema, table);
@@ -1949,11 +1945,13 @@ bool Dump_reader::table_exists(std::string_view schema,
   return *t->exists;
 }
 
-bool Dump_reader::view_exists(std::string_view schema, std::string_view view) {
+bool Dump_reader::view_exists(
+    std::string_view schema, std::string_view view,
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   auto v = find_view(schema, view, "existence is being checked");
 
   if (!v->exists.has_value()) {
-    const auto result = m_options.base_session()->queryf(
+    const auto result = session->queryf(
         "SELECT table_name FROM information_schema.views WHERE table_schema = "
         "? AND table_name = ?",
         schema, view);

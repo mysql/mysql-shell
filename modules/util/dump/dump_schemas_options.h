@@ -38,7 +38,7 @@ namespace dump {
 
 class Dump_schemas_options : public Ddl_dumper_options {
  public:
-  Dump_schemas_options() = default;
+  Dump_schemas_options();
 
   Dump_schemas_options(const Dump_schemas_options &) = default;
   Dump_schemas_options(Dump_schemas_options &&) = default;
@@ -46,7 +46,7 @@ class Dump_schemas_options : public Ddl_dumper_options {
   Dump_schemas_options &operator=(const Dump_schemas_options &) = default;
   Dump_schemas_options &operator=(Dump_schemas_options &&) = default;
 
-  virtual ~Dump_schemas_options() = default;
+  ~Dump_schemas_options() override = default;
 
   static const shcore::Option_pack_def<Dump_schemas_options> &options();
 
@@ -59,9 +59,9 @@ class Dump_schemas_options : public Ddl_dumper_options {
   void set_schemas(const std::vector<std::string> &schemas);
 
  protected:
-  explicit Dump_schemas_options(const std::string &output_url);
+  explicit Dump_schemas_options(const char *name);
 
-  void validate_options() const override;
+  void on_validate() const override;
 
  private:
   void on_unpacked_options();

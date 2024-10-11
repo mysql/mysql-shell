@@ -25,7 +25,10 @@
 
 #include "shellcore/utils_help.h"
 #include <cctype>
+#include <map>
 #include <regex>
+#include <string_view>
+#include <utility>
 #include <vector>
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
@@ -2148,7 +2151,7 @@ void Help_manager::add_cli_options_section(
     cli::Shell_cli_mapper *cli) {
   if (!cli->options().empty()) {
     auto option_data = parse_cli_option_data(resolve_help_text(member, tag));
-    std::vector<std::string> options_details;
+    std::map<std::string_view, std::string> options_details;
 
     for (size_t index = 0; index < cli->metadata()->signature.size(); index++) {
       const auto &param = cli->metadata()->signature[index];
@@ -2175,7 +2178,7 @@ void Help_manager::add_cli_options_section(
                     format_help_text(member, &brief, MAX_HELP_WIDTH,
                                      padding + ITEM_DESC_PADDING, true);
               }
-              options_details.push_back(option_detail);
+              options_details.emplace(allowed->name, std::move(option_detail));
             }
           }
         } else {
@@ -2197,7 +2200,7 @@ void Help_manager::add_cli_options_section(
               break;
             }
           }
-          options_details.push_back(option_detail);
+          options_details.emplace(param->name, std::move(option_detail));
         }
       }
     }
@@ -2205,7 +2208,9 @@ void Help_manager::add_cli_options_section(
     if (!options_details.empty()) {
       std::string section = mysqlshdk::textui::bold("OPTIONS");
       section += HEADER_CONTENT_SEPARATOR;
-      section += shcore::str_join(options_details, "\n\n");
+      section += shcore::str_join(
+          options_details, "\n\n",
+          [](const auto &it) -> const std::string & { return it.second; });
       sections->push_back(section);
     }
   }

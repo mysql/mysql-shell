@@ -32,7 +32,6 @@
 
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/db/connection_options.h"
-#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/storage/backend/in_memory/virtual_config.h"
 #include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/idirectory.h"
@@ -69,7 +68,8 @@ void copy(const mysqlshdk::db::Connection_options &connection_options,
 
   auto [storage, output] = setup_virtual_storage();
 
-  copy_options->dump_options()->set_storage_config(storage);
+  copy_options->dump_options()->set_storage_config(
+      storage, common::Storage_options::Storage_type::Memory);
   copy_options->dump_options()->set_output_url(output->full_path().real());
 
   const auto version = mysqlshdk::utils::Version(
@@ -86,20 +86,16 @@ void copy(const mysqlshdk::db::Connection_options &connection_options,
     copy_options->dump_options()->enable_mds_compatibility_checks();
   }
 
-  copy_options->dump_options()->validate();
+  copy_options->dump_options()->validate_and_configure();
 
-  copy_options->load_options()->set_storage_config(storage);
+  copy_options->load_options()->set_storage_config(
+      storage, common::Storage_options::Storage_type::Memory);
   copy_options->load_options()->set_url(output->full_path().real());
   copy_options->load_options()->set_session(load_session);
-  copy_options->load_options()->validate();
+  copy_options->load_options()->validate_and_configure();
 
-  const auto host_info = [](const auto &session) {
-    const auto instance = mysqlshdk::mysql::Instance(session);
-    return instance.get_canonical_address();
-  };
-
-  const auto src = host_info(copy_options->dump_options()->session());
-  const auto tgt = host_info(copy_options->load_options()->base_session());
+  const auto src = copy_options->dump_options()->canonical_address();
+  const auto tgt = copy_options->load_options()->canonical_address();
 
   if (src == tgt) {
     throw std::invalid_argument(

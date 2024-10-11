@@ -25,6 +25,7 @@
 
 #include "mysqlshdk/libs/storage/backend/in_memory/virtual_file_adapter.h"
 
+#include "mysqlshdk/libs/oci/oci_par.h"
 #include "mysqlshdk/libs/storage/backend/in_memory/virtual_fs.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
@@ -51,7 +52,9 @@ void Virtual_file_adapter::close() { m_file->close(); }
 
 size_t Virtual_file_adapter::file_size() const { return m_file->size(); }
 
-Masked_string Virtual_file_adapter::full_path() const { return m_file->name(); }
+Masked_string Virtual_file_adapter::full_path() const {
+  return {m_file->name(), mysqlshdk::oci::mask_any_par(m_file->name())};
+}
 
 std::string Virtual_file_adapter::filename() const {
   // IFile::name() can return just the file name or the full OS path, so

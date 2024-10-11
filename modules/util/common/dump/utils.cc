@@ -129,34 +129,6 @@ std::string get_table_data_filename(const std::string &basename,
          std::to_string(index) + "." + ext;
 }
 
-mysqlshdk::oci::PAR_structure parse_par(const std::string &url) {
-  mysqlshdk::oci::PAR_structure par;
-  mysqlshdk::oci::parse_par(url, &par);
-  return par;
-}
-
-std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
-    const std::string &url) {
-  return get_par_config(parse_par(url));
-}
-
-std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
-    const mysqlshdk::oci::PAR_structure &par) {
-  switch (par.type()) {
-    case mysqlshdk::oci::PAR_type::PREFIX:
-      return std::make_shared<
-          mysqlshdk::storage::backend::oci::Oci_par_directory_config>(par);
-
-    case mysqlshdk::oci::PAR_type::GENERAL:
-      return std::make_shared<mysqlshdk::oci::General_par_config>(par);
-
-    case mysqlshdk::oci::PAR_type::NONE:
-      break;
-  }
-
-  return {};
-}
-
 }  // namespace common
 }  // namespace dump
 }  // namespace mysqlsh

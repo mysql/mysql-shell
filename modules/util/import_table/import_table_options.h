@@ -26,12 +26,6 @@
 #ifndef MODULES_UTIL_IMPORT_TABLE_IMPORT_TABLE_OPTIONS_H_
 #define MODULES_UTIL_IMPORT_TABLE_IMPORT_TABLE_OPTIONS_H_
 
-#ifdef _WIN32
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
-
 #include <cassert>
 #include <map>
 #include <memory>
@@ -40,21 +34,16 @@
 #include <variant>
 #include <vector>
 
-#include "modules/util/import_table/dialect.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
-#include "mysqlshdk/libs/aws/s3_bucket_options.h"
-#include "mysqlshdk/libs/azure/blob_storage_options.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/oci/oci_bucket_options.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
-#include "mysqlshdk/libs/storage/config.h"
 #include "mysqlshdk/libs/storage/ifile.h"
+
+#include "modules/util/common/common_options.h"
+#include "modules/util/import_table/dialect.h"
 
 namespace mysqlsh {
 namespace import_table {
-
-using Connection_options = mysqlshdk::db::Connection_options;
 
 enum class Duplicate_handling {
   Default,
@@ -62,28 +51,26 @@ enum class Duplicate_handling {
   Replace,
 };
 
-class Import_table_option_pack {
+class Import_table_option_pack : public common::Common_options {
  public:
-  Import_table_option_pack()
-      : m_blob_storage_options{
-            mysqlshdk::azure::Blob_storage_options::Operation::READ} {};
-  Import_table_option_pack(const Import_table_option_pack &other) = default;
-  Import_table_option_pack(Import_table_option_pack &&other) = default;
+  Import_table_option_pack();
 
-  Import_table_option_pack &operator=(const Import_table_option_pack &other) =
+  Import_table_option_pack(const Import_table_option_pack &) = default;
+  Import_table_option_pack(Import_table_option_pack &&) = default;
+
+  Import_table_option_pack &operator=(const Import_table_option_pack &) =
       default;
-  Import_table_option_pack &operator=(Import_table_option_pack &&other) =
-      default;
-  ~Import_table_option_pack() = default;
+  Import_table_option_pack &operator=(Import_table_option_pack &&) = default;
+
+  ~Import_table_option_pack() override = default;
 
   static const shcore::Option_pack_def<Import_table_option_pack> &options();
+
   void set_decode_columns(const shcore::Dictionary_t &decode_columns);
 
   const Dialect &dialect() const { return m_dialect; }
 
   bool is_multifile() const noexcept { return m_is_multifile; }
-
-  static bool is_compressed(const std::string &path);
 
   void set_filenames(const std::vector<std::string> &filenames);
 
@@ -114,8 +101,6 @@ class Import_table_option_pack {
     return m_decode_columns;
   }
 
-  bool show_progress() const { return m_show_progress; }
-
   uint64_t skip_rows_count() const { return m_skip_rows_count; }
 
   void clear_skip_rows_count() const { m_skip_rows_count = 0; }
@@ -138,19 +123,6 @@ class Import_table_option_pack {
 
   size_t max_transaction_size() const;
 
-  const mysqlshdk::storage::Config_ptr &storage_config() const {
-    return m_storage_config;
-  }
-
-  /**
-   * Creates a new file handle using the provided options.
-   */
-  std::unique_ptr<mysqlshdk::storage::IFile> create_file_handle(
-      const std::string &filepath) const;
-
-  std::unique_ptr<mysqlshdk::storage::IFile> create_file_handle(
-      std::unique_ptr<mysqlshdk::storage::IFile> file_handler) const;
-
   bool verbose() const { return m_verbose; }
 
   void set_verbose(bool verbose) { m_verbose = verbose; }
@@ -163,7 +135,6 @@ class Import_table_option_pack {
   void set_max_transaction_size(const std::string &value);
   void set_bytes_per_chunk(const std::string &value);
   void set_max_rate(const std::string &value);
-  void on_unpacked_options();
   bool check_if_multifile();
   void set_replace_duplicates(bool flag);
   void set_columns(const shcore::Array_t &columns);
@@ -172,7 +143,7 @@ class Import_table_option_pack {
   std::vector<std::string> m_filelist_from_user;
   bool m_is_multifile = false;
   std::string m_table;
-  std::string m_schema;
+  mutable std::string m_schema;
   std::string m_partition;
   std::string m_character_set;
   int64_t m_threads_size = 8;
@@ -182,13 +153,8 @@ class Import_table_option_pack {
   std::map<std::string, std::string> m_decode_columns;
   Duplicate_handling m_duplicate_handling = Duplicate_handling::Ignore;
   uint64_t m_max_rate = 0;
-  bool m_show_progress = isatty(fileno(stdout)) ? true : false;
   mutable uint64_t m_skip_rows_count = 0;
   Dialect m_dialect;
-  mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
-  mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
-  mysqlshdk::azure::Blob_storage_options m_blob_storage_options;
-  mysqlshdk::storage::Config_ptr m_storage_config;
   bool m_verbose = true;
 
   std::vector<std::string> m_session_init_sql;
@@ -197,14 +163,10 @@ class Import_table_option_pack {
 class Import_table_options : public Import_table_option_pack {
  public:
   Import_table_options() = default;
+
   explicit Import_table_options(const Import_table_option_pack &pack);
 
   static Import_table_options unpack(const shcore::Dictionary_t &options);
-
-  void set_base_session(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-    m_base_session = session;
-  }
 
   size_t file_size() const {
     assert(!is_multifile());
@@ -215,10 +177,6 @@ class Import_table_options : public Import_table_option_pack {
     assert(!is_multifile());
     return m_full_path;
   }
-
-  void validate();
-
-  Connection_options connection_options() const;
 
   std::string target_import_info() const;
 
@@ -236,7 +194,10 @@ class Import_table_options : public Import_table_option_pack {
  private:
   size_t calc_thread_size();
 
-  std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
+  void on_validate() const override;
+
+  void on_configure() override;
+
   size_t m_file_size;
   std::string m_full_path;
   mysqlshdk::storage::Compression m_compression =

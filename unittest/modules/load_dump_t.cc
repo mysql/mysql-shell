@@ -472,10 +472,6 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
                     "performance_schema.global_status WHERE variable_name = "
                     "'Innodb_redo_log_enabled'")
                 .then({"a"});
-
-            mock->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
-                .then({"a", "b"})
-                .add_row({"local_infile", "1"});
           }
 
           mock->set_query_handler(
@@ -530,6 +526,11 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
     auto mock_main_session = std::make_shared<testing::Mock_mysql_session>();
     EXPECT_CALL(*mock_main_session, get_connection_options())
         .WillRepeatedly(ReturnRef(m_coptions));
+
+    mock_main_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
+        .then({"a", "b"})
+        .add_row({"local_infile", "1"});
+
     mock_main_session->expect_query("SELECT @@version")
         .then({"version"})
         .add_row({m_version});
@@ -589,9 +590,6 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
             "'Innodb_redo_log_enabled'")
         .then({""});
 
-    mock_main_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
-        .then({"a", "b"})
-        .add_row({"local_infile", "1"});
     return std::static_pointer_cast<mysqlshdk::db::ISession>(mock_main_session);
   }
 
@@ -689,6 +687,10 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
 
   EXPECT_CALL(*mock_main_session, get_connection_options())
       .WillRepeatedly(ReturnRef(m_coptions));
+
+  mock_main_session->expect_query("SHOW GLOBAL VARIABLES LIKE 'local_infile'")
+      .then({"a", "b"})
+      .add_row({"local_infile", "1"});
 
   mock_main_session->expect_query("SELECT @@version")
       .then({"version"})

@@ -42,8 +42,6 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/aws/s3_bucket_config.h"
 #include "mysqlshdk/libs/mysql/instance.h"
-#include "mysqlshdk/libs/oci/oci_par.h"
-#include "mysqlshdk/libs/storage/backend/oci_par_directory_config.h"
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -59,7 +57,7 @@ using Version = mysqlshdk::utils::Version;
 constexpr auto k_minimum_max_bytes_per_transaction = 4096;
 
 std::string bulk_load_s3_prefix(
-    const std::shared_ptr<mysqlshdk::aws::S3_bucket_config> &config) {
+    const std::shared_ptr<const mysqlshdk::aws::S3_bucket_config> &config) {
   // 's3-region://bucket-name/file-name-or-prefix'
   std::string prefix = "s3-";
 
@@ -73,19 +71,16 @@ std::string bulk_load_s3_prefix(
 
 }  // namespace
 
-Load_dump_options::Load_dump_options() : Load_dump_options("") {}
-Load_dump_options::Load_dump_options(const std::string &url)
-    : m_url(url),
-      m_blob_storage_options{
-          mysqlshdk::azure::Blob_storage_options::Operation::READ} {}
+Load_dump_options::Load_dump_options()
+    : Common_options(Common_options::Config{"util.loadDump", true, true}) {}
 
 const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Load_dump_options>()
+          .include<Common_options>()
           .optional("threads", &Load_dump_options::m_threads_count)
           .optional("backgroundThreads",
                     &Load_dump_options::m_background_threads_count)
-          .optional("showProgress", &Load_dump_options::m_show_progress)
           .optional("waitDumpTimeout", &Load_dump_options::set_wait_timeout)
           .optional("loadData", &Load_dump_options::m_load_data)
           .optional("loadDdl", &Load_dump_options::m_load_ddl)
@@ -137,11 +132,7 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
                     &Load_dump_options::set_handle_grant_errors)
           .optional("checksum", &Load_dump_options::m_checksum)
           .optional("disableBulkLoad", &Load_dump_options::m_disable_bulk_load)
-          .include(&Load_dump_options::m_oci_bucket_options)
-          .include(&Load_dump_options::m_s3_bucket_options)
-          .include(&Load_dump_options::m_blob_storage_options)
-          .on_done(&Load_dump_options::on_unpacked_options)
-          .on_log(&Load_dump_options::on_log_options);
+          .on_done(&Load_dump_options::on_unpacked_options);
 
   return opts;
 }
@@ -172,51 +163,14 @@ void Load_dump_options::set_max_bytes_per_transaction(
   }
 }
 
-void Load_dump_options::set_progress_file(const std::string &value) {
-  m_progress_file = value;
-
-  auto config = dump::common::get_par_config(value);
-
-  if (config && config->valid()) {
-    if (mysqlshdk::oci::PAR_type::GENERAL != config->par().type()) {
-      throw shcore::Exception::argument_error(
-          "Invalid PAR for progress file, use a PAR to a specific file");
-    }
-
-    m_progress_file_config = std::move(config);
-  }
-}
-
-void Load_dump_options::set_session(
+void Load_dump_options::on_set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
-  m_base_session = session;
+  Common_options::on_set_session(session);
 
-  m_target = get_classic_connection_options(m_base_session);
-
-  if (m_target.has(mysqlshdk::db::kLocalInfile)) {
-    m_target.remove(mysqlshdk::db::kLocalInfile);
-  }
-  m_target.set(mysqlshdk::db::kLocalInfile, "true");
-
-  // Set long timeouts by default
-  constexpr auto timeout = 86400000;  // 1 day in milliseconds
-  if (!m_target.has_net_read_timeout()) {
-    m_target.set_net_read_timeout(timeout);
-  }
-  if (!m_target.has_net_write_timeout()) {
-    m_target.set_net_write_timeout(timeout);
-  }
-
-  // set size of max packet (~size of 1 row) we can send to server
-  if (!m_target.has(mysqlshdk::db::kMaxAllowedPacket)) {
-    const auto k_one_gb = "1073741824";
-    m_target.set(mysqlshdk::db::kMaxAllowedPacket, k_one_gb);
-  }
-
-  const auto instance = mysqlshdk::mysql::Instance(m_base_session);
+  const auto instance = mysqlshdk::mysql::Instance(session);
 
   m_target_server_version =
-      Version(query("SELECT @@version")->fetch_one()->get_string(0));
+      Version(session->query("SELECT @@version")->fetch_one()->get_string(0));
   DBUG_EXECUTE_IF("dump_loader_bulk_unsupported_version",
                   { m_target_server_version = Version(8, 3, 0); });
 
@@ -234,9 +188,8 @@ void Load_dump_options::set_session(
     try {
       // try to set the session variable to the same value as global variable,
       // to check if user can set it
-      m_base_session->executef(
-          "SET @@SESSION.sql_generate_invisible_primary_key=?",
-          sql_generate_invisible_primary_key());
+      session->executef("SET @@SESSION.sql_generate_invisible_primary_key=?",
+                        sql_generate_invisible_primary_key());
       user_can_set_var = true;
     } catch (const std::exception &e) {
       log_warning(
@@ -259,8 +212,9 @@ void Load_dump_options::set_session(
     }
   }
 
-  m_server_uuid =
-      query("SELECT @@server_uuid")->fetch_one_or_throw()->get_string(0);
+  m_server_uuid = session->query("SELECT @@server_uuid")
+                      ->fetch_one_or_throw()
+                      ->get_string(0);
 
   if (m_load_users) {
     // some users are always excluded
@@ -288,9 +242,10 @@ void Load_dump_options::set_session(
     // most cases first stage is executed before the rest, so we're using
     // maximum of these two values
     m_threads_per_add_index =
-        query(
-            "SELECT GREATEST(@@innodb_parallel_read_threads, "
-            "@@innodb_ddl_threads)")
+        session
+            ->query(
+                "SELECT GREATEST(@@innodb_parallel_read_threads, "
+                "@@innodb_ddl_threads)")
             ->fetch_one_or_throw()
             ->get_uint(0);
   }
@@ -304,46 +259,55 @@ void Load_dump_options::set_session(
       instance.get_sysvar_int("lower_case_table_names", 0);
 }
 
-void Load_dump_options::validate() {
-  if (!m_storage_config || !m_storage_config->valid()) {
-    auto config = dump::common::get_par_config(m_url);
+void Load_dump_options::set_url(const std::string &url) {
+  throw_on_url_and_storage_conflict(url, "loading from a URL");
 
-    if (config && config->valid()) {
-      if (mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
-        if (!m_progress_file.has_value()) {
-          throw shcore::Exception::argument_error(
-              "When using a PAR to load a dump, the progressFile option must "
-              "be defined");
-        }
-      } else {
-        current_console()->print_warning("The given URL is not a prefix PAR.");
-      }
+  Storage_options::Storage_type storage;
+  const auto config = storage_config(url, &storage);
 
-      if (mysqlshdk::oci::PAR_type::PREFIX == config->par().type()) {
-        // prefix PAR is supported by the bulk loader
-        m_bulk_load_info.fs = Bulk_load_fs::URL;
-      }
-
-      set_storage_config(std::move(config));
-    } else {
-      // no configuration, we're loading from the local FS
+  switch (storage) {
+    case Storage_options::Storage_type::Local:
+      // we're loading from the local FS
       m_bulk_load_info.fs = Bulk_load_fs::INFILE;
-    }
+      break;
+
+    case Storage_options::Storage_type::Oci_prefix_par:
+      if (!m_progress_file.has_value()) {
+        throw shcore::Exception::argument_error(
+            "When using a PAR to load a dump, the progressFile option must be "
+            "defined");
+      }
+
+      // prefix PAR is supported by the bulk loader
+      m_bulk_load_info.fs = Bulk_load_fs::URL;
+      break;
+
+    case Storage_options::Storage_type::S3:
+      if (const auto aws_config =
+              std::dynamic_pointer_cast<const mysqlshdk::aws::S3_bucket_config>(
+                  config);
+          aws_config && aws_config->valid() &&
+          s3_options().endpoint_override().empty()) {
+        // S3 is supported by the bulk loader
+        m_bulk_load_info.fs = Bulk_load_fs::S3;
+        m_bulk_load_info.file_prefix = bulk_load_s3_prefix(aws_config);
+      }
+      break;
+
+    case Storage_options::Storage_type::Oci_par:
+    case Storage_options::Storage_type::Http:
+      current_console()->print_warning("The given URL is not a prefix PAR.");
+      [[fallthrough]];
+
+    default:
+      m_bulk_load_info.fs = Bulk_load_fs::UNSUPPORTED;
+      break;
   }
 
-  {
-    const auto result = query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
-    const auto row = result->fetch_one();
-    const auto local_infile_value = row->get_string(1);
+  m_url = url;
+}
 
-    if (shcore::str_caseeq(local_infile_value, "off")) {
-      mysqlsh::current_console()->print_error(
-          "The 'local_infile' global system variable must be set to ON in "
-          "the target server, after the server is verified to be trusted.");
-      THROW_ERROR(SHERR_LOAD_LOCAL_INFILE_DISABLED);
-    }
-  }
-
+void Load_dump_options::on_configure() {
   if (!m_progress_file.has_value()) {
     m_default_progress_file = "load-progress." + m_server_uuid + ".json";
   }
@@ -363,8 +327,8 @@ std::string Load_dump_options::target_import_info(
 
   std::string where;
 
-  if (m_storage_config && m_storage_config->valid()) {
-    where = m_storage_config->describe(m_url);
+  if (const auto storage = storage_config(m_url); storage && storage->valid()) {
+    where = storage->describe(m_url);
   } else {
     where = "'" + m_url + "'";
   }
@@ -422,32 +386,6 @@ std::string Load_dump_options::target_import_info(
 }
 
 void Load_dump_options::on_unpacked_options() {
-  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
-      std::array<const mysqlshdk::storage::backend::object_storage::
-                     Object_storage_options *,
-                 3>{&m_s3_bucket_options, &m_blob_storage_options,
-                    &m_oci_bucket_options});
-
-  if (m_oci_bucket_options) {
-    set_storage_config(m_oci_bucket_options.config());
-  }
-
-  if (m_s3_bucket_options) {
-    auto config = m_s3_bucket_options.s3_config();
-
-    if (config->valid() && m_s3_bucket_options.endpoint_override().empty()) {
-      // S3 is supported by the bulk loader
-      m_bulk_load_info.fs = Bulk_load_fs::S3;
-      m_bulk_load_info.file_prefix = bulk_load_s3_prefix(config);
-    }
-
-    set_storage_config(std::move(config));
-  }
-
-  if (m_blob_storage_options) {
-    set_storage_config(m_blob_storage_options.config());
-  }
-
   if (!m_load_data && !m_load_ddl && !m_load_users &&
       m_analyze_tables == Analyze_table_mode::OFF &&
       m_update_gtid_set == Update_gtid_set::OFF && !m_checksum) {
@@ -508,32 +446,26 @@ void Load_dump_options::on_unpacked_options() {
   }
 }
 
-void Load_dump_options::on_log_options(const char *msg) const {
-  std::string s = msg;
-
-  static const std::regex k_par_progress_file(
-      R"("progressFile":"https://(?:[^\.]+\.)?objectstorage\.)");
-  std::smatch match;
-
-  if (std::regex_search(s, match, k_par_progress_file)) {
-    s = mysqlshdk::oci::hide_par_secret(s, match.position());
-  }
-
-  log_info("Load options: %s", s.c_str());
-}
-
 std::unique_ptr<mysqlshdk::storage::IDirectory>
 Load_dump_options::create_dump_handle() const {
-  return mysqlshdk::storage::make_directory(m_url, storage_config());
+  return make_directory(m_url);
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile>
 Load_dump_options::create_progress_file_handle() const {
-  if (m_progress_file.value_or(std::string{}).empty())
+  if (!m_progress_file.has_value() || m_progress_file->empty())
     return create_dump_handle()->file(m_default_progress_file);
   else
-    return mysqlshdk::storage::make_file(*m_progress_file,
-                                         m_progress_file_config);
+    return make_file(*m_progress_file);
+}
+
+void Load_dump_options::set_progress_file(const std::string &file) {
+  if (!file.empty() && mysqlshdk::storage::utils::get_scheme(file).empty()) {
+    // if no scheme is provided we're forcing a local file
+    m_progress_file = "file://" + file;
+  } else {
+    m_progress_file = file;
+  }
 }
 
 bool Load_dump_options::include_object(
@@ -571,11 +503,6 @@ void Load_dump_options::set_handle_grant_errors(const std::string &action) {
   }
 }
 
-void Load_dump_options::set_storage_config(
-    std::shared_ptr<mysqlshdk::storage::Config> storage_config) {
-  m_storage_config = std::move(storage_config);
-}
-
 void Load_dump_options::configure_bulk_load() {
   if (m_disable_bulk_load) {
     log_info("BULK LOAD is explicitly disabled");
@@ -593,7 +520,7 @@ void Load_dump_options::configure_bulk_load() {
     return;
   }
 
-  const auto instance = mysqlshdk::mysql::Instance(m_base_session);
+  const auto instance = mysqlshdk::mysql::Instance(session());
 
   // this is actually an unsigned integer, but allowed values are within int64_t
   // range
@@ -625,7 +552,7 @@ void Load_dump_options::configure_bulk_load() {
     case Bulk_load_fs::INFILE:
       // NOTE: this is for testing purposes only, validation is superficial
       {
-        const auto &co = m_base_session->get_connection_options();
+        const auto &co = session()->get_connection_options();
 
         if (mysqlshdk::db::Transport_type::Tcp == co.get_transport_type() &&
             !mysqlshdk::utils::Net::is_local_address(co.get_host())) {
@@ -640,12 +567,8 @@ void Load_dump_options::configure_bulk_load() {
         if (!path->empty()) {
           // path is not empty, only files in that directory can be loaded
           if (!shcore::str_beginswith(
-                  mysqlshdk::storage::make_directory(m_url, storage_config())
-                      ->full_path()
-                      .real(),
-                  mysqlshdk::storage::make_directory(*path, storage_config())
-                      ->full_path()
-                      .real())) {
+                  make_directory(m_url)->full_path().real(),
+                  make_directory(*path)->full_path().real())) {
             log_info(
                 "BULK LOAD: local FS and dump is not a subdirectory of "
                 "'secure_file_priv'");

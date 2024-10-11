@@ -35,20 +35,13 @@
 #include <vector>
 
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/libs/aws/s3_bucket_options.h"
-#include "mysqlshdk/libs/azure/blob_storage_options.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/filtering_options.h"
-#include "mysqlshdk/libs/oci/oci_bucket_options.h"
-#include "mysqlshdk/libs/storage/config.h"
-#include "mysqlshdk/libs/storage/idirectory.h"
-#include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/mod_utils.h"
+#include "modules/util/common/common_options.h"
 #include "modules/util/import_table/helpers.h"
 
 namespace mysqlsh {
@@ -83,7 +76,7 @@ inline std::string schema_table_object_key(std::string_view schema,
 #undef IGNORE
 #endif
 
-class Load_dump_options {
+class Load_dump_options : public common::Common_options {
  public:
   using Filtering_options = mysqlshdk::db::Filtering_options;
   using Connection_options = mysqlshdk::db::Connection_options;
@@ -108,31 +101,15 @@ class Load_dump_options {
 
   Load_dump_options();
 
-  explicit Load_dump_options(const std::string &url);
-
   Load_dump_options(const Load_dump_options &other) = default;
   Load_dump_options(Load_dump_options &&other) = default;
 
   Load_dump_options &operator=(const Load_dump_options &other) = default;
   Load_dump_options &operator=(Load_dump_options &&other) = default;
 
-  ~Load_dump_options() = default;
+  ~Load_dump_options() override = default;
 
   static const shcore::Option_pack_def<Load_dump_options> &options();
-
-  void validate();
-
-  void on_unpacked_options();
-
-  void on_log_options(const char *msg) const;
-
-  void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
-
-  std::shared_ptr<mysqlshdk::db::ISession> base_session() const {
-    return m_base_session;
-  }
-
-  const Connection_options &connection_options() const { return m_target; }
 
   std::string target_import_info(const char *operation = "Loading",
                                  const std::string &extra = {}) const;
@@ -147,21 +124,6 @@ class Load_dump_options {
   }
 
   void set_progress_file(const std::string &file);
-
-  const std::string &default_progress_file() const {
-    return m_default_progress_file;
-  }
-
-  const mysqlshdk::storage::Config_ptr &storage_config() const {
-    return m_storage_config;
-  }
-
-  void set_storage_config(
-      std::shared_ptr<mysqlshdk::storage::Config> storage_config);
-
-  bool show_progress() const { return m_show_progress; }
-
-  void set_show_progress(bool show) { m_show_progress = show; }
 
   uint64_t threads_count() const { return m_threads_count; }
 
@@ -231,7 +193,7 @@ class Load_dump_options {
 
   bool is_mds() const { return m_is_mds; }
 
-  void set_url(const std::string &url) { m_url = url; }
+  void set_url(const std::string &url);
 
   bool show_metadata() const { return m_show_metadata; }
 
@@ -275,17 +237,24 @@ class Load_dump_options {
     return m_bulk_load_info;
   }
 
+  using Storage_options::set_storage_config;
+
+  using Common_options::session;
+  using Common_options::set_show_progress;
+
  private:
+  void on_unpacked_options();
+
+  void on_set_session(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
+
+  void on_configure() override;
+
   void set_wait_timeout(const double &timeout_seconds);
 
   void set_max_bytes_per_transaction(const std::string &value);
 
   void set_handle_grant_errors(const std::string &action);
-
-  inline std::shared_ptr<mysqlshdk::db::IResult> query(
-      std::string_view sql) const {
-    return m_base_session->query(sql);
-  }
 
   bool include_object(std::string_view schema, std::string_view object,
                       const std::unordered_set<std::string> &included,
@@ -296,15 +265,6 @@ class Load_dump_options {
   std::string m_url;
   uint64_t m_threads_count = 4;
   std::optional<uint64_t> m_background_threads_count;
-  bool m_show_progress = isatty(fileno(stdout)) ? true : false;
-
-  mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
-  mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
-  mysqlshdk::azure::Blob_storage_options m_blob_storage_options;
-  mysqlshdk::storage::Config_ptr m_storage_config;
-  mysqlshdk::storage::Config_ptr m_progress_file_config;
-  Connection_options m_target;
-  std::shared_ptr<mysqlshdk::db::ISession> m_base_session;
 
   Filtering_options m_filtering_options;
 

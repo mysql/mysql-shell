@@ -9,7 +9,7 @@ The following operations are available at 'clusterset':
 
    dissolve
       Dissolves the ClusterSet.
-      
+
    execute
       Executes a SQL statement at selected instances of the ClusterSet.
 
@@ -72,27 +72,71 @@ RETURNS
       The created Replica Cluster object.
 
 OPTIONS
---timeout=<int>
-            Maximum number of seconds to wait for the instance to sync up with
-            the PRIMARY Cluster. Default is 0 and it means no timeout.
+--autoRejoinTries=<int>
+            Integer value to define the number of times an instance will
+            attempt to rejoin the cluster after being expelled.
+
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
+
+--cloneDonor=<str>
+            Host:port of an existing member of the PRIMARY cluster to clone
+            from. IPv6 addresses are not supported for this option.
+
+--clusterSetReplicationBind=<str>
+            String that determines which of the replica's network interfaces is
+            chosen for connecting to the source.
+
+--clusterSetReplicationCompressionAlgorithms=<str>
+            String that specifies the permitted compression algorithms for
+            connections to the replication source.
+
+--clusterSetReplicationConnectRetry=<int>
+            Integer that specifies the interval in seconds between the
+            reconnection attempts that the replica makes after the connection
+            to the source times out.
+
+--clusterSetReplicationHeartbeatPeriod=<float>
+            Decimal that controls the heartbeat interval, which stops the
+            connection timeout occurring in the absence of data if the
+            connection is still good.
+
+--clusterSetReplicationNetworkNamespace=<str>
+            String that specifies the network namespace to use for TCP/IP
+            connections to the replication source server or, if the MySQL
+            communication stack is in use, for Group Replication’s group
+            communication connections.
+
+--clusterSetReplicationRetryCount=<int>
+            Integer that sets the maximum number of reconnection attempts that
+            the replica makes after the connection to the source times out.
+
+--clusterSetReplicationZstdCompressionLevel=<int>
+            Integer that specifies the compression level to use for connections
+            to the replication source server that use the zstd compression
+            algorithm.
+
+--communicationStack=<str>
+            The Group Replication communication stack to be used in the
+            Cluster: XCom (legacy) or MySQL.
+
+--consistency=<str>
+            String value indicating the consistency guarantees that the cluster
+            provides.
 
 --dryRun=<bool>
             Boolean if true, all validations and steps for creating a Replica
             Cluster are executed, but no changes are actually made. An
             exception will be thrown when finished.
 
---recoveryProgress=<int>
-            Integer value to indicate the recovery process verbosity level.
+--exitStateAction=<str>
+            String value indicating the group replication exit state action.
 
---memberSslMode=<str>
-            SSL mode for communication channels opened by Group Replication
-            from one server to another.
-
---replicationAllowedHost=<str>
-            String value to use as the host name part of internal replication
-            accounts (i.e. 'mysql_innodb_cluster_###'@'hostname'). Default is
-            %. It must be possible for any member of the Cluster to connect to
-            any other member using accounts with this hostname value.
+--expelTimeout=<int>
+            Integer value to define the time period in seconds that cluster
+            members should wait for a non-responding member before evicting it
+            from the cluster.
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
@@ -102,34 +146,18 @@ OPTIONS
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
 
---exitStateAction=<str>
-            String value indicating the group replication exit state action.
-
---memberWeight=<int>
-            Integer value with a percentage weight for automatic primary
-            election on failover.
-
 --manualStartOnBoot=<bool>
             Boolean (default false). If false, Group Replication in cluster
             instances will automatically start and rejoin when MySQL starts,
             otherwise it must be started manually.
 
---consistency=<str>
-            String value indicating the consistency guarantees that the cluster
-            provides.
+--memberSslMode=<str>
+            SSL mode for communication channels opened by Group Replication
+            from one server to another.
 
---expelTimeout=<int>
-            Integer value to define the time period in seconds that cluster
-            members should wait for a non-responding member before evicting it
-            from the cluster.
-
---autoRejoinTries=<int>
-            Integer value to define the number of times an instance will
-            attempt to rejoin the cluster after being expelled.
-
---communicationStack=<str>
-            The Group Replication communication stack to be used in the
-            Cluster: XCom (legacy) or MySQL.
+--memberWeight=<int>
+            Integer value with a percentage weight for automatic primary
+            election on failover.
 
 --paxosSingleLeader=<bool>
             Boolean value used to enable/disable the Group Communication engine
@@ -139,9 +167,18 @@ OPTIONS
             Preferred method for state recovery/provisioning. May be auto,
             clone or incremental. Default is auto.
 
---cloneDonor=<str>
-            Host:port of an existing member of the PRIMARY cluster to clone
-            from. IPv6 addresses are not supported for this option.
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+
+--replicationAllowedHost=<str>
+            String value to use as the host name part of internal replication
+            accounts (i.e. 'mysql_innodb_cluster_###'@'hostname'). Default is
+            %. It must be possible for any member of the Cluster to connect to
+            any other member using accounts with this hostname value.
+
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up with
+            the PRIMARY Cluster. Default is 0 and it means no timeout.
 
 //@<OUT> CLI clusterset remove-cluster --help
 NAME
@@ -157,9 +194,10 @@ RETURNS
       Nothing.
 
 OPTIONS
---timeout=<int>
-            Maximum number of seconds to wait for the instance to sync up
-            with the PRIMARY Cluster. Default is 0 and it means no timeout.
+--dissolve=<bool>
+            Whether to dissolve the cluster after removing it from the
+            ClusterSet. Set to false if you intend to use it as a standalone
+            cluster. Default is true.
 
 --dryRun=<bool>
             Boolean if true, all validations and steps for removing a
@@ -171,6 +209,10 @@ OPTIONS
             only from metadata) in case the PRIMARY cannot be reached, or
             the ClusterSet replication channel cannot be found or is stopped.
             By default, set to false.
+
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up
+            with the PRIMARY Cluster. Default is 0 and it means no timeout.
 
 //@<OUT> CLI clusterset describe --help
 NAME
@@ -193,11 +235,6 @@ RETURNS
       Nothing
 
 OPTIONS
---timeout=<int>
-            Maximum number of seconds to wait for pending transactions to be
-            applied in each reachable instance of the ClusterSet (default value
-            is retrieved from the 'dba.gtidWaitTimeout' shell option).
-
 --dryRun=<bool>
             If true, all validations and steps for dissolving the ClusterSet
             are executed, but no changes are actually made.
@@ -207,6 +244,11 @@ OPTIONS
             executed, even if some members of the ClusterSet cannot be reached
             or the timeout was reached when waiting for members to catch up
             with replication changes. By default, set to false.
+
+--timeout=<int>
+            Maximum number of seconds to wait for pending transactions to be
+            applied in each reachable instance of the ClusterSet (default value
+            is retrieved from the 'dba.gtidWaitTimeout' shell option).
 
 //@<OUT> CLI clusterset rejoin-cluster --help
 NAME
@@ -243,6 +285,11 @@ RETURNS
       Nothing
 
 OPTIONS
+--dryRun=<bool>
+            If true, will perform checks and log operations that would be
+            performed, but will not execute them. The operations that would be
+            performed can be viewed by enabling verbose output in the shell.
+
 --invalidateReplicaClusters[:<type>]=<value>
             List of names of REPLICA Clusters that are unreachable or
             unavailable that are to be invalidated during the switchover.
@@ -253,11 +300,6 @@ OPTIONS
             promoted to catch up with the current PRIMARY (in the case of the
             latter, the default value is retrieved from the
             'dba.gtidWaitTimeout' shell option).
-
---dryRun=<bool>
-            If true, will perform checks and log operations that would be
-            performed, but will not execute them. The operations that would be
-            performed can be viewed by enabling verbose output in the shell.
 
 //@<OUT> CLI clusterset force-primary-cluster --help
 NAME
@@ -274,14 +316,14 @@ RETURNS
       Nothing
 
 OPTIONS
---invalidateReplicaClusters[:<type>]=<value>
-            List of names of REPLICA Clusters that are unreachable or
-            unavailable that are to be invalidated during the failover.
-
 --dryRun=<bool>
             If true, will perform checks and log operations that would be
             performed, but will not execute them. The operations that would be
             performed can be viewed by enabling verbose output in the shell.
+
+--invalidateReplicaClusters[:<type>]=<value>
+            List of names of REPLICA Clusters that are unreachable or
+            unavailable that are to be invalidated during the failover.
 
 --timeout=<uint>
             Integer value with the maximum number of seconds to wait for
@@ -315,8 +357,9 @@ RETURNS
       A JSON object with the list of Router configuration options.
 
 OPTIONS
+--extended=<uint>
+            Verbosity level of the command output.
+
 --router=<str>
             Identifier of the Router instance to be displayed.
 
---extended=<uint>
-            Verbosity level of the command output.

@@ -37,7 +37,7 @@ namespace dump {
 
 class Dump_tables_options : public Ddl_dumper_options {
  public:
-  Dump_tables_options() = default;
+  Dump_tables_options();
 
   Dump_tables_options(const Dump_tables_options &) = default;
   Dump_tables_options(Dump_tables_options &&) = default;
@@ -45,7 +45,7 @@ class Dump_tables_options : public Ddl_dumper_options {
   Dump_tables_options &operator=(const Dump_tables_options &) = default;
   Dump_tables_options &operator=(Dump_tables_options &&) = default;
 
-  virtual ~Dump_tables_options() = default;
+  ~Dump_tables_options() override = default;
 
   static const shcore::Option_pack_def<Dump_tables_options> &options();
 
@@ -60,7 +60,7 @@ class Dump_tables_options : public Ddl_dumper_options {
   bool dump_users() const override { return false; }
 
  private:
-  void validate_options() const override;
+  void on_validate() const override;
 
   bool m_dump_all = false;
   bool m_has_tables = false;

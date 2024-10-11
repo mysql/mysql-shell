@@ -309,9 +309,11 @@ class Dump_reader {
   void on_checksum_end(std::string_view schema, std::string_view table,
                        std::string_view partition);
 
-  bool table_exists(std::string_view schema, std::string_view table);
+  bool table_exists(std::string_view schema, std::string_view table,
+                    const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
-  bool view_exists(std::string_view schema, std::string_view view);
+  bool view_exists(std::string_view schema, std::string_view view,
+                   const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
   void set_table_exists(std::string_view schema, std::string_view table);
 

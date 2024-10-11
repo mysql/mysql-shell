@@ -631,6 +631,16 @@ def del_global_variable(name):
     if value is not None:
         del globals()[name]
 
+def extract_import_table_code():
+    output = testutil.fetch_captured_stdout(False)
+    index = output.find("util.import_table")
+    if -1 == index:
+        raise Exception("Captured output does not contain the import table code")
+    return output[index:]
+
+class Http_server(HTTPServer):
+    allow_reuse_address = True
+
 class Http_test_server:
     def __init__(self, handler):
         self.__handler = handler
@@ -638,9 +648,13 @@ class Http_test_server:
     def start(self):
         while True:
             self.__port = random.randint(50000, 60000)
-            if not testutil.is_tcp_port_listening("127.0.0.1", self.__port):
+            try:
+                self.__server = Http_server(("127.0.0.1", self.__port), self.__handler)
                 break
-        self.__server = HTTPServer(("127.0.0.1", self.__port), self.__handler)
+            except OSError as e:
+                # try again in case of EADDRINUSE
+                if 98 != e.errno:
+                    raise
         self.__thread = threading.Thread(target = self.__server.serve_forever)
         self.__thread.start()
     def stop(self):

@@ -30,10 +30,6 @@
 #include <string>
 #include <unordered_set>
 
-#include "mysqlshdk/libs/aws/s3_bucket_options.h"
-#include "mysqlshdk/libs/azure/blob_storage_options.h"
-#include "mysqlshdk/libs/oci/oci_bucket_options.h"
-
 #include "modules/util/dump/dump_options.h"
 
 namespace mysqlsh {
@@ -49,7 +45,7 @@ class Export_table_options : public Dump_options {
   Export_table_options &operator=(const Export_table_options &) = default;
   Export_table_options &operator=(Export_table_options &&) = default;
 
-  virtual ~Export_table_options() = default;
+  ~Export_table_options() override = default;
 
   static const shcore::Option_pack_def<Export_table_options> &options();
 
@@ -97,9 +93,7 @@ class Export_table_options : public Dump_options {
   void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
 
-  void validate_options() const override;
-
-  void on_unpacked_options();
+  void on_validate() const override;
 
   void on_set_schema();
 
@@ -108,10 +102,6 @@ class Export_table_options : public Dump_options {
 
   std::string m_where;
   std::unordered_set<std::string> m_partitions;
-
-  mysqlshdk::oci::Oci_bucket_options m_oci_bucket_options;
-  mysqlshdk::aws::S3_bucket_options m_s3_bucket_options;
-  mysqlshdk::azure::Blob_storage_options m_blob_storage_options;
 };
 
 }  // namespace dump

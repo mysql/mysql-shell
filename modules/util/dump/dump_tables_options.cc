@@ -39,11 +39,13 @@ const shcore::Option_pack_def<Dump_tables_options>
   static const auto opts =
       shcore::Option_pack_def<Dump_tables_options>()
           .include<Ddl_dumper_options>()
-          .optional("all", &Dump_tables_options::m_dump_all)
-          .on_log(&Dump_tables_options::on_log_options);
+          .optional("all", &Dump_tables_options::m_dump_all);
 
   return opts;
 }
+
+Dump_tables_options::Dump_tables_options()
+    : Ddl_dumper_options("util.dumpTables") {}
 
 void Dump_tables_options::set_schema(const std::string &schema) {
   m_schema = schema;
@@ -61,8 +63,8 @@ void Dump_tables_options::set_tables(const std::vector<std::string> &tables) {
   }
 }
 
-void Dump_tables_options::validate_options() const {
-  Ddl_dumper_options::validate_options();
+void Dump_tables_options::on_validate() const {
+  Ddl_dumper_options::on_validate();
 
   if (m_schema.empty()) {
     throw std::invalid_argument(

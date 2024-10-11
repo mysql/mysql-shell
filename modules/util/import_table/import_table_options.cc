@@ -26,28 +26,26 @@
 #include "modules/util/import_table/import_table_options.h"
 
 #include <errno.h>
+
 #include <algorithm>
 #include <array>
 #include <limits>
 #include <stack>
+#include <stdexcept>
 #include <utility>
 
 #include "modules/mod_utils.h"
-#include "modules/util/common/dump/utils.h"
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/shellcore/base_session.h"
-#include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/include/shellcore/shell_options.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
-#include "mysqlshdk/libs/storage/ifile.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace {
 template <typename FwdIter>
@@ -125,6 +123,7 @@ const shcore::Option_pack_def<Import_table_option_pack>
     &Import_table_option_pack::options() {
   static const auto opts =
       shcore::Option_pack_def<Import_table_option_pack>()
+          .include<common::Common_options>()
           .optional("table", &Import_table_option_pack::m_table)
           .optional("schema", &Import_table_option_pack::m_schema)
           .optional("threads", &Import_table_option_pack::m_threads_size)
@@ -136,21 +135,19 @@ const shcore::Option_pack_def<Import_table_option_pack>
           .optional("replaceDuplicates",
                     &Import_table_option_pack::set_replace_duplicates)
           .optional("maxRate", &Import_table_option_pack::set_max_rate)
-          .optional("showProgress", &Import_table_option_pack::m_show_progress)
           .optional("skipRows", &Import_table_option_pack::m_skip_rows_count)
           .optional("decodeColumns",
                     &Import_table_option_pack::set_decode_columns)
           .optional("characterSet", &Import_table_option_pack::m_character_set)
           .optional("sessionInitSql",
                     &Import_table_option_pack::m_session_init_sql)
-          .include(&Import_table_option_pack::m_dialect)
-          .include(&Import_table_option_pack::m_oci_bucket_options)
-          .include(&Import_table_option_pack::m_s3_bucket_options)
-          .include(&Import_table_option_pack::m_blob_storage_options)
-          .on_done(&Import_table_option_pack::on_unpacked_options);
+          .include(&Import_table_option_pack::m_dialect);
 
   return opts;
 }
+
+Import_table_option_pack::Import_table_option_pack()
+    : Common_options(Common_options::Config{"util.importTable", true, true}) {}
 
 void Import_table_option_pack::set_filenames(
     const std::vector<std::string> &filenames) {
@@ -161,6 +158,14 @@ void Import_table_option_pack::set_filenames(
       std::remove_if(m_filelist_from_user.begin(), m_filelist_from_user.end(),
                      [](const auto &s) { return s.empty(); }),
       m_filelist_from_user.end());
+
+  if (m_filelist_from_user.empty()) {
+    throw std::runtime_error("File list cannot be empty.");
+  }
+
+  for (const auto &file : m_filelist_from_user) {
+    throw_on_url_and_storage_conflict(file, "importing from a URL");
+  }
 
   m_is_multifile = check_if_multifile();
 
@@ -178,12 +183,12 @@ void Import_table_option_pack::set_filenames(
       m_table = std::get<0>(
           shcore::path::split_extension(shcore::path::basename(single_file())));
     }
-  }
-
-  if (!storage_config() && !m_filelist_from_user.empty()) {
-    // if this is a PAR, we want to use a retry strategy
-    m_storage_config =
-        mysqlsh::dump::common::get_par_config(m_filelist_from_user[0]);
+  } else {
+    if (m_bytes_per_chunk.has_value()) {
+      throw std::runtime_error(
+          "The 'bytesPerChunk' option cannot be used when loading from "
+          "multiple files.");
+    }
   }
 }
 
@@ -253,7 +258,8 @@ void Import_table_option_pack::set_columns(const shcore::Array_t &columns) {
 
 bool Import_table_option_pack::check_if_multifile() {
   if (m_filelist_from_user.size() == 1) {
-    if (storage_config() ||
+    if (const auto storage = storage_config(m_filelist_from_user[0]);
+        (storage && storage->valid()) ||
         shcore::OperatingSystem::WINDOWS != shcore::get_os_type()) {
       // local non-Windows and remote filesystems allow for * and ? characters
       // in file names
@@ -272,16 +278,6 @@ bool Import_table_option_pack::check_if_multifile() {
   }
 
   return true;
-}
-
-bool Import_table_option_pack::is_compressed(const std::string &path) {
-  using mysqlshdk::storage::Compression;
-  using mysqlshdk::storage::get_extension;
-
-  const auto extension = std::get<1>(shcore::path::split_extension(path));
-
-  return extension == get_extension(Compression::GZIP) ||
-         extension == get_extension(Compression::ZSTD);
 }
 
 void Import_table_option_pack::set_replace_duplicates(bool flag) {
@@ -306,53 +302,38 @@ Import_table_options Import_table_options::unpack(
   return ret;
 }
 
-void Import_table_options::validate() {
+void Import_table_options::on_validate() const {
+  Common_options::on_validate();
+
   if (m_table.empty()) {
     throw std::runtime_error(
         "Target table is not set. The target table for the import operation "
         "must be provided in the options.");
   }
 
-  if (m_filelist_from_user.empty()) {
-    throw std::runtime_error("File list cannot be empty.");
-  }
-
   if (m_schema.empty()) {
-    auto res = m_base_session->query("SELECT schema()");
-    auto row = res->fetch_one_or_throw();
-    m_schema = row->is_null(0) ? "" : row->get_string(0);
+    const auto res = session()->query("SELECT schema()");
+    const auto row = res->fetch_one_or_throw();
+    m_schema = row->get_string(0, {});
+
     if (m_schema.empty()) {
       throw std::runtime_error(
           "There is no active schema on the current session, the target "
           "schema for the import operation must be provided in the options.");
     }
   }
+}
 
-  {
-    auto result =
-        m_base_session->query("SHOW GLOBAL VARIABLES LIKE 'local_infile'");
-    auto row = result->fetch_one();
-    auto local_infile_value = row->get_string(1);
+void Import_table_options::on_configure() {
+  Common_options::on_configure();
 
-    if (shcore::str_caseeq(local_infile_value, "off")) {
-      mysqlsh::current_console()->print_error(
-          "The 'local_infile' global system variable must be set to ON in "
-          "the target server, after the server is verified to be trusted.");
-      throw std::runtime_error("Invalid preconditions");
-    }
-  }
+  if (!is_multifile()) {
+    const auto handle = make_file(single_file());
 
-  if (is_multifile()) {
-    if (m_bytes_per_chunk.has_value()) {
-      throw std::runtime_error(
-          "The 'bytesPerChunk' option cannot be used when loading from "
-          "multiple files.");
-    }
-  } else {
-    const auto handle = create_file_handle(single_file());
     // open the file to check if it's readable
     handle->open(mysqlshdk::storage::Mode::READ);
     handle->close();
+
     // cache some values
     m_file_size = handle->file_size();
     m_full_path = handle->full_path().masked();
@@ -361,33 +342,13 @@ void Import_table_options::validate() {
   m_threads_size = calc_thread_size();
 }
 
-std::unique_ptr<mysqlshdk::storage::IFile>
-Import_table_option_pack::create_file_handle(
-    const std::string &filepath) const {
-  return create_file_handle(
-      mysqlshdk::storage::make_file(filepath, storage_config()));
-}
-
-std::unique_ptr<mysqlshdk::storage::IFile>
-Import_table_option_pack::create_file_handle(
-    std::unique_ptr<mysqlshdk::storage::IFile> file_handler) const {
-  mysqlshdk::storage::Compression compr;
-  try {
-    compr = mysqlshdk::storage::from_extension(
-        std::get<1>(shcore::path::split_extension(file_handler->filename())));
-  } catch (...) {
-    compr = mysqlshdk::storage::Compression::NONE;
-  }
-  return mysqlshdk::storage::make_file(std::move(file_handler), compr);
-}
-
 size_t Import_table_options::calc_thread_size() {
   // We need at least one thread
   int64_t threads_size = std::max(static_cast<int64_t>(1), m_threads_size);
 
   if (!is_multifile()) {
     if (dialect_supports_chunking()) {
-      if (!is_compressed(single_file())) {
+      if (!mysqlshdk::storage::is_compressed(single_file())) {
         // We do not need to spawn more threads than file chunks
         const size_t calculated_threads = (m_file_size / bytes_per_chunk()) + 1;
         if (calculated_threads <
@@ -409,47 +370,6 @@ void Import_table_option_pack::set_max_rate(const std::string &value) {
   if (!value.empty()) {
     m_max_rate = std::max<size_t>(0, mysqlshdk::utils::expand_to_bytes(value));
   }
-}
-
-void Import_table_option_pack::on_unpacked_options() {
-  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
-      std::array<const mysqlshdk::storage::backend::object_storage::
-                     Object_storage_options *,
-                 3>{&m_s3_bucket_options, &m_blob_storage_options,
-                    &m_oci_bucket_options});
-
-  if (m_oci_bucket_options) {
-    m_storage_config = m_oci_bucket_options.config();
-  }
-
-  if (m_s3_bucket_options) {
-    m_storage_config = m_s3_bucket_options.config();
-  }
-
-  if (m_blob_storage_options) {
-    m_storage_config = m_blob_storage_options.config();
-  }
-}
-
-Connection_options Import_table_options::connection_options() const {
-  Connection_options connection_options =
-      m_base_session->get_connection_options();
-
-  if (connection_options.has(mysqlshdk::db::kLocalInfile)) {
-    connection_options.remove(mysqlshdk::db::kLocalInfile);
-  }
-  connection_options.set(mysqlshdk::db::kLocalInfile, "true");
-
-  // Set long timeouts by default
-  constexpr auto timeout = 24 * 3600 * 1000;  // 1 day in milliseconds
-  if (!connection_options.has_net_read_timeout()) {
-    connection_options.set_net_read_timeout(timeout);
-  }
-  if (!connection_options.has_net_write_timeout()) {
-    connection_options.set_net_write_timeout(timeout);
-  }
-
-  return connection_options;
 }
 
 uint64_t Import_table_option_pack::bytes_per_chunk() const {
@@ -497,7 +417,7 @@ size_t Import_table_option_pack::max_transaction_size() const {
 }
 
 std::string Import_table_options::target_import_info() const {
-  const auto uri = m_base_session->get_connection_options().as_uri(
+  const auto uri = session()->get_connection_options().as_uri(
       mysqlshdk::db::uri::formats::only_transport());
   std::string info_msg = "Importing from ";
 

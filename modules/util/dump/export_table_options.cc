@@ -37,8 +37,7 @@ namespace mysqlsh {
 namespace dump {
 
 Export_table_options::Export_table_options()
-    : m_blob_storage_options{
-          mysqlshdk::azure::Blob_storage_options::Operation::WRITE} {
+    : Dump_options("util.exportTable") {
   disable_index_files();
   dont_rename_data_files();
   // calling this in the constructor sets the default value
@@ -51,34 +50,9 @@ const shcore::Option_pack_def<Export_table_options>
       shcore::Option_pack_def<Export_table_options>()
           .include<Dump_options>()
           .optional("where", &Export_table_options::m_where)
-          .optional("partitions", &Export_table_options::m_partitions)
-          .include(&Export_table_options::m_oci_bucket_options)
-          .include(&Export_table_options::m_s3_bucket_options)
-          .include(&Export_table_options::m_blob_storage_options)
-          .on_done(&Export_table_options::on_unpacked_options)
-          .on_log(&Export_table_options::on_log_options);
+          .optional("partitions", &Export_table_options::m_partitions);
 
   return opts;
-}
-
-void Export_table_options::on_unpacked_options() {
-  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
-      std::array<const mysqlshdk::storage::backend::object_storage::
-                     Object_storage_options *,
-                 3>{&m_s3_bucket_options, &m_blob_storage_options,
-                    &m_oci_bucket_options});
-
-  if (m_oci_bucket_options) {
-    set_storage_config(m_oci_bucket_options.config());
-  }
-
-  if (m_s3_bucket_options) {
-    set_storage_config(m_s3_bucket_options.config());
-  }
-
-  if (m_blob_storage_options) {
-    set_storage_config(m_blob_storage_options.config());
-  }
 }
 
 void Export_table_options::set_table(const std::string &schema_table) {
@@ -93,8 +67,10 @@ void Export_table_options::set_table(const std::string &schema_table) {
 
 void Export_table_options::on_set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  Dump_options::on_set_session(session);
+
   if (m_schema.empty()) {
-    const auto result = session->query("SELECT SCHEMA();");
+    const auto result = session->query("SELECT SCHEMA()");
 
     if (const auto row = result->fetch_one()) {
       if (!row->is_null(0)) {
@@ -106,7 +82,9 @@ void Export_table_options::on_set_session(
   }
 }
 
-void Export_table_options::validate_options() const {
+void Export_table_options::on_validate() const {
+  Dump_options::on_validate();
+
   if (schema().empty()) {
     throw std::invalid_argument(
         "The table was given without a schema and there is no active schema "

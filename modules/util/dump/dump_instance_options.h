@@ -44,7 +44,7 @@ class Dump_instance_options : public Dump_schemas_options {
   Dump_instance_options &operator=(const Dump_instance_options &) = default;
   Dump_instance_options &operator=(Dump_instance_options &&) = default;
 
-  virtual ~Dump_instance_options() = default;
+  ~Dump_instance_options() override = default;
 
   static const shcore::Option_pack_def<Dump_instance_options> &options();
 
@@ -53,7 +53,7 @@ class Dump_instance_options : public Dump_schemas_options {
  private:
   void on_unpacked_options();
 
-  void validate_options() const override;
+  void on_validate() const override;
 
   bool m_dump_users = true;
 };

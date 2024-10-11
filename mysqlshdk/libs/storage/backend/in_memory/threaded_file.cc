@@ -398,15 +398,7 @@ Scoped_data_block Threaded_file::extract() {
 }
 
 std::unique_ptr<Threaded_file> threaded_file(Threaded_file_config config) {
-  Compression compression;
-
-  try {
-    compression = from_extension(
-        std::get<1>(shcore::path::split_extension(config.file_path)));
-  } catch (...) {
-    compression = Compression::NONE;
-  }
-
+  const auto compression = from_file_path(config.file_path);
   const auto file = [&config]() {
     return std::unique_ptr<Threaded_file>{new Threaded_file{std::move(config)}};
   };

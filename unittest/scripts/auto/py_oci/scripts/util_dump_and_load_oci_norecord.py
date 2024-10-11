@@ -41,10 +41,13 @@ shell.connect(__sandbox_uri1)
 sample_bucket_par = "https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/"
 sample_prefix_par = "https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/prefix/"
 
+conflict_message = "The option 'osBucketName' can not be used when using a URL as the target output"
+
 for sample_par in [ sample_bucket_par, convert_par(sample_bucket_par), sample_prefix_par, convert_par(sample_prefix_par) ]:
-    EXPECT_THROWS(lambda: util.dump_instance(sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), "The option 'osBucketName' can not be used when using a PAR as the target output url.")
-    EXPECT_THROWS(lambda: util.dump_schemas(["world"], sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), "The option 'osBucketName' can not be used when using a PAR as the target output url.")
-    EXPECT_THROWS(lambda: util.dump_tables("sakila", ["actor"], sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), "The option 'osBucketName' can not be used when using a PAR as the target output url.")
+    EXPECT_THROWS(lambda: util.dump_instance(sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), conflict_message)
+    EXPECT_THROWS(lambda: util.dump_schemas(["world"], sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), conflict_message)
+    EXPECT_THROWS(lambda: util.dump_tables("sakila", ["actor"], sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), conflict_message)
+    EXPECT_THROWS(lambda: util.load_dump(sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), "The option 'osBucketName' can not be used when loading from a URL")
 
 #@<> Create a dump with defaults into OCI, no prefix
 util.dump_instance("", {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file})
@@ -124,6 +127,19 @@ open("progress.txt").read()
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for ")
 EXPECT_SHELL_LOG_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
 
+wipeout_server(session2)
+
+#@<> Load dump with a local progress file - file scheme
+testutil.rmfile("progress.txt")
+WIPE_SHELL_LOG()
+util.load_dump("mydump", {"osBucketName":OS_BUCKET_NAME, "osNamespace":OS_NAMESPACE,  "ociConfigFile":oci_config_file, "progressFile":"file://progress.txt"})
+open("progress.txt").read()
+
+EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for ")
+EXPECT_SHELL_LOG_CONTAINS("sakila@film_text@@0.tsv.zst: Records: ")
+
+wipeout_server(session2)
+
 #@<> Bad Bucket Name Option
 EXPECT_THROWS(lambda: util.load_dump("mydump", {"osBucketName":"bukkit"}), "Shell Error (54404): While 'Opening dump': Failed opening object 'mydump/@.json' in READ mode: Failed to get summary for object 'mydump/@.json': Not Found (404)")
 
@@ -160,10 +176,11 @@ EXPECT_SHELL_LOG_CONTAINS(".tsv.zst: Records: 4079  Deleted: 0  Skipped: 0  Warn
 #@<> Bug #31188854: USING THE OCIPROFILE OPTION IN A DUMP MAKE THE DUMP TO ALWAYS FAIL
 # This error now confirms the reported issue is fixed
 dump_dir = "mydump-31188854"
-EXPECT_THROWS(lambda: util.dump_instance(dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to list objects using prefix")
-EXPECT_THROWS(lambda: util.dump_schemas(["world"], dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to list objects using prefix")
-EXPECT_THROWS(lambda: util.dump_tables("sakila", ["actor"], dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to list objects using prefix")
-EXPECT_THROWS(lambda: util.export_table("sakila.actor", os.path.join(dump_dir, "out.txt"), {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), "Failed to list objects using prefix")
+msg = f"Either the bucket named 'any-bucket' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it"
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), msg)
+EXPECT_THROWS(lambda: util.dump_schemas(["world"], dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), msg)
+EXPECT_THROWS(lambda: util.dump_tables("sakila", ["actor"], dump_dir, {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), msg)
+EXPECT_THROWS(lambda: util.export_table("sakila.actor", os.path.join(dump_dir, "out.txt"), {"osBucketName": "any-bucket", "ociProfile": "DEFAULT"}), msg)
 
 #@<> BUG#34599319 - dump&load when paths contain spaces and other characters that need to be URL-encoded
 tested_schema = "test schema"
@@ -209,10 +226,7 @@ WIPE_OUTPUT()
 util.export_table(quote_identifier(tested_schema, tested_table), dump_dir, {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file})
 
 # capture the import command
-full_stdout_output = testutil.fetch_captured_stdout(False)
-index_of_util = full_stdout_output.find("util.")
-EXPECT_NE(-1, index_of_util)
-util_import_table_code = full_stdout_output[index_of_util:]
+util_import_table_code = extract_import_table_code()
 
 #@<> BUG#34657730 - test
 shell.connect(__sandbox_uri2)

@@ -36,7 +36,6 @@
 
 namespace mysqlsh {
 namespace dump {
-using Filtering_options = mysqlshdk::db::Filtering_options;
 
 const shcore::Option_pack_def<Dump_schemas_options>
     &Dump_schemas_options::options() {
@@ -51,11 +50,16 @@ const shcore::Option_pack_def<Dump_schemas_options>
           .optional("routines", &Dump_schemas_options::m_dump_routines)
           .include(&Dump_schemas_options::m_filtering_options,
                    &Filtering_options::routines)
-          .on_done(&Dump_schemas_options::on_unpacked_options)
-          .on_log(&Dump_schemas_options::on_log_options);
+          .on_done(&Dump_schemas_options::on_unpacked_options);
 
   return opts;
 }
+
+Dump_schemas_options::Dump_schemas_options()
+    : Dump_schemas_options("util.dumpSchemas") {}
+
+Dump_schemas_options::Dump_schemas_options(const char *name)
+    : Ddl_dumper_options(name) {}
 
 void Dump_schemas_options::on_unpacked_options() {
   if (mds_compatibility()) {
@@ -74,8 +78,8 @@ void Dump_schemas_options::set_schemas(
   filters().schemas().include(m_schemas);
 }
 
-void Dump_schemas_options::validate_options() const {
-  Ddl_dumper_options::validate_options();
+void Dump_schemas_options::on_validate() const {
+  Ddl_dumper_options::on_validate();
 
   if (m_schemas.empty()) {
     throw std::invalid_argument(

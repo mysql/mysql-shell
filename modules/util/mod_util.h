@@ -188,6 +188,8 @@ class SHCORE_PUBLIC Util : public Extensible_object {
       const shcore::Option_pack_ref<copy::Copy_tables_options> &options = {});
 
  private:
+  std::shared_ptr<mysqlshdk::db::ISession> global_session() const;
+
   shcore::IShell_core &_shell_core;
 };
 

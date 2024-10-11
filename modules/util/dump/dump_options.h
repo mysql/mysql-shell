@@ -38,12 +38,10 @@
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/db/filtering_options.h"
-#include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
-#include "mysqlshdk/libs/storage/config.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
 
+#include "modules/util/common/common_options.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/instance_cache.h"
 #include "modules/util/import_table/dialect.h"
@@ -57,10 +55,9 @@ enum class Dry_run {
   DONT_WRITE_ANY_FILES,
 };
 
-class Dump_options {
+class Dump_options : public mysqlsh::common::Common_options {
  public:
   using Filtering_options = mysqlshdk::db::Filtering_options;
-  Dump_options();
 
   Dump_options(const Dump_options &) = default;
   Dump_options(Dump_options &&) = default;
@@ -68,25 +65,18 @@ class Dump_options {
   Dump_options &operator=(const Dump_options &) = default;
   Dump_options &operator=(Dump_options &&) = default;
 
-  virtual ~Dump_options() = default;
+  ~Dump_options() override = default;
 
   static const shcore::Option_pack_def<Dump_options> &options();
 
   static const mysqlshdk::utils::Version &current_version();
 
-  void validate() const;
-
   // setters
-  virtual void set_output_url(const std::string &url) { m_output_url = url; }
-
-  void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
+  void set_output_url(const std::string &url);
 
   void set_compression(mysqlshdk::storage::Compression compression) {
     m_compression = compression;
   }
-
-  void set_storage_config(
-      std::shared_ptr<mysqlshdk::storage::Config> storage_config);
 
   void set_dry_run_mode(Dry_run dry_run) { m_dry_run_mode = dry_run; }
 
@@ -103,23 +93,13 @@ class Dump_options {
 
   int64_t max_rate() const { return m_max_rate; }
 
-  bool show_progress() const { return m_show_progress; }
-
   mysqlshdk::storage::Compression compression() const { return m_compression; }
 
   const mysqlshdk::storage::Compression_options &compression_options() const {
     return m_compression_options;
   }
 
-  const std::shared_ptr<mysqlshdk::db::ISession> &session() const {
-    return m_session;
-  }
-
   const import_table::Dialect &dialect() const { return m_dialect; }
-
-  const mysqlshdk::storage::Config_ptr &storage_config() const {
-    return m_storage_config;
-  }
 
   const std::string &character_set() const { return m_character_set; }
 
@@ -194,6 +174,12 @@ class Dump_options {
   virtual bool checksum() const = 0;
 
  protected:
+  explicit Dump_options(const char *name);
+
+  virtual void on_set_output_url(const std::string &url);
+
+  void on_validate() const override;
+
   void enable_mds_compatibility() { m_is_mds = true; }
 
   void set_compatibility_option(Compatibility_option c) {
@@ -233,17 +219,8 @@ class Dump_options {
  protected:
   void on_start_unpack(const shcore::Dictionary_t &options);
 
-  // This function should be implemented when the validation process requires
-  // data NOT coming on the user options, i.e. a session
-  virtual void validate_options() const {}
-
-  void on_log_options(const char *msg) const;
-
  private:
   void on_unpacked_options();
-
-  virtual void on_set_session(
-      const std::shared_ptr<mysqlshdk::db::ISession> &session) = 0;
 
   void set_string_option(const std::string &option, const std::string &value);
 
@@ -252,9 +229,6 @@ class Dump_options {
       const std::unordered_set<std::string> &objects) const;
 
   void validate_partitions() const;
-
-  // global session
-  std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
   // input arguments
   std::string m_output_url;
@@ -265,11 +239,9 @@ class Dump_options {
 
   // common options
   int64_t m_max_rate = 0;
-  bool m_show_progress;
   mysqlshdk::storage::Compression m_compression =
       mysqlshdk::storage::Compression::ZSTD;
   mysqlshdk::storage::Compression_options m_compression_options;
-  mysqlshdk::storage::Config_ptr m_storage_config;
 
   std::string m_character_set = "utf8mb4";
 

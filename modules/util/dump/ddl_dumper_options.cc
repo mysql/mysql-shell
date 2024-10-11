@@ -58,10 +58,8 @@ constexpr auto k_default_chunk_size = "64M";
 
 }  // namespace
 
-Ddl_dumper_options::Ddl_dumper_options()
-    : Dump_options(),
-      m_blob_storage_options{
-          mysqlshdk::azure::Blob_storage_options::Operation::WRITE},
+Ddl_dumper_options::Ddl_dumper_options(const char *name)
+    : Dump_options(name),
       m_bytes_per_chunk(expand_to_bytes(k_default_chunk_size)) {}
 
 const shcore::Option_pack_def<Ddl_dumper_options>
@@ -92,11 +90,7 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("where", &Ddl_dumper_options::set_where_clause)
           .optional("partitions", &Ddl_dumper_options::set_partitions)
           .optional("checksum", &Ddl_dumper_options::m_checksum)
-          .include(&Ddl_dumper_options::m_oci_bucket_options)
-          .include(&Ddl_dumper_options::m_s3_bucket_options)
-          .include(&Ddl_dumper_options::m_blob_storage_options)
-          .on_done(&Ddl_dumper_options::on_unpacked_options)
-          .on_log(&Ddl_dumper_options::on_log_options);
+          .on_done(&Ddl_dumper_options::on_unpacked_options);
 
   return opts;
 }
@@ -134,24 +128,6 @@ void Ddl_dumper_options::set_target_version_str(const std::string &value) {
 }
 
 void Ddl_dumper_options::on_unpacked_options() {
-  mysqlshdk::storage::backend::object_storage::throw_on_conflict(
-      std::array<const mysqlshdk::storage::backend::object_storage::
-                     Object_storage_options *,
-                 3>{&m_s3_bucket_options, &m_blob_storage_options,
-                    &m_oci_bucket_options});
-
-  if (m_oci_bucket_options) {
-    set_storage_config(m_oci_bucket_options.config());
-  }
-
-  if (m_s3_bucket_options) {
-    set_storage_config(m_s3_bucket_options.config());
-  }
-
-  if (m_blob_storage_options) {
-    set_storage_config(m_blob_storage_options.config());
-  }
-
   if (m_bytes_per_chunk < expand_to_bytes(k_minimum_chunk_size)) {
     throw std::invalid_argument(
         "The value of 'bytesPerChunk' option must be greater than or equal "
@@ -213,43 +189,18 @@ void Ddl_dumper_options::set_threads(uint64_t threads) {
   m_worker_threads = threads;
 }
 
-const Object_storage_options *Ddl_dumper_options::object_storage_options()
-    const {
-  if (m_oci_bucket_options) {
-    return &m_oci_bucket_options;
-  } else if (m_s3_bucket_options) {
-    return &m_s3_bucket_options;
-  } else if (m_blob_storage_options) {
-    return &m_blob_storage_options;
+void Ddl_dumper_options::on_set_output_url(const std::string &url) {
+  Dump_options::on_set_output_url(url);
+
+  Storage_options::Storage_type storage;
+  storage_config(url, &storage);
+
+  if (Storage_options::Storage_type::Oci_prefix_par == storage) {
+    // For dumps with PAR prefix, doubles the number of worker threads
+    m_worker_threads = m_threads * 2;
+  } else if (Storage_options::Storage_type::Oci_par == storage) {
+    throw std::invalid_argument{"The given URL is not a prefix PAR."};
   }
-
-  return nullptr;
-}
-
-void Ddl_dumper_options::set_output_url(const std::string &url) {
-  const auto par = dump::common::parse_par(url);
-
-  if (par.type() != mysqlshdk::oci::PAR_type::NONE) {
-    const auto options = object_storage_options();
-
-    if (options != nullptr) {
-      throw std::invalid_argument(
-          shcore::str_format("The option '%s' can not be used when using a PAR "
-                             "as the target output url.",
-                             options->get_main_option()));
-    } else {
-      if (par.type() == mysqlshdk::oci::PAR_type::PREFIX) {
-        set_storage_config(dump::common::get_par_config(par));
-
-        // For dumps with PAR prefix, doubles the number of worker threads
-        m_worker_threads = m_threads * 2;
-      } else {
-        throw std::invalid_argument("The given URL is not a prefix PAR.");
-      }
-    }
-  }
-
-  Dump_options::set_output_url(url);
 }
 
 }  // namespace dump

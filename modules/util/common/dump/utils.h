@@ -63,14 +63,6 @@ std::string get_table_data_filename(const std::string &basename,
                                     const std::string &ext, size_t index,
                                     bool last_chunk);
 
-mysqlshdk::oci::PAR_structure parse_par(const std::string &url);
-
-std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
-    const std::string &url);
-
-std::shared_ptr<mysqlshdk::oci::IPAR_config> get_par_config(
-    const mysqlshdk::oci::PAR_structure &par);
-
 }  // namespace common
 }  // namespace dump
 }  // namespace mysqlsh

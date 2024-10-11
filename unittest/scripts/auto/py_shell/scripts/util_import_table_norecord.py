@@ -36,18 +36,13 @@ def primary_key_prefix(table_name):
 
 #@<> Throw if session is empty
 EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "table": target_table }),
-    "A classic protocol session is required to perform this operation.")
+    "An open session is required to perform this operation.")
 
 
 testutil.wait_sandbox_alive(xuri)
 
-#@<> LOAD DATA is supported only by Classic Protocol
-shell.connect(xuri)
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump,
-        { "schema": target_schema }),
-"A classic protocol session is required to perform this operation.")
-
 #@<> Setup test
+shell.connect(xuri)
 #/ Create collection for json import
 session.drop_schema(target_schema)
 schema_ = session.create_schema(target_schema)
@@ -63,12 +58,23 @@ session.run_sql(f"""CREATE TABLE `{target_table}` (`ID` int(11) NOT NULL AUTO_IN
 #@<> Throw if MySQL Server config option local_infile is false
 session.run_sql('SET GLOBAL local_infile = false')
 EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "schema": target_schema, "table": target_table }),
-    "Invalid preconditions")
+    "local_infile disabled in server")
 
 EXPECT_STDOUT_CONTAINS("The 'local_infile' global system variable must be set to ON in the target server, after the server is verified to be trusted.")
 
 #@<> Set local_infile to true
 session.run_sql('SET GLOBAL local_infile = true')
+
+
+#@<> BUG#34582616 when global session is using X protocol, importTable should still work
+shell.connect(xuri)
+
+EXPECT_NO_THROWS(lambda: util.import_table(world_x_cities_dump,
+        { "schema": target_schema, "table": target_table }),
+"Should create a classic connection")
+
+shell.connect(uri)
+truncate_table()
 
 #@<> TSF1_1 and TSF1_2
 #/ TSF1_1: Validate that the load data operation is done using the current
@@ -442,7 +448,7 @@ session.run_sql("DROP SCHEMA IF EXISTS " + target_schema)
 session.close()
 
 #@<> Throw if session is closed
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "table": target_table }), "A classic protocol session is required to perform this operation.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "table": target_table }), "An open session is required to perform this operation.")
 
 #@<> BUG#35018278 skipRows=X should be applied even if a compressed file or multiple files are loaded
 # setup

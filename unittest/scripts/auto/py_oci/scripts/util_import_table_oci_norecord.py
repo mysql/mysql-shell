@@ -7,6 +7,9 @@
 #@<> Setup
 import os
 import os.path
+import re
+
+RFC3339 = True
 
 OCI_CONFIG_FILE = os.path.join(OCI_CONFIG_HOME, "config")
 TARGET_SCHEMA = 'world_x'
@@ -212,6 +215,162 @@ EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGE
 
 session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
 EXPECT_NO_THROWS(lambda: util.import_table("exported.tsv", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False}), "import_table() with `ociAuth` = 'security_token'")
+
+#@<> export to a PAR URL - setup
+# checksum the data
+checksum = md5_table(session, TARGET_SCHEMA, TARGET_TABLE)
+
+# when exporting to a PAR, it is going to be printed to the screen as part of the import command
+ignore_import_table_command = [re.compile(r'.*util.import_table\("https://')]
+
+def EXPECT_EXPORT_IMPORT(output_url, options={}):
+    if "showProgress" not in options:
+        options["showProgress"] = False
+    # export the data
+    PREPARE_PAR_IS_SECRET_TEST()
+    EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), test_par, options), "export_table() with PAR")
+    EXPECT_PAR_IS_SECRET(ignore=ignore_import_table_command)
+    # prepare for import
+    import_table_code = extract_import_table_code()
+    session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+    # import the data
+    PREPARE_PAR_IS_SECRET_TEST()
+    EXPECT_NO_THROWS(lambda: exec(import_table_code), "import_table() with PAR")
+    EXPECT_PAR_IS_SECRET()
+    # verify the checksum
+    EXPECT_EQ(checksum, md5_table(session, TARGET_SCHEMA, TARGET_TABLE))
+
+#@<> export to a PAR URL - plaintext file
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+test_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par", today_plus_days(1, RFC3339), "exported.tsv")
+
+EXPECT_EXPORT_IMPORT(test_par)
+
+#@<> export to a PAR URL - compressed file
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+test_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par-zst", today_plus_days(1, RFC3339), "exported.tsv.zst")
+
+EXPECT_EXPORT_IMPORT(test_par, {"compression": "zstd"})
+
+#@<> export to a PAR URL - multiple files
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+test_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par-part", today_plus_days(1, RFC3339), "exported-part.tsv")
+test_par_gz = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par-part-gz", today_plus_days(1, RFC3339), "exported-part.tsv.gz")
+
+# export the data
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), test_par, {"where": "ID <= 2000", "showProgress": False}), "export_table() with PAR")
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), test_par_gz, {"compression": "gzip", "where": "ID > 2000", "showProgress": False}), "export_table() with PAR")
+EXPECT_PAR_IS_SECRET(ignore=ignore_import_table_command)
+
+# import the data
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.import_table([test_par, test_par_gz], { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), "import_table() with PAR")
+EXPECT_PAR_IS_SECRET()
+
+# verify the checksum
+EXPECT_EQ(checksum, md5_table(session, TARGET_SCHEMA, TARGET_TABLE))
+
+#@<> export to a PAR URL - multiple files + bucket PAR
+bucket_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "export-par-part", today_plus_days(1, RFC3339), None, "ListObjects")
+
+# bucket PAR without a wildcard throws
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.import_table(bucket_par, { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), "The given URL is not a PAR to a file.")
+EXPECT_PAR_IS_SECRET()
+
+# import the data
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.import_table(bucket_par + "*", { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), "import_table() with PAR")
+EXPECT_PAR_IS_SECRET()
+
+# verify the checksum
+EXPECT_EQ(checksum, md5_table(session, TARGET_SCHEMA, TARGET_TABLE))
+
+#@<> export to a PAR URL - bucket PAR - error cases
+# cannot list objects
+bucket_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "export-par-part", today_plus_days(1, RFC3339), None)
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.import_table(bucket_par + "*", { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), f"BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
+EXPECT_PAR_IS_SECRET()
+
+# cannot read objects
+bucket_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "export-par-part", today_plus_days(1, RFC3339), None, "ListObjects")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.import_table(bucket_par + "*", { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), f"BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
+EXPECT_PAR_IS_SECRET()
+
+#@<> export to a PAR URL - plaintext file in a directory
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+test_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par", today_plus_days(1, RFC3339), "backup/exported.tsv")
+
+EXPECT_EXPORT_IMPORT(test_par)
+
+#@<> export to a PAR URL - compressed file in a directory
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+test_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par-zst", today_plus_days(1, RFC3339), "backup/exported.tsv.zst")
+
+EXPECT_EXPORT_IMPORT(test_par, {"compression": "zstd"})
+
+#@<> export to a PAR URL - multiple files in a directory
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+test_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par-part", today_plus_days(1, RFC3339), "backup/exported-part.tsv")
+test_par_gz = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "export-par-part-gz", today_plus_days(1, RFC3339), "backup/exported-part.tsv.gz")
+
+# export the data
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), test_par, {"where": "ID <= 2000", "showProgress": False}), "export_table() with PAR")
+EXPECT_NO_THROWS(lambda: util.export_table(quote_identifier(TARGET_SCHEMA, TARGET_TABLE), test_par_gz, {"compression": "gzip", "where": "ID > 2000", "showProgress": False}), "export_table() with PAR")
+EXPECT_PAR_IS_SECRET(ignore=ignore_import_table_command)
+
+# import the data
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.import_table([test_par, test_par_gz], { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), "import_table() with PAR")
+EXPECT_PAR_IS_SECRET()
+
+# verify the checksum
+EXPECT_EQ(checksum, md5_table(session, TARGET_SCHEMA, TARGET_TABLE))
+
+#@<> export to a PAR URL - multiple files + prefix PAR
+prefix_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "export-par-part", today_plus_days(1, RFC3339), "backup/", "ListObjects")
+
+# prefix PAR without a wildcard throws
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.import_table(prefix_par, { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), "The given URL is not a PAR to a file.")
+EXPECT_PAR_IS_SECRET()
+
+# import the data
+session.run_sql(f"TRUNCATE TABLE {quote_identifier(TARGET_SCHEMA, TARGET_TABLE)}")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.import_table(prefix_par + "*", { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), "import_table() with PAR")
+EXPECT_PAR_IS_SECRET()
+
+# verify the checksum
+EXPECT_EQ(checksum, md5_table(session, TARGET_SCHEMA, TARGET_TABLE))
+
+#@<> export to a PAR URL - prefix PAR - error cases
+# cannot list objects
+prefix_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "export-par-part", today_plus_days(1, RFC3339), "backup/")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.import_table(prefix_par + "*", { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), f"BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
+EXPECT_PAR_IS_SECRET()
+
+# cannot read objects
+prefix_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "export-par-part", today_plus_days(1, RFC3339), "backup/", "ListObjects")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_THROWS(lambda: util.import_table(prefix_par + "*", { "schema": TARGET_SCHEMA, "table": TARGET_TABLE, "showProgress": False }), f"BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
+EXPECT_PAR_IS_SECRET()
 
 #@<> Cleanup
 session.close()

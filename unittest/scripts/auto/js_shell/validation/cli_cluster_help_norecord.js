@@ -98,38 +98,38 @@ RETURNS
       nothing
 
 OPTIONS
---recoveryProgress=<int>
-            Integer value to indicate the recovery process verbosity level.
+--autoRejoinTries=<int>
+            Integer value to define the number of times an instance will
+            attempt to rejoin the cluster after being expelled.
+
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
+
+--exitStateAction=<str>
+            String value indicating the group replication exit state action.
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
             replication. Only valid if communicationStack=XCOM.
 
+--label=<str>
+            An identifier for the instance being added
+
 --localAddress=<str>
             String value with the Group Replication local address to be used
             instead of the automatically generated one.
-
---exitStateAction=<str>
-            String value indicating the group replication exit state action.
 
 --memberWeight=<int>
             Integer value with a percentage weight for automatic primary
             election on failover.
 
---autoRejoinTries=<int>
-            Integer value to define the number of times an instance will
-            attempt to rejoin the cluster after being expelled.
-
 --recoveryMethod=<str>
             Preferred method of state recovery. May be auto, clone or
             incremental. Default is auto.
 
---label=<str>
-            An identifier for the instance being added
-
---certSubject=<str>
-            Instance's certificate subject to use when 'memberAuthType'
-            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
 
 //@<OUT> CLI cluster describe --help
 NAME
@@ -216,9 +216,13 @@ RETURNS
       A JSON object with the result of the operation.
 
 OPTIONS
---recoveryProgress=<int>
-            Integer value to indicate the recovery process verbosity level.
-            recovery process to finish and its verbosity level.
+--cloneDonor=<str>
+            The Cluster member to be used as donor when performing clone-based
+            recovery. Available only for Read Replicas.
+
+--dryRun=<bool>
+            Boolean if true, all validations and steps for rejoining the
+            instance are executed, but no changes are actually made.
 
 --ipAllowlist=<str>
             The list of hosts allowed to connect to the instance for group
@@ -232,19 +236,15 @@ OPTIONS
             Preferred method of state recovery. May be auto, clone or
             incremental. Default is auto.
 
---cloneDonor=<str>
-            The Cluster member to be used as donor when performing clone-based
-            recovery. Available only for Read Replicas.
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
+            recovery process to finish and its verbosity level.
 
 --timeout=<int>
             Maximum number of seconds to wait for the instance to sync up with
             the PRIMARY after it's provisioned and the replication channel is
             established. If reached, the operation is rolled-back. Default is 0
             (no timeout). Available only for Read Replicas.
-
---dryRun=<bool>
-            Boolean if true, all validations and steps for rejoining the
-            instance are executed, but no changes are actually made.
 
 //@<OUT> CLI cluster remove-instance --help
 NAME
@@ -260,20 +260,20 @@ RETURNS
       Nothing.
 
 OPTIONS
---timeout=<int>
-            Maximum number of seconds to wait for the instance to sync up with
-            the PRIMARY. If reached, the operation is rolled-back. Default is 0
-            (no timeout).
+--dryRun=<bool>
+            Boolean if true, all validations and steps for removing the
+            instance are executed, but no changes are actually made. An
+            exception will be thrown when finished.
 
 --force=<bool>
             Boolean, indicating if the instance must be removed (even if only
             from metadata) in case it cannot be reached. By default, set to
             false.
 
---dryRun=<bool>
-            Boolean if true, all validations and steps for removing the
-            instance are executed, but no changes are actually made. An
-            exception will be thrown when finished.
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up with
+            the PRIMARY. If reached, the operation is rolled-back. Default is 0
+            (no timeout).
 
 //@<OUT> CLI cluster remove-router-metadata --help
 NAME
@@ -305,24 +305,24 @@ OPTIONS
             the metadata, or "auto" to automatically add missing instances to
             the metadata. Deprecated.
 
---removeInstances[:<type>]=<value>
-            List with the connection data of the obsolete instances to remove
-            from the metadata, or "auto" to automatically remove obsolete
-            instances from the metadata. Deprecated.
-
 --addUnmanaged=<bool>
             Boolean. Set to true to automatically add newly discovered
             instances, i.e. already part of the replication topology but not
             managed in the Cluster, to the metadata. Defaults to false.
+
+--removeInstances[:<type>]=<value>
+            List with the connection data of the obsolete instances to remove
+            from the metadata, or "auto" to automatically remove obsolete
+            instances from the metadata. Deprecated.
 
 --removeObsolete=<bool>
             Boolean. Set to true to automatically remove all obsolete
             instances, i.e. no longer part of the replication topology, from
             the metadata. Defaults to false.
 
---upgradeCommProtocol=<bool>
-            Boolean. Set to true to upgrade the Group Replication communication
-            protocol to the highest version possible.
+--repairMetadata=<bool>
+            Boolean. Set to true to repair the Metadata if detected to be
+            inconsistent.
 
 --updateViewChangeUuid=<bool>
             Boolean. Indicates if the command should generate and set a value
@@ -330,9 +330,9 @@ OPTIONS
             Required for InnoDB ClusterSet usage (if running MySQL version
             lower than 8.3.0).
 
---repairMetadata=<bool>
-            Boolean. Set to true to repair the Metadata if detected to be
-            inconsistent.
+--upgradeCommProtocol=<bool>
+            Boolean. Set to true to upgrade the Group Replication communication
+            protocol to the highest version possible.
 
 //@<OUT> CLI cluster reset-recovery-accounts-password --help
 NAME
@@ -395,6 +395,13 @@ WHERE
 RETURNS
       Nothing.
 
+OPTIONS
+--runningTransactionsTimeout=<uint>
+            Integer value to define the time period, in seconds, that the
+            primary election waits for ongoing transactions to complete. After
+            the timeout is reached, any ongoing transaction is rolled back
+            allowing the operation to complete.
+
 //@<OUT> CLI cluster setup-admin-account --help
 NAME
       setup-admin-account - Create or upgrade an InnoDB Cluster admin account.
@@ -409,16 +416,17 @@ RETURNS
       Nothing.
 
 OPTIONS
---password=<str>
-            The password for the InnoDB Cluster administrator account.
-
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.
 
---update=<bool>
-            Boolean value that must be enabled to allow updating the privileges
-            and/or password of existing accounts. Default value is False.
+--password=<str>
+            The password for the InnoDB Cluster administrator account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
 
 --requireCertIssuer=<str>
             Optional SSL certificate issuer for the account.
@@ -426,10 +434,9 @@ OPTIONS
 --requireCertSubject=<str>
             Optional SSL certificate subject for the account.
 
---passwordExpiration[:<type>]=<value>
-            Password expiration setting for the account. May be set to the
-            number of days for expiration, 'NEVER' to disable expiration and
-            'DEFAULT' to use the system default.
+--update=<bool>
+            Boolean value that must be enabled to allow updating the privileges
+            and/or password of existing accounts. Default value is False.
 
 //@<OUT> CLI cluster setup-router-account --help
 NAME
@@ -446,16 +453,17 @@ RETURNS
       Nothing.
 
 OPTIONS
---password=<str>
-            The password for the MySQL Router account.
-
 --dryRun=<bool>
             Boolean value used to enable a dry run of the account setup
             process. Default value is False.
 
---update=<bool>
-            Boolean value that must be enabled to allow updating the privileges
-            and/or password of existing accounts. Default value is False.
+--password=<str>
+            The password for the MySQL Router account.
+
+--passwordExpiration[:<type>]=<value>
+            Password expiration setting for the account. May be set to the
+            number of days for expiration, 'NEVER' to disable expiration and
+            'DEFAULT' to use the system default.
 
 --requireCertIssuer=<str>
             Optional SSL certificate issuer for the account.
@@ -463,10 +471,9 @@ OPTIONS
 --requireCertSubject=<str>
             Optional SSL certificate subject for the account.
 
---passwordExpiration[:<type>]=<value>
-            Password expiration setting for the account. May be set to the
-            number of days for expiration, 'NEVER' to disable expiration and
-            'DEFAULT' to use the system default.
+--update=<bool>
+            Boolean value that must be enabled to allow updating the privileges
+            and/or password of existing accounts. Default value is False.
 
 //@<OUT> CLI cluster status --help
 NAME
@@ -540,11 +547,13 @@ RETURNS
       nothing
 
 OPTIONS
---timeout=<int>
-            Maximum number of seconds to wait for the instance to sync up with
-            the PRIMARY after it's provisioned and the replication channel is
-            established. If reached, the operation is rolled-back. Default is 0
-            (no timeout).
+--certSubject=<str>
+            Instance's certificate subject to use when 'memberAuthType'
+            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
+
+--cloneDonor=<str>
+            The Cluster member to be used as donor when performing clone-based
+            recovery.
 
 --dryRun=<bool>
             Boolean if true, all validations and steps for creating a Read
@@ -555,25 +564,23 @@ OPTIONS
             An identifier for the Read Replica Instance being added, used in
             the output of status() and describe().
 
---certSubject=<str>
-            Instance's certificate subject to use when 'memberAuthType'
-            contains "CERT_SUBJECT" or "CERT_SUBJECT_PASSWORD".
+--recoveryMethod=<str>
+            Preferred method for state recovery/provisioning. May be auto,
+            clone or incremental. Default is auto.
+
+--recoveryProgress=<int>
+            Integer value to indicate the recovery process verbosity level.
 
 --replicationSources[:<type>]=<value>
             The list of sources for the Read Replica Instance. By default, the
             list is automatically managed by Group Replication and the primary
             member is used as source.
 
---recoveryProgress=<int>
-            Integer value to indicate the recovery process verbosity level.
-
---recoveryMethod=<str>
-            Preferred method for state recovery/provisioning. May be auto,
-            clone or incremental. Default is auto.
-
---cloneDonor=<str>
-            The Cluster member to be used as donor when performing clone-based
-            recovery.
+--timeout=<int>
+            Maximum number of seconds to wait for the instance to sync up with
+            the PRIMARY after it's provisioned and the replication channel is
+            established. If reached, the operation is rolled-back. Default is 0
+            (no timeout).
 
 //@<OUT> CLI cluster routing-options --help
 NAME
@@ -601,8 +608,9 @@ RETURNS
       A JSON object with the list of Router configuration options.
 
 OPTIONS
+--extended=<uint>
+            Verbosity level of the command output.
+
 --router=<str>
             Identifier of the Router instance to be displayed.
 
---extended=<uint>
-            Verbosity level of the command output.

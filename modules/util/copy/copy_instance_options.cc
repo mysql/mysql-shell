@@ -32,8 +32,7 @@ const shcore::Option_pack_def<Copy_instance_options>
     &Copy_instance_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Copy_instance_options>()
-          .include<Copy_options<dump::Dump_instance_options>>()
-          .on_log(&Copy_instance_options::on_log_options);
+          .include<Copy_options<dump::Dump_instance_options>>();
 
   return opts;
 }

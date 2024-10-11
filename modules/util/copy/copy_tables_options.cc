@@ -36,8 +36,7 @@ const shcore::Option_pack_def<Copy_tables_options>
           .ignore({"excludeEvents", "excludeRoutines", "excludeSchemas",
                    "excludeTables", "excludeUsers", "includeEvents",
                    "includeRoutines", "includeSchemas", "includeTables",
-                   "includeUsers"})
-          .on_log(&Copy_tables_options::on_log_options);
+                   "includeUsers"});
 
   return opts;
 }

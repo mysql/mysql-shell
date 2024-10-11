@@ -4693,21 +4693,9 @@ void Testutils::anycopy(const shcore::Value &from, const shcore::Value &to) {
   std::unique_ptr<mysqlshdk::storage::IFile> to_file = file(to);
 
   // handle compression/decompression
-  mysqlshdk::storage::Compression from_compr;
-  mysqlshdk::storage::Compression to_compr;
-  try {
-    from_compr = mysqlshdk::storage::from_extension(
-        std::get<1>(shcore::path::split_extension(from_file->filename())));
-  } catch (...) {
-    from_compr = mysqlshdk::storage::Compression::NONE;
-  }
-
-  try {
-    to_compr = mysqlshdk::storage::from_extension(
-        std::get<1>(shcore::path::split_extension(to_file->filename())));
-  } catch (...) {
-    to_compr = mysqlshdk::storage::Compression::NONE;
-  }
+  const auto from_compr =
+      mysqlshdk::storage::from_file_path(from_file->filename());
+  const auto to_compr = mysqlshdk::storage::from_file_path(to_file->filename());
 
   if (from_compr != to_compr) {
     from_file = mysqlshdk::storage::make_file(std::move(from_file), from_compr);

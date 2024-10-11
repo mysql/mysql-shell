@@ -22,19 +22,13 @@ function callMysqlsh(command_line_args) {
 //@<> Throw if session is empty
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/world_x_cities.dump', { table: 'cities' });
-}, "A classic protocol session is required to perform this operation.");
+}, "An open session is required to perform this operation.");
 
 
 testutil.waitSandboxAlive(xuri);
 
-//@<> LOAD DATA is supported only by Classic Protocol
-shell.connect(xuri)
-EXPECT_THROWS(function () {
-    util.importTable(__import_data_path + '/world_x_cities.dump',
-        { schema: target_schema });
-}, "A classic protocol session is required to perform this operation.");
-
 //@<> Setup test
+shell.connect(xuri);
 /// Create collection for json import
 session.dropSchema(target_schema);
 var schema_ = session.createSchema(target_schema);
@@ -56,12 +50,22 @@ session.runSql(`create table ${target_schema}.init_test (a int)`);
 session.runSql('SET GLOBAL local_infile = false');
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/world_x_cities.dump', { schema: target_schema, table: 'cities' });
-}, "Invalid preconditions");
+}, "local_infile disabled in server");
 EXPECT_STDOUT_CONTAINS("The 'local_infile' global system variable must be set to ON in the target server, after the server is verified to be trusted.");
-
 
 //@<> Set local_infile to true
 session.runSql('SET GLOBAL local_infile = true');
+
+//@<> BUG#34582616 when global session is using X protocol, importTable should still work
+shell.connect(xuri);
+
+EXPECT_NO_THROWS(function () {
+    util.importTable(__import_data_path + '/world_x_cities.dump',
+        { schema: target_schema, table: 'cities' });
+}, "Should create a classic connection");
+
+shell.connect(uri);
+session.runSql('TRUNCATE TABLE ' + target_schema + '.cities');
 
 //@<> TSF1_1 and TSF1_2
 /// TSF1_1: Validate that the load data operation is done using the current
@@ -669,4 +673,4 @@ session.close();
 //@<> Throw if session is closed
 EXPECT_THROWS(function () {
     util.importTable(__import_data_path + '/world_x_cities.dump', { table: 'cities' });
-}, "A classic protocol session is required to perform this operation.");
+}, "An open session is required to perform this operation.");

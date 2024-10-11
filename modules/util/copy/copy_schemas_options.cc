@@ -34,8 +34,7 @@ const shcore::Option_pack_def<Copy_schemas_options>
       shcore::Option_pack_def<Copy_schemas_options>()
           .include<Copy_options<dump::Dump_schemas_options>>()
           .ignore({"excludeSchemas", "excludeUsers", "includeSchemas",
-                   "includeUsers"})
-          .on_log(&Copy_schemas_options::on_log_options);
+                   "includeUsers"});
 
   return opts;
 }

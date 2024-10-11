@@ -125,7 +125,7 @@ DESCRIPTION
       - param1: String (required) - First parameter.
       - param2: String (required) - Second parameter.
       - description: String - Description.
-[[*]]> 
+[[*]]>
 
 #@<OUT> Lists help of plugin function with options (js)
 [[*]]> \? decorator.inner.testOptions
@@ -187,18 +187,18 @@ anUndefined value: {"anykey": "anyValue"}
 #@<OUT> Test calling function with required dictionary parameters 1 (js)
 [[*]]> decorator.testRequiredDictParams('one')
 Missing required options at Argument #2: param1, param2 (ArgumentError)
-[[*]]> 
+[[*]]>
 
 #@<OUT> Test calling function with required dictionary parameters 2 (js)
 [[*]]> decorator.testRequiredDictParams('one', {'param1': 'value1'})
 Missing required options at Argument #2: param2 (ArgumentError)
-[[*]]> 
+[[*]]>
 
 #@<OUT> Test calling function with required dictionary parameters 3 (js)
 [[*]]> decorator.testRequiredDictParams('one', {'param1': 'value1', 'param2': 'value2'})
 first value: one
 dict: {"param1": "value1", "param2": "value2"}
-[[*]]> 
+[[*]]>
 
 
 #@<OUT> Test calling function with options 1 (js)
@@ -352,7 +352,7 @@ DESCRIPTION
       - param1: String (required) - First parameter.
       - param2: String (required) - Second parameter.
       - description: String - Description.
-[[*]]> 
+[[*]]>
 
 
 #@<OUT> Lists help of plugin function with options (py)
@@ -475,7 +475,7 @@ anUndefined value: {"anykey": "anyValue"}
 [[*]]> decorator.test_required_dict_params('one', {'param1': 'value1', 'param2': 'value2'})
 first value: one
 dict: {"param1": "value1", "param2": "value2"}
-[[*]]> 
+[[*]]>
 
 #@<OUT> Test calling function with options 1 (py)
 [[*]]> decorator.inner.test_options('Passing No Options')
@@ -557,14 +557,14 @@ WHERE
       stritem: String - String parameter.
 
 OPTIONS
---strOption=<str>
-            String parameter.
+--anyTypeOption[:<type>]=<value>
+            Any type option.
 
 --intOption=<int>
             String List parameter.
 
---anyTypeOption[:<type>]=<value>
-            Any type option.
+--strOption=<str>
+            String parameter.
 
 #@<OUT> Test calling simple types function (cli)
 aString value: one
@@ -802,4 +802,3 @@ DESCRIPTION
       Returns:
 
           A list of users
-
