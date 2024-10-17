@@ -1027,8 +1027,12 @@ TEST_F(MySQL_upgrade_check_test, zero_dates_check) {
 
   PrepareTestDatabase("mysql_zero_dates_check_test");
   auto check = Sql_upgrade_check::get_zero_dates_check();
-  EXPECT_EQ(0, strcmp("https://lefred.be/content/mysql-8-0-and-wrong-dates/",
-                      check->get_doc_link()));
+  EXPECT_STREQ(
+      "https://dev.mysql.com/doc/refman/8.0/en/datetime.html\nhttps://"
+      "dev.mysql.com/doc/refman/8.0/en/"
+      "sql-mode.html#sqlmode_no_zero_date\nhttps://dev.mysql.com/doc/refman/"
+      "8.0/en/sql-mode.html#sqlmode_no_zero_in_date",
+      check->get_doc_link());
   EXPECT_NO_ISSUES(check.get());
 
   ASSERT_NO_THROW(

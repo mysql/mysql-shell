@@ -238,7 +238,10 @@ https://mysqlserverteam.com/new-defaults-in-mysql-8-0/
 # may not work correctly in the future.
 
 * zeroDatesCheck.docLink
-https://lefred.be/content/mysql-8-0-and-wrong-dates/
+https://dev.mysql.com/doc/refman/8.0/en/datetime.html\n
+https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html#sqlmode_no_zero_date\n
+https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html#sqlmode_no_zero_in_date
+
 
 * schemaInconsistencyCheck.title
 # Schema inconsistencies resulting from file removal or corruption
