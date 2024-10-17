@@ -205,7 +205,9 @@ values that contain zeros. It is strongly advised to replace zero values with va
 may not work correctly in the future.
 
 * zeroDates.docLink
-https://lefred.be/content/mysql-8-0-and-wrong-dates/
+https://dev.mysql.com/doc/refman/8.0/en/datetime.html\n
+https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html#sqlmode_no_zero_date\n
+https://dev.mysql.com/doc/refman/8.0/en/sql-mode.html#sqlmode_no_zero_in_date
 
 * schemaInconsistency.title
 Schema inconsistencies resulting from file removal or corruption
