@@ -427,7 +427,6 @@ Retrieves the Schema configured as default for the session.
 
 @returns A Schema object or Null
 )*");
-#if DOXYGEN_JS || DOXYGEN_PY
 /**
  * $(SESSION_GETDEFAULTSCHEMA_BRIEF)
  *
@@ -440,7 +439,7 @@ Schema Session::get_default_schema() {}
 #endif
 
 REGISTER_HELP_PROPERTY(uri, Session);
-REGISTER_HELP(SESSION_URI_BRIEF, "Retrieves the URI for the current session.");
+REGISTER_HELP(SESSION_URI_BRIEF, "${SESSION_GETURI_BRIEF}");
 REGISTER_HELP_FUNCTION(getUri, Session);
 REGISTER_HELP_FUNCTION_TEXT(SESSION_GETURI, R"*(
 Retrieves the URI for the current session.
@@ -456,7 +455,6 @@ Retrieves the URI for the current session.
 String Session::getUri() {}
 #elif DOXYGEN_PY
 str Session::get_uri() {}
-#endif
 #endif
 
 // Documentation of getCurrentSchema function
@@ -1143,25 +1141,6 @@ std::shared_ptr<SqlResult> Session::run_sql(const std::string sql,
 
   return sql_execute->execute();
 }
-
-REGISTER_HELP_PROPERTY(uri, Session);
-REGISTER_HELP(SESSION_URI_BRIEF, "${SESSION_GETURI_BRIEF}");
-REGISTER_HELP_FUNCTION(getUri, Session);
-REGISTER_HELP_FUNCTION_TEXT(SESSION_GETURI, R"*(
-Retrieves the URI for the current session.
-
-@return A string representing the connection data.
-)*");
-/**
- * $(SESSION_GETURI_BRIEF)
- *
- * $(SESSION_GETURI)
- */
-#if DOXYGEN_JS
-String Session::getSshUri() {}
-#elif DOXYGEN_PY
-str Session::get_ssh_uri() {}
-#endif
 
 REGISTER_HELP_PROPERTY(sshUri, Session);
 REGISTER_HELP(SESSION_SSHURI_BRIEF, "${SESSION_GETSSHURI_BRIEF}");

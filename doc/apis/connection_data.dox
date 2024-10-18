@@ -25,11 +25,12 @@
 
 /*!
 \page connection_data Connection Data
-# Connection Data
 
 On the API exposed on the MySQL Shell, several functions require some connection data to be provided.
 
-\copydoc connection_options
+$(TOPIC_CONNECTION_DATA_BASIC)
+
+$(TOPIC_CONNECTION_OPTIONS)
 
 $(TOPIC_CONNECTION_TYPES)
 

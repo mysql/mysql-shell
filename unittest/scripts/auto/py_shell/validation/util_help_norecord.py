@@ -51,7 +51,7 @@ FUNCTIONS
             Import JSON documents from file to collection or table in MySQL
             Server using X Protocol session.
 
-      import_table(files[, options])
+      import_table(urls[, options])
             Import table dump stored in files to target table using LOAD DATA
             LOCAL INFILE calls in parallel connections.
 
@@ -73,8 +73,20 @@ WHERE
 
 DESCRIPTION
       If no connectionData is specified tool will try to establish connection
-      using data from current session. See \? connection for additional
-      details.
+      using data from current session.
+
+      Connection Data
+
+      The connection data may be specified in the following formats:
+
+      - A URI string
+      - A dictionary with the connection options
+
+      A basic URI string has the following format:
+
+      [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+
+      For additional information on connection data use \? connection.
 
       Tool behaviour can be modified with following options:
 
@@ -89,7 +101,7 @@ DESCRIPTION
       - list - bool value to indicate the operation should only list the
         checks.
 
-      If targetVersion is not specified, the current shell version will be used
+      If targetVersion is not specified, the current Shell version will be used
       as target version.
 
       Limitations
@@ -101,6 +113,8 @@ DESCRIPTION
         configuration file to be provided through the configPath option.
       - The checkTableCommand check requires the user executing the tool has
         the RELOAD grant.
+      - The schemaInconsistency check ignores schemas/tables that contain
+        unicode characters outside ASCII range.
 
 #@<OUT> util copy_instance help
 NAME
@@ -122,6 +136,19 @@ DESCRIPTION
 
       If target is a MySQL HeatWave Service DB System instance, automatically
       checks for compatibility with it.
+
+      Connection Data
+
+      The connection data may be specified in the following formats:
+
+      - A URI string
+      - A dictionary with the connection options
+
+      A basic URI string has the following format:
+
+      [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+
+      For additional information on connection data use \? connection.
 
       The following options are supported:
 
@@ -270,6 +297,19 @@ DESCRIPTION
       If target is a MySQL HeatWave Service DB System instance, automatically
       checks for compatibility with it.
 
+      Connection Data
+
+      The connection data may be specified in the following formats:
+
+      - A URI string
+      - A dictionary with the connection options
+
+      A basic URI string has the following format:
+
+      [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+
+      For additional information on connection data use \? connection.
+
       The following options are supported:
 
       - excludeTables: list of strings (default: empty) - List of tables or
@@ -405,6 +445,19 @@ DESCRIPTION
       If target is a MySQL HeatWave Service DB System instance, automatically
       checks for compatibility with it.
 
+      Connection Data
+
+      The connection data may be specified in the following formats:
+
+      - A URI string
+      - A dictionary with the connection options
+
+      A basic URI string has the following format:
+
+      [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+
+      For additional information on connection data use \? connection.
+
       The following options are supported:
 
       - all: bool (default: false) - Copy all views and tables from the
@@ -516,25 +569,26 @@ WHERE
       options: Dictionary with the dump options.
 
 DESCRIPTION
-      The outputUrl specifies where the dump is going to be stored.
+      The outputUrl specifies URL to a directory where the dump is going to be
+      stored. If the output directory does not exist but its parent does, it is
+      created. If the output directory exists, it must be empty. All
+      directories are created with the following access rights (on operating
+      systems which support them): rwxr-x---. All files are created with the
+      following access rights (on operating systems which support them):
+      rw-r-----. Allowed values:
 
-      The value for this parameter can be either:
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to a bucket or a prefix - dumps to the
+        OCI Object Storage using a PAR
 
-      - The path to the target location in a local filesystem or one of the
-        supported cloud storage buckets
-      - A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
-
-      By default, a local directory is used, and in this case outputUrl can be
-      prefixed with file:// scheme. If a relative path is given, the absolute
-      path is computed as relative to the current working directory. If the
-      output directory does not exist but its parent does, it is created. If
-      the output directory exists, it must be empty. All directories are
-      created with the following access rights (on operating systems which
-      support them): rwxr-x---. All files are created with the following access
-      rights (on operating systems which support them): rw-r-----.
-
-      For additional details on using PARs see the Dumping to OCI Object
-      Storage using Pre-Authenticated Request (PAR) section.
+      For additional information on remote storage support use \? remote
+      storage.
 
       The following options are supported:
 
@@ -646,11 +700,11 @@ DESCRIPTION
       - compression: string (default: "zstd;level=1") - Compression used when
         writing the data dump files, one of: "none", "gzip", "zstd".
         Compression level may be specified as "gzip;level=8" or "zstd;level=8".
-      - osBucketName: string (default: not set) - Use specified OCI bucket for
-        the location of the dump.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
       - osNamespace: string (default: not set) - Specifies the namespace where
         the bucket is located, if not given it will be obtained using the
-        tenancy id on the OCI configuration.
+        tenancy ID on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -920,304 +974,6 @@ DESCRIPTION
       Please refer to the MySQL HeatWave Service documentation for more
       information about restrictions and compatibility.
 
-      Dumping to a Bucket in the OCI Object Storage
-
-      There are 2 ways to create a dump in OCI Object Storage:
-
-      - By using the standard client OCI configuration.
-      - By using a Pre-Authenticated Request (PAR).
-
-      Dumping to OCI Object Storage using the client OCI configuration
-
-      The osBucketName option is used to indicate the connection is established
-      using the locally configured OCI client profile.
-
-      If the osBucketName option is used, the dump is stored in the specified
-      OCI bucket, connection is established using the local OCI profile. The
-      directory structure is simulated within the object name.
-
-      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
-      used if the osBucketName option is set to an empty string.
-
-      The osNamespace option overrides the OCI namespace obtained based on the
-      tenancy ID from the local OCI profile.
-
-      The ociAuth option allows to specify the authentication method used when
-      connecting to the OCI:
-
-      - api_key - API Key-Based Authentication
-      - instance_principal - Instance Principal Authentication
-      - resource_principal - Resource Principal Authentication
-      - security_token - Session Token-Based Authentication
-
-      For more information please see:
-      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
-
-      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
-
-      When using a PAR to create a dump, no client OCI configuration is needed
-      to perform the dump operation. A bucket or prefix PAR with the following
-      access types is required to perform a dump with this method:
-
-      - Permit object reads and writes.
-      - Enable object listing.
-
-      When using a bucket PAR, the generated PAR URL should be used as the
-      output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
-
-      When using a prefix PAR, the output_url argument should contain the PAR
-      URL itself and the prefix used to generate it. i.e. the following is a
-      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
-
-      Note that both the bucket and the prefix PAR URLs must end with a slash,
-      otherwise it will be considered invalid.
-
-      Enabling dump loading using pre-authenticated requests
-
-      The load_dump utility supports loading a dump using a pre-authenticated
-      request (PAR). The simplest way to do this is by providing a PAR to the
-      location of the dump in a bucket, the PAR must be created with the
-      following permissions:
-
-      - Permits object reads
-      - Enables object listing
-
-      The generated URL can be used to load the dump, see \? load_dump for more
-      details.
-
-      Dumping to a Bucket in the AWS S3 Object Storage
-
-      If the s3BucketName option is used, the dump is stored in the specified
-      AWS S3 bucket. Connection is established using default local AWS
-      configuration paths and profiles, unless overridden. The directory
-      structure is simulated within the object name.
-
-      The s3CredentialsFile, s3ConfigFile, s3Profile, s3Region and
-      s3EndpointOverride options cannot be used if the s3BucketName option is
-      not set or set to an empty string.
-
-      All failed connections to AWS S3 are retried three times, with a 1 second
-      delay between retries. If a failure occurs 10 minutes after the
-      connection was created, the delay is changed to an exponential back-off
-      strategy:
-
-      - first delay: 3-6 seconds
-      - second delay: 18-36 seconds
-      - third delay: 40-80 seconds
-
-      Handling of the AWS settings
-
-      The AWS options are evaluated in the order of precedence, the first
-      available value is used.
-
-      1. Name of the AWS profile:
-
-      - the s3Profile option
-      - the AWS_PROFILE environment variable
-      - the AWS_DEFAULT_PROFILE environment variable
-      - the default value of default
-
-      2. Location of the credentials file:
-
-      - the s3CredentialsFile option
-      - the AWS_SHARED_CREDENTIALS_FILE environment variable
-      - the default value of ~/.aws/credentials
-
-      3. Location of the config file:
-
-      - the s3ConfigFile option
-      - the AWS_CONFIG_FILE environment variable
-      - the default value of ~/.aws/config
-
-      4. Name of the AWS region:
-
-      - the s3Region option
-      - the AWS_REGION environment variable
-      - the AWS_DEFAULT_REGION environment variable
-      - the region setting from the config file for the specified profile
-      - the default value of us-east-1
-
-      5. URI of AWS S3 API endpoint
-
-      - the s3EndpointOverride option
-      - the default value of https://<s3BucketName>.s3.<region>.amazonaws.com
-
-      The AWS credentials are fetched from the following providers, in the
-      order of precedence:
-
-      1. Environment variables:
-
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_SESSION_TOKEN
-
-      2. Assuming a role
-      3. Settings from the credentials file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      4. Process specified by the credential_process setting from the config
-         file for the specified profile
-      5. Settings from the config file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      6. Amazon Elastic Container Service (Amazon ECS) credentials
-      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
-
-      The items specified above correspond to the following credentials:
-
-      - the AWS access key
-      - the secret key associated with the AWS access key
-      - the AWS session token for the temporary security credentials
-
-      Role is assumed using the following settings from the AWS config file:
-
-      - credential_source
-      - duration_seconds
-      - external_id
-      - role_arn
-      - role_session_name
-      - source_profile
-
-      The multi-factor authentication is not supported. For more information on
-      assuming a role, please consult the AWS documentation.
-
-      The process/command line specified by the credential_process setting must
-      write a JSON object to the standard output in the following form:
-      {
-        "Version": 1,
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "SessionToken": "temporary AWS session token, optional",
-        "Expiration": "RFC3339 timestamp, optional"
-      }
-
-      The Amazon ECS credentials are fetched from a URI specified by an
-      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
-      appended to 'http://169.254.170.2'). If this environment variable is not
-      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
-      is used instead. If neither of these environment variables are set, ECS
-      credentials are not used.
-
-      The request may optionally be sent with an 'Authorization' header. If the
-      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
-      value should specify an absolute file path to a file that contains the
-      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable should be used to explicilty specify that
-      authorization token. If neither of these environment variables are set,
-      the 'Authorization' header is not sent with the request.
-
-      The reply is expected to be a JSON object in the following form:
-      {
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "Token": "temporary AWS session token",
-        "Expiration": "RFC3339 timestamp"
-      }
-
-      The Amazon IMDS credential provider is configured using the following
-      environment variables:
-
-      - AWS_EC2_METADATA_DISABLED
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
-      - AWS_EC2_METADATA_V1_DISABLED
-      - AWS_METADATA_SERVICE_TIMEOUT
-      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
-
-      and the following settings from the AWS config file:
-
-      - ec2_metadata_service_endpoint
-      - ec2_metadata_service_endpoint_mode
-      - ec2_metadata_v1_disabled
-      - metadata_service_timeout
-      - metadata_service_num_attempts
-
-      For more information on IMDS, please consult the AWS documentation.
-
-      The Expiration value, if given, specifies when the credentials are going
-      to expire, they will be automatically refreshed before this happens.
-
-      The following credential handling rules apply:
-
-      - If the s3Profile option is set to a non-empty string, the environment
-        variables are not used as a potential credential provider.
-      - If either an access key or a secret key is available in a potential
-        credential provider, it is selected as the credential provider.
-      - If either the access key or the secret key is missing in the selected
-        credential provider, an exception is thrown.
-      - If the session token is missing in the selected credential provider, or
-        if it is set to an empty string, it is not used to authenticate the
-        user.
-
-      Dumping to a Container in the Azure Blob Storage
-
-      If the azureContainerName option is used, the dump is stored in the
-      specified Azure container. Connection is established using the
-      configuration at the local Azure configuration file.The directory
-      structure is simulated within the blob name.
-
-      The azureConfigFile option cannot be used if the azureContainerName
-      option is not set or set to an empty string.
-
-      Handling of the Azure settings
-
-      The following settings are read from the storage section in the config
-      file:
-
-      - connection_string
-      - account
-      - key
-      - sas_token
-
-      Additionally, the connection options may be defined using the standard
-      Azure environment variables:
-
-      - AZURE_STORAGE_CONNECTION_STRING
-      - AZURE_STORAGE_ACCOUNT
-      - AZURE_STORAGE_KEY
-      - AZURE_STORAGE_SAS_TOKEN
-
-      The Azure configuration values are evaluated in the following precedence:
-
-      - Options parameter - Environment Variables - Configuration File
-
-      If a connection string is defined either case in the environment variable
-      or the configuration option, the individual configuration values for
-      account and key will be ignored.
-
-      If a SAS Token is defined, it will be used for the authorization
-      (ignoring any defined account key).
-
-      The default Azure Blob Endpoint to be used in the operations is defined
-      by:
-
-      https://<account>.blob.core.windows.net
-
-      Unless a different EndPoint is defined in the connection string.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If any of the input arguments contains an invalid value.
-
-      RuntimeError in the following scenarios:
-
-      - If there is no open global session.
-      - If creating the output directory fails.
-      - If creating or writing to the output file fails.
-
 #@<OUT> util dump_schemas help
 NAME
       dump_schemas - Dumps the specified schemas to the files in the output
@@ -1234,25 +990,26 @@ WHERE
 DESCRIPTION
       The schemas parameter cannot be an empty list.
 
-      The outputUrl specifies where the dump is going to be stored.
+      The outputUrl specifies URL to a directory where the dump is going to be
+      stored. If the output directory does not exist but its parent does, it is
+      created. If the output directory exists, it must be empty. All
+      directories are created with the following access rights (on operating
+      systems which support them): rwxr-x---. All files are created with the
+      following access rights (on operating systems which support them):
+      rw-r-----. Allowed values:
 
-      The value for this parameter can be either:
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to a bucket or a prefix - dumps to the
+        OCI Object Storage using a PAR
 
-      - The path to the target location in a local filesystem or one of the
-        supported cloud storage buckets
-      - A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
-
-      By default, a local directory is used, and in this case outputUrl can be
-      prefixed with file:// scheme. If a relative path is given, the absolute
-      path is computed as relative to the current working directory. If the
-      output directory does not exist but its parent does, it is created. If
-      the output directory exists, it must be empty. All directories are
-      created with the following access rights (on operating systems which
-      support them): rwxr-x---. All files are created with the following access
-      rights (on operating systems which support them): rw-r-----.
-
-      For additional details on using PARs see the Dumping to OCI Object
-      Storage using Pre-Authenticated Request (PAR) section.
+      For additional information on remote storage support use \? remote
+      storage.
 
       The following options are supported:
 
@@ -1350,11 +1107,11 @@ DESCRIPTION
       - compression: string (default: "zstd;level=1") - Compression used when
         writing the data dump files, one of: "none", "gzip", "zstd".
         Compression level may be specified as "gzip;level=8" or "zstd;level=8".
-      - osBucketName: string (default: not set) - Use specified OCI bucket for
-        the location of the dump.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
       - osNamespace: string (default: not set) - Specifies the namespace where
         the bucket is located, if not given it will be obtained using the
-        tenancy id on the OCI configuration.
+        tenancy ID on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -1613,304 +1370,6 @@ DESCRIPTION
       Please refer to the MySQL HeatWave Service documentation for more
       information about restrictions and compatibility.
 
-      Dumping to a Bucket in the OCI Object Storage
-
-      There are 2 ways to create a dump in OCI Object Storage:
-
-      - By using the standard client OCI configuration.
-      - By using a Pre-Authenticated Request (PAR).
-
-      Dumping to OCI Object Storage using the client OCI configuration
-
-      The osBucketName option is used to indicate the connection is established
-      using the locally configured OCI client profile.
-
-      If the osBucketName option is used, the dump is stored in the specified
-      OCI bucket, connection is established using the local OCI profile. The
-      directory structure is simulated within the object name.
-
-      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
-      used if the osBucketName option is set to an empty string.
-
-      The osNamespace option overrides the OCI namespace obtained based on the
-      tenancy ID from the local OCI profile.
-
-      The ociAuth option allows to specify the authentication method used when
-      connecting to the OCI:
-
-      - api_key - API Key-Based Authentication
-      - instance_principal - Instance Principal Authentication
-      - resource_principal - Resource Principal Authentication
-      - security_token - Session Token-Based Authentication
-
-      For more information please see:
-      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
-
-      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
-
-      When using a PAR to create a dump, no client OCI configuration is needed
-      to perform the dump operation. A bucket or prefix PAR with the following
-      access types is required to perform a dump with this method:
-
-      - Permit object reads and writes.
-      - Enable object listing.
-
-      When using a bucket PAR, the generated PAR URL should be used as the
-      output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
-
-      When using a prefix PAR, the output_url argument should contain the PAR
-      URL itself and the prefix used to generate it. i.e. the following is a
-      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
-
-      Note that both the bucket and the prefix PAR URLs must end with a slash,
-      otherwise it will be considered invalid.
-
-      Enabling dump loading using pre-authenticated requests
-
-      The load_dump utility supports loading a dump using a pre-authenticated
-      request (PAR). The simplest way to do this is by providing a PAR to the
-      location of the dump in a bucket, the PAR must be created with the
-      following permissions:
-
-      - Permits object reads
-      - Enables object listing
-
-      The generated URL can be used to load the dump, see \? load_dump for more
-      details.
-
-      Dumping to a Bucket in the AWS S3 Object Storage
-
-      If the s3BucketName option is used, the dump is stored in the specified
-      AWS S3 bucket. Connection is established using default local AWS
-      configuration paths and profiles, unless overridden. The directory
-      structure is simulated within the object name.
-
-      The s3CredentialsFile, s3ConfigFile, s3Profile, s3Region and
-      s3EndpointOverride options cannot be used if the s3BucketName option is
-      not set or set to an empty string.
-
-      All failed connections to AWS S3 are retried three times, with a 1 second
-      delay between retries. If a failure occurs 10 minutes after the
-      connection was created, the delay is changed to an exponential back-off
-      strategy:
-
-      - first delay: 3-6 seconds
-      - second delay: 18-36 seconds
-      - third delay: 40-80 seconds
-
-      Handling of the AWS settings
-
-      The AWS options are evaluated in the order of precedence, the first
-      available value is used.
-
-      1. Name of the AWS profile:
-
-      - the s3Profile option
-      - the AWS_PROFILE environment variable
-      - the AWS_DEFAULT_PROFILE environment variable
-      - the default value of default
-
-      2. Location of the credentials file:
-
-      - the s3CredentialsFile option
-      - the AWS_SHARED_CREDENTIALS_FILE environment variable
-      - the default value of ~/.aws/credentials
-
-      3. Location of the config file:
-
-      - the s3ConfigFile option
-      - the AWS_CONFIG_FILE environment variable
-      - the default value of ~/.aws/config
-
-      4. Name of the AWS region:
-
-      - the s3Region option
-      - the AWS_REGION environment variable
-      - the AWS_DEFAULT_REGION environment variable
-      - the region setting from the config file for the specified profile
-      - the default value of us-east-1
-
-      5. URI of AWS S3 API endpoint
-
-      - the s3EndpointOverride option
-      - the default value of https://<s3BucketName>.s3.<region>.amazonaws.com
-
-      The AWS credentials are fetched from the following providers, in the
-      order of precedence:
-
-      1. Environment variables:
-
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_SESSION_TOKEN
-
-      2. Assuming a role
-      3. Settings from the credentials file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      4. Process specified by the credential_process setting from the config
-         file for the specified profile
-      5. Settings from the config file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      6. Amazon Elastic Container Service (Amazon ECS) credentials
-      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
-
-      The items specified above correspond to the following credentials:
-
-      - the AWS access key
-      - the secret key associated with the AWS access key
-      - the AWS session token for the temporary security credentials
-
-      Role is assumed using the following settings from the AWS config file:
-
-      - credential_source
-      - duration_seconds
-      - external_id
-      - role_arn
-      - role_session_name
-      - source_profile
-
-      The multi-factor authentication is not supported. For more information on
-      assuming a role, please consult the AWS documentation.
-
-      The process/command line specified by the credential_process setting must
-      write a JSON object to the standard output in the following form:
-      {
-        "Version": 1,
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "SessionToken": "temporary AWS session token, optional",
-        "Expiration": "RFC3339 timestamp, optional"
-      }
-
-      The Amazon ECS credentials are fetched from a URI specified by an
-      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
-      appended to 'http://169.254.170.2'). If this environment variable is not
-      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
-      is used instead. If neither of these environment variables are set, ECS
-      credentials are not used.
-
-      The request may optionally be sent with an 'Authorization' header. If the
-      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
-      value should specify an absolute file path to a file that contains the
-      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable should be used to explicilty specify that
-      authorization token. If neither of these environment variables are set,
-      the 'Authorization' header is not sent with the request.
-
-      The reply is expected to be a JSON object in the following form:
-      {
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "Token": "temporary AWS session token",
-        "Expiration": "RFC3339 timestamp"
-      }
-
-      The Amazon IMDS credential provider is configured using the following
-      environment variables:
-
-      - AWS_EC2_METADATA_DISABLED
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
-      - AWS_EC2_METADATA_V1_DISABLED
-      - AWS_METADATA_SERVICE_TIMEOUT
-      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
-
-      and the following settings from the AWS config file:
-
-      - ec2_metadata_service_endpoint
-      - ec2_metadata_service_endpoint_mode
-      - ec2_metadata_v1_disabled
-      - metadata_service_timeout
-      - metadata_service_num_attempts
-
-      For more information on IMDS, please consult the AWS documentation.
-
-      The Expiration value, if given, specifies when the credentials are going
-      to expire, they will be automatically refreshed before this happens.
-
-      The following credential handling rules apply:
-
-      - If the s3Profile option is set to a non-empty string, the environment
-        variables are not used as a potential credential provider.
-      - If either an access key or a secret key is available in a potential
-        credential provider, it is selected as the credential provider.
-      - If either the access key or the secret key is missing in the selected
-        credential provider, an exception is thrown.
-      - If the session token is missing in the selected credential provider, or
-        if it is set to an empty string, it is not used to authenticate the
-        user.
-
-      Dumping to a Container in the Azure Blob Storage
-
-      If the azureContainerName option is used, the dump is stored in the
-      specified Azure container. Connection is established using the
-      configuration at the local Azure configuration file.The directory
-      structure is simulated within the blob name.
-
-      The azureConfigFile option cannot be used if the azureContainerName
-      option is not set or set to an empty string.
-
-      Handling of the Azure settings
-
-      The following settings are read from the storage section in the config
-      file:
-
-      - connection_string
-      - account
-      - key
-      - sas_token
-
-      Additionally, the connection options may be defined using the standard
-      Azure environment variables:
-
-      - AZURE_STORAGE_CONNECTION_STRING
-      - AZURE_STORAGE_ACCOUNT
-      - AZURE_STORAGE_KEY
-      - AZURE_STORAGE_SAS_TOKEN
-
-      The Azure configuration values are evaluated in the following precedence:
-
-      - Options parameter - Environment Variables - Configuration File
-
-      If a connection string is defined either case in the environment variable
-      or the configuration option, the individual configuration values for
-      account and key will be ignored.
-
-      If a SAS Token is defined, it will be used for the authorization
-      (ignoring any defined account key).
-
-      The default Azure Blob Endpoint to be used in the operations is defined
-      by:
-
-      https://<account>.blob.core.windows.net
-
-      Unless a different EndPoint is defined in the connection string.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If any of the input arguments contains an invalid value.
-
-      RuntimeError in the following scenarios:
-
-      - If there is no open global session.
-      - If creating the output directory fails.
-      - If creating or writing to the output file fails.
-
 #@<OUT> util dump_tables help
 NAME
       dump_tables - Dumps the specified tables or views from the given schema
@@ -1928,25 +1387,26 @@ WHERE
 DESCRIPTION
       The tables parameter cannot be an empty list.
 
-      The outputUrl specifies where the dump is going to be stored.
+      The outputUrl specifies URL to a directory where the dump is going to be
+      stored. If the output directory does not exist but its parent does, it is
+      created. If the output directory exists, it must be empty. All
+      directories are created with the following access rights (on operating
+      systems which support them): rwxr-x---. All files are created with the
+      following access rights (on operating systems which support them):
+      rw-r-----. Allowed values:
 
-      The value for this parameter can be either:
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to a bucket or a prefix - dumps to the
+        OCI Object Storage using a PAR
 
-      - The path to the target location in a local filesystem or one of the
-        supported cloud storage buckets
-      - A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
-
-      By default, a local directory is used, and in this case outputUrl can be
-      prefixed with file:// scheme. If a relative path is given, the absolute
-      path is computed as relative to the current working directory. If the
-      output directory does not exist but its parent does, it is created. If
-      the output directory exists, it must be empty. All directories are
-      created with the following access rights (on operating systems which
-      support them): rwxr-x---. All files are created with the following access
-      rights (on operating systems which support them): rw-r-----.
-
-      For additional details on using PARs see the Dumping to OCI Object
-      Storage using Pre-Authenticated Request (PAR) section.
+      For additional information on remote storage support use \? remote
+      storage.
 
       The following options are supported:
 
@@ -2031,11 +1491,11 @@ DESCRIPTION
       - compression: string (default: "zstd;level=1") - Compression used when
         writing the data dump files, one of: "none", "gzip", "zstd".
         Compression level may be specified as "gzip;level=8" or "zstd;level=8".
-      - osBucketName: string (default: not set) - Use specified OCI bucket for
-        the location of the dump.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
       - osNamespace: string (default: not set) - Specifies the namespace where
         the bucket is located, if not given it will be obtained using the
-        tenancy id on the OCI configuration.
+        tenancy ID on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -2300,304 +1760,6 @@ DESCRIPTION
       Please refer to the MySQL HeatWave Service documentation for more
       information about restrictions and compatibility.
 
-      Dumping to a Bucket in the OCI Object Storage
-
-      There are 2 ways to create a dump in OCI Object Storage:
-
-      - By using the standard client OCI configuration.
-      - By using a Pre-Authenticated Request (PAR).
-
-      Dumping to OCI Object Storage using the client OCI configuration
-
-      The osBucketName option is used to indicate the connection is established
-      using the locally configured OCI client profile.
-
-      If the osBucketName option is used, the dump is stored in the specified
-      OCI bucket, connection is established using the local OCI profile. The
-      directory structure is simulated within the object name.
-
-      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
-      used if the osBucketName option is set to an empty string.
-
-      The osNamespace option overrides the OCI namespace obtained based on the
-      tenancy ID from the local OCI profile.
-
-      The ociAuth option allows to specify the authentication method used when
-      connecting to the OCI:
-
-      - api_key - API Key-Based Authentication
-      - instance_principal - Instance Principal Authentication
-      - resource_principal - Resource Principal Authentication
-      - security_token - Session Token-Based Authentication
-
-      For more information please see:
-      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
-
-      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
-
-      When using a PAR to create a dump, no client OCI configuration is needed
-      to perform the dump operation. A bucket or prefix PAR with the following
-      access types is required to perform a dump with this method:
-
-      - Permit object reads and writes.
-      - Enable object listing.
-
-      When using a bucket PAR, the generated PAR URL should be used as the
-      output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
-
-      When using a prefix PAR, the output_url argument should contain the PAR
-      URL itself and the prefix used to generate it. i.e. the following is a
-      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
-
-      Note that both the bucket and the prefix PAR URLs must end with a slash,
-      otherwise it will be considered invalid.
-
-      Enabling dump loading using pre-authenticated requests
-
-      The load_dump utility supports loading a dump using a pre-authenticated
-      request (PAR). The simplest way to do this is by providing a PAR to the
-      location of the dump in a bucket, the PAR must be created with the
-      following permissions:
-
-      - Permits object reads
-      - Enables object listing
-
-      The generated URL can be used to load the dump, see \? load_dump for more
-      details.
-
-      Dumping to a Bucket in the AWS S3 Object Storage
-
-      If the s3BucketName option is used, the dump is stored in the specified
-      AWS S3 bucket. Connection is established using default local AWS
-      configuration paths and profiles, unless overridden. The directory
-      structure is simulated within the object name.
-
-      The s3CredentialsFile, s3ConfigFile, s3Profile, s3Region and
-      s3EndpointOverride options cannot be used if the s3BucketName option is
-      not set or set to an empty string.
-
-      All failed connections to AWS S3 are retried three times, with a 1 second
-      delay between retries. If a failure occurs 10 minutes after the
-      connection was created, the delay is changed to an exponential back-off
-      strategy:
-
-      - first delay: 3-6 seconds
-      - second delay: 18-36 seconds
-      - third delay: 40-80 seconds
-
-      Handling of the AWS settings
-
-      The AWS options are evaluated in the order of precedence, the first
-      available value is used.
-
-      1. Name of the AWS profile:
-
-      - the s3Profile option
-      - the AWS_PROFILE environment variable
-      - the AWS_DEFAULT_PROFILE environment variable
-      - the default value of default
-
-      2. Location of the credentials file:
-
-      - the s3CredentialsFile option
-      - the AWS_SHARED_CREDENTIALS_FILE environment variable
-      - the default value of ~/.aws/credentials
-
-      3. Location of the config file:
-
-      - the s3ConfigFile option
-      - the AWS_CONFIG_FILE environment variable
-      - the default value of ~/.aws/config
-
-      4. Name of the AWS region:
-
-      - the s3Region option
-      - the AWS_REGION environment variable
-      - the AWS_DEFAULT_REGION environment variable
-      - the region setting from the config file for the specified profile
-      - the default value of us-east-1
-
-      5. URI of AWS S3 API endpoint
-
-      - the s3EndpointOverride option
-      - the default value of https://<s3BucketName>.s3.<region>.amazonaws.com
-
-      The AWS credentials are fetched from the following providers, in the
-      order of precedence:
-
-      1. Environment variables:
-
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_SESSION_TOKEN
-
-      2. Assuming a role
-      3. Settings from the credentials file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      4. Process specified by the credential_process setting from the config
-         file for the specified profile
-      5. Settings from the config file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      6. Amazon Elastic Container Service (Amazon ECS) credentials
-      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
-
-      The items specified above correspond to the following credentials:
-
-      - the AWS access key
-      - the secret key associated with the AWS access key
-      - the AWS session token for the temporary security credentials
-
-      Role is assumed using the following settings from the AWS config file:
-
-      - credential_source
-      - duration_seconds
-      - external_id
-      - role_arn
-      - role_session_name
-      - source_profile
-
-      The multi-factor authentication is not supported. For more information on
-      assuming a role, please consult the AWS documentation.
-
-      The process/command line specified by the credential_process setting must
-      write a JSON object to the standard output in the following form:
-      {
-        "Version": 1,
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "SessionToken": "temporary AWS session token, optional",
-        "Expiration": "RFC3339 timestamp, optional"
-      }
-
-      The Amazon ECS credentials are fetched from a URI specified by an
-      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
-      appended to 'http://169.254.170.2'). If this environment variable is not
-      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
-      is used instead. If neither of these environment variables are set, ECS
-      credentials are not used.
-
-      The request may optionally be sent with an 'Authorization' header. If the
-      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
-      value should specify an absolute file path to a file that contains the
-      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable should be used to explicilty specify that
-      authorization token. If neither of these environment variables are set,
-      the 'Authorization' header is not sent with the request.
-
-      The reply is expected to be a JSON object in the following form:
-      {
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "Token": "temporary AWS session token",
-        "Expiration": "RFC3339 timestamp"
-      }
-
-      The Amazon IMDS credential provider is configured using the following
-      environment variables:
-
-      - AWS_EC2_METADATA_DISABLED
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
-      - AWS_EC2_METADATA_V1_DISABLED
-      - AWS_METADATA_SERVICE_TIMEOUT
-      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
-
-      and the following settings from the AWS config file:
-
-      - ec2_metadata_service_endpoint
-      - ec2_metadata_service_endpoint_mode
-      - ec2_metadata_v1_disabled
-      - metadata_service_timeout
-      - metadata_service_num_attempts
-
-      For more information on IMDS, please consult the AWS documentation.
-
-      The Expiration value, if given, specifies when the credentials are going
-      to expire, they will be automatically refreshed before this happens.
-
-      The following credential handling rules apply:
-
-      - If the s3Profile option is set to a non-empty string, the environment
-        variables are not used as a potential credential provider.
-      - If either an access key or a secret key is available in a potential
-        credential provider, it is selected as the credential provider.
-      - If either the access key or the secret key is missing in the selected
-        credential provider, an exception is thrown.
-      - If the session token is missing in the selected credential provider, or
-        if it is set to an empty string, it is not used to authenticate the
-        user.
-
-      Dumping to a Container in the Azure Blob Storage
-
-      If the azureContainerName option is used, the dump is stored in the
-      specified Azure container. Connection is established using the
-      configuration at the local Azure configuration file.The directory
-      structure is simulated within the blob name.
-
-      The azureConfigFile option cannot be used if the azureContainerName
-      option is not set or set to an empty string.
-
-      Handling of the Azure settings
-
-      The following settings are read from the storage section in the config
-      file:
-
-      - connection_string
-      - account
-      - key
-      - sas_token
-
-      Additionally, the connection options may be defined using the standard
-      Azure environment variables:
-
-      - AZURE_STORAGE_CONNECTION_STRING
-      - AZURE_STORAGE_ACCOUNT
-      - AZURE_STORAGE_KEY
-      - AZURE_STORAGE_SAS_TOKEN
-
-      The Azure configuration values are evaluated in the following precedence:
-
-      - Options parameter - Environment Variables - Configuration File
-
-      If a connection string is defined either case in the environment variable
-      or the configuration option, the individual configuration values for
-      account and key will be ignored.
-
-      If a SAS Token is defined, it will be used for the authorization
-      (ignoring any defined account key).
-
-      The default Azure Blob Endpoint to be used in the operations is defined
-      by:
-
-      https://<account>.blob.core.windows.net
-
-      Unless a different EndPoint is defined in the connection string.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If any of the input arguments contains an invalid value.
-
-      RuntimeError in the following scenarios:
-
-      - If there is no open global session.
-      - If creating the output directory fails.
-      - If creating or writing to the output file fails.
-
 #@<OUT> util export_table help
 NAME
       export_table - Exports the specified table to the data dump file.
@@ -2616,14 +1778,23 @@ DESCRIPTION
       active schema on the global Shell session is used. If there is none, an
       exception is raised.
 
-      The outputUrl specifies where the dump is going to be stored.
+      The outputUrl specifies URL to a file where the exported data is going to
+      be stored. The parent directory of the output file must exist. If the
+      output file exists, it is going to be overwritten. The output file is
+      created with the following access rights (on operating systems which
+      support them): rw-r-----. Allowed values:
 
-      By default, a local file is used, and in this case outputUrl can be
-      prefixed with file:// scheme. If a relative path is given, the absolute
-      path is computed as relative to the current working directory. The parent
-      directory of the output file must exist. If the output file exists, it is
-      going to be overwritten. The output file is created with the following
-      access rights (on operating systems which support them): rw-r-----.
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to an object - exports to a specific file
+
+      For additional information on remote storage support use \? remote
+      storage.
 
       The following options are supported:
 
@@ -2660,11 +1831,11 @@ DESCRIPTION
       - compression: string (default: "none") - Compression used when writing
         the data dump files, one of: "none", "gzip", "zstd". Compression level
         may be specified as "gzip;level=8" or "zstd;level=8".
-      - osBucketName: string (default: not set) - Use specified OCI bucket for
-        the location of the dump.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
       - osNamespace: string (default: not set) - Specifies the namespace where
         the bucket is located, if not given it will be obtained using the
-        tenancy id on the OCI configuration.
+        tenancy ID on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -2733,290 +1904,6 @@ DESCRIPTION
 
       i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
 
-      Dumping to a Bucket in the OCI Object Storage
-
-      There are 2 ways to create a dump in OCI Object Storage:
-
-      - By using the standard client OCI configuration.
-      - By using a Pre-Authenticated Request (PAR).
-
-      Dumping to OCI Object Storage using the client OCI configuration
-
-      The osBucketName option is used to indicate the connection is established
-      using the locally configured OCI client profile.
-
-      If the osBucketName option is used, the dump is stored in the specified
-      OCI bucket, connection is established using the local OCI profile. The
-      directory structure is simulated within the object name.
-
-      The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be
-      used if the osBucketName option is set to an empty string.
-
-      The osNamespace option overrides the OCI namespace obtained based on the
-      tenancy ID from the local OCI profile.
-
-      The ociAuth option allows to specify the authentication method used when
-      connecting to the OCI:
-
-      - api_key - API Key-Based Authentication
-      - instance_principal - Instance Principal Authentication
-      - resource_principal - Resource Principal Authentication
-      - security_token - Session Token-Based Authentication
-
-      For more information please see:
-      https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
-
-      Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)
-
-      When using a PAR to create a dump, no client OCI configuration is needed
-      to perform the dump operation. A bucket or prefix PAR with the following
-      access types is required to perform a dump with this method:
-
-      - Permit object reads and writes.
-      - Enable object listing.
-
-      When using a bucket PAR, the generated PAR URL should be used as the
-      output_url argument for the dump operation. i.e. the following is a
-      bucket PAR to create dump at the root folder of the 'test' bucket:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
-
-      When using a prefix PAR, the output_url argument should contain the PAR
-      URL itself and the prefix used to generate it. i.e. the following is a
-      prefix PAR to create a dump at the 'dump' folder of the 'test' bucket.
-      The PAR was created using 'dump' as prefix:
-
-          https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
-
-      Note that both the bucket and the prefix PAR URLs must end with a slash,
-      otherwise it will be considered invalid.
-
-      Dumping to a Bucket in the AWS S3 Object Storage
-
-      If the s3BucketName option is used, the dump is stored in the specified
-      AWS S3 bucket. Connection is established using default local AWS
-      configuration paths and profiles, unless overridden. The directory
-      structure is simulated within the object name.
-
-      The s3CredentialsFile, s3ConfigFile, s3Profile, s3Region and
-      s3EndpointOverride options cannot be used if the s3BucketName option is
-      not set or set to an empty string.
-
-      All failed connections to AWS S3 are retried three times, with a 1 second
-      delay between retries. If a failure occurs 10 minutes after the
-      connection was created, the delay is changed to an exponential back-off
-      strategy:
-
-      - first delay: 3-6 seconds
-      - second delay: 18-36 seconds
-      - third delay: 40-80 seconds
-
-      Handling of the AWS settings
-
-      The AWS options are evaluated in the order of precedence, the first
-      available value is used.
-
-      1. Name of the AWS profile:
-
-      - the s3Profile option
-      - the AWS_PROFILE environment variable
-      - the AWS_DEFAULT_PROFILE environment variable
-      - the default value of default
-
-      2. Location of the credentials file:
-
-      - the s3CredentialsFile option
-      - the AWS_SHARED_CREDENTIALS_FILE environment variable
-      - the default value of ~/.aws/credentials
-
-      3. Location of the config file:
-
-      - the s3ConfigFile option
-      - the AWS_CONFIG_FILE environment variable
-      - the default value of ~/.aws/config
-
-      4. Name of the AWS region:
-
-      - the s3Region option
-      - the AWS_REGION environment variable
-      - the AWS_DEFAULT_REGION environment variable
-      - the region setting from the config file for the specified profile
-      - the default value of us-east-1
-
-      5. URI of AWS S3 API endpoint
-
-      - the s3EndpointOverride option
-      - the default value of https://<s3BucketName>.s3.<region>.amazonaws.com
-
-      The AWS credentials are fetched from the following providers, in the
-      order of precedence:
-
-      1. Environment variables:
-
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_SESSION_TOKEN
-
-      2. Assuming a role
-      3. Settings from the credentials file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      4. Process specified by the credential_process setting from the config
-         file for the specified profile
-      5. Settings from the config file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      6. Amazon Elastic Container Service (Amazon ECS) credentials
-      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
-
-      The items specified above correspond to the following credentials:
-
-      - the AWS access key
-      - the secret key associated with the AWS access key
-      - the AWS session token for the temporary security credentials
-
-      Role is assumed using the following settings from the AWS config file:
-
-      - credential_source
-      - duration_seconds
-      - external_id
-      - role_arn
-      - role_session_name
-      - source_profile
-
-      The multi-factor authentication is not supported. For more information on
-      assuming a role, please consult the AWS documentation.
-
-      The process/command line specified by the credential_process setting must
-      write a JSON object to the standard output in the following form:
-      {
-        "Version": 1,
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "SessionToken": "temporary AWS session token, optional",
-        "Expiration": "RFC3339 timestamp, optional"
-      }
-
-      The Amazon ECS credentials are fetched from a URI specified by an
-      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
-      appended to 'http://169.254.170.2'). If this environment variable is not
-      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
-      is used instead. If neither of these environment variables are set, ECS
-      credentials are not used.
-
-      The request may optionally be sent with an 'Authorization' header. If the
-      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
-      value should specify an absolute file path to a file that contains the
-      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable should be used to explicilty specify that
-      authorization token. If neither of these environment variables are set,
-      the 'Authorization' header is not sent with the request.
-
-      The reply is expected to be a JSON object in the following form:
-      {
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "Token": "temporary AWS session token",
-        "Expiration": "RFC3339 timestamp"
-      }
-
-      The Amazon IMDS credential provider is configured using the following
-      environment variables:
-
-      - AWS_EC2_METADATA_DISABLED
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
-      - AWS_EC2_METADATA_V1_DISABLED
-      - AWS_METADATA_SERVICE_TIMEOUT
-      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
-
-      and the following settings from the AWS config file:
-
-      - ec2_metadata_service_endpoint
-      - ec2_metadata_service_endpoint_mode
-      - ec2_metadata_v1_disabled
-      - metadata_service_timeout
-      - metadata_service_num_attempts
-
-      For more information on IMDS, please consult the AWS documentation.
-
-      The Expiration value, if given, specifies when the credentials are going
-      to expire, they will be automatically refreshed before this happens.
-
-      The following credential handling rules apply:
-
-      - If the s3Profile option is set to a non-empty string, the environment
-        variables are not used as a potential credential provider.
-      - If either an access key or a secret key is available in a potential
-        credential provider, it is selected as the credential provider.
-      - If either the access key or the secret key is missing in the selected
-        credential provider, an exception is thrown.
-      - If the session token is missing in the selected credential provider, or
-        if it is set to an empty string, it is not used to authenticate the
-        user.
-
-      Dumping to a Container in the Azure Blob Storage
-
-      If the azureContainerName option is used, the dump is stored in the
-      specified Azure container. Connection is established using the
-      configuration at the local Azure configuration file.The directory
-      structure is simulated within the blob name.
-
-      The azureConfigFile option cannot be used if the azureContainerName
-      option is not set or set to an empty string.
-
-      Handling of the Azure settings
-
-      The following settings are read from the storage section in the config
-      file:
-
-      - connection_string
-      - account
-      - key
-      - sas_token
-
-      Additionally, the connection options may be defined using the standard
-      Azure environment variables:
-
-      - AZURE_STORAGE_CONNECTION_STRING
-      - AZURE_STORAGE_ACCOUNT
-      - AZURE_STORAGE_KEY
-      - AZURE_STORAGE_SAS_TOKEN
-
-      The Azure configuration values are evaluated in the following precedence:
-
-      - Options parameter - Environment Variables - Configuration File
-
-      If a connection string is defined either case in the environment variable
-      or the configuration option, the individual configuration values for
-      account and key will be ignored.
-
-      If a SAS Token is defined, it will be used for the authorization
-      (ignoring any defined account key).
-
-      The default Azure Blob Endpoint to be used in the operations is defined
-      by:
-
-      https://<account>.blob.core.windows.net
-
-      Unless a different EndPoint is defined in the connection string.
-
-EXCEPTIONS
-      ArgumentError in the following scenarios:
-
-      - If any of the input arguments contains an invalid value.
-
-      RuntimeError in the following scenarios:
-
-      - If there is no open global session.
-      - If creating or writing to the output file fails.
-
 #@<OUT> util import_json help
 NAME
       import_json - Import JSON documents from file to collection or table in
@@ -3030,36 +1917,36 @@ WHERE
       options: Dictionary with import options
 
 DESCRIPTION
-      This function reads standard JSON documents from a file, however, it also
-      supports converting BSON Data Types represented using the MongoDB
-      Extended Json (strict mode) into MySQL values.
+      This function reads standard JSON documents from a file, it also supports
+      converting BSON Data Types represented using the MongoDB Extended Json
+      (strict mode) into MySQL values.
 
       The options dictionary supports the following options:
 
-      - schema: string - name of target schema.
-      - collection: string - name of collection where the data will be
+      - schema: string - Name of target schema.
+      - collection: string - Name of collection where the data will be
         imported.
-      - table: string - name of table where the data will be imported.
-      - tableColumn: string (default: "doc") - name of column in target table
+      - table: string - Name of table where the data will be imported.
+      - tableColumn: string (default: "doc") - Name of column in target table
         where the imported JSON documents will be stored.
-      - convertBsonTypes: bool (default: false) - enables the BSON data type
+      - convertBsonTypes: bool (default: false) - Enables the BSON data type
         conversion.
-      - convertBsonOid: bool (default: the value of convertBsonTypes) - enables
+      - convertBsonOid: bool (default: the value of convertBsonTypes) - Enables
         conversion of the BSON ObjectId values.
-      - extractOidTime: string (default: empty) - creates a new field based on
+      - extractOidTime: string (default: empty) - Creates a new field based on
         the ObjectID timestamp. Only valid if convertBsonOid is enabled.
 
       The following options are valid only when convertBsonTypes is enabled.
-      They are all boolean flags. ignoreRegexOptions is enabled by default,
-      rest are disabled by default.
+      These are all boolean flags. The ignoreRegexOptions option is enabled by
+      default, the rest is disabled by default.
 
-      - ignoreDate: disables conversion of BSON Date values
-      - ignoreTimestamp: disables conversion of BSON Timestamp values
-      - ignoreRegex: disables conversion of BSON Regex values.
-      - ignoreBinary: disables conversion of BSON BinData values.
-      - decimalAsDouble: causes BSON Decimal values to be imported as double
+      - ignoreDate: Disables conversion of BSON Date values.
+      - ignoreTimestamp: Disables conversion of BSON Timestamp values.
+      - ignoreRegex: Disables conversion of BSON Regex values.
+      - ignoreBinary: Disables conversion of BSON BinData values.
+      - decimalAsDouble: Causes BSON Decimal values to be imported as double
         values.
-      - ignoreRegexOptions: causes regex options to be ignored when processing
+      - ignoreRegexOptions: Causes regex options to be ignored when processing
         a Regex BSON value. This option is only valid if ignoreRegex is
         disabled.
 
@@ -3094,31 +1981,8 @@ DESCRIPTION
 
       Regex values will be converted to strings containing the regular
       expression. The regular expression options are ignored unless
-      ignoreRegexOptions is disabled. When ignoreRegexOptions is disabled the
+      ignoreRegexOptions is disabled. When ignoreRegexOptions is disabled, the
       regular expression will be converted to the form: /<regex>/<options>.
-
-EXCEPTIONS
-      Throws ArgumentError when:
-
-      - Option name is invalid
-      - Required options are not set and cannot be deduced
-      - Shell is not connected to MySQL Server using X Protocol
-      - Schema is not provided and there is no active schema on the global
-        session
-      - Both collection and table are specified
-
-      Throws LogicError when:
-
-      - Path to JSON document does not exists or is not a file
-
-      Throws RuntimeError when:
-
-      - The schema does not exists
-      - MySQL Server returns an error
-
-      Throws InvalidJson when:
-
-      - JSON document is ill-formed
 
 #@<OUT> util import_table help
 NAME
@@ -3126,48 +1990,38 @@ NAME
                      LOAD DATA LOCAL INFILE calls in parallel connections.
 
 SYNTAX
-      util.import_table(files[, options])
+      util.import_table(urls[, options])
 
 WHERE
-      files: Path or list of paths to files with user data. Path name can
-             contain a glob pattern with wildcard '*' and/or '?'. All selected
-             files must be chunks of the same target table.
+      urls: URL or list of URLs to files with user data. URL can contain a glob
+            pattern with wildcard '*' and/or '?'. All selected files must be
+            chunks of the same target table.
       options: Dictionary with import options
 
 DESCRIPTION
-      The scheme part of a filename contains infomation about the transport
-      backend. Supported transport backends are: file://, http://, https://. If
-      the scheme part of a filename is omitted, then file:// transport backend
-      will be chosen.
+      The urls parameter is a string or list of strings which specifies the
+      files to be imported. Allowed values:
 
-      Supported filename formats:
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to an object - imports a specific file
+      - OCI Pre-Authenticated Request to a bucket or a prefix - imports files
+        matching the glob pattern
 
-      - /path/to/file - Path to a locally or remotely (e.g. in OCI Object
-        Storage) accessible file or directory
-      - file:///path/to/file - Path to a locally accessible file or directory
-      - http[s]://host.domain[:port]/path/to/file - Location of a remote file
-        accessible through HTTP(s) (import_table() only)
-
-      If the osBucketName option is given, the path argument must specify a
-      plain path in that OCI (Oracle Cloud Infrastructure) Object Storage
-      bucket.
-
-      The OCI configuration profile is located through the oci.profile and
-      oci.configFile global shell options and can be overridden with ociProfile
-      and ociConfigFile, respectively.
-
-      If the s3BucketName option is given, the path argument must specify a
-      plain path in that AWS S3 bucket.
-
-      If the azureContainerName option is given, the path argument must specify
-      a plain path in that Azure container.
+      For additional information on remote storage support use \? remote
+      storage.
 
       Options dictionary:
 
-      - schema: string (default: current shell active schema) - Name of target
-        schema
+      - schema: string (default: current Shell active schema) - Name of target
+        schema.
       - table: string (default: filename without extension) - Name of target
-        table
+        table.
       - columns: array of strings and/or integers (default: empty array) - This
         option takes an array of column names as its value. The order of the
         column names indicates how to match data file columns with table
@@ -3229,7 +2083,7 @@ DESCRIPTION
         fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
         options. Must be one of the following values: default, csv, tsv, json
         or csv-unix.
-      - decodeColumns: map (default: not set) - a map between columns names and
+      - decodeColumns: map (default: not set) - A map between columns names and
         SQL expressions to be applied on the loaded data. Column value captured
         in 'columns' by integer is available as user variable '@i', where `i`
         is that integer. Requires 'columns' to be set.
@@ -3238,27 +2092,21 @@ DESCRIPTION
         "binary" specifies "no conversion". If not set, the server will use the
         character set indicated by the character_set_database system variable
         to interpret the information in the file.
-      - sessionInitSql: list of strings (default: []) - execute the given list
+      - sessionInitSql: list of strings (default: []) - Execute the given list
         of SQL statements in each session about to load data.
-
-      OCI Object Storage Options
-
       - osBucketName: string (default: not set) - Name of the OCI Object
         Storage bucket to use. The bucket must already exist.
       - osNamespace: string (default: not set) - Specifies the namespace where
         the bucket is located, if not given it will be obtained using the
-        tenancy id on the OCI configuration.
-      - ociConfigFile: string (default: not set) - Override oci.configFile
-        shell option, to specify the path to the OCI configuration file.
-      - ociProfile: string (default: not set) - Override oci.profile shell
-        option, to specify the name of the OCI profile to use.
+        tenancy ID on the OCI configuration.
+      - ociConfigFile: string (default: not set) - Use the specified OCI
+        configuration file instead of the one at the default location.
+      - ociProfile: string (default: not set) - Use the specified OCI profile
+        instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
         not explicitly set), instance_principal, resource_principal,
         security_token.
-
-      AWS S3 Object Storage Options
-
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -3269,177 +2117,6 @@ DESCRIPTION
       - s3Region: string (default: not set) - Use the specified AWS region.
       - s3EndpointOverride: string (default: not set) - Use the specified AWS
         S3 API endpoint instead of the default one.
-
-      If the s3BucketName option is used, the dump is stored in the specified
-      AWS S3 bucket. Connection is established using default local AWS
-      configuration paths and profiles, unless overridden. The directory
-      structure is simulated within the object name.
-
-      The s3CredentialsFile, s3ConfigFile, s3Profile, s3Region and
-      s3EndpointOverride options cannot be used if the s3BucketName option is
-      not set or set to an empty string.
-
-      All failed connections to AWS S3 are retried three times, with a 1 second
-      delay between retries. If a failure occurs 10 minutes after the
-      connection was created, the delay is changed to an exponential back-off
-      strategy:
-
-      - first delay: 3-6 seconds
-      - second delay: 18-36 seconds
-      - third delay: 40-80 seconds
-
-      Handling of the AWS settings
-
-      The AWS options are evaluated in the order of precedence, the first
-      available value is used.
-
-      1. Name of the AWS profile:
-
-      - the s3Profile option
-      - the AWS_PROFILE environment variable
-      - the AWS_DEFAULT_PROFILE environment variable
-      - the default value of default
-
-      2. Location of the credentials file:
-
-      - the s3CredentialsFile option
-      - the AWS_SHARED_CREDENTIALS_FILE environment variable
-      - the default value of ~/.aws/credentials
-
-      3. Location of the config file:
-
-      - the s3ConfigFile option
-      - the AWS_CONFIG_FILE environment variable
-      - the default value of ~/.aws/config
-
-      4. Name of the AWS region:
-
-      - the s3Region option
-      - the AWS_REGION environment variable
-      - the AWS_DEFAULT_REGION environment variable
-      - the region setting from the config file for the specified profile
-      - the default value of us-east-1
-
-      5. URI of AWS S3 API endpoint
-
-      - the s3EndpointOverride option
-      - the default value of https://<s3BucketName>.s3.<region>.amazonaws.com
-
-      The AWS credentials are fetched from the following providers, in the
-      order of precedence:
-
-      1. Environment variables:
-
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-      - AWS_SESSION_TOKEN
-
-      2. Assuming a role
-      3. Settings from the credentials file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      4. Process specified by the credential_process setting from the config
-         file for the specified profile
-      5. Settings from the config file for the specified profile:
-
-      - aws_access_key_id
-      - aws_secret_access_key
-      - aws_session_token
-
-      6. Amazon Elastic Container Service (Amazon ECS) credentials
-      7. Amazon Instance Metadata Service (Amazon IMDS) credentials
-
-      The items specified above correspond to the following credentials:
-
-      - the AWS access key
-      - the secret key associated with the AWS access key
-      - the AWS session token for the temporary security credentials
-
-      Role is assumed using the following settings from the AWS config file:
-
-      - credential_source
-      - duration_seconds
-      - external_id
-      - role_arn
-      - role_session_name
-      - source_profile
-
-      The multi-factor authentication is not supported. For more information on
-      assuming a role, please consult the AWS documentation.
-
-      The process/command line specified by the credential_process setting must
-      write a JSON object to the standard output in the following form:
-      {
-        "Version": 1,
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "SessionToken": "temporary AWS session token, optional",
-        "Expiration": "RFC3339 timestamp, optional"
-      }
-
-      The Amazon ECS credentials are fetched from a URI specified by an
-      environment variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is
-      appended to 'http://169.254.170.2'). If this environment variable is not
-      set, the value of AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable
-      is used instead. If neither of these environment variables are set, ECS
-      credentials are not used.
-
-      The request may optionally be sent with an 'Authorization' header. If the
-      AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its
-      value should specify an absolute file path to a file that contains the
-      authorization token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN
-      environment variable should be used to explicilty specify that
-      authorization token. If neither of these environment variables are set,
-      the 'Authorization' header is not sent with the request.
-
-      The reply is expected to be a JSON object in the following form:
-      {
-        "AccessKeyId": "AWS access key",
-        "SecretAccessKey": "secret key associated with the AWS access key",
-        "Token": "temporary AWS session token",
-        "Expiration": "RFC3339 timestamp"
-      }
-
-      The Amazon IMDS credential provider is configured using the following
-      environment variables:
-
-      - AWS_EC2_METADATA_DISABLED
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT
-      - AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
-      - AWS_EC2_METADATA_V1_DISABLED
-      - AWS_METADATA_SERVICE_TIMEOUT
-      - AWS_METADATA_SERVICE_NUM_ATTEMPTS
-
-      and the following settings from the AWS config file:
-
-      - ec2_metadata_service_endpoint
-      - ec2_metadata_service_endpoint_mode
-      - ec2_metadata_v1_disabled
-      - metadata_service_timeout
-      - metadata_service_num_attempts
-
-      For more information on IMDS, please consult the AWS documentation.
-
-      The Expiration value, if given, specifies when the credentials are going
-      to expire, they will be automatically refreshed before this happens.
-
-      The following credential handling rules apply:
-
-      - If the s3Profile option is set to a non-empty string, the environment
-        variables are not used as a potential credential provider.
-      - If either an access key or a secret key is available in a potential
-        credential provider, it is selected as the credential provider.
-      - If either the access key or the secret key is missing in the selected
-        credential provider, an exception is thrown.
-      - If the session token is missing in the selected credential provider, or
-        if it is set to an empty string, it is not used to authenticate the
-        user.
-
-      Azure Blob Storage Options
-
       - azureContainerName: string (default: not set) - Name of the Azure
         container to use. The container must already exist.
       - azureConfigFile: string (default: not set) - Use the specified Azure
@@ -3449,50 +2126,6 @@ DESCRIPTION
       - azureStorageSasToken: string (default: not set) - Azure Shared Access
         Signature (SAS) token, to be used for the authentication of the
         operation, instead of a key.
-
-      If the azureContainerName option is used, the dump is stored in the
-      specified Azure container. Connection is established using the
-      configuration at the local Azure configuration file.The directory
-      structure is simulated within the blob name.
-
-      The azureConfigFile option cannot be used if the azureContainerName
-      option is not set or set to an empty string.
-
-      Handling of the Azure settings
-
-      The following settings are read from the storage section in the config
-      file:
-
-      - connection_string
-      - account
-      - key
-      - sas_token
-
-      Additionally, the connection options may be defined using the standard
-      Azure environment variables:
-
-      - AZURE_STORAGE_CONNECTION_STRING
-      - AZURE_STORAGE_ACCOUNT
-      - AZURE_STORAGE_KEY
-      - AZURE_STORAGE_SAS_TOKEN
-
-      The Azure configuration values are evaluated in the following precedence:
-
-      - Options parameter - Environment Variables - Configuration File
-
-      If a connection string is defined either case in the environment variable
-      or the configuration option, the individual configuration values for
-      account and key will be ignored.
-
-      If a SAS Token is defined, it will be used for the authorization
-      (ignoring any defined account key).
-
-      The default Azure Blob Endpoint to be used in the operations is defined
-      by:
-
-      https://<account>.blob.core.windows.net
-
-      Unless a different EndPoint is defined in the connection string.
 
       dialect predefines following set of options fieldsTerminatedBy (FT),
       fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
@@ -3545,26 +2178,26 @@ WHERE
       options: Dictionary with load options
 
 DESCRIPTION
-      Depending on how the dump was created, the url identifies the location
-      and in some cases the access method to the dump, i.e. for dumps to be
-      loaded using pre-authenticated requests (PAR). Allowed values:
+      The url parameter identifies the location of the dump to be loaded.
+      Allowed values:
 
-      - /path/to/folder - to load a dump from local storage
-      - oci/bucket/path - to load a dump from OCI Object Storage using an OCI
-        profile
-      - aws/bucket/path - to load a dump from AWS S3 Object Storage using the
-        AWS settings stored in the credentials and config files
-      - azure/contaier/path - to load a dump from Azure container using either
-        the configuration file or SAS token
-      - PAR to the dump location - to load a dump from OCI Object Storage using
-        a single PAR
+      - [file://]/local/path - local file storage (default)
+      - oci/bucket/path - OCI Object Storage, when the osBucketName option is
+        given
+      - aws/bucket/path - AWS S3 Object Storage, when the s3BucketName option
+        is given
+      - azure/container/path - Azure Blob Storage, when the azureContainerName
+        option is given
+      - OCI Pre-Authenticated Request to a bucket or a prefix - loads a dump
+        from OCI Object Storage using a single PAR
+
+      For additional information on remote storage support use \? remote
+      storage.
 
       load_dump() will load a dump from the specified path. It transparently
       handles compressed files and directly streams data when loading from
-      remote storage (currently HTTP, OCI Object Storage, AWS S3 Object Storage
-      and Azure Containers). If the 'waitDumpTimeout' option is set, it will
-      load a dump on-the-fly, loading table data chunks as the dumper produces
-      them.
+      remote storage. If the 'waitDumpTimeout' option is set, it will load a
+      dump on-the-fly, loading table data chunks as the dumper produces them.
 
       Table data will be loaded in parallel using the configured number of
       threads (4 by default). Multiple threads per table can be used if the
@@ -3603,8 +2236,8 @@ DESCRIPTION
       load-progress.<server_uuid>.json and is written to the same location as
       the dump. If 'progressFile' is specified, progress will be written to
       either a local file at the given path, or, if the HTTP(S) scheme is used,
-      to a remote file using HTTP PUT requests. Setting it to '' will disable
-      progress tracking and resuming.
+      to a remote file using HTTP PUT requests. Setting it to an empty string
+      will disable progress tracking and resuming.
 
       If the 'resetProgress' option is enabled, progress information from
       previous load attempts of the dump to the destination server is discarded
@@ -3745,11 +2378,11 @@ DESCRIPTION
         being created. Once all uploaded tables are processed the command will
         either wait for more data, the dump is marked as completed or the given
         timeout (in seconds) passes. <= 0 disables waiting.
-      - osBucketName: string (default: not set) - Use specified OCI bucket for
-        the location of the dump.
+      - osBucketName: string (default: not set) - Name of the OCI Object
+        Storage bucket to use. The bucket must already exist.
       - osNamespace: string (default: not set) - Specifies the namespace where
         the bucket is located, if not given it will be obtained using the
-        tenancy id on the OCI configuration.
+        tenancy ID on the OCI configuration.
       - ociConfigFile: string (default: not set) - Use the specified OCI
         configuration file instead of the one at the default location.
       - ociProfile: string (default: not set) - Use the specified OCI profile
@@ -3800,7 +2433,7 @@ DESCRIPTION
       - Enables object listing
 
       Given a dump located at a bucket root and a PAR created for the bucket,
-      the dump can be loaded by providing the PAR as the url parameter:
+      the dump can be loaded by providing the PAR as the URL parameter:
 
       Example:
 
@@ -3810,13 +2443,13 @@ DESCRIPTION
 
       util.load_dump(uri, { 'progressFile': 'load_progress.txt' })
 
-      Given a dump located at some folder within a bucket and a PAR created for
-      the given folder, the dump can be loaded by providing the PAR and the
-      prefix as the url parameter:
+      Given a dump located at some directory within a bucket and a PAR created
+      for the given directory, the dump can be loaded by providing the PAR and
+      the prefix as the URL parameter:
 
       Example:
 
-      Dump Location: folder 'dump' at the 'test' bucket
+      Dump Location: directory 'dump' at the 'test' bucket
       PAR created using the 'dump/' prefix.
 
       uri =
@@ -4051,3 +2684,336 @@ DESCRIPTION
         once, before the metrics collection loop. If prefixed with `after:`, it
         will be executed after the loop. If prefixed with `during:`, it will be
         executed once for each iteration of the collection loop.
+
+#@<OUT> Help on remote storage
+Oracle Cloud Infrastructure (OCI) Object Storage Options
+
+- osBucketName: string (default: not set) - Name of the OCI Object Storage
+  bucket to use. The bucket must already exist.
+- osNamespace: string (default: not set) - Specifies the namespace where the
+  bucket is located, if not given it will be obtained using the tenancy ID on
+  the OCI configuration.
+- ociConfigFile: string (default: not set) - Use the specified OCI
+  configuration file instead of the one at the default location.
+- ociProfile: string (default: not set) - Use the specified OCI profile instead
+  of the default one.
+- ociAuth: string (default: not set) - Use the specified authentication method
+  when connecting to the OCI. Allowed values: api_key (used when not explicitly
+  set), instance_principal, resource_principal, security_token.
+
+Description
+
+If the osBucketName option is used, the specified OCI bucket is used as the
+file storage. Connection is established using the local OCI configuration file.
+The directory structure is simulated within the object name.
+
+The osNamespace, ociConfigFile, ociProfile and ociAuth options cannot be used
+if the osBucketName option is not set or set to  an empty string.
+
+The osNamespace option overrides the OCI namespace obtained based on the
+tenancy ID from the local OCI profile.
+
+The ociAuth option allows to specify the authentication method used when
+connecting to the OCI:
+
+- api_key - API Key-Based Authentication
+- instance_principal - Instance Principal Authentication
+- resource_principal - Resource Principal Authentication
+- security_token - Session Token-Based Authentication
+
+For more information please see:
+https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
+
+OCI Object Storage Pre-Authenticated Requests (PARs)
+
+When using a PAR to perform an operation, the OCI configuration is not needed
+to execute it (the osBucketName option should not be set).
+
+When using PAR to a specific file, the generated PAR URL should be used as
+argument for an operation. The following is a file PAR to export a table to
+'tab.tsv' file at the 'dump' directory of the 'test' bucket: 
+
+  https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/tab.tsv
+
+When using a bucket PAR, the generated PAR URL should be used as argument for
+an operation. The following is a bucket PAR to create a dump at the root
+directory of the 'test' bucket: 
+
+  https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
+
+When using a prefix PAR, argument should contain the PAR URL itself and the
+prefix used to generate it. The following is a prefix PAR to create a dump at
+the 'dump' directory of the 'test' bucket. The PAR was created using 'dump' as
+prefix: 
+
+  https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
+
+Note that the prefix PAR URL must end with a slash, because otherwise it will
+be treated as a PAR to specific file.
+
+Reading from a PAR to specific file
+
+The following access type is required to read from such PAR:
+
+- Permit object reads
+
+Reading from a bucket or a prefix PAR
+
+The following access types are required to read from such PAR:
+
+- Permit object reads
+- Enable object listing
+
+Writing to a PAR to specific file
+
+The following access type is required to write to such PAR:
+
+- Permit object writes
+
+Writing to a bucket or a prefix PAR
+
+The following access types are required to write to such PAR:
+
+- Permit object reads and writes
+- Enable object listing
+
+Note that read access is required in this case, because otherwise it is not
+possible to list the objects.
+
+AWS S3 Object Storage Options
+
+- s3BucketName: string (default: not set) - Name of the AWS S3 bucket to use.
+  The bucket must already exist.
+- s3CredentialsFile: string (default: not set) - Use the specified AWS
+  credentials file.
+- s3ConfigFile: string (default: not set) - Use the specified AWS config file.
+- s3Profile: string (default: not set) - Use the specified AWS profile.
+- s3Region: string (default: not set) - Use the specified AWS region.
+- s3EndpointOverride: string (default: not set) - Use the specified AWS S3 API
+  endpoint instead of the default one.
+
+Description
+
+If the s3BucketName option is used, the specified AWS S3 bucket is used as the
+file storage. Connection is established using default local AWS configuration
+paths and profiles, unless overridden. The directory structure is simulated
+within the object name.
+
+The s3CredentialsFile, s3ConfigFile, s3Profile, s3Region and s3EndpointOverride
+options cannot be used if the s3BucketName option is not set or set to an empty
+string.
+
+All failed connections to AWS S3 are retried three times, with a 1 second delay
+between retries. If a failure occurs 10 minutes after the connection was
+created, the delay is changed to an exponential back-off strategy:
+
+- first delay: 3-6 seconds
+- second delay: 18-36 seconds
+- third delay: 40-80 seconds
+
+Handling of the AWS settings
+
+The AWS options are evaluated in the order of precedence, the first available
+value is used.
+
+1. Name of the AWS profile:
+
+- the s3Profile option
+- the AWS_PROFILE environment variable
+- the AWS_DEFAULT_PROFILE environment variable
+- the default value of default
+
+2. Location of the credentials file:
+
+- the s3CredentialsFile option
+- the AWS_SHARED_CREDENTIALS_FILE environment variable
+- the default value of ~/.aws/credentials
+
+3. Location of the config file:
+
+- the s3ConfigFile option
+- the AWS_CONFIG_FILE environment variable
+- the default value of ~/.aws/config
+
+4. Name of the AWS region:
+
+- the s3Region option
+- the AWS_REGION environment variable
+- the AWS_DEFAULT_REGION environment variable
+- the region setting from the config file for the specified profile
+- the default value of us-east-1
+
+5. URI of AWS S3 API endpoint
+
+- the s3EndpointOverride option
+- the default value of https://<s3BucketName>.s3.<region>.amazonaws.com
+
+The AWS credentials are fetched from the following providers, in the order of
+precedence:
+
+1. Environment variables:
+
+- AWS_ACCESS_KEY_ID
+- AWS_SECRET_ACCESS_KEY
+- AWS_SESSION_TOKEN
+
+2. Assuming a role
+3. Settings from the credentials file for the specified profile:
+
+- aws_access_key_id
+- aws_secret_access_key
+- aws_session_token
+
+4. Process specified by the credential_process setting from the config file for
+   the specified profile
+5. Settings from the config file for the specified profile:
+
+- aws_access_key_id
+- aws_secret_access_key
+- aws_session_token
+
+6. Amazon Elastic Container Service (Amazon ECS) credentials
+7. Amazon Instance Metadata Service (Amazon IMDS) credentials
+
+The items specified above correspond to the following credentials:
+
+- the AWS access key
+- the secret key associated with the AWS access key
+- the AWS session token for the temporary security credentials
+
+Role is assumed using the following settings from the AWS config file:
+
+- credential_source
+- duration_seconds
+- external_id
+- role_arn
+- role_session_name
+- source_profile
+
+The multi-factor authentication is not supported. For more information on
+assuming a role, please consult the AWS documentation.
+
+The process/command line specified by the credential_process setting must write
+a JSON object to the standard output in the following form:
+{
+  "Version": 1,
+  "AccessKeyId": "AWS access key",
+  "SecretAccessKey": "secret key associated with the AWS access key",
+  "SessionToken": "temporary AWS session token, optional",
+  "Expiration": "RFC3339 timestamp, optional"
+}
+
+The Amazon ECS credentials are fetched from a URI specified by an environment
+variable AWS_CONTAINER_CREDENTIALS_RELATIVE_URI (its value is appended to
+'http://169.254.170.2'). If this environment variable is not set, the value of
+AWS_CONTAINER_CREDENTIALS_FULL_URI environment variable is used instead. If
+neither of these environment variables are set, ECS credentials are not used.
+
+The request may optionally be sent with an 'Authorization' header. If the
+AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE environment variable is set, its value
+should specify an absolute file path to a file that contains the authorization
+token. Alternatively, the AWS_CONTAINER_AUTHORIZATION_TOKEN environment
+variable should be used to explicilty specify that authorization token. If
+neither of these environment variables are set, the 'Authorization' header is
+not sent with the request.
+
+The reply is expected to be a JSON object in the following form:
+{
+  "AccessKeyId": "AWS access key",
+  "SecretAccessKey": "secret key associated with the AWS access key",
+  "Token": "temporary AWS session token",
+  "Expiration": "RFC3339 timestamp"
+}
+
+The Amazon IMDS credential provider is configured using the following
+environment variables:
+
+- AWS_EC2_METADATA_DISABLED
+- AWS_EC2_METADATA_SERVICE_ENDPOINT
+- AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE
+- AWS_EC2_METADATA_V1_DISABLED
+- AWS_METADATA_SERVICE_TIMEOUT
+- AWS_METADATA_SERVICE_NUM_ATTEMPTS
+
+and the following settings from the AWS config file:
+
+- ec2_metadata_service_endpoint
+- ec2_metadata_service_endpoint_mode
+- ec2_metadata_v1_disabled
+- metadata_service_timeout
+- metadata_service_num_attempts
+
+For more information on IMDS, please consult the AWS documentation.
+
+The Expiration value, if given, specifies when the credentials are going to
+expire, they will be automatically refreshed before this happens.
+
+The following credential handling rules apply:
+
+- If the s3Profile option is set to a non-empty string, the environment
+  variables are not used as a potential credential provider.
+- If either an access key or a secret key is available in a potential
+  credential provider, it is selected as the credential provider.
+- If either the access key or the secret key is missing in the selected
+  credential provider, an exception is thrown.
+- If the session token is missing in the selected credential provider, or if it
+  is set to an empty string, it is not used to authenticate the user.
+
+Azure Blob Storage Options
+
+- azureContainerName: string (default: not set) - Name of the Azure container
+  to use. The container must already exist.
+- azureConfigFile: string (default: not set) - Use the specified Azure
+  configuration file instead of the one at the default location.
+- azureStorageAccount: string (default: not set) - The account to be used for
+  the operation.
+- azureStorageSasToken: string (default: not set) - Azure Shared Access
+  Signature (SAS) token, to be used for the authentication of the operation,
+  instead of a key.
+
+Description
+
+If the azureContainerName option is used, the specified Azure container is used
+as the file storage. Connection is established using the configuration at the
+local Azure configuration file. The directory structure is simulated within the
+blob name.
+
+The azureConfigFile, azureStorageAccount and azureStorageSasToken options
+cannot be used if the azureContainerName option is not set or set to an empty
+string.
+
+Handling of the Azure settings
+
+The following settings are read from the storage section in the config file:
+
+- connection_string
+- account
+- key
+- sas_token
+
+Additionally, the connection options may be defined using the standard Azure
+environment variables:
+
+- AZURE_STORAGE_CONNECTION_STRING
+- AZURE_STORAGE_ACCOUNT
+- AZURE_STORAGE_KEY
+- AZURE_STORAGE_SAS_TOKEN
+
+The Azure configuration values are evaluated in the following precedence:
+
+- options parameter
+- environment variables
+- configuration file
+
+If a connection string is defined either case in the environment variable or
+the configuration option, the individual configuration values for account and
+key will be ignored.
+
+If a SAS Token is defined, it will be used for the authorization (ignoring any
+defined account key).
+
+The default Azure Blob Endpoint to be used in the operations is defined by:
+
+  https://<account>.blob.core.windows.net
+
+unless a different endpoint is defined in the connection string.

@@ -984,12 +984,12 @@ OPTIONS
             Default: false.
 
 --osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
-            it will be obtained using the tenancy id on the OCI configuration.
+            it will be obtained using the tenancy ID on the OCI configuration.
             Default: not set.
 
 --partitions=<key>[:<type>]=<value>
@@ -1220,12 +1220,12 @@ OPTIONS
             Default: false.
 
 --osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
-            it will be obtained using the tenancy id on the OCI configuration.
+            it will be obtained using the tenancy ID on the OCI configuration.
             Default: not set.
 
 --outputUrl=<str>
@@ -1434,12 +1434,12 @@ OPTIONS
             Default: false.
 
 --osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
-            it will be obtained using the tenancy id on the OCI configuration.
+            it will be obtained using the tenancy ID on the OCI configuration.
             Default: not set.
 
 --outputUrl=<str>
@@ -1589,12 +1589,12 @@ OPTIONS
             not set.
 
 --osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
-            it will be obtained using the tenancy id on the OCI configuration.
+            it will be obtained using the tenancy ID on the OCI configuration.
             Default: not set.
 
 --partitions=<str list>
@@ -1662,7 +1662,7 @@ OPTIONS
             Disables conversion of BSON BinData values.
 
 --ignoreDate=<bool>
-            Disables conversion of BSON Date values
+            Disables conversion of BSON Date values.
 
 --ignoreRegex=<bool>
             Disables conversion of BSON Regex values.
@@ -1672,7 +1672,7 @@ OPTIONS
             value. This option is only valid if ignoreRegex is disabled.
 
 --ignoreTimestamp=<bool>
-            Disables conversion of BSON Timestamp values
+            Disables conversion of BSON Timestamp values.
 
 --schema=<str>
             Name of target schema.
@@ -1693,9 +1693,9 @@ SYNTAX
       util import-table <files> [<options>]
 
 WHERE
-      files: Path or list of paths to files with user data. Path name can
-             contain a glob pattern with wildcard '*' and/or '?'. All selected
-             files must be chunks of the same target table.
+      urls: URL or list of URLs to files with user data. URL can contain a glob
+            pattern with wildcard '*' and/or '?'. All selected files must be
+            chunks of the same target table.
 
 OPTIONS
 --azureConfigFile=<str>
@@ -1806,12 +1806,12 @@ OPTIONS
             not set.
 
 --ociConfigFile=<str>
-            Override oci.configFile shell option, to specify the path to the
-            OCI configuration file. Default: not set.
+            Use the specified OCI configuration file instead of the one at the
+            default location. Default: not set.
 
 --ociProfile=<str>
-            Override oci.profile shell option, to specify the name of the OCI
-            profile to use. Default: not set.
+            Use the specified OCI profile instead of the default one. Default:
+            not set.
 
 --osBucketName=<str>
             Name of the OCI Object Storage bucket to use. The bucket must
@@ -1819,7 +1819,7 @@ OPTIONS
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
-            it will be obtained using the tenancy id on the OCI configuration.
+            it will be obtained using the tenancy ID on the OCI configuration.
             Default: not set.
 
 --replaceDuplicates=<bool>
@@ -1848,7 +1848,7 @@ OPTIONS
             Use the specified AWS region. Default: not set.
 
 --schema=<str>
-            Name of target schema Default: current shell active schema.
+            Name of target schema. Default: current Shell active schema.
 
 --sessionInitSql=<str list>
             Execute the given list of SQL statements in each session about to
@@ -1864,7 +1864,7 @@ OPTIONS
             column names. Default: 0.
 
 --table=<str>
-            Name of target table Default: filename without extension.
+            Name of target table. Default: filename without extension.
 
 --threads=<int>
             Use N threads to sent file chunks to the server. Default: 8.
@@ -2070,12 +2070,12 @@ OPTIONS
             not set.
 
 --osBucketName=<str>
-            Use specified OCI bucket for the location of the dump. Default: not
-            set.
+            Name of the OCI Object Storage bucket to use. The bucket must
+            already exist. Default: not set.
 
 --osNamespace=<str>
             Specifies the namespace where the bucket is located, if not given
-            it will be obtained using the tenancy id on the OCI configuration.
+            it will be obtained using the tenancy ID on the OCI configuration.
             Default: not set.
 
 --progressFile=<str>

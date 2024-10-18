@@ -257,7 +257,7 @@ REGISTER_HELP(TABLESELECT_WHERE_DETAIL1,
  *
  * $(TABLESELECT_WHERE_DETAIL)
  *
- * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
+ * The <b>expression</b> supports \ref param_binding.
  *
  * #### Method Chaining
  *
@@ -452,7 +452,7 @@ REGISTER_HELP(TABLESELECT_HAVING_DETAIL1,
  *
  * $(TABLESELECT_HAVING_DETAIL)
  *
- * The <b>condition</b> supports \a [Parameter Binding](param_binding.html).
+ * The <b>condition</b> supports \ref param_binding.
  *
  * #### Method Chaining
  *

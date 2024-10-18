@@ -219,6 +219,15 @@ session.close()
 //@ Help on connection attributes
 \? connection attributes
 
+//@ Help on connection compression
+\? connection compression
+
+//@ Help on connection options
+\? connection options
+
+//@ Help on connection types
+\? connection types
+
 //@ Help on extension objects
 \? extension objects
 

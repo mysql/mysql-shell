@@ -249,37 +249,26 @@ shcore::Value Mysql::get_member(const std::string &prop) const {
 #endif
 
 REGISTER_HELP_FUNCTION(getClassicSession, mysql);
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_BRIEF,
-              "Opens a classic MySQL protocol session to a MySQL server.");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM,
-              "@param connectionData The connection data for the session");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_PARAM1,
-              "@param password Optional password for the session");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_RETURNS, "@returns A ClassicSession");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL,
-              "A ClassicSession object uses the traditional MySQL Protocol to "
-              "allow executing operations on the "
-              "connected MySQL Server.");
-REGISTER_HELP(MYSQL_GETCLASSICSESSION_DETAIL1, "${TOPIC_CONNECTION_DATA}");
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_GETCLASSICSESSION, R"*(
+Opens a classic MySQL protocol session to a MySQL server.
+
+@param connectionData The connection data for the session
+@param password Optional password for the session
+
+@returns A ClassicSession
+
+A ClassicSession object uses the traditional MySQL Protocol to allow executing
+operations on the connected MySQL Server.
+
+${TOPIC_CONNECTION_DATA}
+)*");
 
 /**
  * \ingroup mysql
  * $(MYSQL_GETCLASSICSESSION_BRIEF)
  *
- * $(MYSQL_GETCLASSICSESSION_PARAM)
- * $(MYSQL_GETCLASSICSESSION_PARAM1)
- *
- * $(MYSQL_GETCLASSICSESSION_RETURNS)
- *
- * $(MYSQL_GETCLASSICSESSION_DETAIL)
- *
- * \copydoc connection_options
- *
- * Detailed description of the connection data format is available at \ref
- * connection_data
- *
+ * $(MYSQL_GETCLASSICSESSION)
  */
-
 #if DOXYGEN_JS
 ClassicSession getClassicSession(ConnectionData connectionData,
                                  String password) {}
@@ -289,36 +278,24 @@ ClassicSession get_classic_session(ConnectionData connectionData,
 #endif
 
 REGISTER_HELP_FUNCTION(getSession, mysql);
-REGISTER_HELP(MYSQL_GETSESSION_BRIEF,
-              "Opens a classic MySQL protocol session to a MySQL server.");
-REGISTER_HELP(MYSQL_GETSESSION_PARAM,
-              "@param connectionData The connection data for the session");
-REGISTER_HELP(MYSQL_GETSESSION_PARAM1,
-              "@param password Optional password for the session");
-REGISTER_HELP(MYSQL_GETSESSION_RETURNS, "@returns A ClassicSession");
-REGISTER_HELP(MYSQL_GETSESSION_DETAIL,
-              "A ClassicSession object uses the traditional MySQL Protocol to "
-              "allow executing operations on the "
-              "connected MySQL Server.");
-REGISTER_HELP(MYSQL_GETSESSION_DETAIL1, "${TOPIC_CONNECTION_DATA}");
-// clang-format on
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_GETSESSION, R"*(
+Opens a classic MySQL protocol session to a MySQL server.
 
+@param connectionData The connection data for the session
+@param password Optional password for the session
+
+@returns A ClassicSession
+
+A ClassicSession object uses the traditional MySQL Protocol to allow executing
+operations on the connected MySQL Server.
+
+${TOPIC_CONNECTION_DATA}
+)*");
 /**
  * \ingroup mysql
  * $(MYSQL_GETSESSION_BRIEF)
  *
- * $(MYSQL_GETSESSION_PARAM)
- * $(MYSQL_GETSESSION_PARAM1)
- *
- * $(MYSQL_GETSESSION_RETURNS)
- *
- * $(MYSQL_GETSESSION_DETAIL)
- *
- * \copydoc connection_options
- *
- * Detailed description of the connection data format is available at \ref
- * connection_data
- *
+ * $(MYSQL_GETSESSION)
  */
 #if DOXYGEN_JS
 ClassicSession getSession(ConnectionData connectionData, String password) {}

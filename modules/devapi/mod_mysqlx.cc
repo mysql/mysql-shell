@@ -211,37 +211,26 @@ shcore::Value Mysqlx::get_member(const std::string &prop) const {
 #endif
 
 REGISTER_HELP_FUNCTION(getSession, mysqlx);
-REGISTER_HELP(MYSQLX_GETSESSION_BRIEF,
-              "Creates a Session instance using the provided connection data.");
-REGISTER_HELP(MYSQLX_GETSESSION_PARAM,
-              "@param connectionData The connection data for the session");
-REGISTER_HELP(MYSQLX_GETSESSION_PARAM1,
-              "@param password Optional password for the session");
-REGISTER_HELP(MYSQLX_GETSESSION_RETURNS, "@returns A Session");
-REGISTER_HELP(
-    MYSQLX_GETSESSION_DETAIL,
-    "A Session object uses the X Protocol to allow executing operations on the "
-    "connected MySQL Server.");
-REGISTER_HELP(MYSQLX_GETSESSION_DETAIL1, "${TOPIC_CONNECTION_DATA}");
+REGISTER_HELP_FUNCTION_TEXT(MYSQLX_GETSESSION, R"*(
+Creates a Session instance using the provided connection data.
+
+@param connectionData The connection data for the session
+@param password Optional password for the session
+
+@returns A Session
+
+A Session object uses the X Protocol to allow executing operations on the
+connected MySQL Server.
+
+${TOPIC_CONNECTION_DATA}
+)*");
 
 /**
  * \ingroup mysqlx
  * $(MYSQLX_GETSESSION_BRIEF)
  *
- * $(MYSQLX_GETSESSION_PARAM)
- * $(MYSQLX_GETSESSION_PARAM1)
- *
- * $(MYSQLX_GETSESSION_RETURNS)
- *
- * $(MYSQLX_GETSESSION_DETAIL)
- *
- * \copydoc connection_options
- *
- * Detailed description of the connection data format is available at \ref
- * connection_data
- *
+ * $(MYSQLX_GETSESSION)
  */
-
 #if DOXYGEN_JS
 Session getSession(ConnectionData connectionData, String password) {}
 #elif DOXYGEN_PY

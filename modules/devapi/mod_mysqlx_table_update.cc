@@ -157,8 +157,7 @@ in the server, the resulting value will be set at the indicated column.
  *
  * $(TABLEUPDATE_SET)
  *
- * The expression also can be used for \a [Parameter
- * Binding](param_binding.html).
+ * The <b>value</b> supports \ref param_binding.
  *
  * #### Method Chaining
  *
@@ -280,7 +279,7 @@ REGISTER_HELP(TABLEUPDATE_WHERE_DETAIL1,
  *
  * $(TABLEUPDATE_WHERE_DETAIL)
  *
- * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
+ * The <b>expression</b> supports \ref param_binding.
  *
  * #### Method Chaining
  *

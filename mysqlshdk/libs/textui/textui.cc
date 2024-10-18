@@ -100,9 +100,11 @@ std::string preprocess_markup(const std::string &line, Highlights *highlights) {
   // Some characters need to be specified using special doxygen format to
   // to prevent generating doxygen warnings.
   std::vector<std::pair<const char *, const char *>> replacements = {
-      {"@<", "<"},   {"@>", ">"},      {"&nbsp;", " "},   {"@li", "-"},
-      {"@%", "%"},   {"@@", "@"},      {"\\\\", "\\"},    {"<br>", "\n"},
-      {"@::", "::"}, {"&quot;", "\""}, {"%http", "http"}, {"%file", "file"}};
+      {"@<", "<"},       {"@>", ">"},         {"&nbsp;", " "},
+      {"@li", "-"},      {"@%", "%"},         {"@@", "@"},
+      {"\\\\", "\\"},    {"<br>", "\n"},      {"@::", "::"},
+      {"&quot;", "\""},  {"%http", "http"},   {"%file", "file"},
+      {"%Path", "Path"}, {"%Shell", "Shell"}, {"%Options", "Options"}};
 
   for (const auto &rpl : replacements) {
     ret_val = shcore::str_replace(ret_val, rpl.first, rpl.second);

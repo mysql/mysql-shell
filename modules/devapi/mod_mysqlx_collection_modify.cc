@@ -304,8 +304,7 @@ REGISTER_HELP(
  * mysqlx.expr(expression)
  * \endcode
  *
- * The expression also can be used for \a [Parameter
- * Binding](param_binding.html).
+ * The <b>expression</b> supports \ref param_binding.
  *
  * The attribute addition will be done on the collection's documents once the
  * execute() method is called.

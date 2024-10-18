@@ -99,44 +99,44 @@ Util::Util(shcore::IShell_core *owner)
 
 REGISTER_HELP_FUNCTION(checkForServerUpgrade, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_CHECKFORSERVERUPGRADE, R"*(
-Performs series of tests on specified MySQL server to check if 
-the upgrade process will succeed.
+Performs series of tests on specified MySQL server to check if the upgrade
+process will succeed.
 
-@param connectionData Optional the connection data to server to 
-be checked
+@param connectionData Optional the connection data to server to be checked
 @param options Optional dictionary of options to modify tool behaviour.
 
-If no connectionData is specified tool will try to establish 
-connection using data from current session. See <b>\\? connection</b> for
-additional details.
-              
+If no connectionData is specified tool will try to establish connection using
+data from current session.
+
+${TOPIC_CONNECTION_DATA}
+
 Tool behaviour can be modified with following options:
 
 @li <b>configPath</b> - full path to MySQL server configuration file.
 @li <b>outputFormat</b> - value can be either TEXT (default) or JSON.
 @li <b>targetVersion</b> - version to which upgrade will be checked.
 @li <b>password</b> - password for connection.
-@li <b>include</b> - comma separated list containing the check 
-identifiers to be included in the operation.
-@li <b>exclude</b> - comma separated list containing the check 
-identifiers to be excluded from the operation.
-@li <b>list</b> - bool value to indicate the operation should only 
-list the checks.
+@li <b>include</b> - comma separated list containing the check identifiers to be
+included in the operation.
+@li <b>exclude</b> - comma separated list containing the check identifiers to be
+ excluded from the operation.
+@li <b>list</b> - bool value to indicate the operation should only list the
+checks.
 
-If <b>targetVersion</b> is not specified, the current shell version
-will be used as target version.
+If <b>targetVersion</b> is not specified, the current %Shell version will be
+used as target version.
 
 <b>Limitations</b>
 
-When running this tool with a server older than 8.0, some checks have
-additional requirements:
+When running this tool with a server older than 8.0, some checks have additional
+requirements:
 
 @li The checks related to system variables require the full path to the
 configuration file to be provided through the <b>configPath</b> option.
-@li The <b>checkTableCommand</b> check requires the user executing the
-tool has the RELOAD grant.
-@li The <b>schemaInconsistency</b> check ignores schemas/tables 
-that contain unicode characters outside ASCII range.
+@li The <b>checkTableCommand</b> check requires the user executing the tool has
+the RELOAD grant.
+@li The <b>schemaInconsistency</b> check ignores schemas/tables that contain
+unicode characters outside ASCII range.
 )*");
 
 /**
@@ -144,11 +144,6 @@ that contain unicode characters outside ASCII range.
  * $(UTIL_CHECKFORSERVERUPGRADE_BRIEF)
  *
  * $(UTIL_CHECKFORSERVERUPGRADE)
- *
- * \copydoc connection_options
- *
- * Detailed description of the connection data format is available at \ref
- * connection_data
  */
 #if DOXYGEN_JS
 Undefined Util::checkForServerUpgrade(ConnectionData connectionData,
@@ -219,130 +214,78 @@ void Util::check_for_server_upgrade(
 }
 
 REGISTER_HELP_FUNCTION(importJson, util);
-REGISTER_HELP(UTIL_IMPORTJSON_BRIEF,
-              "Import JSON documents from file to collection or table in MySQL "
-              "Server using X Protocol session.");
+REGISTER_HELP_FUNCTION_TEXT(UTIL_IMPORTJSON, R"*(
+Import JSON documents from file to collection or table in MySQL Server using X
+Protocol session.
 
-REGISTER_HELP(UTIL_IMPORTJSON_PARAM, "@param file Path to JSON documents file");
+@param file %Path to JSON documents file
+@param options Optional dictionary with import options
 
-REGISTER_HELP(UTIL_IMPORTJSON_PARAM1,
-              "@param options Optional dictionary with import options");
+This function reads standard JSON documents from a file, it also supports
+converting BSON Data Types represented using the MongoDB Extended Json (strict
+mode) into MySQL values.
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL,
-              "This function reads standard JSON documents from a file, "
-              "however, it also supports converting BSON Data Types "
-              "represented using the MongoDB Extended Json (strict mode) into "
-              "MySQL values.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL1,
-              "The options dictionary supports the following options:");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL2,
-              "@li schema: string - name of target schema.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL3,
-              "@li collection: string - name of collection where the data will "
-              "be imported.");
-REGISTER_HELP(
-    UTIL_IMPORTJSON_DETAIL4,
-    "@li table: string - name of table where the data will be imported.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL5,
-              "@li tableColumn: string (default: \"doc\") - name of column in "
-              "target table where the imported JSON documents will be stored.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL6,
-              "@li convertBsonTypes: bool (default: false) - enables the BSON "
-              "data type conversion.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL7,
-              "@li convertBsonOid: bool (default: the value of "
-              "convertBsonTypes) - enables conversion of the BSON ObjectId "
-              "values.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL8,
-              "@li extractOidTime: string (default: empty) - creates a new "
-              "field based on the ObjectID timestamp. Only valid if "
-              "convertBsonOid is enabled.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL9,
-              "The following options are valid only when convertBsonTypes is "
-              "enabled. They are all boolean flags. ignoreRegexOptions is "
-              "enabled by default, rest are disabled by default.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL10,
-              "@li ignoreDate: disables conversion of BSON Date values");
-REGISTER_HELP(
-    UTIL_IMPORTJSON_DETAIL11,
-    "@li ignoreTimestamp: disables conversion of BSON Timestamp values");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL12,
-              "@li ignoreRegex: disables conversion of BSON Regex values.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL15,
-              "@li ignoreRegexOptions: causes regex options to be ignored when "
-              "processing a Regex BSON value. This option is only valid if "
-              "ignoreRegex is disabled.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL13,
-              "@li ignoreBinary: disables conversion of BSON BinData values.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL14,
-              "@li decimalAsDouble: causes BSON Decimal values to be imported "
-              "as double values.");
+The <b>options</b> dictionary supports the following options:
+@li <b>schema</b>: string - Name of target schema.
+@li <b>collection</b>: string - Name of collection where the data will be
+imported.
+@li <b>table</b>: string - Name of table where the data will be imported.
+@li <b>tableColumn</b>: string (default: "doc") - Name of column in target
+table where the imported JSON documents will be stored.
+@li <b>convertBsonTypes</b>: bool (default: false) - Enables the BSON data type
+conversion.
+@li <b>convertBsonOid</b>: bool (default: the value of <b>convertBsonTypes</b>)
+- Enables conversion of the BSON ObjectId values.
+@li <b>extractOidTime</b>: string (default: empty) - Creates a new field based
+on the ObjectID timestamp. Only valid if <b>convertBsonOid</b> is enabled.
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL16,
-              "If the schema is not provided, an active schema on the global "
-              "session, if set, will be used.");
+The following options are valid only when <b>convertBsonTypes</b> is enabled.
+These are all boolean flags. The <b>ignoreRegexOptions</b> option is enabled by
+default, the rest is disabled by default.
+@li <b>ignoreDate</b>: Disables conversion of BSON Date values.
+@li <b>ignoreTimestamp</b>: Disables conversion of BSON Timestamp values.
+@li <b>ignoreRegex</b>: Disables conversion of BSON Regex values.
+@li <b>ignoreBinary</b>: Disables conversion of BSON BinData values.
+@li <b>decimalAsDouble</b>: Causes BSON Decimal values to be imported as double
+values.
+@li <b>ignoreRegexOptions</b>: Causes regex options to be ignored when
+processing a Regex BSON value. This option is only valid if <b>ignoreRegex</b>
+is disabled.
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL17,
-              "The collection and the table options cannot be combined. If "
-              "they are not provided, the basename of the file without "
-              "extension will be used as target collection name.");
+If the schema is not provided, an active schema on the global session, if set,
+will be used.
 
-REGISTER_HELP(
-    UTIL_IMPORTJSON_DETAIL18,
-    "If the target collection or table does not exist, they are created, "
-    "otherwise the data is inserted into the existing collection or table.");
+The <b>collection</b> and the <b>table</b> options cannot be combined. If they
+are not provided, the basename of the file without extension will be used as
+target collection name.
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL19,
-              "The tableColumn implies the use of the table option and cannot "
-              "be combined "
-              "with the collection option.");
+If the target collection or table does not exist, they are created, otherwise
+the data is inserted into the existing collection or table.
 
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL20, "<b>BSON Data Type Processing.</b>");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL21,
-              "If only convertBsonOid is enabled, no conversion will be done "
-              "on the rest of the BSON Data Types.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL22,
-              "To use extractOidTime, it should be set to a name which will "
-              "be used to insert an additional field into the main document. "
-              "The value of the new field will be the timestamp obtained from "
-              "the ObjectID value. Note that this will be done only for an "
-              "ObjectID value associated to the '_id' field of the main "
-              "document.");
-REGISTER_HELP(
-    UTIL_IMPORTJSON_DETAIL23,
-    "NumberLong and NumberInt values will be converted to integer values.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL24,
-              "NumberDecimal values are imported as strings, unless "
-              "decimalAsDouble is enabled.");
-REGISTER_HELP(UTIL_IMPORTJSON_DETAIL25,
-              "Regex values will be converted to strings containing the "
-              "regular expression. The regular expression options are ignored "
-              "unless ignoreRegexOptions is disabled. When ignoreRegexOptions "
-              "is disabled the regular expression will be converted to the "
-              "form: /@<regex@>/@<options@>.");
+The <b>tableColumn</b> implies the use of the <b>table</b> option and cannot be
+combined with the <b>collection</b> option.
 
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS, "Throws ArgumentError when:");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS1, "@li Option name is invalid");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS2,
-              "@li Required options are not set and cannot be deduced");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS3,
-              "@li Shell is not connected to MySQL Server using X Protocol");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS4,
-              "@li Schema is not provided and there is no active schema on the "
-              "global session");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS5,
-              "@li Both collection and table are specified");
+<b>BSON Data Type Processing.</b>
 
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS6, "Throws LogicError when:");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS7,
-              "@li Path to JSON document does not exists or is not a file");
+If only <b>convertBsonOid</b> is enabled, no conversion will be done on the rest
+of the BSON Data Types.
 
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS8, "Throws RuntimeError when:");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS9, "@li The schema does not exists");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS10, "@li MySQL Server returns an error");
+To use <b>extractOidTime</b>, it should be set to a name which will be used to
+insert an additional field into the main document. The value of the new field
+will be the timestamp obtained from the ObjectID value. Note that this will be
+done only for an ObjectID value associated to the '_id' field of the main
+document.
 
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS11, "Throws InvalidJson when:");
-REGISTER_HELP(UTIL_IMPORTJSON_THROWS12, "@li JSON document is ill-formed");
+NumberLong and NumberInt values will be converted to integer values.
+
+NumberDecimal values are imported as strings, unless <b>decimalAsDouble</b> is
+enabled.
+
+Regex values will be converted to strings containing the regular expression. The
+regular expression options are ignored unless <b>ignoreRegexOptions</b> is
+disabled. When <b>ignoreRegexOptions</b> is disabled, the regular expression
+will be converted to the form: /@<regex@>/@<options@>.
+)*");
 
 const shcore::Option_pack_def<Import_json_options>
     &Import_json_options::options() {
@@ -362,64 +305,7 @@ const shcore::Option_pack_def<Import_json_options>
  *
  * $(UTIL_IMPORTJSON_BRIEF)
  *
- * $(UTIL_IMPORTJSON_PARAM)
- * $(UTIL_IMPORTJSON_PARAM1)
- *
- * $(UTIL_IMPORTJSON_DETAIL)
- *
- * $(UTIL_IMPORTJSON_DETAIL1)
- * $(UTIL_IMPORTJSON_DETAIL2)
- * $(UTIL_IMPORTJSON_DETAIL3)
- * $(UTIL_IMPORTJSON_DETAIL4)
- * $(UTIL_IMPORTJSON_DETAIL5)
- * $(UTIL_IMPORTJSON_DETAIL6)
- * $(UTIL_IMPORTJSON_DETAIL7)
- * $(UTIL_IMPORTJSON_DETAIL8)
- *
- * $(UTIL_IMPORTJSON_DETAIL9)
- * $(UTIL_IMPORTJSON_DETAIL10)
- * $(UTIL_IMPORTJSON_DETAIL11)
- * $(UTIL_IMPORTJSON_DETAIL12)
- * $(UTIL_IMPORTJSON_DETAIL13)
- * $(UTIL_IMPORTJSON_DETAIL14)
- * $(UTIL_IMPORTJSON_DETAIL15)
- *
- * $(UTIL_IMPORTJSON_DETAIL16)
- *
- * $(UTIL_IMPORTJSON_DETAIL17)
- *
- * $(UTIL_IMPORTJSON_DETAIL18)
- *
- * $(UTIL_IMPORTJSON_DETAIL19)
- *
- * $(UTIL_IMPORTJSON_DETAIL20)
- *
- * $(UTIL_IMPORTJSON_DETAIL21)
- *
- * $(UTIL_IMPORTJSON_DETAIL22)
- *
- * $(UTIL_IMPORTJSON_DETAIL23)
- *
- * $(UTIL_IMPORTJSON_DETAIL24)
- *
- * $(UTIL_IMPORTJSON_DETAIL25)
- *
- * $(UTIL_IMPORTJSON_THROWS)
- * $(UTIL_IMPORTJSON_THROWS1)
- * $(UTIL_IMPORTJSON_THROWS2)
- * $(UTIL_IMPORTJSON_THROWS3)
- * $(UTIL_IMPORTJSON_THROWS4)
- * $(UTIL_IMPORTJSON_THROWS5)
- *
- * $(UTIL_IMPORTJSON_THROWS6)
- * $(UTIL_IMPORTJSON_THROWS7)
- *
- * $(UTIL_IMPORTJSON_THROWS8)
- * $(UTIL_IMPORTJSON_THROWS9)
- * $(UTIL_IMPORTJSON_THROWS10)
- *
- * $(UTIL_IMPORTJSON_THROWS11)
- * $(UTIL_IMPORTJSON_THROWS12)
+ * $(UTIL_IMPORTJSON)
  */
 #if DOXYGEN_JS
 Undefined Util::importJson(String file, Dictionary options);
@@ -505,36 +391,81 @@ void Util::import_json(
   importer.print_stats();
 }
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AZURE_COMMON_OPTIONS, R"*(
+REGISTER_HELP_TOPIC(Remote Storage, TOPIC, TOPIC_REMOTE_STORAGE, Contents,
+                    SCRIPTING);
+
+REGISTER_HELP_TOPIC_TEXT(TOPIC_REMOTE_STORAGE, R"*(
+<b>Oracle Cloud Infrastructure (OCI) Object Storage Options</b>
+
+${TOPIC_OCI_STORAGE_OPTIONS}
+
+<b>Description</b>
+
+${TOPIC_OCI_STORAGE_OPTIONS_DETAILS}
+
+<b>OCI Object Storage Pre-Authenticated Requests (PARs)</b>
+
+${TOPIC_OCI_STORAGE_PAR_DETAILS}
+
+<b>AWS S3 Object Storage Options</b>
+
+${TOPIC_AWS_STORAGE_OPTIONS}
+
+<b>Description</b>
+
+${TOPIC_AWS_STORAGE_OPTIONS_DETAILS}
+
+<b>Azure Blob Storage Options</b>
+
+${TOPIC_AZURE_STORAGE_OPTIONS}
+
+<b>Description</b>
+
+${TOPIC_AZURE_STORAGE_OPTIONS_DETAILS}
+)*");
+
+#ifdef DOXYGEN
+REGISTER_HELP(TOPIC_REMOTE_STORAGE_MORE_INFO,
+              "For additional information on remote storage support, see @ref "
+              "remote_storage.");
+#else
+REGISTER_HELP(TOPIC_REMOTE_STORAGE_MORE_INFO,
+              "For additional information on remote storage support use \\? "
+              "remote storage.");
+#endif
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_AZURE_STORAGE_OPTIONS, R"*(
 @li <b>azureContainerName</b>: string (default: not set) - Name of the Azure
 container to use. The container must already exist.
 @li <b>azureConfigFile</b>: string (default: not set) - Use the specified Azure
 configuration file instead of the one at the default location.
-@li <b>azureStorageAccount</b>: string (default: not set) - The account to be used
-for the operation.
+@li <b>azureStorageAccount</b>: string (default: not set) - The account to be
+used for the operation.
 @li <b>azureStorageSasToken</b>: string (default: not set) - Azure Shared Access
-Signature (SAS) token, to be used for the authentication of the operation, instead of a key.)*");
+Signature (SAS) token, to be used for the authentication of the operation,
+instead of a key.)*");
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AZURE_COMMON_OPTION_DETAILS, R"*(
-If the <b>azureContainerName</b> option is used, the dump is stored in the specified
-Azure container. Connection is established using the configuration at the
-local Azure configuration file.The directory structure is simulated
+REGISTER_HELP_DETAIL_TEXT(TOPIC_AZURE_STORAGE_OPTIONS_DETAILS, R"*(
+If the <b>azureContainerName</b> option is used, the specified Azure container
+is used as the file storage. Connection is established using the configuration
+at the local Azure configuration file. The directory structure is simulated
 within the blob name.
 
-The <b>azureConfigFile</b> option cannot be used if the <b>azureContainerName</b>
-option is not set or set to an empty string.
+The <b>azureConfigFile</b>, <b>azureStorageAccount</b> and
+<b>azureStorageSasToken</b> options cannot be used if the
+<b>azureContainerName</b> option is not set or set to an empty string.
 
 <b>Handling of the Azure settings</b>
 
-The following settings are read from the <b>storage</b> section in the <b>config</b>
-file:
+The following settings are read from the <b>storage</b> section in the
+<b>config</b> file:
 @li <b>connection_string</b>
 @li <b>account</b>
 @li <b>key</b>
 @li <b>sas_token</b>
 
-Additionally, the connection options may be defined using the standard Azure environment
-variables:
+Additionally, the connection options may be defined using the standard Azure
+environment variables:
 @li <b>AZURE_STORAGE_CONNECTION_STRING</b>
 @li <b>AZURE_STORAGE_ACCOUNT</b>
 @li <b>AZURE_STORAGE_KEY</b>
@@ -542,27 +473,26 @@ variables:
 
 The Azure configuration values are evaluated in the following precedence:
 
-- Options parameter
-- Environment Variables
-- Configuration File
+@li options parameter
+@li environment variables
+@li configuration file
 
-If a connection string is defined either case in the environment variable or the configuration
-option, the individual configuration values for account and key will be ignored.
+If a connection string is defined either case in the environment variable or the
+configuration option, the individual configuration values for account and key
+will be ignored.
 
-If a SAS Token is defined, it will be used for the authorization (ignoring any defined account key).
+If a SAS Token is defined, it will be used for the authorization (ignoring any
+defined account key).
 
 The default Azure Blob Endpoint to be used in the operations is defined by:
+<br>
+@code
+  https://<account>.blob.core.windows.net
+@endcode
 
-%https://@<account@>.blob.core.windows.net
+unless a different endpoint is defined in the connection string.)*");
 
-Unless a different EndPoint is defined in the connection string.)*");
-
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS, R"*(
-<b>Dumping to a Container in the Azure Blob Storage</b>
-
-${TOPIC_UTIL_AZURE_COMMON_OPTION_DETAILS})*");
-
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AWS_COMMON_OPTIONS, R"*(
+REGISTER_HELP_DETAIL_TEXT(TOPIC_AWS_STORAGE_OPTIONS, R"*(
 @li <b>s3BucketName</b>: string (default: not set) - Name of the AWS S3 bucket
 to use. The bucket must already exist.
 @li <b>s3CredentialsFile</b>: string (default: not set) - Use the specified AWS
@@ -574,11 +504,11 @@ to use. The bucket must already exist.
 @li <b>s3EndpointOverride</b>: string (default: not set) - Use the specified AWS
 S3 API endpoint instead of the default one.)*");
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS, R"*(
-If the <b>s3BucketName</b> option is used, the dump is stored in the specified
-AWS S3 bucket. Connection is established using default local AWS configuration
-paths and profiles, unless overridden. The directory structure is simulated
-within the object name.
+REGISTER_HELP_DETAIL_TEXT(TOPIC_AWS_STORAGE_OPTIONS_DETAILS, R"*(
+If the <b>s3BucketName</b> option is used, the specified AWS S3 bucket is used
+as the file storage. Connection is established using default local AWS
+configuration paths and profiles, unless overridden. The directory structure is
+simulated within the object name.
 
 The <b>s3CredentialsFile</b>, <b>s3ConfigFile</b>, <b>s3Profile</b>,
 <b>s3Region</b> and <b>s3EndpointOverride</b> options cannot be used if the
@@ -729,71 +659,148 @@ credential provider, an exception is thrown.
 it is set to an empty string, it is not used to authenticate the user.
 )*");
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS, R"*(
-<b>Dumping to a Bucket in the AWS S3 Object Storage</b>
-
-${TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS})*");
-
-REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_URL_DETAIL, R"*(
-@li <b>/path/to/file</b> - Path to a locally or remotely (e.g. in OCI Object
-Storage) accessible file or directory
-@li <b>%file:///path/to/file</b> - Path to a locally accessible file or directory
-@li <b>http[s]://host.domain[:port]/path/to/file</b> - Location of a remote file
-accessible through HTTP(s) (<<<importTable>>>() only)
-
-If the <b>osBucketName</b> option is given, the path argument must specify a
-plain path in that OCI (Oracle Cloud Infrastructure) Object Storage bucket.
-
-The OCI configuration profile is located through the oci.profile and
-oci.configFile global shell options and can be overridden with ociProfile and
-ociConfigFile, respectively.
-
-If the <b>s3BucketName</b> option is given, the path argument must specify a
-plain path in that AWS S3 bucket.
-
-If the <b>azureContainerName</b> option is given, the path argument must specify a
-plain path in that Azure container.)*");
-
-REGISTER_HELP_DETAIL_TEXT(IMPORT_EXPORT_OCI_OPTIONS_DETAIL, R"*(
-<b>OCI Object Storage Options</b>
-
+REGISTER_HELP_DETAIL_TEXT(TOPIC_OCI_STORAGE_OPTIONS, R"*(
 @li <b>osBucketName</b>: string (default: not set) - Name of the OCI Object
 Storage bucket to use. The bucket must already exist.
 @li <b>osNamespace</b>: string (default: not set) - Specifies the namespace
-where the bucket is located, if not given it will be obtained
-using the tenancy id on the OCI configuration.
-@li <b>ociConfigFile</b>: string (default: not set) - Override oci.configFile
-shell option, to specify the path to the OCI configuration file.
-@li <b>ociProfile</b>: string (default: not set) - Override oci.profile shell
-option, to specify the name of the OCI profile to use.
+where the bucket is located, if not given it will be obtained using the tenancy
+ID on the OCI configuration.
+@li <b>ociConfigFile</b>: string (default: not set) - Use the specified OCI
+configuration file instead of the one at the default location.
+@li <b>ociProfile</b>: string (default: not set) - Use the specified OCI profile
+instead of the default one.
 @li <b>ociAuth</b>: string (default: not set) - Use the specified authentication
-method when connecting to the OCI. Allowed values: api_key (used when not
-explicitly set), instance_principal, resource_principal, security_token.
+method when connecting to the OCI. Allowed values: <b>api_key</b> (used when not
+explicitly set), <b>instance_principal</b>, <b>resource_principal</b>,
+<b>security_token</b>.)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_OCI_STORAGE_OPTIONS_DETAILS, R"*(
+If the <b>osBucketName</b> option is used, the specified OCI bucket is used as
+the file storage. Connection is established using the local OCI configuration
+file. The directory structure is simulated within the object name.
+
+The <b>osNamespace</b>, <b>ociConfigFile</b>, <b>ociProfile</b> and
+<b>ociAuth</b> options cannot be used if the <b>osBucketName</b> option is not
+set or set to  an empty string.
+
+The <b>osNamespace</b> option overrides the OCI namespace obtained based on the
+tenancy ID from the local OCI profile.
+
+The <b>ociAuth</b> option allows to specify the authentication method used when
+connecting to the OCI:
+
+@li <b>api_key</b> - API Key-Based Authentication
+@li <b>instance_principal</b> - Instance Principal Authentication
+@li <b>resource_principal</b> - Resource Principal Authentication
+@li <b>security_token</b> - Session Token-Based Authentication
+
+For more information please see: https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
 )*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_OCI_STORAGE_PAR_DETAILS, R"*(
+When using a PAR to perform an operation, the OCI configuration is not needed to
+execute it (the <b>osBucketName</b> option should not be set).
+
+When using PAR to a specific file, the generated PAR URL should be used as
+argument for an operation. The following is a file PAR to export a table to
+'tab.tsv' file at the 'dump' directory of the 'test' bucket:
+<br>
+@code
+  https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/tab.tsv
+@endcode
+
+When using a bucket PAR, the generated PAR URL should be used as argument for an
+operation. The following is a bucket PAR to create a dump at the root directory
+of the 'test' bucket:
+<br>
+@code
+  https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
+@endcode
+
+When using a prefix PAR, argument should contain the PAR URL itself and the
+prefix used to generate it. The following is a prefix PAR to create a dump at
+the 'dump' directory of the 'test' bucket. The PAR was created using 'dump' as
+prefix:
+<br>
+@code
+  https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
+@endcode
+
+Note that the prefix PAR URL must end with a slash, because otherwise it will be
+treated as a PAR to specific file.
+
+<b>Reading from a PAR to specific file</b>
+
+The following access type is required to read from such PAR:
+
+@li Permit object reads
+
+<b>Reading from a bucket or a prefix PAR</b>
+
+The following access types are required to read from such PAR:
+
+@li Permit object reads
+@li Enable object listing
+
+<b>Writing to a PAR to specific file</b>
+
+The following access type is required to write to such PAR:
+
+@li Permit object writes
+
+<b>Writing to a bucket or a prefix PAR</b>
+
+The following access types are required to write to such PAR:
+
+@li Permit object reads and writes
+@li Enable object listing
+
+Note that read access is required in this case, because otherwise it is not
+possible to list the objects.
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_REMOTE_STORAGE_OPTIONS, R"*(
+${TOPIC_OCI_STORAGE_OPTIONS}
+
+${TOPIC_AWS_STORAGE_OPTIONS}
+
+${TOPIC_AZURE_STORAGE_OPTIONS}
+)*");
+
+REGISTER_HELP_DETAIL_TEXT(TOPIC_REMOTE_STORAGE_COMMON_PATHS, R"*(
+@li <b>[%file://]/local/path</b> - local file storage (default)
+@li <b>oci/bucket/path</b> - OCI Object Storage, when the <b>osBucketName</b>
+option is given
+@li <b>aws/bucket/path</b> - AWS S3 Object Storage, when the <b>s3BucketName</b>
+option is given
+@li <b>azure/container/path</b> - Azure Blob Storage, when the
+<b>azureContainerName</b> option is given)*");
 
 REGISTER_HELP_FUNCTION(importTable, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_IMPORTTABLE, R"*(
 Import table dump stored in files to target table using LOAD DATA LOCAL
 INFILE calls in parallel connections.
 
-@param files Path or list of paths to files with user data.
-Path name can contain a glob pattern with wildcard '*' and/or '?'.
+@param urls URL or list of URLs to files with user data.
+URL can contain a glob pattern with wildcard '*' and/or '?'.
 All selected files must be chunks of the same target table.
 @param options Optional dictionary with import options
 
-The scheme part of a filename contains infomation about the transport backend.
-Supported transport backends are: %file://, %http://, %https://.
-If the scheme part of a filename is omitted, then %file:// transport backend
-will be chosen.
+The <b>urls</b> parameter is a string or list of strings which specifies the
+files to be imported. Allowed values:
 
-Supported filename formats:
-${IMPORT_EXPORT_URL_DETAIL}
+${TOPIC_REMOTE_STORAGE_COMMON_PATHS}
+@li <b>OCI Pre-Authenticated Request to an object</b> - imports a specific file
+@li <b>OCI Pre-Authenticated Request to a bucket or a prefix</b> - imports files
+matching the glob pattern
 
-Options dictionary:
-@li <b>schema</b>: string (default: current shell active schema) - Name of
-target schema
+${TOPIC_REMOTE_STORAGE_MORE_INFO}
+
+%Options dictionary:
+@li <b>schema</b>: string (default: current %Shell active schema) - Name of
+target schema.
 @li <b>table</b>: string (default: filename without extension) - Name of target
-table
+table.
 @li <b>columns</b>: array of strings and/or integers (default: empty array) -
 This option takes an array of column names as its value. The order of the column
 names indicates how to match data file columns with table columns.
@@ -852,31 +859,19 @@ that matches specific data file format. Can be used as base dialect and
 customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
 fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
 values: default, csv, tsv, json or csv-unix.
-@li <b>decodeColumns</b>: map (default: not set) - a map between columns names
-and SQL expressions to be applied on the loaded
-data. Column value captured in 'columns' by integer is available as user
-variable '@@i', where `i` is that integer. Requires 'columns' to be set.
-@li <b>characterSet</b>: string (default: not set) -
-Interpret the information in the input file using this character set
-encoding. characterSet set to "binary" specifies "no conversion". If not set,
-the server will use the character set indicated by the character_set_database
-system variable to interpret the information in the file.
-@li <b>sessionInitSql</b>: list of strings (default: []) - execute the given
+@li <b>decodeColumns</b>: map (default: not set) - A map between columns names
+and SQL expressions to be applied on the loaded data. Column value captured in
+'columns' by integer is available as user variable '@@i', where `i` is that
+integer. Requires 'columns' to be set.
+@li <b>characterSet</b>: string (default: not set) - Interpret the information
+in the input file using this character set encoding. characterSet set to
+"binary" specifies "no conversion". If not set, the server will use the
+character set indicated by the character_set_database system variable to
+interpret the information in the file.
+@li <b>sessionInitSql</b>: list of strings (default: []) - Execute the given
 list of SQL statements in each session about to load data.
 
-${IMPORT_EXPORT_OCI_OPTIONS_DETAIL}
-
-<b>AWS S3 Object Storage Options</b>
-
-${TOPIC_UTIL_AWS_COMMON_OPTIONS}
-
-${TOPIC_UTIL_AWS_COMMON_OPTION_DETAILS}
-
-<b>Azure Blob Storage Options</b>
-
-${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
-
-${TOPIC_UTIL_AZURE_COMMON_OPTION_DETAILS}
+${TOPIC_REMOTE_STORAGE_OPTIONS}
 
 <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
 fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
@@ -1007,9 +1002,9 @@ threads used.
  * @endcode
  */
 #if DOXYGEN_JS
-Undefined Util::importTable(List files, Dictionary options);
+Undefined Util::importTable(List urls, Dictionary options);
 #elif DOXYGEN_PY
-None Util::import_table(list files, dict options);
+None Util::import_table(list urls, dict options);
 #endif
 void Util::import_table_file(
     const std::string &filename,
@@ -1083,30 +1078,24 @@ std::shared_ptr<shcore::Log_sql> log_sql_for_dump_and_load() {
 
 REGISTER_HELP_FUNCTION(loadDump, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_LOADDUMP, R"*(
-Loads database dumps created by MySQL Shell.
+Loads database dumps created by MySQL %Shell.
 
 @param url defines the location of the dump to be loaded
 @param options Optional dictionary with load options
 
-Depending on how the dump was created, the url identifies the location and in
-some cases the access method to the dump, i.e. for dumps to be loaded using
-pre-authenticated requests (PAR). Allowed values:
+The <b>url</b> parameter identifies the location of the dump to be loaded.
+Allowed values:
 
-@li <b>/path/to/folder</b> - to load a dump from local storage
-@li <b>oci/bucket/path</b> - to load a dump from OCI Object Storage using an
-OCI profile
-@li <b>aws/bucket/path</b> - to load a dump from AWS S3 Object Storage using
-the AWS settings stored in the <b>credentials</b> and <b>config</b> files
-@li <b>azure/contaier/path</b> - to load a dump from Azure container using
-either the configuration file or SAS token
-@li <b>PAR to the dump location</b> - to load a dump from OCI Object Storage
-using a single PAR
+${TOPIC_REMOTE_STORAGE_COMMON_PATHS}
+@li <b>OCI Pre-Authenticated Request to a bucket or a prefix</b> - loads a dump
+from OCI Object Storage using a single PAR
+
+${TOPIC_REMOTE_STORAGE_MORE_INFO}
 
 <<<loadDump>>>() will load a dump from the specified path. It transparently
 handles compressed files and directly streams data when loading from remote
-storage (currently HTTP, OCI Object Storage, AWS S3 Object Storage and Azure
-Containers). If the 'waitDumpTimeout' option is set, it will load a dump
-on-the-fly, loading table data chunks as the dumper produces them.
+storage. If the 'waitDumpTimeout' option is set, it will load a dump on-the-fly,
+loading table data chunks as the dumper produces them.
 
 Table data will be loaded in parallel using the configured number of threads
 (4 by default). Multiple threads per table can be used if the dump was created
@@ -1143,7 +1132,7 @@ The progress state file has a default name of load-progress.@<server_uuid@>.json
 and is written to the same location as the dump. If 'progressFile' is specified,
 progress will be written to either a local file at the given path, or, if the
 HTTP(S) scheme is used, to a remote file using HTTP PUT requests. Setting it to
-'' will disable progress tracking and resuming.
+an empty string will disable progress tracking and resuming.
 
 If the 'resetProgress' option is enabled, progress information from previous
 load attempts of the dump to the destination server is discarded and the load
@@ -1151,7 +1140,7 @@ is restarted. You may use this option to retry loading the whole dump from the
 beginning. However, changes made to the database are not reverted, so previously
 loaded objects should be manually dropped first.
 
-Options dictionary:
+%Options dictionary:
 
 @li <b>analyzeTables</b>: "off", "on", "histogram" (default: off) - If 'on',
 executes ANALYZE TABLE for all tables, once loaded. If set to 'histogram', only
@@ -1282,9 +1271,8 @@ being created. Once all uploaded tables are processed the command will either
 wait for more data, the dump is marked as completed or the given timeout (in
 seconds) passes.
 <= 0 disables waiting.
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
-${TOPIC_UTIL_AWS_COMMON_OPTIONS}
-${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+
+${TOPIC_REMOTE_STORAGE_OPTIONS}
 
 Connection options set in the global session, such as compression, ssl-mode, etc.
 are inherited by load sessions.
@@ -1311,7 +1299,7 @@ The requirements for this PAR include:
 @li Enables object listing
 
 Given a dump located at a bucket root and a PAR created for the bucket, the
-dump can be loaded by providing the PAR as the url parameter:
+dump can be loaded by providing the PAR as the URL parameter:
 
 Example:
 <br>
@@ -1323,14 +1311,14 @@ uri = 'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/'
 util.<<<loadDump>>>(uri, { 'progressFile': 'load_progress.txt' })
 @endcode
 
-Given a dump located at some folder within a bucket and a PAR created for the
-given folder, the dump can be loaded by providing the PAR and the prefix as the
-url parameter:
+Given a dump located at some directory within a bucket and a PAR created for the
+given directory, the dump can be loaded by providing the PAR and the prefix as
+the URL parameter:
 
 Example:
 <br>
 @code
-Dump Location: folder 'dump' at the 'test' bucket
+Dump Location: directory 'dump' at the 'test' bucket
 PAR created using the 'dump/' prefix.
 
 uri = 'https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/'
@@ -1339,7 +1327,7 @@ util.<<<loadDump>>>(uri, { 'progressFile': 'load_progress.txt' })
 @endcode
 
 In both of the above cases the load is done using pure HTTP GET requests and the
-progressFile option is mandatory.
+<b>progressFile</b> option is mandatory.
 )*");
 /**
  * \ingroup util
@@ -1386,9 +1374,9 @@ REGISTER_HELP_TOPIC_TEXT(TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION, R"*(
 The MySQL HeatWave Service has a few security related restrictions that
 are not present in a regular, on-premise instance of MySQL. In order to make it
 easier to load existing databases into the Service, the dump commands in the
-MySQL Shell has options to detect potential issues and in some cases, to
+MySQL %Shell has options to detect potential issues and in some cases, to
 automatically adjust your schema definition to be compliant. For best results,
-always use the latest available version of MySQL Shell.
+always use the latest available version of MySQL %Shell.
 
 The <b>ocimds</b> option, when set to true, will perform schema checks for
 most of these issues and abort the dump if any are found. The <<<loadDump>>>()
@@ -1514,25 +1502,18 @@ about restrictions and compatibility.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_PARAMETERS, R"*(
-The <b>outputUrl</b> specifies where the dump is going to be stored.
+The <b>outputUrl</b> specifies URL to a directory where the dump is going to be
+stored. If the output directory does not exist but its parent does, it is
+created. If the output directory exists, it must be empty. All directories are
+created with the following access rights (on operating systems which support
+them): <b>rwxr-x---</b>. All files are created with the following access rights
+(on operating systems which support them): <b>rw-r-----</b>. Allowed values:
 
-The value for this parameter can be either:
+${TOPIC_REMOTE_STORAGE_COMMON_PATHS}
+@li <b>OCI Pre-Authenticated Request to a bucket or a prefix</b> - dumps to the
+OCI Object Storage using a PAR
 
-@li The path to the target location in a local filesystem or one of the
-supported cloud storage buckets
-@li A Pre-Authenticated Request (PAR) to a bucket in OCI Object Storage
-
-By default, a local directory is used, and in this case <b>outputUrl</b> can be
-prefixed with <b>file://</b> scheme. If a relative path is given, the absolute
-path is computed as relative to the current working directory. If the output
-directory does not exist but its parent does, it is created. If the output
-directory exists, it must be empty. All directories are created with the
-following access rights (on operating systems which support them):
-<b>rwxr-x---</b>. All files are created with the following access rights (on
-operating systems which support them): <b>rw-r-----</b>.
-
-For additional details on using PARs see the <b>Dumping to OCI Object Storage
-using Pre-Authenticated Request (PAR)</b> section.
+${TOPIC_REMOTE_STORAGE_MORE_INFO}
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS, R"*(
@@ -1563,20 +1544,6 @@ limit.
 otherwise) - Enable or disable dump progress information.
 @li <b>defaultCharacterSet</b>: string (default: "utf8mb4") - Character set used
 for the dump.)*");
-
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS, R"*(
-@li <b>osBucketName</b>: string (default: not set) - Use specified OCI bucket
-for the location of the dump.
-@li <b>osNamespace</b>: string (default: not set) - Specifies the namespace
-where the bucket is located, if not given it will be obtained
-using the tenancy id on the OCI configuration.
-@li <b>ociConfigFile</b>: string (default: not set) - Use the specified OCI
-configuration file instead of the one at the default location.
-@li <b>ociProfile</b>: string (default: not set) - Use the specified OCI profile
-instead of the default one.
-@li <b>ociAuth</b>: string (default: not set) - Use the specified authentication
-method when connecting to the OCI. Allowed values: api_key (used when not
-explicitly set), instance_principal, resource_principal, security_token.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS, R"*(
 @li <b>triggers</b>: bool (default: true) - Include triggers for each dumped
@@ -1636,8 +1603,8 @@ values: "create_invisible_pks", "force_innodb", "force_non_standard_fks",
 "ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts",
 "strip_definers", "strip_invalid_grants", "strip_restricted_grants",
 "strip_tablespaces", "unescape_wildcard_grants".
-@li <b>targetVersion</b>: string (default: current version of Shell) - Specifies
-version of the destination MySQL server.
+@li <b>targetVersion</b>: string (default: current version of %Shell) -
+Specifies version of the destination MySQL server.
 @li <b>skipUpgradeChecks</b>: bool (default: false) - Do not execute the
 upgrade check utility. Compatibility issues related to MySQL version upgrades
 will not be checked. Use this option only when executing the Upgrade Checker
@@ -1667,8 +1634,8 @@ to be included in the dump in the format of <b>schema</b>.<b>routine</b>.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SESSION_DETAILS, R"*(
-Requires an open, global Shell session, and uses its connection options, such as
-compression, ssl-mode, etc., to establish additional connections.
+Requires an open, global %Shell session, and uses its connection options, such
+as compression, ssl-mode, etc., to establish additional connections.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS, R"*(
@@ -1772,85 +1739,6 @@ i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
 The value of the <b>bytesPerChunk</b> option cannot be smaller than "128k".
 )*");
 
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS, R"*(
-<b>Dumping to a Bucket in the OCI Object Storage</b>
-
-There are 2 ways to create a dump in OCI Object Storage:
-
-@li By using the standard client OCI configuration.
-@li By using a Pre-Authenticated Request (PAR).
-
-<b>Dumping to OCI Object Storage using the client OCI configuration</b>
-
-The <b>osBucketName</b> option is used to indicate the connection is established
-using the locally configured OCI client profile.
-
-If the <b>osBucketName</b> option is used, the dump is stored in the specified
-OCI bucket, connection is established using the local OCI profile. The directory
-structure is simulated within the object name.
-
-The <b>osNamespace</b>, <b>ociConfigFile</b>, <b>ociProfile</b> and
-<b>ociAuth</b> options cannot be used if the <b>osBucketName</b> option is set
-to an empty string.
-
-The <b>osNamespace</b> option overrides the OCI namespace obtained based on the
-tenancy ID from the local OCI profile.
-
-The <b>ociAuth</b> option allows to specify the authentication method used when
-connecting to the OCI:
-
-@li <b>api_key</b> - API Key-Based Authentication
-@li <b>instance_principal</b> - Instance Principal Authentication
-@li <b>resource_principal</b> - Resource Principal Authentication
-@li <b>security_token</b> - Session Token-Based Authentication
-
-For more information please see: https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
-
-<b>Dumping to OCI Object Storage using Pre-Authenticated Request (PAR)</b>
-
-When using a PAR to create a dump, no client OCI configuration is needed to
-perform the dump operation. A bucket or prefix PAR with the following
-access types is required to perform a dump with this method:
-
-@li Permit object reads and writes.
-@li Enable object listing.
-
-When using a bucket PAR, the generated PAR URL should be used as the <b>output_url</b>
-argument for the dump operation. i.e. the following is a bucket PAR to create dump at
-the root folder of the 'test' bucket:
-<br>
-@code
-    https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/
-@endcode
-
-When using a prefix PAR, the <b>output_url</b> argument should contain the PAR URL
-itself and the prefix used to generate it. i.e. the following is a prefix PAR to
-create a dump at the 'dump' folder of the 'test' bucket. The PAR was created using
-'dump' as prefix:
-<br>
-@code
-    https://*.objectstorage.*.oci.customer-oci.com/p/*/n/*/b/test/o/dump/
-@endcode
-
-Note that both the bucket and the prefix PAR URLs must end with a slash, otherwise
-it will be considered invalid.
-)*");
-
-REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS, R"*(
-<b>Enabling dump loading using pre-authenticated requests</b>
-
-The <<<loadDump>>> utility supports loading a dump using a pre-authenticated
-request (PAR). The simplest way to do this is by providing a PAR to the
-location of the dump in a bucket, the PAR must be created with the following
-permissions:
-
-@li Permits object reads
-@li Enables object listing
-
-The generated URL can be used to load the dump, see \? <<<loadDump>>> for more
-details.
-)*");
-
 REGISTER_HELP_FUNCTION(exportTable, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_EXPORTTABLE, R"*(
 Exports the specified table to the data dump file.
@@ -1861,17 +1749,20 @@ Exports the specified table to the data dump file.
 
 The value of <b>table</b> parameter should be in form of <b>table</b> or
 <b>schema</b>.<b>table</b>, quoted using backtick characters when required. If
-schema is omitted, an active schema on the global Shell session is used. If
+schema is omitted, an active schema on the global %Shell session is used. If
 there is none, an exception is raised.
 
-The <b>outputUrl</b> specifies where the dump is going to be stored.
+The <b>outputUrl</b> specifies URL to a file where the exported data is going to
+be stored. The parent directory of the output file must exist. If the output
+file exists, it is going to be overwritten. The output file is created with the
+following access rights (on operating systems which support them):
+<b>rw-r-----</b>. Allowed values:
 
-By default, a local file is used, and in this case <b>outputUrl</b> can be
-prefixed with <b>file://</b> scheme. If a relative path is given, the absolute
-path is computed as relative to the current working directory. The parent
-directory of the output file must exist. If the output file exists, it is going
-to be overwritten. The output file is created with the following access rights
-(on operating systems which support them): <b>rw-r-----</b>.
+${TOPIC_REMOTE_STORAGE_COMMON_PATHS}
+@li <b>OCI Pre-Authenticated Request to an object</b> - exports to a specific
+file
+
+${TOPIC_REMOTE_STORAGE_MORE_INFO}
 
 <b>The following options are supported:</b>
 @li <b>where</b>: string (default: not set) - A valid SQL condition expression
@@ -1884,11 +1775,7 @@ ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 the data dump files, one of: "none", "gzip", "zstd". Compression level may be
 specified as "gzip;level=8" or "zstd;level=8".
 
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
-
-${TOPIC_UTIL_AWS_COMMON_OPTIONS}
-
-${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+${TOPIC_REMOTE_STORAGE_OPTIONS}
 
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_REQUIREMENTS}
 
@@ -1898,7 +1785,7 @@ This operation writes table data dump to the specified by the user files.
 
 ${TOPIC_UTIL_DUMP_SESSION_DETAILS}
 
-<b>Options</b>
+<b>%Options</b>
 
 ${TOPIC_UTIL_DUMP_EXPORT_DIALECT_OPTION_DETAILS}
 
@@ -1908,19 +1795,6 @@ The <b>maxRate</b> option supports unit suffixes:
 @li G - for Gigabytes,
 
 i.e. maxRate="2k" - limit throughput to 2000 bytes per second.
-
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
-
-@throws ArgumentError in the following scenarios:
-@li If any of the input arguments contains an invalid value.
-
-@throws RuntimeError in the following scenarios:
-@li If there is no open global session.
-@li If creating or writing to the output file fails.
 )*");
 
 /**
@@ -1988,12 +1862,8 @@ ${TOPIC_UTIL_DUMP_MDS_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
-${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
-${TOPIC_UTIL_AWS_COMMON_OPTIONS}
-
-${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+${TOPIC_REMOTE_STORAGE_OPTIONS}
 
 ${TOPIC_UTIL_DUMP_DDL_COMMON_REQUIREMENTS}
 @li Views and triggers to be dumped must not use qualified names to reference
@@ -2015,7 +1885,7 @@ optionally splitting them into multiple chunk files.
 
 ${TOPIC_UTIL_DUMP_SESSION_DETAILS}
 
-<b>Options</b>
+<b>%Options</b>
 
 If the <b>all</b> option is set to true and the <b>tables</b> parameter is set
 to an empty array, all views and tables from the specified schema are going to
@@ -2024,20 +1894,6 @@ exception is thrown.
 
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
-${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
-
-@throws ArgumentError in the following scenarios:
-@li If any of the input arguments contains an invalid value.
-
-@throws RuntimeError in the following scenarios:
-@li If there is no open global session.
-@li If creating the output directory fails.
-@li If creating or writing to the output file fails.
 )*");
 
 /**
@@ -2102,33 +1958,15 @@ ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
-${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
-${TOPIC_UTIL_AWS_COMMON_OPTIONS}
-
-${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+${TOPIC_REMOTE_STORAGE_OPTIONS}
 
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
-<b>Options</b>
+<b>%Options</b>
 
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
-${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
-
-@throws ArgumentError in the following scenarios:
-@li If any of the input arguments contains an invalid value.
-
-@throws RuntimeError in the following scenarios:
-@li If there is no open global session.
-@li If creating the output directory fails.
-@li If creating or writing to the output file fails.
 )*");
 
 /**
@@ -2201,12 +2039,8 @@ default, all users are included.
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_EXPORT_COMMON_OPTIONS}
 ${TOPIC_UTIL_DUMP_DDL_COMPRESSION}
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTIONS}
-${TOPIC_UTIL_DUMP_OCI_PAR_COMMON_OPTIONS}
 
-${TOPIC_UTIL_AWS_COMMON_OPTIONS}
-
-${TOPIC_UTIL_AZURE_COMMON_OPTIONS}
+${TOPIC_REMOTE_STORAGE_OPTIONS}
 
 ${TOPIC_UTIL_DUMP_SCHEMAS_COMMON_DETAILS}
 
@@ -2217,27 +2051,13 @@ Dumps cannot be created for the following schemas:
 @li performance_schema,
 @li sys.
 
-<b>Options</b>
+<b>%Options</b>
 
 If the <b>excludeSchemas</b> or <b>includeSchemas</b> options contain a schema
 which is not included in the dump or does not exist, it is ignored.
 
 ${TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS}
 ${TOPIC_UTIL_DUMP_COMPATIBILITY_OPTION}
-${TOPIC_UTIL_DUMP_OCI_COMMON_OPTION_DETAILS}
-${TOPIC_UTIL_DUMP_OCI_PAR_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AWS_COMMON_OPTION_DETAILS}
-
-${TOPIC_UTIL_DUMP_AZURE_COMMON_OPTION_DETAILS}
-
-@throws ArgumentError in the following scenarios:
-@li If any of the input arguments contains an invalid value.
-
-@throws RuntimeError in the following scenarios:
-@li If there is no open global session.
-@li If creating the output directory fails.
-@li If creating or writing to the output file fails.
 )*");
 
 /**
@@ -2287,6 +2107,8 @@ memory.
 
 If target is a MySQL HeatWave Service DB System instance, automatically checks
 for compatibility with it.
+
+${TOPIC_CONNECTION_DATA}
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_COPY_SCHEMAS_COMMON_OPTIONS, R"*(
@@ -2412,7 +2234,7 @@ or appending to it the gtid set present in the copy.
 
 REGISTER_HELP_FUNCTION(copyInstance, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_COPYINSTANCE, R"*(
-Copies a source instance to the target instance. Requires an open global Shell
+Copies a source instance to the target instance. Requires an open global %Shell
 session to the source instance, if there is none, an exception is raised.
 
 @param connectionData Specifies the connection information required to establish
@@ -2471,7 +2293,7 @@ void Util::copy_instance(
 REGISTER_HELP_FUNCTION(copySchemas, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_COPYSCHEMAS, R"*(
 Copies schemas from the source instance to the target instance. Requires an open
-global Shell session to the source instance, if there is none, an exception is
+global %Shell session to the source instance, if there is none, an exception is
 raised.
 
 @param schemas List of strings with names of schemas to be copied.
@@ -2521,8 +2343,8 @@ void Util::copy_schemas(
 REGISTER_HELP_FUNCTION(copyTables, util);
 REGISTER_HELP_FUNCTION_TEXT(UTIL_COPYTABLES, R"*(
 Copies tables and views from schema in the source instance to the target
-instance. Requires an open global Shell session to the source instance, if there
-is none, an exception is raised.
+instance. Requires an open global %Shell session to the source instance, if
+there is none, an exception is raised.
 
 @param schema Name of the schema that contains tables and views to be copied.
 @param tables List of strings with names of tables and views to be copied.

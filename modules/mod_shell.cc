@@ -496,56 +496,54 @@ std::string Shell::prompt(
 
 // These two lines link the help to be shown on \? connection
 REGISTER_HELP_TOPIC(Connection, TOPIC, TOPIC_CONNECTION, Contents, ALL);
-REGISTER_HELP(TOPIC_CONNECTION_BRIEF,
-              "Information about the data used to create sessions.");
-REGISTER_HELP(TOPIC_CONNECTION, "${TOPIC_CONNECTION_DATA_BASIC}");
-REGISTER_HELP(TOPIC_CONNECTION1, "${TOPIC_CONNECTION_DATA_ADDITIONAL}");
+REGISTER_HELP_TOPIC_TEXT(TOPIC_CONNECTION, R"*(
+Information about the data used to create sessions.
+
+${TOPIC_CONNECTION_DATA_BASIC}
+
+${TOPIC_CONNECTION_OPTIONS}
+
+${TOPIC_CONNECTION_DATA_ADDITIONAL}
+)*");
 
 // These lines link the help that will be shown on the help() for every
 // function using connection data
 
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC,
-              "The connection data may be specified in the following formats:");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC1, "@li A URI string");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC2,
-              "@li A dictionary with the connection options");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC3, "${TOPIC_URI}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA_BASIC4, "${TOPIC_CONNECTION_OPTIONS}");
+REGISTER_HELP_DETAIL_TEXT(TOPIC_CONNECTION_DATA_BASIC, R"*(
+<b>Connection Data</b>
 
-REGISTER_HELP(TOPIC_CONNECTION_DATA, "${TOPIC_CONNECTION_DATA_BASIC}");
-REGISTER_HELP(TOPIC_CONNECTION_DATA1, "${TOPIC_CONNECTION_MORE_INFO}");
+The connection data may be specified in the following formats:
+@li A URI string
+@li A dictionary with the connection options
 
-#ifdef DOXYGEN
-
-REGISTER_HELP_DETAIL_TEXT(TOPIC_CONNECTION_OPTIONS_DOXYGEN, R"*(
-$(TOPIC_CONNECTION_DATA_BASIC)
-$(TOPIC_CONNECTION_DATA_BASIC1)
-$(TOPIC_CONNECTION_DATA_BASIC2)
-
-$(TOPIC_URI)
-
-$(TOPIC_URI1)
-
-$(TOPIC_CONNECTION_OPTIONS)
+${TOPIC_URI}
 )*");
 
+REGISTER_HELP_DETAIL_TEXT(TOPIC_CONNECTION_DATA, R"*(
+${TOPIC_CONNECTION_DATA_BASIC}
+
+${TOPIC_CONNECTION_MORE_INFO}
+)*");
+
+#ifdef DOXYGEN
 REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
               "For additional information about MySQL connection data, see "
               "@ref connection_data.");
 #else
-REGISTER_HELP(TOPIC_CONNECTION_MORE_INFO,
-              "For additional information on connection data use "
-              "\\? connection.");
+REGISTER_HELP(
+    TOPIC_CONNECTION_MORE_INFO,
+    "For additional information on connection data use \\? connection.");
 #endif
 
-REGISTER_HELP(TOPIC_URI, "A basic URI string has the following format:");
-REGISTER_HELP(TOPIC_URI1,
-              "[scheme://][user[:password]@]<host[:port]|socket>[/schema]"
-              "[?option=value&option=value...]");
+REGISTER_HELP_DETAIL_TEXT(TOPIC_URI, R"*(
+A basic URI string has the following format:
+
+[scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
+)*");
 
 // These lines group the connection options available for dictionary
-REGISTER_HELP_TOPIC(Connection Types, TOPIC, TOPIC_CONNECTION_OPTIONS, Contents,
-                    ALL);
+REGISTER_HELP_TOPIC(Connection Options, TOPIC, TOPIC_CONNECTION_OPTIONS,
+                    Contents, ALL);
 REGISTER_HELP_TOPIC_TEXT(TOPIC_CONNECTION_OPTIONS, R"*(
 <b>Connection Options</b>
 
@@ -837,37 +835,26 @@ REGISTER_HELP(TOPIC_URI_ENCODED_VALUE6,
               "encoded.");
 
 REGISTER_HELP_FUNCTION(connect, shell);
-REGISTER_HELP(SHELL_CONNECT_BRIEF, "Establishes the shell global session.");
-REGISTER_HELP(SHELL_CONNECT_PARAM,
-              "@param connectionData the connection data to be used to "
-              "establish the session.");
-REGISTER_HELP(SHELL_CONNECT_PARAM1,
-              "@param password Optional the password to be used when "
-              "establishing the session.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL,
-              "This function will establish the global session with the "
-              "received connection data.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL1,
-              "The password may be included on the connectionData, the "
-              "optional parameter should be used only "
-              "if the connectionData does not contain it already. If both are "
-              "specified the password parameter will override the password "
-              "defined on the connectionData.");
-REGISTER_HELP(SHELL_CONNECT_DETAIL2, "${TOPIC_CONNECTION_DATA}");
+REGISTER_HELP_FUNCTION_TEXT(SHELL_CONNECT, R"*(
+Establishes the shell global session.
+
+@param connectionData the connection data to be used to establish the session.
+@param password Optional the password to be used when establishing the session.
+
+This function will establish the global session with the received connection
+data.
+
+The password may be included on the <b>connectionData</b>, the optional
+parameter should be used only if the <b>connectionData</b> does not contain it
+already. If both are specified, the <b>password</b> parameter will override the
+password defined on the <b>connectionData</b>.
+
+${TOPIC_CONNECTION_DATA}
+)*");
 /**
  * $(SHELL_CONNECT_BRIEF)
  *
- * $(SHELL_CONNECT_PARAM)
- * $(SHELL_CONNECT_PARAM1)
- *
- * $(SHELL_CONNECT_DETAIL)
- *
- * $(SHELL_CONNECT_DETAIL1)
- *
- * \copydoc connection_options
- *
- * Detailed description of the connection data format is available at \ref
- * connection_data
+ * $(SHELL_CONNECT)
  */
 #if DOXYGEN_JS
 Session Shell::connect(ConnectionData connectionData, String password) {}
@@ -961,9 +948,6 @@ ${TOPIC_CONNECTION_DATA}
  * $(SHELL_OPENSESSION_BRIEF)
  *
  * $(SHELL_OPENSESSION)
- *
- * Detailed description of the connection data format is available at
- * \ref connection_data
  */
 #if DOXYGEN_JS
 Session Shell::openSession(ConnectionData connectionData, String password) {}

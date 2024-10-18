@@ -96,9 +96,9 @@ class SHCORE_PUBLIC Util : public Extensible_object {
       const shcore::Option_pack_ref<Import_json_options> &options = {});
 
 #if DOXYGEN_JS
-  Undefined importTable(List files, Dictionary options);
+  Undefined importTable(List urls, Dictionary options);
 #elif DOXYGEN_PY
-  None import_table(list files, dict options);
+  None import_table(list urls, dict options);
 #endif
   void import_table_file(
       const std::string &filename,

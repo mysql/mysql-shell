@@ -99,3 +99,6 @@ util.debug.help("collect_diagnostics")
 
 #@ util debug collect_slow_query_diagnostics
 \? collect_slow_query_diagnostics
+
+#@ Help on remote storage
+\? remote storage

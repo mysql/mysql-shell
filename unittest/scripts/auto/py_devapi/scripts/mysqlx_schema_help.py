@@ -11,6 +11,9 @@ schema.help()
 #@ global help for Schema[USE:schema]
 \help mysqlx.Schema
 
+#@ Help on dynamic properties
+\? dynamic properties
+
 #@ schema.create_collection
 schema.help('create_collection')
 

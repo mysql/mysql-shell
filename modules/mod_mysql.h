@@ -78,9 +78,17 @@ namespace mysql {
 ClassicSession getClassicSession(ConnectionData connectionData,
                                  String password);
 ClassicSession getSession(ConnectionData connectionData, String password);
+Array splitScript(String script);
+Dictionary parseStatementAst(String statements);
+String quoteIdentifier(String s);
+String unquoteIdentifier(String s);
 #elif DOXYGEN_PY
 ClassicSession get_classic_session(ConnectionData connectionData, str password);
 ClassicSession get_session(ConnectionData connectionData, str password);
+list split_script(str script);
+dict parse_statement_ast(str statements);
+str quote_identifier(str s);
+str unquote_identifier(str s);
 #endif
 
 DECLARE_MODULE(Mysql, mysql);

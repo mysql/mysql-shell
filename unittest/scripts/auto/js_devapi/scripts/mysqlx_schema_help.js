@@ -9,6 +9,9 @@ schema.help();
 //@ Schema.help, \? [USE:Schema.help]
 \? mysqlx.Schema
 
+//@ Help on dynamic properties
+\? dynamic properties
+
 //@ Help on name
 schema.help('name');
 

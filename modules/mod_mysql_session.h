@@ -72,6 +72,42 @@ class SHCORE_PUBLIC ClassicSession
     : public ShellBaseSession,
       public std::enable_shared_from_this<ClassicSession> {
  public:
+#if DOXYGEN_JS
+  String uri;            //!< $(CLASSICSESSION_GETURI_BRIEF)
+  String sshUri;         //!< $(CLASSICSESSION_GETSSHURI_BRIEF)
+  Integer connectionId;  //!< $(CLASSICSESSION_GETCONNECTIONID_BRIEF)
+
+  String getUri();
+  String getSshUri();
+  Integer getConnectionId();
+  ClassicResult runSql(String query, Array args = []);
+  Undefined close();
+  ClassicResult startTransaction();
+  ClassicResult commit();
+  ClassicResult rollback();
+  Bool isOpen();
+  Undefined setQueryAttributes(Dictionary attributes);
+
+ private:
+#elif DOXYGEN_PY
+  str uri;            //!< $(CLASSICSESSION_GETURI_BRIEF)
+  str ssh_uri;        //!< $(CLASSICSESSION_GETSSHURI_BRIEF)
+  int connection_id;  //!< $(CLASSICSESSION_GETCONNECTIONID_BRIEF)
+
+  str get_uri();
+  str get_ssh_uri();
+  str get_connection_id();
+  ClassicResult run_sql(str query, list args = []);
+  None close();
+  ClassicResult start_transaction();
+  ClassicResult commit();
+  ClassicResult rollback();
+  bool is_open();
+  None set_query_attributes(dict attributes);
+
+ private:
+#endif
+
   ClassicSession();
   explicit ClassicSession(
       std::shared_ptr<mysqlshdk::db::mysql::Session> session);
@@ -119,36 +155,6 @@ class SHCORE_PUBLIC ClassicSession
   socket_t _get_socket_fd() const;
 
   SessionType session_type() const override { return SessionType::Classic; }
-
-#if DOXYGEN_JS
-  String uri;            //!< $(CLASSICSESSION_GETURI_BRIEF)
-  String sshUri;         //!< $(CLASSICSESSION_GETSSHURI_BRIEF)
-  Integer connectionId;  //!< $(CLASSICSESSION_GETCONNECTIONID_BRIEF)
-  String getUri();
-  String getSshUri();
-  Integer getConnectionId();
-  ClassicResult runSql(String query, Array args = []);
-  Undefined close();
-  ClassicResult startTransaction();
-  ClassicResult commit();
-  ClassicResult rollback();
-  Bool isOpen();
-  Undefined setQueryAttributes(Dictionary attributes);
-#elif DOXYGEN_PY
-  str uri;            //!< Same as get_uri()
-  str ssh_uri;        //!< Same as get_ssh_uri()
-  int connection_id;  //!< Same as get_connection_id()
-  str get_uri();
-  str get_ssh_uri();
-  str get_connection_id();
-  ClassicResult run_sql(str query, list args = []);
-  None close();
-  ClassicResult start_transaction();
-  ClassicResult commit();
-  ClassicResult rollback();
-  bool is_open();
-  None set_query_attributes(dict attributes);
-#endif
 
   bool is_open() const override;
 

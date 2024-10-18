@@ -58,43 +58,6 @@ Any require(String module_name_or_path);
 class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
                             DEBUG_OBJ_FOR_CLASS_(Shell) {
  public:
-  Shell(mysqlsh::Mysql_shell *owner);
-  virtual ~Shell();
-
-  virtual std::string class_name() const { return "Shell"; }
-  virtual bool operator==(const Object_bridge &other) const;
-
-  virtual void set_member(const std::string &prop, shcore::Value value);
-  virtual shcore::Value get_member(const std::string &prop) const;
-
-  shcore::Dictionary_t parse_uri(const std::string &uri);
-  std::string unparse_uri(const shcore::Dictionary_t &options);
-
-  std::string prompt(
-      const std::string &message,
-      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
-          {});
-  std::shared_ptr<ShellBaseSession> connect(
-      const mysqlshdk::db::Connection_options &connection_options,
-      const char *password = {});
-  std::shared_ptr<ShellBaseSession> connect_to_primary(
-      const mysqlshdk::db::Connection_options &connection_options =
-          mysqlshdk::db::Connection_options{},
-      const char *password = {});
-  std::shared_ptr<ShellBaseSession> open_session(
-      const mysqlshdk::db::Connection_options &connection_options,
-      const char *password = {});
-
-#if !defined(DOXYGEN_PY)
-  void set_current_schema(const std::string &name);
-  void set_session(const std::shared_ptr<ShellBaseSession> &session);
-#endif
-  std::shared_ptr<ShellBaseSession> get_session();
-  void disconnect();
-  bool reconnect();
-  void log(const std::string &level, const std::string &message);
-  void status();
-
 #if DOXYGEN_JS
   Options options;
   Reports reports;
@@ -133,6 +96,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   List listSqlHandlers();
   ShellResult createResult(Dictionary data);
   ShellResult createResult(List data);
+
+ private:
 #elif DOXYGEN_PY
   Options options;
   Reports reports;
@@ -171,7 +136,46 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   list list_sql_handlers();
   ShellResult create_result(dict data);
   ShellResult create_result(list data);
+
+ private:
 #endif
+
+  Shell(mysqlsh::Mysql_shell *owner);
+  virtual ~Shell();
+
+  virtual std::string class_name() const { return "Shell"; }
+  virtual bool operator==(const Object_bridge &other) const;
+
+  virtual void set_member(const std::string &prop, shcore::Value value);
+  virtual shcore::Value get_member(const std::string &prop) const;
+
+  shcore::Dictionary_t parse_uri(const std::string &uri);
+  std::string unparse_uri(const shcore::Dictionary_t &options);
+
+  std::string prompt(
+      const std::string &message,
+      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
+          {});
+  std::shared_ptr<ShellBaseSession> connect(
+      const mysqlshdk::db::Connection_options &connection_options,
+      const char *password = {});
+  std::shared_ptr<ShellBaseSession> connect_to_primary(
+      const mysqlshdk::db::Connection_options &connection_options =
+          mysqlshdk::db::Connection_options{},
+      const char *password = {});
+  std::shared_ptr<ShellBaseSession> open_session(
+      const mysqlshdk::db::Connection_options &connection_options,
+      const char *password = {});
+
+#if !defined(DOXYGEN_PY)
+  void set_current_schema(const std::string &name);
+  void set_session(const std::shared_ptr<ShellBaseSession> &session);
+#endif
+  std::shared_ptr<ShellBaseSession> get_session();
+  void disconnect();
+  bool reconnect();
+  void log(const std::string &level, const std::string &message);
+  void status();
 
   shcore::Array_t list_credential_helpers();
   void store_credential(const std::string &url,

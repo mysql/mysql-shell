@@ -254,8 +254,7 @@ REGISTER_HELP(COLLECTION_MODIFY_CHAINED,
  * mysqlx.expr(expression)
  * \endcode
  *
- * The expression also can be used for \a [Parameter
- * Binding](param_binding.html).
+ * The <b>expression</b> supports \ref param_binding.
  *
  * The attribute addition will be done on the collection's documents once the
  * execute method is called.
@@ -813,7 +812,7 @@ Creates an index on a collection.
 @param indexDefinition a JSON document with the index information.
 @returns a Result object.
 
-This function will create an index on the collection using the information 
+This function will create an index on the collection using the information
 provided in indexDefinition.
 
 The indexDefinition is a JSON document with the next information:

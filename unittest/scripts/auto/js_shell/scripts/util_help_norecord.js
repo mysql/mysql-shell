@@ -87,3 +87,6 @@ util.help('loadDump');
 
 //@ util loadDump help, \? [USE:util loadDump help]
 \? loadDump
+
+//@ Help on remote storage
+\? remote storage

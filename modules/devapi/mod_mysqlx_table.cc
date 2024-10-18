@@ -198,10 +198,10 @@ REGISTER_HELP(
  * ### Full Syntax
  *
  * <code>
- *   <table border = "0">
- *     <tr><td>Table</td><td>.update()</td></tr>
- *     <tr><td></td><td>.set(attribute, value)</td></tr>
- *     <tr><td></td><td>[.where(expression)]</td></tr>
+ * <table border = "0">
+ * <tr><td>Table</td><td>.update()</td></tr>
+ * <tr><td></td><td>.set(attribute, value)</td></tr>
+ * <tr><td></td><td>[.where(expression)]</td></tr>
  */
 #if DOXYGEN_JS
 /**
@@ -213,10 +213,10 @@ REGISTER_HELP(
  */
 #endif
 /**
- *     <tr><td></td><td>[.limit(numberOfRows)]</td></tr>
- *     <tr><td></td><td>[.bind(name, value)]</td></tr>
- *     <tr><td></td><td>.execute()</td></tr>
- *   </table>
+ * <tr><td></td><td>[.limit(numberOfRows)]</td></tr>
+ * <tr><td></td><td>[.bind(name, value)]</td></tr>
+ * <tr><td></td><td>.execute()</td></tr>
+ * </table>
  * </code>
  *
  * #### .update()
@@ -225,16 +225,16 @@ REGISTER_HELP(
  *
  * #### .set(attribute, value)
  *
- * $(TABLEUPDATE_SET)
+ * Adds an operation into the update handler to update a column value in the
+ * records that were included on the selection filter and limit.
  *
- * The expression also can be used for \a [Parameter
- * Binding](param_binding.html).
+ * The <b>value</b> supports \ref param_binding.
  *
  * #### .where(expression)
  *
  * $(TABLEUPDATE_WHERE_DETAIL)
  *
- * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
+ * The <b>expression</b> supports \ref param_binding.
  *
  */
 #if DOXYGEN_JS
@@ -350,9 +350,9 @@ REGISTER_HELP(TABLE_DELETE_DETAIL2,
  * ### Full Syntax
  *
  * <code>
- *   <table border = "0">
- *     <tr><td>Table</td><td>.delete()</td></tr>
- *     <tr><td></td><td>[.where(expression)]</td></tr>
+ * <table border = "0">
+ * <tr><td>Table</td><td>.delete()</td></tr>
+ * <tr><td></td><td>[.where(expression)]</td></tr>
  */
 #if DOXYGEN_JS
 /**
@@ -364,10 +364,10 @@ REGISTER_HELP(TABLE_DELETE_DETAIL2,
  */
 #endif
 /**
- *     <tr><td></td><td>[.limit(numberOfRows)]</td></tr>
- *     <tr><td></td><td>[.bind(name, value)]</td></tr>
- *     <tr><td></td><td>.execute()</td></tr>
- *   </table>
+ * <tr><td></td><td>[.limit(numberOfRows)]</td></tr>
+ * <tr><td></td><td>[.bind(name, value)]</td></tr>
+ * <tr><td></td><td>.execute()</td></tr>
+ * </table>
  * </code>
  *
  * #### .delete()
@@ -378,7 +378,7 @@ REGISTER_HELP(TABLE_DELETE_DETAIL2,
  *
  * $(TABLEDELETE_WHERE_DETAIL)
  *
- * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
+ * The <b>expression</b> supports \ref param_binding.
  *
  */
 #if DOXYGEN_JS
@@ -509,30 +509,23 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  * ### Full Syntax
  *
  * <code>
- *   <table border = "0">
- *     <tr><td>Table</td><td>.select(...)</td></tr>
- *     <tr><td></td><td>[.where(expression)]</td></tr>
+ * <table border = "0">
+ * <tr><td>Table</td><td>.select(...)</td></tr>
+ * <tr><td></td><td>[.where(expression)]</td></tr>
  */
 #if DOXYGEN_JS
 /**
  * <tr><td></td><td>[.groupBy(...)[.having(condition)]]</td></tr>
- */
-#elif DOXYGEN_PY
-/**
- * <tr><td></td><td>[.group_by(...)[.having(condition)]]</td></tr>
- */
-#endif
-#if DOXYGEN_JS
-/**
  * <tr><td></td><td>[.orderBy(...)]</td></tr>
  */
 #elif DOXYGEN_PY
 /**
+ * <tr><td></td><td>[.group_by(...)[.having(condition)]]</td></tr>
  * <tr><td></td><td>[.order_by(...)]</td></tr>
  */
 #endif
 /**
- *     <tr><td></td><td>[.limit(numberOfRows)[.offset(numberOfRows)]]</td></tr>
+ * <tr><td></td><td>[.limit(numberOfRows)[.offset(numberOfRows)]]</td></tr>
  */
 #if DOXYGEN_JS
 /**
@@ -544,9 +537,9 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  */
 #endif
 /**
- *     <tr><td></td><td>[.bind(name, value)]</td></tr>
- *     <tr><td></td><td>.execute()</td></tr>
- *   </table>
+ * <tr><td></td><td>[.bind(name, value)]</td></tr>
+ * <tr><td></td><td>.execute()</td></tr>
+ * </table>
  * </code>
  *
  * #### .select(...)
@@ -567,7 +560,7 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  *
  * $(TABLESELECT_WHERE_DETAIL)
  *
- * The <b>expression</b> supports \a [Parameter Binding](param_binding.html).
+ * The <b>expression</b> supports \ref param_binding.
  *
  */
 #if DOXYGEN_JS
@@ -597,7 +590,7 @@ REGISTER_HELP(TABLE_SELECT_DETAIL5,
  *
  * $(TABLESELECT_HAVING_DETAIL)
  *
- * The <b>condition</b> supports \a [Parameter Binding](param_binding.html).
+ * The <b>condition</b> supports \ref param_binding.
  *
  */
 #if DOXYGEN_JS

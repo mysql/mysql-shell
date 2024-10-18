@@ -100,6 +100,27 @@ FUNCTIONS
 RELATED TOPICS
  - Dynamic Properties
 
+//@<OUT> Help on dynamic properties
+A Schema object may expose tables and collections as properties, this way they
+can be accessed as:
+
+- schema.<collection_name>
+- schema.<table_name>
+
+This handy way of accessing tables and collections is available if they met the
+following conditions:
+
+- They existed at the moment the Schema object was retrieved from the session.
+- The name is a valid identifier.
+- The name is different from any other property or function on the Schema
+  object.
+
+If any of the conditions is not met, the way to access the table or collection
+is by using the standard DevAPI functions:
+
+- schema.getTable(<name>)
+- schema.getCollection(<name>)
+
 //@<OUT> Help on name
 NAME
       name - The name of this database object.

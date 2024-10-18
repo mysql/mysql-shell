@@ -338,8 +338,10 @@ DESCRIPTION
 
       The password may be included on the connectionData, the optional
       parameter should be used only if the connectionData does not contain it
-      already. If both are specified the password parameter will override the
+      already. If both are specified, the password parameter will override the
       password defined on the connectionData.
+
+      Connection Data
 
       The connection data may be specified in the following formats:
 
@@ -349,89 +351,6 @@ DESCRIPTION
       A basic URI string has the following format:
 
       [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
-
-      Connection Options
-
-      The following options are valid for use either in a URI or in a
-      dictionary:
-
-      - ssl-mode: The SSL mode to be used in the connection.
-      - ssl-ca: The path to the X509 certificate authority file in PEM format.
-      - ssl-capath: The path to the directory that contains the X509
-        certificate authority files in PEM format.
-      - ssl-cert: The path to the SSL public key certificate file in PEM
-        format.
-      - ssl-key: The path to the SSL private key file in PEM format.
-      - ssl-crl: The path to file that contains certificate revocation lists.
-      - ssl-crlpath: The path of directory that contains certificate revocation
-        list files.
-      - ssl-cipher: The list of permissible encryption ciphers for connections
-        that use TLS protocols up through TLSv1.2.
-      - tls-version: List of protocols permitted for secure connections.
-      - tls-ciphers: List of TLS v1.3 ciphers to use.
-      - auth-method: Authentication method.
-      - get-server-public-key: Request public key from the server required for
-        RSA key pair-based password exchange. Use when connecting to MySQL 8.0
-        servers with classic MySQL sessions with SSL mode DISABLED.
-      - server-public-key-path: The path name to a file containing a
-        client-side copy of the public key required by the server for RSA key
-        pair-based password exchange. Use when connecting to MySQL 8.0 servers
-        with classic MySQL sessions with SSL mode DISABLED.
-      - connect-timeout: The connection timeout in milliseconds. If not
-        provided a default timeout of 10 seconds will be used. Specifying a
-        value of 0 disables the connection timeout.
-      - compression: Enable compression in client/server protocol.
-      - compression-algorithms: Use compression algorithm in server/client
-        protocol.
-      - compression-level: Use this compression level in the client/server
-        protocol.
-      - connection-attributes: List of connection attributes to be registered
-        at the PERFORMANCE_SCHEMA connection attributes tables.
-      - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
-      - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos
-        authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI
-        authentication.
-      - authentication-oci-client-config-profile: Allows defining the OCI
-        profile used from the configuration for client side OCI authentication.
-      - authentication-openid-connect-client-id-token-file: Allows defining the 
-        file path to an OpenId Connect authorization token file when using 
-        OpenId Connect authentication.
-
-      When these options are defined in a URI, their values must be URL
-      encoded.
-
-      The following options are also valid when a dictionary is used:
-
-      Base Connection Options
-
-      - uri: a URI string.
-      - scheme: the protocol to be used on the connection.
-      - user: the MySQL user name to be used on the connection.
-      - password: the password to be used on the connection.
-      - host: the hostname or IP address to be used on the connection.
-      - port: the port to be used in a TCP connection.
-      - socket: the socket file name to be used on a connection through unix
-        sockets.
-      - schema: the schema to be selected once the connection is done.
-
-      SSH Tunnel Connection Options
-
-      - ssh: a SSHURI string used when SSH tunnel is required.
-      - ssh-password: the password the be used on the SSH connection.
-      - ssh-identity-file: the key file to be used on the SSH connection.
-      - ssh-identity-file-password: the SSH key file password.
-      - ssh-config-file: the SSH configuration file, default is the value of
-        shell.options['ssh.configFile']
-
-      ATTENTION: The connection options have precedence over options specified
-                 in the connection options uri
-
-      The connection options are case insensitive and can only be defined once.
-
-      If an option is defined more than once, an error will be generated.
 
       For additional information on connection data use \? connection.
 
@@ -461,8 +380,10 @@ DESCRIPTION
 
       The password may be included on the connectionData, the optional
       parameter should be used only if the connectionData does not contain it
-      already. If both are specified the password parameter will override the
+      already. If both are specified, the password parameter will override the
       password defined on the connectionData.
+
+      Connection Data
 
       The connection data may be specified in the following formats:
 
@@ -472,89 +393,6 @@ DESCRIPTION
       A basic URI string has the following format:
 
       [scheme://][user[:password]@]<host[:port]|socket>[/schema][?option=value&option=value...]
-
-      Connection Options
-
-      The following options are valid for use either in a URI or in a
-      dictionary:
-
-      - ssl-mode: The SSL mode to be used in the connection.
-      - ssl-ca: The path to the X509 certificate authority file in PEM format.
-      - ssl-capath: The path to the directory that contains the X509
-        certificate authority files in PEM format.
-      - ssl-cert: The path to the SSL public key certificate file in PEM
-        format.
-      - ssl-key: The path to the SSL private key file in PEM format.
-      - ssl-crl: The path to file that contains certificate revocation lists.
-      - ssl-crlpath: The path of directory that contains certificate revocation
-        list files.
-      - ssl-cipher: The list of permissible encryption ciphers for connections
-        that use TLS protocols up through TLSv1.2.
-      - tls-version: List of protocols permitted for secure connections.
-      - tls-ciphers: List of TLS v1.3 ciphers to use.
-      - auth-method: Authentication method.
-      - get-server-public-key: Request public key from the server required for
-        RSA key pair-based password exchange. Use when connecting to MySQL 8.0
-        servers with classic MySQL sessions with SSL mode DISABLED.
-      - server-public-key-path: The path name to a file containing a
-        client-side copy of the public key required by the server for RSA key
-        pair-based password exchange. Use when connecting to MySQL 8.0 servers
-        with classic MySQL sessions with SSL mode DISABLED.
-      - connect-timeout: The connection timeout in milliseconds. If not
-        provided a default timeout of 10 seconds will be used. Specifying a
-        value of 0 disables the connection timeout.
-      - compression: Enable compression in client/server protocol.
-      - compression-algorithms: Use compression algorithm in server/client
-        protocol.
-      - compression-level: Use this compression level in the client/server
-        protocol.
-      - connection-attributes: List of connection attributes to be registered
-        at the PERFORMANCE_SCHEMA connection attributes tables.
-      - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
-      - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos
-        authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI
-        authentication.
-      - authentication-oci-client-config-profile: Allows defining the OCI
-        profile used from the configuration for client side OCI authentication.
-      - authentication-openid-connect-client-id-token-file: Allows defining the 
-        file path to an OpenId Connect authorization token file when using 
-        OpenId Connect authentication.
-
-      When these options are defined in a URI, their values must be URL
-      encoded.
-
-      The following options are also valid when a dictionary is used:
-
-      Base Connection Options
-
-      - uri: a URI string.
-      - scheme: the protocol to be used on the connection.
-      - user: the MySQL user name to be used on the connection.
-      - password: the password to be used on the connection.
-      - host: the hostname or IP address to be used on the connection.
-      - port: the port to be used in a TCP connection.
-      - socket: the socket file name to be used on a connection through unix
-        sockets.
-      - schema: the schema to be selected once the connection is done.
-
-      SSH Tunnel Connection Options
-
-      - ssh: a SSHURI string used when SSH tunnel is required.
-      - ssh-password: the password the be used on the SSH connection.
-      - ssh-identity-file: the key file to be used on the SSH connection.
-      - ssh-identity-file-password: the SSH key file password.
-      - ssh-config-file: the SSH configuration file, default is the value of
-        shell.options['ssh.configFile']
-
-      ATTENTION: The connection options have precedence over options specified
-                 in the connection options uri
-
-      The connection options are case insensitive and can only be defined once.
-
-      If an option is defined more than once, an error will be generated.
 
       For additional information on connection data use \? connection.
 
@@ -2079,6 +1917,195 @@ Note that the connection-attribute values are expected to be strings, if other
 data type is used in the dictionary, the string representation of the used data
 will be stored on the database.
 
+#@<OUT> Help on connection compression
+Connection compression is governed by following connection options:
+"compression", "compression-algorithms", and "compression-level".
+
+"compression" accepts following values:
+
+- REQUIRED: connection will only be made when compression negotiation is
+  succesful.
+- PREFFERED: (default for X protocol connections) shell will attempt to
+  establish connection with compression enabled, but if compression negotiation
+  fails, connection will be established without compression.
+- DISABLED: (defalut for classic protocol connections) connection will be
+  established without compression.
+
+For convenience "compression" also accepts Boolean: 'True', 'False', '1', and
+'0' values which map to REQUIRED and DISABLED respectively.
+
+"compression-algorithms" expects comma separated list of algorithms. Supported
+algorithms include:
+
+- zstd
+- zlib
+- lz4 (X protocol only)
+- uncompressed - special value, which if it appears in the list, causes
+  connection to succeed even if compression negotiation fails.
+
+If "compression" connection option is not defined, its value will be deduced
+from "compression-algorithms" value when it is provided.
+
+"compression-level" expects an integer value. Valid range depends on the
+compression algorithm and server configuration, but generally following is
+expected:
+
+- zstd: 1-22 (default 3)
+- zlib: 1-9 (default 3), supported only by X protocol
+- lz4: 0-16 (default 2), supported only by X protocol.
+
+#@<OUT> Help on connection options
+Connection Options
+
+The following options are valid for use either in a URI or in a dictionary:
+
+- ssl-mode: The SSL mode to be used in the connection.
+- ssl-ca: The path to the X509 certificate authority file in PEM format.
+- ssl-capath: The path to the directory that contains the X509 certificate
+  authority files in PEM format.
+- ssl-cert: The path to the SSL public key certificate file in PEM format.
+- ssl-key: The path to the SSL private key file in PEM format.
+- ssl-crl: The path to file that contains certificate revocation lists.
+- ssl-crlpath: The path of directory that contains certificate revocation list
+  files.
+- ssl-cipher: The list of permissible encryption ciphers for connections that
+  use TLS protocols up through TLSv1.2.
+- tls-version: List of protocols permitted for secure connections.
+- tls-ciphers: List of TLS v1.3 ciphers to use.
+- auth-method: Authentication method.
+- get-server-public-key: Request public key from the server required for RSA
+  key pair-based password exchange. Use when connecting to MySQL 8.0 servers
+  with classic MySQL sessions with SSL mode DISABLED.
+- server-public-key-path: The path name to a file containing a client-side copy
+  of the public key required by the server for RSA key pair-based password
+  exchange. Use when connecting to MySQL 8.0 servers with classic MySQL
+  sessions with SSL mode DISABLED.
+- connect-timeout: The connection timeout in milliseconds. If not provided a
+  default timeout of 10 seconds will be used. Specifying a value of 0 disables
+  the connection timeout.
+- compression: Enable compression in client/server protocol.
+- compression-algorithms: Use compression algorithm in server/client protocol.
+- compression-level: Use this compression level in the client/server protocol.
+- connection-attributes: List of connection attributes to be registered at the
+  PERFORMANCE_SCHEMA connection attributes tables.
+- local-infile: Enable/disable LOAD DATA LOCAL INFILE.
+- net-buffer-length: The buffer size for TCP/IP and socket communication.
+- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
+  kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
+- oci-config-file: Allows defining the OCI configuration file for OCI
+  authentication.
+- authentication-oci-client-config-profile: Allows defining the OCI profile
+  used from the configuration for client side OCI authentication.
+- authentication-openid-connect-client-id-token-file: Allows defining the file
+  path to an OpenId Connect authorization token file when using OpenId Connect
+  authentication.
+
+When these options are defined in a URI, their values must be URL encoded.
+
+The following options are also valid when a dictionary is used:
+
+Base Connection Options
+
+- uri: a URI string.
+- scheme: the protocol to be used on the connection.
+- user: the MySQL user name to be used on the connection.
+- password: the password to be used on the connection.
+- host: the hostname or IP address to be used on the connection.
+- port: the port to be used in a TCP connection.
+- socket: the socket file name to be used on a connection through unix sockets.
+- schema: the schema to be selected once the connection is done.
+
+SSH Tunnel Connection Options
+
+- ssh: a SSHURI string used when SSH tunnel is required.
+- ssh-password: the password the be used on the SSH connection.
+- ssh-identity-file: the key file to be used on the SSH connection.
+- ssh-identity-file-password: the SSH key file password.
+- ssh-config-file: the SSH configuration file, default is the value of
+  shell.options['ssh.configFile']
+
+ATTENTION: The connection options have precedence over options specified in the
+           connection options uri
+
+The connection options are case insensitive and can only be defined once.
+
+If an option is defined more than once, an error will be generated.
+
+#@<OUT> Help on connection types
+The options specified in the connection data determine the type of connection
+to be used.
+
+The scheme option defines the protocol to be used on the connection, the
+following are the accepted values:
+
+- mysql: for connections using the MySQL protocol.
+- mysqlx: for connections using the X protocol.
+
+If no protocol is specified in the connection data, the shell will first
+attempt connecting using the X protocol, if the connection fails it will then
+try to connect using the MySQL protocol.
+
+In general, the Shell connects to the server using TCP connections, unless the
+connection data contains the options required to create any of the connections
+described below.
+
+Unix-domain Socket Connections
+
+To connect to a local MySQL server using a Unix-domain socket, the host must be
+set to 'localhost', no port number should be provided and the socket path
+should be provided.
+
+When using the MySQL protocol, the socket path might not be provided, in such
+case a default path for the socket file will be used.
+
+When using a connection dictionary, the socket path is set as the value for the
+socket option.
+
+When using a URI, the socket path must be URL encoded as follows:
+
+- user@/path%2Fto%2Fsocket.sock
+- user@./path%2Fto%2Fsocket.sock
+- user@../path%2Fto%2Fsocket.sock
+
+It is possible to skip the URL encoding by enclosing the socket path in
+parenthesis:
+
+- user@(/path/to/socket.sock)
+- user@(./path/to/socket.sock)
+- user@(../path/to/socket.sock)
+
+Windows Named Pipe Connections
+
+To connect to MySQL server using a named pipe the host must be set to '.', no
+port number should be provided.
+
+If the pipe name is not provided the default pipe name will be used: MySQL.
+
+When using a connection dictionary, the named pipe name is set as the value for
+the socket option.
+
+When using a URI, if the named pipe has invalid characters for a URL, they must
+be URL encoded. URL encoding can be skipped by enclosing the pipe name in
+parenthesis:
+
+- user@\\.\named.pipe
+- user@(\\.\named.pipe)
+
+Named pipe connections are only supported on the MySQL protocol.
+
+Windows Shared Memory Connections
+
+Shared memory connections are only allowed if the server has shared memory
+connections enabled using the default shared memory base name: MySQL.
+
+To connect to a local MySQL server using shared memory the host should be set
+to 'localhost' and no port should be provided.
+
+If the server does not have shared memory connections enabled using the default
+base name, the connection will be done using TCP.
+
+Shared memory connections are only supported on the MySQL protocol.
+
 #@<OUT> Help on extension objects
 The MySQL Shell allows for an extension of its base functionality by using
 special objects called Extension Objects.
@@ -2267,4 +2294,3 @@ RETURNS
 
 DESCRIPTION
         This function returns shell object that has its own scope.
-

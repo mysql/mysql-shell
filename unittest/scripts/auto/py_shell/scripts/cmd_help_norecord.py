@@ -56,3 +56,6 @@ session.close()
 
 #@ Help for API Command Line Integration
 \? cmdline
+
+#@ Help for API Command Line Integration (full name) [USE: Help for API Command Line Integration]
+\? command line
