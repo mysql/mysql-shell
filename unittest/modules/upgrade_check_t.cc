@@ -949,8 +949,8 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   TEST_EVENT_FILTERING(check.get(), "grouping.LEAD", all_issues.size(),
                        {all_issues[13]}, {});
 
-  TEST_TRIGGER_FILTERING(check.get(), "grouping.first_value", all_issues.size(),
-                         {all_issues[6]}, {});
+  TEST_TRIGGER_FILTERING(check.get(), "grouping.System.first_value",
+                         all_issues.size(), {all_issues[6]}, {});
 
   auto json_issues = execute_check_as_json(ids::k_reserved_keywords_check);
   ASSERT_NE(nullptr, json_issues);
@@ -1090,8 +1090,8 @@ END)*",
   TEST_EVENT_FILTERING(check.get(), "testdb.myevent", all_issues.size(),
                        {all_issues[4]}, {});
 
-  TEST_TRIGGER_FILTERING(check.get(), "testdb.mytrigger", all_issues.size(),
-                         {all_issues[3]}, {});
+  TEST_TRIGGER_FILTERING(check.get(), "testdb.testbl.mytrigger",
+                         all_issues.size(), {all_issues[3]}, {});
 
   // Table filtering will excludes the issues on the associated trigger
   TEST_TABLE_FILTERING(check.get(), "testdb.testbl", all_issues.size(),
@@ -1679,7 +1679,7 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
   TEST_EVENT_FILTERING(check.get(), "aaa_test_maxdb_sql_mode.EV_MAXDB",
                        all_issues.size(), {all_issues[1]}, {});
 
-  TEST_TRIGGER_FILTERING(check.get(), "aaa_test_maxdb_sql_mode.TR_MAXDB",
+  TEST_TRIGGER_FILTERING(check.get(), "aaa_test_maxdb_sql_mode.Clone.TR_MAXDB",
                          all_issues.size(), {all_issues[2]}, {});
 
   // Excluding a table, also excludes the associated trigger
@@ -1778,7 +1778,7 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
       std::vector<Upgrade_issue> trigger_issues = {
           all_issues[2], all_issues[6], all_issues[9], all_issues[12]};
       TEST_TRIGGER_FILTERING(check.get(),
-                             "aaa_test_obsolete_sql_modes.TR_" + mode,
+                             "aaa_test_obsolete_sql_modes.Clone.TR_" + mode,
                              all_issues.size(), trigger_issues, {});
 
       // Excluding a table, also excludes the associated triggers
@@ -2018,7 +2018,8 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
   TEST_EVENT_FILTERING(check.get(), "aaa_test_removed_functions.e_contains",
                        all_issues.size(), {all_issues[4]}, {});
 
-  TEST_TRIGGER_FILTERING(check.get(), "aaa_test_removed_functions.contr",
+  TEST_TRIGGER_FILTERING(check.get(),
+                         "aaa_test_removed_functions.geotab1.contr",
                          all_issues.size(), {all_issues[3]}, {});
 
   // Excluding a table, also excludes the associated triggers
@@ -2131,7 +2132,8 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   TEST_EVENT_FILTERING(check.get(), "aaa_test_group_by_asc.mov_sec",
                        all_issues.size(), {all_issues[5]}, {});
 
-  TEST_TRIGGER_FILTERING(check.get(), "aaa_test_group_by_asc.genre_summary_asc",
+  TEST_TRIGGER_FILTERING(check.get(),
+                         "aaa_test_group_by_asc.movies.genre_summary_asc",
                          all_issues.size(), {all_issues[3]}, {all_issues[4]});
 
   // Excluding a table also excludes the associated triggers
