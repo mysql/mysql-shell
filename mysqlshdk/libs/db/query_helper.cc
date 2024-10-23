@@ -307,7 +307,8 @@ std::string Query_helper::schema_and_routine_filter() const {
 
 std::string Query_helper::schema_and_trigger_filter() const {
   mysqlshdk::db::Iterate_table trigger_data = {
-      {"TRIGGER_SCHEMA", {}, "triggers", ""}, "TRIGGER_NAME"};
+      {"TRIGGER_SCHEMA", {"TRIGGER_NAME"}, "triggers", ""},
+      "EVENT_OBJECT_TABLE"};
 
   auto result = schema_filter("TRIGGER_SCHEMA");
 

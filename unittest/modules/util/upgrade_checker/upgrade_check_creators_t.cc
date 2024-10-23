@@ -89,7 +89,7 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
              }})
         .then({"EVENT_SCHEMA", "EVENT_NAME"});
 
-    check->run(msession, server_info, &cache);
+    EXPECT_NO_THROW(check->run(msession, server_info, &cache));
 
     EXPECT_TRUE(msession->queries().empty());
   }
@@ -102,8 +102,8 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
     options.schemas().exclude("exclude");
     options.routines().include("sakila.includedRoutine");
     options.routines().exclude("sakila.excludedRoutine");
-    options.triggers().include("sakila.includedTrigger");
-    options.triggers().exclude("sakila.excludedTrigger");
+    options.triggers().include("sakila.trigger_table.includedTrigger");
+    options.triggers().exclude("sakila.trigger_table.excludedTrigger");
     options.events().include("sakila.includedEvent");
     options.events().exclude("sakila.excludedEvent");
     Checker_cache cache(&options);
@@ -138,10 +138,12 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
             "information_schema.triggers WHERE (STRCMP(TRIGGER_SCHEMA COLLATE "
             "utf8_bin,'sakila'))=0 AND (STRCMP(TRIGGER_SCHEMA COLLATE "
             "utf8_bin,'exclude'))<>0 AND ((STRCMP(TRIGGER_SCHEMA COLLATE "
-            "utf8_bin,'sakila')=0 AND STRCMP(TRIGGER_NAME COLLATE "
-            "utf8_bin,'includedTrigger')=0)) AND NOT((STRCMP(TRIGGER_SCHEMA "
-            "COLLATE utf8_bin,'sakila')=0 AND STRCMP(TRIGGER_NAME COLLATE "
-            "utf8_bin,'excludedTrigger')=0))")
+            "utf8_bin,'sakila')=0 AND STRCMP(EVENT_OBJECT_TABLE COLLATE "
+            "utf8_bin,'trigger_table')=0 AND(STRCMP(TRIGGER_NAME COLLATE "
+            "utf8_bin,'includedTrigger'))=0)) AND NOT((STRCMP(TRIGGER_SCHEMA "
+            "COLLATE utf8_bin,'sakila')=0 AND STRCMP(EVENT_OBJECT_TABLE "
+            "COLLATE utf8_bin,'trigger_table')=0 AND(STRCMP(TRIGGER_NAME "
+            "COLLATE utf8_bin,'excludedTrigger'))=0))")
         .then({"TRIGGER_SCHEMA", "TRIGGER_NAME"});
 
     msession
@@ -156,7 +158,7 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
             "IN('excludedEvent')))")
         .then({"EVENT_SCHEMA", "EVENT_NAME"});
 
-    check->run(msession, server_info, &cache);
+    EXPECT_NO_THROW(check->run(msession, server_info, &cache));
 
     EXPECT_TRUE(msession->queries().empty());
   }
