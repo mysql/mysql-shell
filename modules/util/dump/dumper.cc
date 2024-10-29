@@ -284,7 +284,8 @@ bool check_if_transactions_are_ddl_safe(
           mysqlshdk::utils::SQL_iterator it(sql);
           const auto token = it.next_token();
 
-          if (shcore::str_caseeq(token, "ALTER", "CREATE", "DROP") ||
+          if (shcore::str_caseeq(token, "ALTER", "CREATE", "DROP", "GRANT",
+                                 "REVOKE") ||
               (shcore::str_caseeq(token, "RENAME", "TRUNCATE") &&
                shcore::str_caseeq(it.next_token(), "TABLE"))) {
             is_safe = false;
@@ -319,6 +320,11 @@ bool check_if_transactions_are_ddl_safe(
             const Gtid &gtid, const mysqlshdk::mysql::Binlog_event &event) {
           if (last_file && event.pos >= end) {
             return false;
+          }
+
+          if (event.info.empty() ||
+              !shcore::str_caseeq(event.event_type, "Query")) {
+            return true;
           }
 
           if (include_gtid(gtid) && !is_ddl_safe(event.info)) {
