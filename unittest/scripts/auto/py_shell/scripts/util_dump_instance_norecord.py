@@ -2150,6 +2150,25 @@ shell.connect(test_user_uri(__mysql_sandbox_port1))
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 
+# BUG#37226153 - if LOCK INSTANCE FOR BACKUP was executed, do not lock the mysql tables
+if __version_num >= 80000:
+    EXPECT_STDOUT_CONTAINS("NOTE: Instance locked for backup, skipping mysql system tables locks")
+
+#@<> BUG#37226153 - revoke BACKUP_ADMIN, mysql tables will be locked {VER(>=8.0.0)}
+setup_session()
+session.run_sql(f"REVOKE BACKUP_ADMIN ON *.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
+
+#@<> BUG#37226153 - user has the privileges to execute LOCK TABLES, but dump fails to lock mysql tables due to access denied {not __dbug_off}
+testutil.set_trap("mysql", ["sql regex LOCK TABLES mysql\\..*"], { "code": 1044, "msg": "Access denied for user 'root'@'%' to database 'mysql'.", "state": "42000" })
+
+EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Could not lock mysql system tables: MySQL Error 1044 (42000): Access denied for user 'root'@'%' to database 'mysql'.")
+EXPECT_STDOUT_CONTAINS(f"WARNING: The dump will continue, but the dump may not be completely consistent if changes to accounts or routines are made during it.")
+
+testutil.clear_traps("mysql")
+
 #@<> BUG#32695301 - lock one of the mysql tables, dry run should not attempt to execute LOCK TABLES and dump should succeed
 setup_session()
 session.run_sql("LOCK TABLES mysql.user WRITE")
