@@ -1544,6 +1544,15 @@ shell.connect(test_user_uri(__mysql_sandbox_port1))
 EXPECT_SUCCESS([types_schema], test_output_absolute, { "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 
+# BUG#37226153 - if LOCK INSTANCE FOR BACKUP was executed, do not lock the mysql tables
+if __version_num >= 80000:
+    EXPECT_STDOUT_CONTAINS("NOTE: Instance locked for backup, skipping mysql system tables locks")
+
+#@<> BUG#37226153 - revoke BACKUP_ADMIN, mysql tables will be locked {VER(>=8.0.0)}
+setup_session()
+session.run_sql(f"REVOKE BACKUP_ADMIN ON *.* FROM {test_user_account};")
+shell.connect(test_user_uri(__mysql_sandbox_port1))
+
 #@<> revoke lock tables from mysql.* {VER(>=8.0.16)}
 setup_session()
 session.run_sql("SET GLOBAL partial_revokes=1")

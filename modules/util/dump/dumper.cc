@@ -1908,7 +1908,8 @@ void Dumper::do_run() {
   //     1.1.1. FLUSH TABLES WITH READ LOCK
   //   1.2. if user is not able to execute FTWRL:
   //     1.2.1. execute lock_instance()
-  //     1.2.2. create a new session and LOCK mysql TABLES using that session
+  //     1.2.2. if LIFB is not available to the user, create a new session and
+  //            LOCK mysql TABLES using that session
   //     1.2.3. fetch schemas, tables and views to be dumped
   //     1.2.4. create one or more new sessions and LOCK dumped TABLES
   //     1.2.5. if there are any errors, abort
@@ -2249,42 +2250,57 @@ void Dumper::lock_all_tables() {
     }
   };
 
-  // lock relevant tables in mysql so that grants, views, routines etc. are
-  // consistent too, use the main thread to lock these tables, as it is going to
-  // read from them
-  try {
-    const std::string mysql = "mysql";
+  if (m_user_has_backup_admin) {
+    current_console()->print_note(
+        "Instance locked for backup, skipping mysql system tables locks");
+  } else {
+    const auto non_fatal_failure = [&console](const std::string &error) {
+      console->print_warning("Could not lock mysql system tables: " + error);
+      console->print_warning(
+          "The dump will continue, but the dump may not be completely "
+          "consistent if changes to accounts or routines are made during it.");
+    };
 
-    // if user doesn't have the SELECT privilege on mysql.*, it's not going to
-    // be possible to list tables
-    validate_privileges(mysql);
+    // lock relevant tables in mysql so that grants, views, routines etc. are
+    // consistent too, use the main thread to lock these tables, as it is going
+    // to read from them
+    try {
+      const std::string mysql = "mysql";
 
-    const auto result = query(
-        "SHOW TABLES IN mysql WHERE Tables_in_mysql IN"
-        "('columns_priv', 'db', 'default_roles', 'func', 'global_grants', "
-        "'proc', 'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', "
-        "'user')");
+      // if user doesn't have the SELECT privilege on mysql.*, it's not going to
+      // be possible to list tables
+      validate_privileges(mysql);
 
-    auto stmt = k_lock_tables;
+      const auto result = query(
+          "SHOW TABLES IN mysql WHERE Tables_in_mysql IN"
+          "('columns_priv', 'db', 'default_roles', 'func', 'global_grants', "
+          "'proc', 'procs_priv', 'proxies_priv', 'role_edges', 'tables_priv', "
+          "'user')");
 
-    while (auto row = result->fetch_one()) {
-      const auto table = row->get_string(0);
+      auto stmt = k_lock_tables;
 
-      validate_privileges(mysql, table);
+      while (auto row = result->fetch_one()) {
+        const auto table = row->get_string(0);
 
-      stmt.append("mysql." + shcore::quote_identifier(table) + " READ,");
+        validate_privileges(mysql, table);
+
+        stmt.append("mysql." + shcore::quote_identifier(table) + " READ,");
+      }
+
+      lock_tables(&stmt);
+    } catch (const mysqlshdk::db::Error &e) {
+      if (ER_SPECIFIC_ACCESS_DENIED_ERROR == e.code() ||
+          ER_DBACCESS_DENIED_ERROR == e.code() ||
+          ER_ACCESS_DENIED_ERROR == e.code()) {
+        non_fatal_failure(e.format());
+      } else {
+        console->print_error("Could not lock mysql system tables: " +
+                             e.format());
+        throw;
+      }
+    } catch (const std::runtime_error &e) {
+      non_fatal_failure(e.what());
     }
-
-    lock_tables(&stmt);
-  } catch (const mysqlshdk::db::Error &e) {
-    console->print_error("Could not lock mysql system tables: " + e.format());
-    throw;
-  } catch (const std::runtime_error &e) {
-    console->print_warning("Could not lock mysql system tables: " +
-                           std::string{e.what()});
-    console->print_warning(
-        "The dump will continue, but the dump may not be completely consistent "
-        "if changes to accounts or routines are made during it.");
   }
 
   initialize_instance_cache_minimal();
