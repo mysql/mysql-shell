@@ -723,12 +723,12 @@ Shell_options::Shell_options(
         "output may depend on the protocol you are using to connect to the "
         "server, e.g. DbType field is approximated when using X protocol.")
     (&storage.history_max_size, 1000, SHCORE_HISTORY_MAX_SIZE,
-        "Shell's history maximum size",
+        "Max. number of entries to keep in the command line history.",
         shcore::opts::Range<int>(0, std::numeric_limits<int>::max()))
     (&storage.histignore, "*IDENTIFIED*:*PASSWORD*", SHCORE_HISTIGNORE,
         cmdline("--histignore=<filters>"), "Shell's history ignore list.")
-    (&storage.history_autosave, false, SHCORE_HISTORY_AUTOSAVE,
-        "Shell's history autosave.")
+    (&storage.history_autosave, true, SHCORE_HISTORY_AUTOSAVE,
+        "Automatically persist command line history when exiting the Shell.")
     (&storage.sandbox_directory, home, SHCORE_SANDBOX_DIR,
         "Default sandbox directory")
     (&storage.dba_gtid_wait_timeout, 60, SHCORE_DBA_GTID_WAIT_TIMEOUT,

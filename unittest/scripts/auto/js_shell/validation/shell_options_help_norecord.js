@@ -18,10 +18,11 @@
                          DevAPI db object.
 
 //@<OUT> history.autoSave option help text
- history.autoSave  Shell's history autosave.
+ history.autoSave  Automatically persist command line history when exiting the
+                   Shell.
 
 //@<OUT> history.maxSize option help text
- history.maxSize  Shell's history maximum size
+ history.maxSize  Max. number of entries to keep in the command line history.
 
 //@<OUT> history.sql.ignorePattern option help text
  history.sql.ignorePattern  Shell's history ignore list.
@@ -67,8 +68,10 @@
 
 
 //@<OUT> Verify the help text when using filter
- history.autoSave           Shell's history autosave.
- history.maxSize            Shell's history maximum size
+ history.autoSave           Automatically persist command line history when
+                            exiting the Shell.
+ history.maxSize            Max. number of entries to keep in the command line
+                            history.
  history.sql.ignorePattern  Shell's history ignore list.
  history.sql.syslog         Log filtered interactive commands to the system
                             log. Filtering of commands depends on the patterns
