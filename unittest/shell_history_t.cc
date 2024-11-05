@@ -33,6 +33,7 @@
 #include "ext/linenoise-ng/include/linenoise.h"
 #include "modules/mod_shell_options.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
@@ -56,6 +57,9 @@ class Shell_history : public ::testing::Test {
   void SetUp() override {
     remove(_options_file.c_str());
     linenoiseHistoryFree();
+
+    shcore::delete_file(shcore::path::dirname(_options_file) + "/history.js");
+    shcore::delete_file(shcore::path::dirname(_options_file) + "/history.sql");
   }
 
  protected:
@@ -116,6 +120,8 @@ TEST_F(Shell_history, check_password_history_linenoise) {
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(2, args, _options_file));
+  shell.get_options()->set("history.autoSave", shcore::Value::False());
+
   shell._history.set_limit(100);
 
   auto coptions = mysqlshdk::db::Connection_options("root@localhost");
@@ -365,6 +371,7 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
                   nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(2, args, _options_file));
+  shell.get_options()->set("history.autoSave", shcore::Value::False());
 
   // ? = match exactly one
   EXPECT_EQ(0, linenoiseHistorySize());
@@ -486,15 +493,10 @@ TEST_F(Shell_history, history_linenoise) {
     mysqlsh::Options opt(shell.get_options());
 
     // TS_CV#10
-    // autosave off by default
-    EXPECT_FALSE(opt.get_member("history.autoSave").as_bool());
+    // new: autosave on by default
+    EXPECT_TRUE(opt.get_member("history.autoSave").as_bool());
 
     // check history autosave
-    shell.save_state();
-    EXPECT_FALSE(shcore::is_file(hist_file));
-
-    opt.set_member("history.autoSave", shcore::Value::True());
-
     shell.save_state();
     EXPECT_TRUE(shcore::is_file(hist_file));
 
@@ -755,6 +757,7 @@ TEST_F(Shell_history, check_history_source_py) {
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(3, args, _options_file));
+  shell.get_options()->set("history.autoSave", shcore::Value::False());
   shell._history.set_limit(10);
 
   std::ofstream of;
@@ -791,6 +794,8 @@ TEST_F(Shell_history, check_history_source_py_nonl_interactive) {
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(4, args, _options_file));
+  shell.get_options()->set("history.autoSave", shcore::Value::False());
+
   shell._history.set_limit(10);
 
   std::ofstream of;
@@ -844,6 +849,8 @@ TEST_F(Shell_history, check_history_source_py_nonl_continuedstate_interactive) {
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(4, args, _options_file));
+  shell.get_options()->set("history.autoSave", shcore::Value::False());
+
   shell._history.set_limit(10);
 
   std::ofstream of;
@@ -1302,6 +1309,7 @@ TEST_F(Shell_history, history_delete_range) {
 
   mysqlsh::Command_line_shell shell(
       std::make_shared<Shell_options>(0, nullptr, _options_file));
+
   enable_capture();
   using strv = std::vector<std::string>;
   shell._history.set_limit(10);
@@ -1638,7 +1646,6 @@ TEST_F(Shell_history, history_split_by_mode) {
 
     sql_history_file = shell.history_file();
     EXPECT_EQ(0, linenoiseHistorySize());
-    shell.get_options()->set("history.autoSave", shcore::Value::True());
 
     shell.process_line("select 1;\n");
     EXPECT_EQ(1, linenoiseHistorySize());

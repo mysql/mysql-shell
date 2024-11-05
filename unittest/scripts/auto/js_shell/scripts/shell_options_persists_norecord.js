@@ -26,7 +26,7 @@ shell.options.unsetPersist("devapi.dbObjectHandles")
 shell.options["devapi.dbObjectHandles"]
 
 //@ history.autoSave update and set back to default using shell.options
-shell.options.setPersist("history.autoSave", true);
+shell.options.setPersist("history.autoSave", false);
 shell.options["history.autoSave"]
 os.loadTextFile(options_file);
 shell.options.unsetPersist("history.autoSave");
@@ -159,7 +159,7 @@ os.loadTextFile(options_file);
 \option devapi.dbObjectHandles
 
 //@ history.autoSave update and set back to default using \option
-\option --persist history.autoSave = true
+\option --persist history.autoSave = false
 \option history.autoSave
 os.loadTextFile(options_file);
 \option --unset --persist history.autoSave
@@ -492,7 +492,7 @@ test_cli_option_update('dba.logSql', 0, 2);
 test_cli_option_update('dba.gtidWaitTimeout', 60, 30);
 test_cli_option_update('defaultCompress', false, true);
 test_cli_option_update('devapi.dbObjectHandles', true, false);
-test_cli_option_update('history.autoSave', false, true);
+test_cli_option_update('history.autoSave', true, false);
 test_cli_option_update('history.maxSize', 1000, 20);
 test_cli_option_update('logLevel', 5, 1);
 test_cli_option_update('outputFormat', "table", "vertical");

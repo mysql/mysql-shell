@@ -24,10 +24,10 @@
 
 //@ history.autoSave update and set back to default using shell.options
 ||
-|true|
-|"history.autoSave": "true"|
-||
 |false|
+|"history.autoSave": "false"|
+||
+|true|
 
 //@ history.maxSize update and set back to default using shell.options
 ||
@@ -156,9 +156,9 @@
 
 //@ history.autoSave update and set back to default using \option
 ||
-|true|
-||
 |false|
+||
+|true|
 
 //@ history.maxSize update and set back to default using \option
 ||
@@ -315,7 +315,7 @@
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
- history.autoSave                false
+ history.autoSave                true
  history.maxSize                 1000
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
  history.sql.syslog              false
@@ -356,7 +356,7 @@
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
- history.autoSave                false (Compiled default)
+ history.autoSave                true (Compiled default)
  history.maxSize                 1000 (Compiled default)
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
  history.sql.syslog              false (Compiled default)
@@ -478,7 +478,7 @@
  defaultCompress                 false
  defaultMode                     none
  devapi.dbObjectHandles          true
- history.autoSave                false
+ history.autoSave                true
  history.maxSize                 1000
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD*
  history.sql.syslog              false
@@ -520,7 +520,7 @@ Switching to SQL mode... Commands end with ;
  defaultCompress                 false (Compiled default)
  defaultMode                     none (Compiled default)
  devapi.dbObjectHandles          true (Compiled default)
- history.autoSave                false (Compiled default)
+ history.autoSave                true (Compiled default)
  history.maxSize                 1000 (Compiled default)
  history.sql.ignorePattern       *IDENTIFIED*:*PASSWORD* (Compiled default)
  history.sql.syslog              false (Compiled default)
