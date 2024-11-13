@@ -35,6 +35,11 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+
+#if PY_VERSION_HEX >= 0x030D0000
+// in Python 3.13 this function was moved to an internal header
+extern "C" PyAPI_FUNC(void *) _PyOS_SigintEvent(void);
+#endif
 #endif
 
 using namespace shcore;
