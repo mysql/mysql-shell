@@ -144,7 +144,6 @@ static std::string fieldflags2str(unsigned int f) {
   ff2s_check_flag(NO_DEFAULT_VALUE);
   ff2s_check_flag(NUM);
   ff2s_check_flag(PART_KEY);
-  ff2s_check_flag(GROUP);
   ff2s_check_flag(UNIQUE);
   ff2s_check_flag(BINCMP);
   ff2s_check_flag(ON_UPDATE_NOW);
