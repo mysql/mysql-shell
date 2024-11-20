@@ -29,6 +29,7 @@ rs.routingOptions();
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 {
     "global": {
+        "guideline": null,
         "stats_updates_frequency": null,
         "tags": {}
     },

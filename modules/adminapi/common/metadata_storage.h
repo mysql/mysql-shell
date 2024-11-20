@@ -142,6 +142,9 @@ struct Router_metadata {
   std::optional<std::string> last_checkin;
   std::optional<std::string> version;
   std::optional<std::string> target_cluster;
+  std::optional<std::string> local_cluster;
+  std::optional<std::string> supported_routing_guidelines_version;
+  std::optional<std::string> current_routing_guideline;
 
   shcore::Dictionary_t tags = nullptr;
 };
@@ -151,6 +154,15 @@ struct Routing_options_metadata {
   std::map<std::string, std::map<std::string, shcore::Value>> routers;
 };
 
+struct Routing_guideline_metadata {
+  std::string id;
+  std::string name;
+  std::string guideline;
+  bool is_default_guideline = false;
+
+  Cluster_id cluster_id;
+  Cluster_set_id clusterset_id;
+};
 class Cluster_impl;
 class Cluster_set_impl;
 class Replica_set_impl;
@@ -517,6 +529,25 @@ class MetadataStorage {
                                    const std::string &cluster_id,
                                    const std::string &router,
                                    const std::string &option);
+
+  bool check_routing_guideline_exists(Cluster_type type,
+                                      const std::string &owner_id,
+                                      const std::string &name);
+
+  std::string create_routing_guideline(
+      const Routing_guideline_metadata &guideline);
+
+  void update_routing_guideline(const Routing_guideline_metadata &guideline);
+
+  std::string get_routing_guideline_id(const std::string &name);
+
+  Routing_guideline_metadata get_routing_guideline(
+      Cluster_type type, const std::string &id, const std::string &name) const;
+
+  std::vector<Routing_guideline_metadata> get_routing_guidelines(
+      Cluster_type type, const std::string &id) const;
+
+  void delete_routing_guideline(const std::string &name);
 
   /**
    * Get the topology mode of the cluster from the metadata.

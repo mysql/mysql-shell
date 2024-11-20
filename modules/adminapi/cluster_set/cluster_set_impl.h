@@ -242,7 +242,8 @@ class Cluster_set_impl : public Base_cluster_impl,
   void record_in_metadata(const Cluster_id &seed_cluster_id,
                           const clusterset::Create_cluster_set_options &options,
                           Replication_auth_type auth_type,
-                          std::string_view member_auth_cert_issuer);
+                          std::string_view member_auth_cert_issuer,
+                          const std::string &active_routing_guideline);
 
   std::shared_ptr<Cluster_impl> get_cluster_object(
       const Cluster_set_member_metadata &cluster_md,
@@ -277,6 +278,10 @@ class Cluster_set_impl : public Base_cluster_impl,
 
   void set_maximum_transaction_size_limit(Cluster_impl *cluster,
                                           bool is_primary, bool dry_run);
+
+  void upgrade_routing_guidelines(const Cluster_id &cluster_id,
+                                  const Cluster_set_id &cluster_set_id,
+                                  const std::string &active_routing_guideline);
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
       mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});

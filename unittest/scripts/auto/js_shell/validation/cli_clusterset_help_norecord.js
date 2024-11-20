@@ -4,6 +4,9 @@ The following operations are available at 'clusterset':
    create-replica-cluster
       Creates a new InnoDB Cluster that is a Replica of the Primary Cluster.
 
+   create-routing-guideline
+      Creates a new Routing Guideline for the ClusterSet.
+
    describe
       Describe the structure of the ClusterSet.
 
@@ -15,6 +18,12 @@ The following operations are available at 'clusterset':
 
    force-primary-cluster
       Performs a failover of the PRIMARY Cluster of the ClusterSet.
+
+   get-routing-guideline
+      Returns the named Routing Guideline.
+
+   import-routing-guideline
+      Imports a Routing Guideline from a JSON file into the ClusterSet.
 
    list-routers
       Lists the Router instances of the ClusterSet, or a single Router
@@ -30,8 +39,14 @@ The following operations are available at 'clusterset':
    remove-cluster
       Removes a Replica cluster from a ClusterSet.
 
+   remove-routing-guideline
+      Removes the named Routing Guideline.
+
    router-options
       Lists the configuration options of the ClusterSet's Routers.
+
+   routing-guidelines
+      Lists the Routing Guidelines defined for the ClusterSet.
 
    routing-options
       Lists the ClusterSet Routers configuration options.
@@ -363,3 +378,107 @@ OPTIONS
 --router=<str>
             Identifier of the Router instance to be displayed.
 
+//@<OUT> CLI clusterset execute --help
+NAME
+      execute - Executes a SQL statement at selected instances of the
+                ClusterSet.
+
+SYNTAX
+      clusterset execute <cmd> <instances> [<options>]
+
+WHERE
+      cmd: The SQL statement to execute.
+      instances: The instances where cmd should be executed.
+
+RETURNS
+      A JSON object with a list of results / information regarding the
+      executing of the SQL statement on each of the target instances.
+
+OPTIONS
+--dryRun=<bool>
+            Boolean if true, all validations and steps for executing cmd are
+            performed, but no cmd is actually executed on any instance.
+
+--exclude[:<type>]=<value>
+            Similar to the instances parameter, it can be either a string
+            (keyword) or a list of instance addresses to exclude from the
+            instances specified in instances. It accepts the same keywords,
+            except "all".
+
+--timeout=<int>
+            Integer value with the maximum number of seconds to wait for cmd to
+            execute in each target instance. Default value is 0 meaning it
+            doesn't timeout.
+
+//@<OUT> CLI clusterset create-routing-guideline --help
+NAME
+      create-routing-guideline - Creates a new Routing Guideline for the
+                                 ClusterSet.
+
+SYNTAX
+      clusterset create-routing-guideline <name> [<json>] [<options>]
+
+WHERE
+      name: The identifier name for the new Routing Guideline.
+
+RETURNS
+      A RoutingGuideline object representing the newly created Routing
+      Guideline.
+
+OPTIONS
+--force=<bool>
+
+//@<OUT> CLI clusterset get-routing-guideline --help
+NAME
+      get-routing-guideline - Returns the named Routing Guideline.
+
+SYNTAX
+      clusterset get-routing-guideline [<name>]
+
+WHERE
+      name: Name of the Guideline to be returned.
+
+RETURNS
+      The Routing Guideline object.
+
+//@<OUT> CLI clusterset remove-routing-guideline --help
+NAME
+      remove-routing-guideline - Removes the named Routing Guideline.
+
+SYNTAX
+      clusterset remove-routing-guideline <name>
+
+WHERE
+      name: Name of the Guideline to be removed.
+
+RETURNS
+      Nothing.
+
+//@<OUT> CLI clusterset routing-guidelines --help
+NAME
+      routing-guidelines - Lists the Routing Guidelines defined for the
+                           ClusterSet.
+
+SYNTAX
+      clusterset routing-guidelines
+
+RETURNS
+      The list of Routing Guidelines of the ClusterSet.
+
+//@<OUT> CLI clusterset import-routing-guideline --help
+NAME
+      import-routing-guideline - Imports a Routing Guideline from a JSON file
+                                 into the ClusterSet.
+
+SYNTAX
+      clusterset import-routing-guideline <file> [<options>]
+
+WHERE
+      file: The file path to the JSON file containing the Routing Guideline.
+
+RETURNS
+      A RoutingGuideline object representing the newly imported Routing
+      Guideline.
+
+OPTIONS
+--force=<bool>

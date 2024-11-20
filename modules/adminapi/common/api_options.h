@@ -64,6 +64,10 @@ struct Recovery_progress_option {
 struct Force_options {
   static const shcore::Option_pack_def<Force_options> &options();
 
+  bool get_force(bool default_value = false) const noexcept {
+    return force.value_or(default_value);
+  }
+
   std::optional<bool> force;
 };
 
@@ -105,6 +109,17 @@ struct Execute_options : Timeout_option {
   std::variant<std::monostate, std::string, std::vector<std::string>> exclude;
 };
 
+struct Create_routing_guideline_options : public Force_options {
+  static const shcore::Option_pack_def<Create_routing_guideline_options>
+      &options();
+};
+
+struct Import_routing_guideline_options : public Force_options {
+  static const shcore::Option_pack_def<Import_routing_guideline_options>
+      &options();
+};
+
 }  // namespace dba
 }  // namespace mysqlsh
+
 #endif  // MODULES_ADMINAPI_COMMON_API_OPTIONS_H_

@@ -32,3 +32,21 @@ callMysqlsh(["--", "clusterset", "status", "--help"])
 
 //@ CLI clusterset router-options --help
 callMysqlsh(["--", "clusterset", "router-options", "--help"])
+
+//@ CLI clusterset execute --help
+callMysqlsh(["--", "clusterset", "execute", "--help"])
+
+//@ CLI clusterset create-routing-guideline --help
+callMysqlsh(["--", "clusterset", "create-routing-guideline", "--help"])
+
+//@ CLI clusterset get-routing-guideline --help
+callMysqlsh(["--", "clusterset", "get_routing_guideline", "--help"])
+
+//@ CLI clusterset remove-routing-guideline --help
+callMysqlsh(["--", "clusterset", "remove_routing_guideline", "--help"])
+
+//@ CLI clusterset routing-guidelines --help
+callMysqlsh(["--", "clusterset", "routing_guidelines", "--help"])
+
+//@ CLI clusterset import-routing-guideline --help
+callMysqlsh(["--", "clusterset", "import-routing-guideline", "--help"])

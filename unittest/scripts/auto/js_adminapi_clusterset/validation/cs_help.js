@@ -23,6 +23,9 @@ FUNCTIONS
             Creates a new InnoDB Cluster that is a Replica of the Primary
             Cluster.
 
+      createRoutingGuideline(name[, json][, options])
+            Creates a new Routing Guideline for the ClusterSet.
+
       describe()
             Describe the structure of the ClusterSet.
 
@@ -31,7 +34,7 @@ FUNCTIONS
 
       dissolve(options)
             Dissolves the ClusterSet.
-            
+
       execute(cmd, instances, options)
             Executes a SQL statement at selected instances of the ClusterSet.
 
@@ -41,8 +44,14 @@ FUNCTIONS
       getName()
             Returns the domain name of the clusterset.
 
+      getRoutingGuideline([name])
+            Returns the named Routing Guideline.
+
       help([member])
             Provides help about this class and it's members
+
+      importRoutingGuideline(file[, options])
+            Imports a Routing Guideline from a JSON file into the ClusterSet.
 
       listRouters([router])
             Lists the Router instances of the ClusterSet, or a single Router
@@ -58,8 +67,14 @@ FUNCTIONS
       removeCluster(clusterName[, options])
             Removes a Replica cluster from a ClusterSet.
 
+      removeRoutingGuideline(name)
+            Removes the named Routing Guideline.
+
       routerOptions(options)
             Lists the configuration options of the ClusterSet's Routers.
+
+      routingGuidelines()
+            Lists the Routing Guidelines defined for the ClusterSet.
 
       routingOptions([router])
             Lists the ClusterSet Routers configuration options.
@@ -997,6 +1012,8 @@ DESCRIPTION
         with the ClusterSet metadata.
       - read_only_targets: Routing policy to define Router's usage of Read
         Replicas. Default is 'append'.
+      - guideline: Name of the Routing Guideline to be set as active in the
+        ClusterSet.
 
       The target_cluster option supports the following values:
 
@@ -1046,6 +1063,10 @@ DESCRIPTION
         for R/O traffic.
       - secondaries: Only Secondary members of the target Cluster should be
         used for R/O traffic (default).
+
+      ATTENTION: When the ClusterSet has an active Routing Guideline, the
+                 options 'read_only_targets' and 'target_cluster' are ignored
+                 since the Guideline has precedence over them.
 
 //@<OUT> setOption
 NAME
@@ -1194,3 +1215,137 @@ DESCRIPTION
       `true`. It is possible to change password without affecting certificate
       options or vice-versa but certificate options can only be changed
       together.
+
+//@<OUT> createRoutingGuideline
+NAME
+      createRoutingGuideline - Creates a new Routing Guideline for the
+                               ClusterSet.
+
+SYNTAX
+      <ClusterSet>.createRoutingGuideline(name[, json][, options])
+
+WHERE
+      name: The identifier name for the new Routing Guideline.
+      json: JSON document defining the Routing Guideline content.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A RoutingGuideline object representing the newly created Routing
+      Guideline.
+
+DESCRIPTION
+      This command creates a new Routing Guideline that defines MySQL Router's
+      routing behavior using rules that specify potential destination MySQL
+      servers for incoming client sessions.
+
+      You can optionally pass a JSON document defining the Routing Guideline
+      via the 'json' parameter. This must be a valid Routing Guideline
+      definition, with the exception of the "name" field, which is overridden
+      by the provided 'name' parameter.
+
+      If the 'json' parameter is not provided, a default Routing Guideline is
+      created based on the parent topology type. The guideline is automatically
+      populated with default values tailored to the topology, ensuring the
+      Router's default behavior for that topology is represented.
+
+      The newly created guideline won't be set as the active guideline for the
+      topology. That needs to be explicitly done with
+      ClusterSet.setRoutingOption() using the option 'guideline'.
+
+      The following options are supported:
+
+      - force (boolean): Allows overwriting an existing Routing Guideline with
+        the specified name. Disabled by default.
+
+      Behavior
+
+      - If 'json' is not provided, a default Routing Guideline is created
+        according to the parent topology type.
+      - If 'json' is provided, the content from the JSON is used, except for
+        the "name" field, which is overridden by the 'name' parameter.
+
+      For more information on Routing Guidelines, see \? RoutingGuideline.
+
+//@<OUT> getRoutingGuideline
+NAME
+      getRoutingGuideline - Returns the named Routing Guideline.
+
+SYNTAX
+      <ClusterSet>.getRoutingGuideline([name])
+
+WHERE
+      name: Name of the Guideline to be returned.
+
+RETURNS
+      The Routing Guideline object.
+
+DESCRIPTION
+      Returns the named Routing Guideline object associated to the ClusterSet.
+      If no name is given, the guideline currently active for the ClusterSet is
+      returned. If there is none, then an exception is thrown.
+
+      For more information about Routing Guidelines, see \? RoutingGuideline
+
+//@<OUT> removeRoutingGuideline
+NAME
+      removeRoutingGuideline - Removes the named Routing Guideline.
+
+SYNTAX
+      <ClusterSet>.removeRoutingGuideline(name)
+
+WHERE
+      name: Name of the Guideline to be removed.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      Removes the named Routing Guideline object associated to the ClusterSet.
+
+      For more information about Routing Guidelines, see \? RoutingGuideline
+
+//@<OUT> routingGuidelines
+NAME
+      routingGuidelines - Lists the Routing Guidelines defined for the
+                          ClusterSet.
+
+SYNTAX
+      <ClusterSet>.routingGuidelines()
+
+RETURNS
+      The list of Routing Guidelines of the ClusterSet.
+
+DESCRIPTION
+      For more information about Routing Guidelines, see \? RoutingGuideline
+
+//@<OUT> importRoutingGuideline
+NAME
+      importRoutingGuideline - Imports a Routing Guideline from a JSON file
+                               into the ClusterSet.
+
+SYNTAX
+      <ClusterSet>.importRoutingGuideline(file[, options])
+
+WHERE
+      file: The file path to the JSON file containing the Routing Guideline.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A RoutingGuideline object representing the newly imported Routing
+      Guideline.
+
+DESCRIPTION
+      This command imports a Routing Guideline from a JSON file into the target
+      topology. The imported guideline will be validated before it is saved in
+      the topology's metadata.
+
+      The imported guideline won't be set as the active guideline for the
+      topology. That needs to be explicitly done with
+      ClusterSet.setRoutingOption() using the option 'guideline'.
+
+      The following options are supported:
+
+      - force (boolean): Allows overwriting an existing Routing Guideline with
+        the same name. Disabled by default.
+
+      For more information on Routing Guidelines, see \? RoutingGuideline.

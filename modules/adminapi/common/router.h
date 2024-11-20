@@ -59,33 +59,57 @@ inline constexpr auto k_router_option_read_only_targets_read_replicas =
     "read_replicas";
 inline constexpr auto k_router_option_read_only_targets_secondaries =
     "secondaries";
+inline constexpr auto k_router_option_routing_guideline = "guideline";
+
+inline constexpr auto k_routing_guideline_set_option_match = "match";
+inline constexpr std::array<std::string_view, 1>
+    k_routing_guideline_set_destination_options = {
+        k_routing_guideline_set_option_match};
+
+inline constexpr auto k_routing_guideline_set_route_option_destinations =
+    "destinations";
+inline constexpr auto
+    k_routing_guideline_set_route_option_connectionsharingallowed =
+        "connectionSharingAllowed";
+inline constexpr auto k_routing_guideline_set_route_option_order = "order";
+inline constexpr auto k_routing_guideline_set_route_option_enabled = "enabled";
+inline constexpr std::array<std::string_view, 6>
+    k_routing_guideline_set_route_options = {
+        k_routing_guideline_set_option_match,
+        k_routing_guideline_set_route_option_destinations,
+        k_routing_guideline_set_route_option_enabled,
+        k_routing_guideline_set_route_option_connectionsharingallowed,
+        k_routing_guideline_set_route_option_order};
 
 inline constexpr auto k_default_router_option_read_only_targets =
     k_router_option_read_only_targets_secondaries;
 
-inline constexpr std::array<decltype(k_router_option_target_cluster), 6>
+inline constexpr std::array<decltype(k_router_option_target_cluster), 7>
     k_clusterset_router_options = {
         k_router_option_invalidated_cluster_routing_policy,
         k_router_option_target_cluster,
         k_router_option_stats_updates_frequency,
         k_router_option_use_replica_primary_as_rw,
         k_router_option_tags,
-        k_router_option_read_only_targets};
+        k_router_option_read_only_targets,
+        k_router_option_routing_guideline};
 
 extern const std::map<std::string, shcore::Value>
     k_default_clusterset_router_options;
 
-inline constexpr std::array<std::string_view, 4> k_cluster_router_options = {
+inline constexpr std::array<std::string_view, 5> k_cluster_router_options = {
     k_router_option_tags, k_router_option_read_only_targets,
     k_router_option_stats_updates_frequency,
-    k_router_option_unreachable_quorum_allowed_traffic};
+    k_router_option_unreachable_quorum_allowed_traffic,
+    k_router_option_routing_guideline};
 
 extern const std::map<std::string, shcore::Value>
     k_default_cluster_router_options;
 
-inline constexpr std::array<decltype(k_router_option_target_cluster), 2>
+inline constexpr std::array<decltype(k_router_option_target_cluster), 3>
     k_replicaset_router_options = {k_router_option_tags,
-                                   k_router_option_stats_updates_frequency};
+                                   k_router_option_stats_updates_frequency,
+                                   k_router_option_routing_guideline};
 
 extern const std::map<std::string, shcore::Value>
     k_default_replicaset_router_options;

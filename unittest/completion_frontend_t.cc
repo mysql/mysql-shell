@@ -1607,7 +1607,7 @@ TEST_F(Completer_frontend, help_py) {
   EXPECT_AFTER_TAB("\\help dba.cr", "\\help dba.create_");
   EXPECT_AFTER_TAB("\\help dba.create_c", "\\help dba.create_cluster");
   EXPECT_AFTER_TAB("\\h util.lo", "\\h util.load_dump");
-  EXPECT_AFTER_TAB("\\? sh", "\\? shell");
+  EXPECT_AFTER_TAB("\\? she", "\\? shell");
   EXPECT_AFTER_TAB("\\? shell.co", "\\? shell.connect");
 }
 

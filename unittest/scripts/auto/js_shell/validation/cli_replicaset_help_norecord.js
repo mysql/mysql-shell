@@ -4,6 +4,9 @@ The following operations are available at 'rs':
    add-instance
       Adds an instance to the replicaset.
 
+   create-routing-guideline
+      Creates a new Routing Guideline for the ReplicaSet.
+
    describe
       Describe the structure of the ReplicaSet.
 
@@ -15,6 +18,12 @@ The following operations are available at 'rs':
 
    force-primary-instance
       Performs a failover in a replicaset with an unavailable PRIMARY.
+
+   get-routing-guideline
+      Returns the named Routing Guideline.
+
+   import-routing-guideline
+      Imports a Routing Guideline from a JSON file into the ReplicaSet.
 
    list-routers
       Lists the Router instances.
@@ -31,11 +40,17 @@ The following operations are available at 'rs':
    remove-router-metadata
       Removes metadata for a router instance.
 
+   remove-routing-guideline
+      Removes the named Routing Guideline.
+
    rescan
       Rescans the ReplicaSet.
 
    router-options
       Lists the configuration options of the ReplicaSet's Routers.
+
+   routing-guidelines
+      Lists the Routing Guidelines defined for the ReplicaSet.
 
    routing-options
       Lists the ReplicaSet Routers configuration options.
@@ -438,3 +453,107 @@ OPTIONS
 --extended=<int>
             Can be 0, 1 or 2. Default is 0.
 
+//@<OUT> CLI replicaset execute --help
+NAME
+      execute - Executes a SQL statement at selected instances of the
+                ReplicaSet.
+
+SYNTAX
+      rs execute <cmd> <instances> [<options>]
+
+WHERE
+      cmd: The SQL statement to execute.
+      instances: The instances where cmd should be executed.
+
+RETURNS
+      A JSON object with a list of results / information regarding the
+      executing of the SQL statement on each of the target instances.
+
+OPTIONS
+--dryRun=<bool>
+            Boolean if true, all validations and steps for executing cmd are
+            performed, but no cmd is actually executed on any instance.
+
+--exclude[:<type>]=<value>
+            Similar to the instances parameter, it can be either a string
+            (keyword) or a list of instance addresses to exclude from the
+            instances specified in instances. It accepts the same keywords,
+            except "all".
+
+--timeout=<int>
+            Integer value with the maximum number of seconds to wait for cmd to
+            execute in each target instance. Default value is 0 meaning it
+            doesn't timeout.
+
+//@<OUT> CLI replicaset create-routing-guideline --help
+NAME
+      create-routing-guideline - Creates a new Routing Guideline for the
+                                 ReplicaSet.
+
+SYNTAX
+      rs create-routing-guideline <name> [<json>] [<options>]
+
+WHERE
+      name: The identifier name for the new Routing Guideline.
+
+RETURNS
+      A RoutingGuideline object representing the newly created Routing
+      Guideline.
+
+OPTIONS
+--force=<bool>
+
+//@<OUT> CLI replicaset get-routing-guideline --help
+NAME
+      get-routing-guideline - Returns the named Routing Guideline.
+
+SYNTAX
+      rs get-routing-guideline [<name>]
+
+WHERE
+      name: Name of the Guideline to be returned.
+
+RETURNS
+      The Routing Guideline object.
+
+//@<OUT> CLI replicaset remove-routing-guideline --help
+NAME
+      remove-routing-guideline - Removes the named Routing Guideline.
+
+SYNTAX
+      rs remove-routing-guideline <name>
+
+WHERE
+      name: Name of the Guideline to be removed.
+
+RETURNS
+      Nothing.
+
+//@<OUT> CLI replicaset routing-guidelines --help
+NAME
+      routing-guidelines - Lists the Routing Guidelines defined for the
+                           ReplicaSet.
+
+SYNTAX
+      rs routing-guidelines
+
+RETURNS
+      The list of Routing Guidelines of the ReplicaSet.
+
+//@<OUT> CLI replicaset import-routing-guideline --help
+NAME
+      import-routing-guideline - Imports a Routing Guideline from a JSON file
+                                 into the ReplicaSet.
+
+SYNTAX
+      rs import-routing-guideline <file> [<options>]
+
+WHERE
+      file: The file path to the JSON file containing the Routing Guideline.
+
+RETURNS
+      A RoutingGuideline object representing the newly imported Routing
+      Guideline.
+
+OPTIONS
+--force=<bool>

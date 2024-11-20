@@ -39,6 +39,7 @@
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
+#include "modules/adminapi/common/routing_guideline_impl.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/lock_service.h"
 
@@ -219,6 +220,39 @@ class Base_cluster_impl {
    */
   shcore::Value get_cluster_tags() const;
 
+  std::shared_ptr<Routing_guideline_impl> create_routing_guideline(
+      std::shared_ptr<Base_cluster_impl> self, const std::string &name,
+      shcore::Dictionary_t json,
+      const shcore::Option_pack_ref<Create_routing_guideline_options> &options);
+
+  std::string get_router_option(const std::string &option) const;
+
+  std::string get_active_routing_guideline() const;
+
+  Read_only_targets get_read_only_targets_option() const;
+
+  bool has_guideline(const std::string &name) const;
+
+  const std::vector<Routing_guideline_metadata> get_routing_guidelines() const;
+
+  void store_routing_guideline(
+      const std::shared_ptr<Routing_guideline_impl> &guideline);
+
+  void set_global_routing_option(const std::string &option,
+                                 const shcore::Value &value);
+
+  std::shared_ptr<Routing_guideline_impl> get_routing_guideline(
+      std::shared_ptr<Base_cluster_impl> self, const std::string &name);
+
+  void remove_routing_guideline(const std::string &name);
+
+  std::unique_ptr<mysqlshdk::db::IResult> routing_guidelines(
+      std::shared_ptr<Base_cluster_impl> self);
+
+  std::shared_ptr<Routing_guideline_impl> import_routing_guideline(
+      std::shared_ptr<Base_cluster_impl> self, const std::string &file_path,
+      const shcore::Option_pack_ref<Import_routing_guideline_options> &options);
+
  public:
   /*
    * Synchronize transactions on target instance.
@@ -368,6 +402,7 @@ class Base_cluster_impl {
 
  private:
   void disconnect_internal();
+  bool is_cluster_clusterset_member() const;
 };
 
 }  // namespace dba

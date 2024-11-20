@@ -71,7 +71,7 @@ EXPECT_OUTPUT_CONTAINS(`Incompatible Metadata version. No operations are allowed
 //@<> upgradeMetadata, installed version is unknown
 set_metadata_version(major, minor, -1)
 var installed_version = testutil.getInstalledMetadataVersion();
-EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${hostname}:${__mysql_sandbox_port1}' has an unknown version (2.2.-1), upgrading this version of the metadata is not supported.`);
+EXPECT_THROWS(function () { dba.upgradeMetadata() }, `Installed metadata at '${hostname}:${__mysql_sandbox_port1}' has an unknown version (2.3.-1), upgrading this version of the metadata is not supported.`);
 
 //@<> Downgrading to version 1.0.1 for the following tests
 other_session = mysql.getSession(__sandbox_uri1);
@@ -231,7 +231,7 @@ EXPECT_STDOUT_CONTAINS('GRANT SELECT ON "performance_schema"."replication_group_
 
 shell.options.useWizards=0;
 
-//@ Test Migration from 1.0.1 to 2.2.0
+//@ Test Migration from 1.0.1 to 2.3.0
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 test_session = mysql.getSession(__sandbox_uri1)
 
@@ -244,7 +244,7 @@ dba.upgradeMetadata();
 
 shell.options.useWizards=0;
 
-//@<> WL13386-TSNFR1_14 Test Migration from 1.0.1 to 2.2.0, Data Verification
+//@<> WL13386-TSNFR1_14 Test Migration from 1.0.1 to 2.3.0, Data Verification
 load_metadata(__sandbox_uri1, metadata_1_0_1_file);
 
 // Marks the router as up to date, we are interested in all data migration verification

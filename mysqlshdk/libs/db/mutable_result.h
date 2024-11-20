@@ -26,7 +26,6 @@
 #ifndef MYSQLSHDK_LIBS_DB_MUTABLE_RESULT_H_
 #define MYSQLSHDK_LIBS_DB_MUTABLE_RESULT_H_
 
-#include <list>
 #include <memory>
 #include <string>
 #include <utility>
@@ -39,9 +38,11 @@ namespace db {
 
 class Mutable_result : public IResult {
  public:
-  static inline Column make_column(const std::string &name, Type type) {
-    return Column("", "", "", "", name, name, 0, 0, type, 0, false, false,
-                  false);
+  static inline Column make_column(const std::string &name,
+                                   Type type = Type::String,
+                                   const std::string &label = "") {
+    return Column("", "", "", "", name, label.empty() ? name : label, 0, 0,
+                  type, 0, false, false, false);
   }
 
  public:
@@ -77,6 +78,13 @@ class Mutable_result : public IResult {
   void add_column(const Column &column);
   void add_row(std::unique_ptr<Mem_row> row);
 
+  Mutable_row &add_row() {
+    auto row = std::make_unique<Mutable_row>(_metadata);
+    auto tmp = row.get();
+    _rows.emplace_back(std::move(row));
+    return *tmp;
+  }
+
   void add_from(IResult *result);
 
   template <class... Args>
@@ -84,9 +92,8 @@ class Mutable_result : public IResult {
     if (sizeof...(args) != _metadata.size())
       throw std::invalid_argument(
           "Mismatch between row size and data to append");
-    std::vector<Type> cols(_metadata.size());
-    for (size_t i = 0; i < cols.size(); ++i) cols[i] = _metadata[i].get_type();
-    _rows.emplace_back(new Mutable_row(cols, args...));
+    _rows.emplace_back(
+        std::move(std::make_unique<Mutable_row>(_metadata, args...)));
   }
 
   void reset() { _fetched_row_count = 0; }
@@ -105,7 +112,10 @@ class Mutable_result : public IResult {
   int64_t get_auto_increment_value() const override { return 0; }
 
   std::shared_ptr<Field_names> field_names() const override {
-    throw std::logic_error("field name addressing not available");
+    if (!m_field_names) {
+      m_field_names = std::make_shared<Field_names>(get_metadata());
+    }
+    return m_field_names;
   }
 
  private:
@@ -113,6 +123,7 @@ class Mutable_result : public IResult {
   std::vector<std::unique_ptr<Mem_row>> _rows;
   std::vector<std::string> _gtids;
   size_t _fetched_row_count = 0;
+  mutable std::shared_ptr<Field_names> m_field_names;
 
   friend bool operator==(const Mutable_result &left,
                          const Mutable_result &right);

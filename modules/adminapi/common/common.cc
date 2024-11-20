@@ -713,22 +713,31 @@ void parse_fully_qualified_cluster_name(const std::string &name,
  * @param cluster_type indicates what the name is intended for
  * @throws shcore::Exception if the name is not valid.
  */
-void SHCORE_PUBLIC validate_cluster_name(const std::string &name,
-                                         Cluster_type cluster_type) {
+void SHCORE_PUBLIC validate_name(const std::string &name,
+                                 Validation_context context,
+                                 Cluster_type cluster_type) {
   std::string what;
 
-  switch (cluster_type) {
-    case Cluster_type::GROUP_REPLICATION:
-      what = "Cluster";
-      break;
-    case Cluster_type::ASYNC_REPLICATION:
-      what = "ReplicaSet";
-      break;
-    case Cluster_type::REPLICATED_CLUSTER:
-      what = "ClusterSet";
-      break;
-    case Cluster_type::NONE:
-      throw shcore::Exception::logic_error("Unknown Cluster_type.");
+  if (context == Validation_context::TOPOLOGY) {
+    switch (cluster_type) {
+      case Cluster_type::GROUP_REPLICATION:
+        what = "Cluster";
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        what = "ReplicaSet";
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        what = "ClusterSet";
+        break;
+      case Cluster_type::NONE:
+        throw shcore::Exception::logic_error("Unknown Cluster_type.");
+    }
+  } else if (context == Validation_context::ROUTING_GUIDELINE) {
+    what = "Routing Guideline";
+  } else if (context == Validation_context::ROUTING_GUIDELINE_DESTINATION) {
+    what = "Destination";
+  } else if (context == Validation_context::ROUTING_GUIDELINE_ROUTE) {
+    what = "Route";
   }
 
   if (!name.empty()) {

@@ -205,4 +205,22 @@ void Execute_options::set_exclude(const shcore::Value &value) {
   exclude = Execute::convert_to_instances_def(value, true);
 }
 
+const shcore::Option_pack_def<Create_routing_guideline_options>
+    &Create_routing_guideline_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Create_routing_guideline_options>()
+          .include<Force_options>();
+
+  return opts;
+}
+
+const shcore::Option_pack_def<Import_routing_guideline_options>
+    &Import_routing_guideline_options::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Import_routing_guideline_options>()
+          .include<Force_options>();
+
+  return opts;
+}
+
 }  // namespace mysqlsh::dba

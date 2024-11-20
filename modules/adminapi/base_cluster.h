@@ -26,12 +26,12 @@
 #ifndef MODULES_ADMINAPI_BASE_CLUSTER_H_
 #define MODULES_ADMINAPI_BASE_CLUSTER_H_
 
-#include <memory>
 #include <string>
 
 #include "modules/adminapi/common/api_options.h"
 #include "modules/adminapi/common/base_cluster_impl.h"
-#include "modules/adminapi/common/common.h"
+#include "modules/adminapi/mod_dba_routing_guideline.h"
+#include "modules/mod_shell_result.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/types.h"
 #include "scripting/types_cpp.h"
@@ -67,6 +67,22 @@ class Base_cluster : public shcore::Cpp_object_bridge {
       const std::string &cmd, const shcore::Value &instances,
       const shcore::Option_pack_ref<Execute_options> &options);
 
+ public:  // Routing Guidelines
+  std::shared_ptr<RoutingGuideline> create_routing_guideline(
+      const std::string &name, shcore::Dictionary_t json,
+      const shcore::Option_pack_ref<Create_routing_guideline_options> &options);
+
+  std::shared_ptr<RoutingGuideline> get_routing_guideline(
+      const std::string &name) const;
+
+  void remove_routing_guideline(const std::string &name);
+
+  std::shared_ptr<ShellResult> routing_guidelines() const;
+
+  std::shared_ptr<RoutingGuideline> import_routing_guideline(
+      const std::string &file_path,
+      const shcore::Option_pack_ref<Import_routing_guideline_options> &options);
+
  public:  // User management
   void setup_admin_account(
       const std::string &user,
@@ -79,7 +95,7 @@ class Base_cluster : public shcore::Cpp_object_bridge {
  protected:
   bool m_invalidated = false;
 
-  virtual Base_cluster_impl *base_impl() const = 0;
+  virtual std::shared_ptr<Base_cluster_impl> base_impl() const = 0;
 
   virtual void assert_valid(const std::string &option_name) const = 0;
   void invalidate() { m_invalidated = true; }
@@ -237,6 +253,108 @@ of MySQL Shell. Use <<<:Type>>>.routerOptions() instead.
 
 This function lists the Router configuration options of all Routers of the
 <<<:Type>>> or the target Router.
+)*"));
+
+REGISTER_HELP_SHARED_TEXT(CREATEROUTINGGUIDELINE_HELP_TEXT, (R"*(
+Creates a new Routing Guideline for the <<<:Type>>>.
+
+@param name The identifier name for the new Routing Guideline.
+@param json Optional JSON document defining the Routing Guideline content.
+@param options Optional dictionary with options for the operation.
+
+@returns A RoutingGuideline object representing the newly created Routing
+Guideline.
+
+This command creates a new Routing Guideline that defines MySQL Router's
+routing behavior using rules that specify potential destination MySQL servers
+for incoming client sessions.
+
+You can optionally pass a JSON document defining the Routing Guideline via the
+'json' parameter. This must be a valid Routing Guideline definition, with the
+exception of the "name" field, which is overridden by the provided 'name'
+parameter.
+
+If the 'json' parameter is not provided, a default Routing Guideline is created
+based on the parent topology type. The guideline is automatically populated
+with default values tailored to the topology, ensuring the Router's
+default behavior for that topology is represented.
+
+The newly created guideline won't be set as the active guideline for the
+topology. That needs to be explicitly done with <<<:Type>>>.setRoutingOption()
+using the option 'guideline'.
+
+The following options are supported:
+
+@li force (boolean): Allows overwriting an existing Routing Guideline with the
+specified name. Disabled by default.
+
+<b>Behavior</b>
+
+@li If 'json' is not provided, a default Routing Guideline is created according
+to the parent topology type.
+@li If 'json' is provided, the content from the JSON is used, except for the
+"name" field, which is overridden by the 'name' parameter.
+
+For more information on Routing Guidelines, see \\? RoutingGuideline.
+)*"));
+
+REGISTER_HELP_SHARED_TEXT(GETROUTINGGUIDELINE_HELP_TEXT, (R"*(
+Returns the named Routing Guideline.
+
+@param name Optional name of the Guideline to be returned.
+
+@returns The Routing Guideline object.
+
+Returns the named Routing Guideline object associated to the <<<:Type>>>. If no
+name is given, the guideline currently active for the <<<:Type>>> is returned.
+If there is none, then an exception is thrown.
+
+For more information about Routing Guidelines, see \\? RoutingGuideline
+)*"));
+
+REGISTER_HELP_SHARED_TEXT(REMOVEROUTINGGUIDELINE_HELP_TEXT, (R"*(
+Removes the named Routing Guideline.
+
+@param name Name of the Guideline to be removed.
+
+@returns Nothing.
+
+Removes the named Routing Guideline object associated to the <<<:Type>>>.
+
+For more information about Routing Guidelines, see \\? RoutingGuideline
+)*"));
+
+REGISTER_HELP_SHARED_TEXT(ROUTINGGUIDELINES_HELP_TEXT, (R"*(
+Lists the Routing Guidelines defined for the <<<:Type>>>.
+
+@returns The list of Routing Guidelines of the <<<:Type>>>.
+
+For more information about Routing Guidelines, see \\? RoutingGuideline
+)*"));
+
+REGISTER_HELP_SHARED_TEXT(IMPORTROUTINGGUIDELINE_HELP_TEXT, (R"*(
+Imports a Routing Guideline from a JSON file into the <<<:Type>>>.
+
+@param file The file path to the JSON file containing the Routing Guideline.
+@param options Optional dictionary with options for the operation.
+
+@returns A RoutingGuideline object representing the newly imported Routing
+Guideline.
+
+This command imports a Routing Guideline from a JSON file into the
+target topology. The imported guideline will be validated before it is saved
+in the topology's metadata.
+
+The imported guideline won't be set as the active guideline for the
+topology. That needs to be explicitly done with <<<:Type>>>.setRoutingOption()
+using the option 'guideline'.
+
+The following options are supported:
+
+@li force (boolean): Allows overwriting an existing Routing Guideline with the
+same name. Disabled by default.
+
+For more information on Routing Guidelines, see \\? RoutingGuideline.
 )*"));
 
 }  // namespace dba

@@ -21,6 +21,35 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
+# Check if both source and build directories are defined
+SET(HAVE_MYSQL_SOURCE_AND_BUILD_DIRS FALSE)
+IF(MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
+    SET(HAVE_MYSQL_SOURCE_AND_BUILD_DIRS TRUE)
+
+    # Include necessary directories for router and routing guidelines
+    INCLUDE_DIRECTORIES(
+        ${MYSQL_SOURCE_DIR}/router/src
+        ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/include/
+        ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src
+        ${MYSQL_SOURCE_DIR}/router/src/harness/include
+        ${MYSQL_BUILD_DIR}/router
+        ${MYSQL_BUILD_DIR}/router/src/routing_guidelines/include
+        ${MYSQL_BUILD_DIR}/router/src/routing_guidelines/src
+        ${MYSQL_BUILD_DIR}/router/include
+    )
+
+    # Set routing guidelines sources
+    SET(routing_guidelines_SOURCES
+        ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src/rules_parser.cc
+        ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src/rpn.cc
+        ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src/routing_guidelines.cc
+        ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src/utils.cc
+        ${MYSQL_SOURCE_DIR}/router/src/harness/src/utilities.cc
+        ${MYSQL_BUILD_DIR}/router/src/routing_guidelines/src/parser.cc
+    )
+ENDIF()
+
+# Gather all AdminAPI sources
 file(GLOB adminapi_module_SOURCES
       "dba_utils.cc"
       "base_cluster.cc"
@@ -28,6 +57,7 @@ file(GLOB adminapi_module_SOURCES
       "mod_dba_replica_set.cc"
       "mod_dba_cluster.cc"
       "mod_dba_cluster_set.cc"
+      "mod_dba_routing_guideline.cc"
       "common/api_options.cc"
       "common/connectivity_check.cc"
       "common/execute.cc"
@@ -66,6 +96,8 @@ file(GLOB adminapi_module_SOURCES
       "common/base_cluster_impl.cc"
       "common/undo.cc"
       "common/replication_account.cc"
+      "common/routing_guideline_impl.cc"
+      "common/routing_guideline_options.cc"
       "dba/check_instance.cc"
       "dba/configure_async_instance.cc"
       "dba/configure_instance.cc"
@@ -111,7 +143,12 @@ file(GLOB adminapi_module_SOURCES
       "cluster/api_options.cc"
 )
 
-add_convenience_library(adminapi_modules ${adminapi_module_SOURCES})
+IF (HAVE_MYSQL_SOURCE_AND_BUILD_DIRS)
+    add_convenience_library(adminapi_modules ${adminapi_module_SOURCES} ${routing_guidelines_SOURCES} COMPILE_DEFINITIONS ROUTING_GUIDELINES_STATIC_DEFINE=1 HARNESS_STATIC_DEFINE=1 RAPIDJSON_HAS_STDSTRING=1)
+ELSE()
+    add_convenience_library(adminapi_modules ${adminapi_module_SOURCES})
+ENDIF()
+
 target_link_libraries(adminapi_modules utils mysql)
 
 # install metadata scripts

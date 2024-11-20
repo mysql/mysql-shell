@@ -24,9 +24,835 @@ var cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_met
 
 var router1 = "routerhost1::system";
 
-session.runSql("UPDATE `mysql_innodb_cluster_metadata`.`clusters` SET router_options = '{\"tags\": {}, \"Configuration\": {\"8.4.0\": {\"Defaults\": {\"io\": {\"threads\": 0}, \"common\": {\"name\": \"system\", \"user\": \"\", \"read_timeout\": 30, \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"server_ssl_mode\": \"PREFERRED\", \"server_ssl_verify\": \"DISABLED\", \"max_total_connections\": 512, \"unknown_config_option\": \"error\", \"router_require_enforce\": true, \"max_idle_server_connections\": 64}, \"loggers\": {\"filelog\": {\"level\": \"info\", \"filename\": \"mysqlrouter.log\", \"destination\": \"\", \"timestamp_precision\": \"second\"}}, \"endpoints\": {\"bootstrap_ro\": {\"protocol\": \"classic\", \"bind_port\": 6447, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin-with-fallback\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_rw\": {\"protocol\": \"classic\", \"bind_port\": 6446, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"first-available\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_x_ro\": {\"protocol\": \"x\", \"bind_port\": 6449, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin-with-fallback\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_x_rw\": {\"protocol\": \"x\", \"bind_port\": 6448, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"first-available\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_rw_split\": {\"protocol\": \"classic\", \"bind_port\": 6450, \"access_mode\": \"auto\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY_AND_SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0,\"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": true, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9,\"connection_sharing_delay\": 1.0}}, \"http_server\": {\"ssl\": true, \"port\": 8443, \"ssl_key\": \"\", \"ssl_cert\": \"\", \"ssl_cipher\": \"ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305\", \"ssl_curves\": \"\", \"bind_address\": \"0.0.0.0\", \"require_realm\": \"\", \"ssl_dh_params\": \"\", \"static_folder\":\"\"}, \"rest_configs\": {\"rest_api\": {\"require_realm\": \"\"}, \"rest_router\": {\"require_realm\": \"default_auth_realm\"}, \"rest_routing\": {\"require_realm\": \"default_auth_realm\"}, \"rest_metadata_cache\": {\"require_realm\": \"default_auth_realm\"}}, \"routing_rules\": {\"read_only_targets\": \"secondaries\", \"stats_updates_frequency\": -1, \"use_replica_primary_as_rw\": false, \"invalidated_cluster_policy\": \"drop_all\", \"unreachable_quorum_allowed_traffic\": \"none\"}, \"metadata_cache\": {\"ttl\": 0.5, \"read_timeout\": 30, \"auth_cache_ttl\": -1.0, \"connect_timeout\": 5, \"use_gr_notifications\": false, \"auth_cache_refresh_interval\": 2.0}, \"connection_pool\": {\"idle_timeout\": 5, \"max_idle_server_connections\": 64}, \"destination_status\": {\"error_quarantine_interval\": 1, \"error_quarantine_threshold\": 1}, \"http_authentication_realm\": {\"name\": \"default_realm\", \"method\": \"basic\", \"backend\": \"default_auth_backend\", \"require\": \"valid-user\"}, \"http_authentication_backends\": {\"default_auth_backend\": {\"backend\": \"metadata_cache\", \"filename\": \"\"}}}, \"ConfigurationChangesSchema\": {\"type\": \"object\", \"title\": \"MySQL Router configuration JSON schema\", \"$schema\": \"http://json-schema.org/draft-04/schema#\", \"properties\": {\"routing_rules\": {\"type\": \"object\", \"properties\": {\"target_cluster\": {\"type\": \"string\"},\"read_only_targets\": {\"enum\": [\"all\", \"read_replicas\", \"secondaries\"], \"type\": \"string\"}, \"stats_updates_frequency\": {\"type\": \"number\"}, \"use_replica_primary_as_rw\": {\"type\": \"boolean\"}, \"invalidated_cluster_policy\": {\"enum\": [\"accept_ro\", \"drop_all\"], \"type\": \"string\"}, \"unreachable_quorum_allowed_traffic\": {\"enum\": [\"none\", \"read\", \"all\"], \"type\": \"string\"}}, \"additionalProperties\": false}}, \"description\":\"JSON Schema for the Router configuration options that can be changed in the runtime. Shared by the Router in the metadata to announce which options it supports changing.\", \"additionalProperties\": false}}}, \"read_only_targets\":\"secondaries\"}' WHERE cluster_id=?", [cluster_id])
+const router_options_json =
+{
+  "tags": {},
+  "Configuration": {
+    "9.2.0": {
+      "Defaults": {
+        "io": {
+          "threads": 0
+        },
+        "common": {
+          "name": "system",
+          "socket": "",
+          "bind_address": "0.0.0.0",
+          "read_timeout": 30,
+          "server_ssl_ca": "",
+          "server_ssl_crl": "",
+          "client_ssl_mode": "PREFERRED",
+          "connect_timeout": 5,
+          "max_connections": 0,
+          "server_ssl_mode": "PREFERRED",
+          "client_ssl_cipher": "",
+          "client_ssl_curves": "",
+          "net_buffer_length": 16384,
+          "server_ssl_capath": "",
+          "server_ssl_cipher": "",
+          "server_ssl_curves": "",
+          "server_ssl_verify": "DISABLED",
+          "thread_stack_size": 1024,
+          "connection_sharing": false,
+          "max_connect_errors": 100,
+          "server_ssl_crlpath": "",
+          "wait_for_my_writes": true,
+          "client_ssl_dh_params": "",
+          "max_total_connections": 512,
+          "unknown_config_option": "error",
+          "client_connect_timeout": 9,
+          "connection_sharing_delay": 1.0,
+          "wait_for_my_writes_timeout": 2,
+          "max_idle_server_connections": 64
+        },
+        "loggers": {
+          "filelog": {
+            "level": "info",
+            "filename": "mysqlrouter.log",
+            "destination": "",
+            "timestamp_precision": "second"
+          }
+        },
+        "endpoints": {
+          "bootstrap_ro": {
+            "socket": "",
+            "protocol": "classic",
+            "bind_port": 6447,
+            "bind_address": "0.0.0.0",
+            "destinations": "metadata-cache://devCluster/?role=SECONDARY",
+            "server_ssl_ca": "",
+            "server_ssl_crl": "",
+            "client_ssl_mode": "PREFERRED",
+            "connect_timeout": 5,
+            "max_connections": 0,
+            "server_ssl_mode": "PREFERRED",
+            "routing_strategy": "round-robin-with-fallback",
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "net_buffer_length": 16384,
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_curves": "",
+            "server_ssl_verify": "DISABLED",
+            "thread_stack_size": 1024,
+            "connection_sharing": false,
+            "max_connect_errors": 100,
+            "server_ssl_crlpath": "",
+            "wait_for_my_writes": true,
+            "client_ssl_dh_params": "",
+            "client_connect_timeout": 9,
+            "router_require_enforce": true,
+            "connection_sharing_delay": 1.0,
+            "wait_for_my_writes_timeout": 2
+          },
+          "bootstrap_rw": {
+            "socket": "",
+            "protocol": "classic",
+            "bind_port": 6446,
+            "bind_address": "0.0.0.0",
+            "destinations": "metadata-cache://devCluster/?role=PRIMARY",
+            "server_ssl_ca": "",
+            "server_ssl_crl": "",
+            "client_ssl_mode": "PREFERRED",
+            "connect_timeout": 5,
+            "max_connections": 0,
+            "server_ssl_mode": "PREFERRED",
+            "routing_strategy": "first-available",
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "net_buffer_length": 16384,
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_curves": "",
+            "server_ssl_verify": "DISABLED",
+            "thread_stack_size": 1024,
+            "connection_sharing": false,
+            "max_connect_errors": 100,
+            "server_ssl_crlpath": "",
+            "wait_for_my_writes": true,
+            "client_ssl_dh_params": "",
+            "client_connect_timeout": 9,
+            "router_require_enforce": true,
+            "connection_sharing_delay": 1.0,
+            "wait_for_my_writes_timeout": 2
+          },
+          "bootstrap_x_ro": {
+            "socket": "",
+            "protocol": "x",
+            "bind_port": 6449,
+            "bind_address": "0.0.0.0",
+            "destinations": "metadata-cache://devCluster/?role=SECONDARY",
+            "server_ssl_ca": "",
+            "server_ssl_crl": "",
+            "client_ssl_mode": "PREFERRED",
+            "connect_timeout": 5,
+            "max_connections": 0,
+            "server_ssl_mode": "PREFERRED",
+            "routing_strategy": "round-robin-with-fallback",
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "net_buffer_length": 16384,
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_curves": "",
+            "server_ssl_verify": "DISABLED",
+            "thread_stack_size": 1024,
+            "connection_sharing": false,
+            "max_connect_errors": 100,
+            "server_ssl_crlpath": "",
+            "wait_for_my_writes": true,
+            "client_ssl_dh_params": "",
+            "client_connect_timeout": 9,
+            "router_require_enforce": false,
+            "connection_sharing_delay": 1.0,
+            "wait_for_my_writes_timeout": 2
+          },
+          "bootstrap_x_rw": {
+            "socket": "",
+            "protocol": "x",
+            "bind_port": 6448,
+            "bind_address": "0.0.0.0",
+            "destinations": "metadata-cache://devCluster/?role=PRIMARY",
+            "server_ssl_ca": "",
+            "server_ssl_crl": "",
+            "client_ssl_mode": "PREFERRED",
+            "connect_timeout": 5,
+            "max_connections": 0,
+            "server_ssl_mode": "PREFERRED",
+            "routing_strategy": "first-available",
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "net_buffer_length": 16384,
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_curves": "",
+            "server_ssl_verify": "DISABLED",
+            "thread_stack_size": 1024,
+            "connection_sharing": false,
+            "max_connect_errors": 100,
+            "server_ssl_crlpath": "",
+            "wait_for_my_writes": true,
+            "client_ssl_dh_params": "",
+            "client_connect_timeout": 9,
+            "router_require_enforce": false,
+            "connection_sharing_delay": 1.0,
+            "wait_for_my_writes_timeout": 2
+          },
+          "bootstrap_rw_split": {
+            "socket": "",
+            "protocol": "classic",
+            "bind_port": 6450,
+            "access_mode": "auto",
+            "bind_address": "0.0.0.0",
+            "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
+            "server_ssl_ca": "",
+            "server_ssl_crl": "",
+            "client_ssl_mode": "PREFERRED",
+            "connect_timeout": 5,
+            "max_connections": 0,
+            "server_ssl_mode": "PREFERRED",
+            "routing_strategy": "round-robin",
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "net_buffer_length": 16384,
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_curves": "",
+            "server_ssl_verify": "DISABLED",
+            "thread_stack_size": 1024,
+            "connection_sharing": true,
+            "max_connect_errors": 100,
+            "server_ssl_crlpath": "",
+            "wait_for_my_writes": true,
+            "client_ssl_dh_params": "",
+            "client_connect_timeout": 9,
+            "router_require_enforce": true,
+            "connection_sharing_delay": 1.0,
+            "wait_for_my_writes_timeout": 2
+          }
+        },
+        "http_server": {
+          "ssl": true,
+          "port": 8443,
+          "ssl_key": "",
+          "ssl_cert": "",
+          "ssl_cipher": "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305",
+          "ssl_curves": "",
+          "bind_address": "0.0.0.0",
+          "require_realm": "",
+          "ssl_dh_params": "",
+          "static_folder": ""
+        },
+        "rest_configs": {
+          "rest_api": {
+            "require_realm": ""
+          },
+          "rest_router": {
+            "require_realm": "default_auth_realm"
+          },
+          "rest_routing": {
+            "require_realm": "default_auth_realm"
+          },
+          "rest_metadata_cache": {
+            "require_realm": "default_auth_realm"
+          }
+        },
+        "routing_rules": {
+          "read_only_targets": "secondaries",
+          "stats_updates_frequency": -1,
+          "use_replica_primary_as_rw": false,
+          "invalidated_cluster_policy": "drop_all",
+          "unreachable_quorum_allowed_traffic": "none"
+        },
+        "metadata_cache": {
+          "ttl": 0.5,
+          "ssl_ca": "",
+          "ssl_crl": "",
+          "ssl_mode": "PREFERRED",
+          "ssl_capath": "",
+          "ssl_cipher": "",
+          "ssl_crlpath": "",
+          "tls_version": "",
+          "read_timeout": 30,
+          "auth_cache_ttl": -1.0,
+          "connect_timeout": 5,
+          "thread_stack_size": 1024,
+          "use_gr_notifications": false,
+          "auth_cache_refresh_interval": 2.0,
+          "close_connection_after_refresh": false
+        },
+        "connection_pool": {
+          "idle_timeout": 5,
+          "max_idle_server_connections": 64
+        },
+        "destination_status": {
+          "error_quarantine_interval": 1,
+          "error_quarantine_threshold": 1
+        },
+        "http_authentication_realm": {
+          "name": "default_realm",
+          "method": "basic",
+          "backend": "default_auth_backend",
+          "require": "valid-user"
+        },
+        "http_authentication_backends": {
+          "default_auth_backend": {
+            "backend": "metadata_cache",
+            "filename": ""
+          }
+        }
+      },
+      "GuidelinesSchema": {
+        "type": "object",
+        "title": "MySQL Router routing guidelines engine document schema",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "required": [
+          "version",
+          "destinations",
+          "routes"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Name of the routing guidelines document"
+          },
+          "routes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "minItems": 1,
+              "required": [
+                "name",
+                "match",
+                "destinations"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Name of the route"
+                },
+                "match": {
+                  "type": "string",
+                  "description": "Connection matching criteria"
+                },
+                "enabled": {
+                  "type": "boolean"
+                },
+                "destinations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "minItems": 1,
+                    "required": [
+                      "classes",
+                      "strategy",
+                      "priority"
+                    ],
+                    "properties": {
+                      "classes": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "description": "Reference to 'name' entries in the 'destinations' section"
+                        },
+                        "description": "Destination group"
+                      },
+                      "priority": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Priority of the given group"
+                      },
+                      "strategy": {
+                        "enum": [
+                          "round-robin",
+                          "first-available"
+                        ],
+                        "type": "string",
+                        "description": "Routing strategy that will be used for this route"
+                      }
+                    },
+                    "uniqueItems": true
+                  },
+                  "description": "Destination groups used for routing, by order of preference"
+                },
+                "connectionSharingAllowed": {
+                  "type": "boolean"
+                }
+              },
+              "uniqueItems": true
+            },
+            "description": "Routes entries that are binding destinations with connection matching criteria"
+          },
+          "version": {
+            "type": "string",
+            "description": "Version of the routing guidelines document"
+          },
+          "destinations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "match"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "Unique name of the given destinations entry"
+                },
+                "match": {
+                  "type": "string",
+                  "description": "Matching criteria for destinations class"
+                }
+              }
+            },
+            "minItems": 1,
+            "description": "Entries representing set of MySQL server instances",
+            "uniqueItems": true
+          }
+        },
+        "match_rules": {
+          "keywords": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "LIKE",
+                "NULL",
+                "NOT",
+                "FALSE",
+                "AND",
+                "IN",
+                "OR",
+                "TRUE"
+              ],
+              "type": "string"
+            }
+          },
+          "functions": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "SQRT",
+                "NUMBER",
+                "IS_IPV4",
+                "IS_IPV6",
+                "REGEXP_LIKE",
+                "SUBSTRING_INDEX",
+                "STARTSWITH",
+                "ENDSWITH",
+                "CONTAINS",
+                "RESOLVE_V4",
+                "RESOLVE_V6",
+                "CONCAT",
+                "NETWORK"
+              ],
+              "type": "string"
+            }
+          },
+          "variables": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "router.localCluster",
+                "router.hostname",
+                "router.bindAddress",
+                "router.port.ro",
+                "router.port.rw",
+                "router.port.rw_split",
+                "router.routeName",
+                "server.label",
+                "server.address",
+                "server.port",
+                "server.uuid",
+                "server.version",
+                "server.clusterName",
+                "server.clusterSetName",
+                "server.isClusterInvalidated",
+                "server.memberRole",
+                "server.clusterRole",
+                "session.targetIP",
+                "session.targetPort",
+                "session.sourceIP",
+                "session.randomValue",
+                "session.user",
+                "session.schema"
+              ],
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConfigurationChangesSchema": {
+        "type": "object",
+        "title": "MySQL Router configuration JSON schema",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "properties": {
+          "routing_rules": {
+            "type": "object",
+            "properties": {
+              "guideline": {
+                "type": "string"
+              },
+              "target_cluster": {
+                "type": "string"
+              },
+              "read_only_targets": {
+                "enum": [
+                  "all",
+                  "read_replicas",
+                  "secondaries"
+                ],
+                "type": "string"
+              },
+              "stats_updates_frequency": {
+                "type": "number"
+              },
+              "use_replica_primary_as_rw": {
+                "type": "boolean"
+              },
+              "invalidated_cluster_policy": {
+                "enum": [
+                  "accept_ro",
+                  "drop_all"
+                ],
+                "type": "string"
+              },
+              "unreachable_quorum_allowed_traffic": {
+                "enum": [
+                  "none",
+                  "read",
+                  "all"
+                ],
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "description": "JSON Schema for the Router configuration options that can be changed in the runtime. Shared by the Router in the metadata to announce which options it supports changing.",
+        "additionalProperties": false
+      }
+    }
+  },
+  "read_only_targets": "secondaries"
+}
 
-session.runSql("INSERT INTO `mysql_innodb_cluster_metadata`.`routers` VALUES (1,'system','MySQL Router','routerhost1','8.4.0',NULL,'{\"ROEndpoint\": \"6447\", \"RWEndpoint\": \"6446\", \"ROXEndpoint\": \"6449\", \"RWXEndpoint\": \"6448\", \"MetadataUser\": \"mysql_router1_mc1zc8dzj7yn\", \"Configuration\": {\"io\": {\"backend\": \"linux_epoll\", \"threads\": 0}, \"common\": {\"name\": \"system\", \"user\": \"\", \"read_timeout\": 30, \"client_ssl_key\": \"/home/miguel/work/testbase/router_test/data/router-key.pem\", \"client_ssl_cert\": \"/home/miguel/work/testbase/router_test/data/router-cert.pem\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"server_ssl_mode\": \"PREFERRED\", \"server_ssl_verify\": \"DISABLED\", \"max_total_connections\": 512, \"unknown_config_option\": \"error\", \"router_require_enforce\": true, \"max_idle_server_connections\": 64}, \"loggers\": {\"filelog\": {\"level\": \"info\", \"filename\": \"mysqlrouter.log\", \"destination\": \"\", \"timestamp_precision\": \"second\"}}, \"endpoints\": {\"bootstrap_ro\": {\"protocol\": \"classic\", \"bind_port\": 6447, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"/home/miguel/work/testbase/router_test/data/router-key.pem\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"/home/miguel/work/testbase/router_test/data/router-cert.pem\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin-with-fallback\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false,\"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_rw\": {\"protocol\": \"classic\", \"bind_port\": 6446, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"/home/miguel/work/testbase/router_test/data/router-key.pem\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"/home/miguel/work/testbase/router_test/data/router-cert.pem\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\",\"routing_strategy\": \"first-available\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_x_ro\": {\"protocol\": \"x\", \"bind_port\": 6449, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"/home/miguel/work/testbase/router_test/data/router-key.pem\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"/home/miguel/work/testbase/router_test/data/router-cert.pem\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin-with-fallback\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_x_rw\": {\"protocol\": \"x\", \"bind_port\": 6448, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"/home/miguel/work/testbase/router_test/data/router-key.pem\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"/home/miguel/work/testbase/router_test/data/router-cert.pem\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"first-available\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_rw_split\": {\"protocol\": \"classic\", \"bind_port\": 6450, \"access_mode\": \"auto\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY_AND_SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"/home/miguel/work/testbase/router_test/data/router-key.pem\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"/home/miguel/work/testbase/router_test/data/router-cert.pem\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0,\"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": true, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9,\"connection_sharing_delay\": 1.0}}, \"http_server\": {\"ssl\": true, \"port\": 8443, \"ssl_key\": \"/home/miguel/work/testbase/router_test/data/router-key.pem\", \"ssl_cert\": \"/home/miguel/work/testbase/router_test/data/router-cert.pem\", \"ssl_cipher\": \"ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305\", \"ssl_curves\": \"\", \"bind_address\": \"0.0.0.0\", \"require_realm\": \"\", \"ssl_dh_params\": \"\", \"static_folder\": \"\"}, \"rest_configs\": {\"rest_api\": {\"require_realm\": \"\"}, \"rest_router\": {\"require_realm\": \"default_auth_realm\"}, \"rest_routing\": {\"require_realm\": \"default_auth_realm\"}, \"rest_metadata_cache\": {\"require_realm\": \"default_auth_realm\"}}, \"routing_rules\": {\"read_only_targets\": \"secondaries\", \"stats_updates_frequency\": -1, \"use_replica_primary_as_rw\": false, \"invalidated_cluster_policy\": \"drop_all\", \"unreachable_quorum_allowed_traffic\": \"none\"}, \"metadata_cache\": {\"ttl\": 0.5, \"user\": \"mysql_router1_mc1zc8dzj7yn\", \"read_timeout\": 30, \"auth_cache_ttl\": -1.0, \"connect_timeout\": 5, \"use_gr_notifications\": false, \"auth_cache_refresh_interval\": 2.0}, \"connection_pool\": {\"idle_timeout\": 5, \"max_idle_server_connections\": 64}, \"destination_status\": {\"error_quarantine_interval\": 1, \"error_quarantine_threshold\": 1}, \"http_authentication_realm\": {\"name\": \"default_realm\", \"method\": \"basic\", \"backend\": \"default_auth_backend\", \"require\": \"valid-user\"}, \"http_authentication_backends\": {\"default_auth_backend\": {\"backend\": \"metadata_cache\", \"filename\": \"\"}}}, \"RWSplitEndpoint\": \"6450\", \"bootstrapTargetType\": \"cluster\"}', ?, NULL, NULL)", [cluster_id]);
+session.runSql(
+  "UPDATE `mysql_innodb_cluster_metadata`.`clusters` SET router_options = ? WHERE cluster_id = ?",
+  [JSON.stringify(router_options_json), cluster_id]
+);
+
+const router_configuration_json =
+{
+  "ROEndpoint": "6447",
+  "RWEndpoint": "6446",
+  "ROXEndpoint": "6449",
+  "RWXEndpoint": "6448",
+  "LocalCluster": "devCluster",
+  "MetadataUser": "mysql_router1_lyrks5g",
+  "Configuration": {
+    "io": {
+      "backend": "linux_epoll",
+      "threads": 0
+    },
+    "common": {
+      "name": "my_router",
+      "socket": "",
+      "bind_address": "0.0.0.0",
+      "read_timeout": 30,
+      "server_ssl_ca": "",
+      "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+      "server_ssl_crl": "",
+      "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+      "client_ssl_mode": "PREFERRED",
+      "connect_timeout": 5,
+      "max_connections": 0,
+      "server_ssl_mode": "PREFERRED",
+      "client_ssl_cipher": "",
+      "client_ssl_curves": "",
+      "net_buffer_length": 16384,
+      "server_ssl_capath": "",
+      "server_ssl_cipher": "",
+      "server_ssl_curves": "",
+      "server_ssl_verify": "DISABLED",
+      "thread_stack_size": 1024,
+      "connection_sharing": false,
+      "max_connect_errors": 100,
+      "server_ssl_crlpath": "",
+      "wait_for_my_writes": true,
+      "client_ssl_dh_params": "",
+      "max_total_connections": 512,
+      "unknown_config_option": "error",
+      "client_connect_timeout": 9,
+      "connection_sharing_delay": 1.0,
+      "wait_for_my_writes_timeout": 2,
+      "max_idle_server_connections": 64
+    },
+    "loggers": {
+      "filelog": {
+        "level": "info",
+        "filename": "mysqlrouter.log",
+        "destination": "",
+        "timestamp_precision": "second"
+      }
+    },
+    "endpoints": {
+      "bootstrap_ro": {
+        "socket": "",
+        "protocol": "classic",
+        "bind_port": 6447,
+        "bind_address": "0.0.0.0",
+        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
+        "server_ssl_ca": "",
+        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+        "server_ssl_crl": "",
+        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+        "client_ssl_mode": "PREFERRED",
+        "connect_timeout": 5,
+        "max_connections": 0,
+        "server_ssl_mode": "PREFERRED",
+        "routing_strategy": "round-robin-with-fallback",
+        "client_ssl_cipher": "",
+        "client_ssl_curves": "",
+        "net_buffer_length": 16384,
+        "server_ssl_capath": "",
+        "server_ssl_cipher": "",
+        "server_ssl_curves": "",
+        "server_ssl_verify": "DISABLED",
+        "thread_stack_size": 1024,
+        "connection_sharing": false,
+        "max_connect_errors": 100,
+        "server_ssl_crlpath": "",
+        "wait_for_my_writes": true,
+        "client_ssl_dh_params": "",
+        "client_connect_timeout": 9,
+        "router_require_enforce": true,
+        "connection_sharing_delay": 1.0,
+        "wait_for_my_writes_timeout": 2
+      },
+      "bootstrap_rw": {
+        "socket": "",
+        "protocol": "classic",
+        "bind_port": 6446,
+        "bind_address": "0.0.0.0",
+        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
+        "server_ssl_ca": "",
+        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+        "server_ssl_crl": "",
+        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+        "client_ssl_mode": "PREFERRED",
+        "connect_timeout": 5,
+        "max_connections": 0,
+        "server_ssl_mode": "PREFERRED",
+        "routing_strategy": "first-available",
+        "client_ssl_cipher": "",
+        "client_ssl_curves": "",
+        "net_buffer_length": 16384,
+        "server_ssl_capath": "",
+        "server_ssl_cipher": "",
+        "server_ssl_curves": "",
+        "server_ssl_verify": "DISABLED",
+        "thread_stack_size": 1024,
+        "connection_sharing": false,
+        "max_connect_errors": 100,
+        "server_ssl_crlpath": "",
+        "wait_for_my_writes": true,
+        "client_ssl_dh_params": "",
+        "client_connect_timeout": 9,
+        "router_require_enforce": true,
+        "connection_sharing_delay": 1.0,
+        "wait_for_my_writes_timeout": 2
+      },
+      "bootstrap_x_ro": {
+        "socket": "",
+        "protocol": "x",
+        "bind_port": 6449,
+        "bind_address": "0.0.0.0",
+        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
+        "server_ssl_ca": "",
+        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+        "server_ssl_crl": "",
+        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+        "client_ssl_mode": "PREFERRED",
+        "connect_timeout": 5,
+        "max_connections": 0,
+        "server_ssl_mode": "PREFERRED",
+        "routing_strategy": "round-robin-with-fallback",
+        "client_ssl_cipher": "",
+        "client_ssl_curves": "",
+        "net_buffer_length": 16384,
+        "server_ssl_capath": "",
+        "server_ssl_cipher": "",
+        "server_ssl_curves": "",
+        "server_ssl_verify": "DISABLED",
+        "thread_stack_size": 1024,
+        "connection_sharing": false,
+        "max_connect_errors": 100,
+        "server_ssl_crlpath": "",
+        "wait_for_my_writes": true,
+        "client_ssl_dh_params": "",
+        "client_connect_timeout": 9,
+        "router_require_enforce": false,
+        "connection_sharing_delay": 1.0,
+        "wait_for_my_writes_timeout": 2
+      },
+      "bootstrap_x_rw": {
+        "socket": "",
+        "protocol": "x",
+        "bind_port": 6448,
+        "bind_address": "0.0.0.0",
+        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
+        "server_ssl_ca": "",
+        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+        "server_ssl_crl": "",
+        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+        "client_ssl_mode": "PREFERRED",
+        "connect_timeout": 5,
+        "max_connections": 0,
+        "server_ssl_mode": "PREFERRED",
+        "routing_strategy": "first-available",
+        "client_ssl_cipher": "",
+        "client_ssl_curves": "",
+        "net_buffer_length": 16384,
+        "server_ssl_capath": "",
+        "server_ssl_cipher": "",
+        "server_ssl_curves": "",
+        "server_ssl_verify": "DISABLED",
+        "thread_stack_size": 1024,
+        "connection_sharing": false,
+        "max_connect_errors": 100,
+        "server_ssl_crlpath": "",
+        "wait_for_my_writes": true,
+        "client_ssl_dh_params": "",
+        "client_connect_timeout": 9,
+        "router_require_enforce": false,
+        "connection_sharing_delay": 1.0,
+        "wait_for_my_writes_timeout": 2
+      },
+      "bootstrap_rw_split": {
+        "socket": "",
+        "protocol": "classic",
+        "bind_port": 6450,
+        "access_mode": "auto",
+        "bind_address": "0.0.0.0",
+        "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
+        "server_ssl_ca": "",
+        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+        "server_ssl_crl": "",
+        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+        "client_ssl_mode": "PREFERRED",
+        "connect_timeout": 5,
+        "max_connections": 0,
+        "server_ssl_mode": "PREFERRED",
+        "routing_strategy": "round-robin",
+        "client_ssl_cipher": "",
+        "client_ssl_curves": "",
+        "net_buffer_length": 16384,
+        "server_ssl_capath": "",
+        "server_ssl_cipher": "",
+        "server_ssl_curves": "",
+        "server_ssl_verify": "DISABLED",
+        "thread_stack_size": 1024,
+        "connection_sharing": true,
+        "max_connect_errors": 100,
+        "server_ssl_crlpath": "",
+        "wait_for_my_writes": true,
+        "client_ssl_dh_params": "",
+        "client_connect_timeout": 9,
+        "router_require_enforce": true,
+        "connection_sharing_delay": 1.0,
+        "wait_for_my_writes_timeout": 2
+      }
+    },
+    "http_server": {
+      "ssl": true,
+      "port": 8443,
+      "ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+      "ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+      "ssl_cipher": "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305",
+      "ssl_curves": "",
+      "bind_address": "0.0.0.0",
+      "require_realm": "",
+      "ssl_dh_params": "",
+      "static_folder": ""
+    },
+    "rest_configs": {
+      "rest_api": {
+        "require_realm": ""
+      },
+      "rest_router": {
+        "require_realm": "default_auth_realm"
+      },
+      "rest_routing": {
+        "require_realm": "default_auth_realm"
+      },
+      "rest_metadata_cache": {
+        "require_realm": "default_auth_realm"
+      }
+    },
+    "routing_rules": {
+      "read_only_targets": "secondaries",
+      "stats_updates_frequency": -1,
+      "use_replica_primary_as_rw": false,
+      "invalidated_cluster_policy": "drop_all",
+      "unreachable_quorum_allowed_traffic": "none"
+    },
+    "metadata_cache": {
+      "ttl": 0.5,
+      "user": "mysql_router1_lyrks5g",
+      "ssl_ca": "",
+      "ssl_crl": "",
+      "ssl_mode": "PREFERRED",
+      "ssl_capath": "",
+      "ssl_cipher": "",
+      "ssl_crlpath": "",
+      "tls_version": "",
+      "read_timeout": 30,
+      "auth_cache_ttl": -1.0,
+      "connect_timeout": 5,
+      "thread_stack_size": 1024,
+      "use_gr_notifications": false,
+      "auth_cache_refresh_interval": 2.0,
+      "close_connection_after_refresh": false
+    },
+    "connection_pool": {
+      "idle_timeout": 5,
+      "max_idle_server_connections": 64
+    },
+    "destination_status": {
+      "error_quarantine_interval": 1,
+      "error_quarantine_threshold": 1
+    },
+    "http_authentication_realm": {
+      "name": "default_realm",
+      "method": "basic",
+      "backend": "default_auth_backend",
+      "require": "valid-user"
+    },
+    "http_authentication_backends": {
+      "default_auth_backend": {
+        "backend": "metadata_cache",
+        "filename": ""
+      }
+    }
+  },
+  "RWSplitEndpoint": "6450",
+  "bootstrapTargetType": "cluster",
+  "SupportedRoutingGuidelinesVersion": "1.0"
+};
+
+session.runSql(
+  "INSERT INTO `mysql_innodb_cluster_metadata`.`routers` VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, NULL)",
+  [
+    1, // ID
+    "system", // Name
+    "MySQL Router", // Description
+    "routerhost1", // Hostname
+    "9.2.0", // Version
+    JSON.stringify(router_configuration_json), // Configuration
+    cluster_id, // Cluster ID
+  ]
+);
 
 var router2 = "routerhost2::system";
 
@@ -68,17 +894,35 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
     "clusterName": "cluster",
     "configuration": {
         "common": {
+            "bind_address": "0.0.0.0",
+            "client_connect_timeout": 9,
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "client_ssl_dh_params": "",
             "client_ssl_mode": "PREFERRED",
             "connect_timeout": 5,
+            "connection_sharing": false,
+            "connection_sharing_delay": 1,
+            "max_connect_errors": 100,
+            "max_connections": 0,
             "max_idle_server_connections": 64,
             "max_total_connections": 512,
             "name": "system",
+            "net_buffer_length": 16384,
             "read_timeout": 30,
-            "router_require_enforce": true,
+            "server_ssl_ca": "",
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_crl": "",
+            "server_ssl_crlpath": "",
+            "server_ssl_curves": "",
             "server_ssl_mode": "PREFERRED",
             "server_ssl_verify": "DISABLED",
+            "socket": "",
+            "thread_stack_size": 1024,
             "unknown_config_option": "error",
-            "user": ""
+            "wait_for_my_writes": true,
+            "wait_for_my_writes_timeout": 2
         },
         "connection_pool": {
             "idle_timeout": 5
@@ -89,139 +933,41 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         },
         "endpoints": {
             "bootstrap_ro": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6447,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "protocol": "classic",
-                "routing_strategy": "round-robin-with-fallback",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": true,
+                "routing_strategy": "round-robin-with-fallback"
             },
             "bootstrap_rw": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6446,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "protocol": "classic",
-                "routing_strategy": "first-available",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": true,
+                "routing_strategy": "first-available"
             },
             "bootstrap_rw_split": {
                 "access_mode": "auto",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6450,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "connection_sharing": true,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                 "protocol": "classic",
-                "routing_strategy": "round-robin",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": true,
+                "routing_strategy": "round-robin"
             },
             "bootstrap_x_ro": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6449,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "protocol": "x",
-                "routing_strategy": "round-robin-with-fallback",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": false,
+                "routing_strategy": "round-robin-with-fallback"
             },
             "bootstrap_x_rw": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6448,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "protocol": "x",
-                "routing_strategy": "first-available",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": false,
+                "routing_strategy": "first-available"
             }
         },
         "http_authentication_backends": {
@@ -237,7 +983,6 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
             "require": "valid-user"
         },
         "http_server": {
-            "bind_address": "0.0.0.0",
             "port": 8443,
             "require_realm": "",
             "ssl": true,
@@ -262,6 +1007,14 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "metadata_cache": {
             "auth_cache_refresh_interval": 2,
             "auth_cache_ttl": -1,
+            "close_connection_after_refresh": false,
+            "ssl_ca": "",
+            "ssl_capath": "",
+            "ssl_cipher": "",
+            "ssl_crl": "",
+            "ssl_crlpath": "",
+            "ssl_mode": "PREFERRED",
+            "tls_version": "",
             "ttl": 0.5,
             "use_gr_notifications": false
         },
@@ -292,18 +1045,19 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "routerhost1::system": {
             "configuration": {
                 "common": {
-                    "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem"
+                    "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+                    "name": "my_router"
                 },
                 "http_server": {
-                    "ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem"
+                    "ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem"
                 },
                 "io": {
                     "backend": "linux_epoll"
                 },
                 "metadata_cache": {
-                    "user": "mysql_router1_mc1zc8dzj7yn"
+                    "user": "mysql_router1_lyrks5g"
                 }
             }
         },
@@ -323,17 +1077,35 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
     "clusterName": "cluster",
     "configuration": {
         "common": {
+            "bind_address": "0.0.0.0",
+            "client_connect_timeout": 9,
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "client_ssl_dh_params": "",
             "client_ssl_mode": "PREFERRED",
             "connect_timeout": 5,
+            "connection_sharing": false,
+            "connection_sharing_delay": 1,
+            "max_connect_errors": 100,
+            "max_connections": 0,
             "max_idle_server_connections": 64,
             "max_total_connections": 512,
             "name": "system",
+            "net_buffer_length": 16384,
             "read_timeout": 30,
-            "router_require_enforce": true,
+            "server_ssl_ca": "",
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_crl": "",
+            "server_ssl_crlpath": "",
+            "server_ssl_curves": "",
             "server_ssl_mode": "PREFERRED",
             "server_ssl_verify": "DISABLED",
+            "socket": "",
+            "thread_stack_size": 1024,
             "unknown_config_option": "error",
-            "user": ""
+            "wait_for_my_writes": true,
+            "wait_for_my_writes_timeout": 2
         },
         "connection_pool": {
             "idle_timeout": 5,
@@ -345,25 +1117,22 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         },
         "endpoints": {
             "bootstrap_ro": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6447,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "classic",
+                "router_require_enforce": true,
                 "routing_strategy": "round-robin-with-fallback",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -373,28 +1142,28 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_rw": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6446,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "classic",
+                "router_require_enforce": true,
                 "routing_strategy": "first-available",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -404,28 +1173,29 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_rw_split": {
                 "access_mode": "auto",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6450,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": true,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "classic",
+                "router_require_enforce": true,
                 "routing_strategy": "round-robin",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -435,28 +1205,28 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_x_ro": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6449,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "x",
+                "router_require_enforce": false,
                 "routing_strategy": "round-robin-with-fallback",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -466,28 +1236,28 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_x_rw": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6448,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "x",
+                "router_require_enforce": false,
                 "routing_strategy": "first-available",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -497,7 +1267,10 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             }
         },
         "http_authentication_backends": {
@@ -538,8 +1311,17 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "metadata_cache": {
             "auth_cache_refresh_interval": 2,
             "auth_cache_ttl": -1,
+            "close_connection_after_refresh": false,
             "connect_timeout": 5,
             "read_timeout": 30,
+            "ssl_ca": "",
+            "ssl_capath": "",
+            "ssl_cipher": "",
+            "ssl_crl": "",
+            "ssl_crlpath": "",
+            "ssl_mode": "PREFERRED",
+            "thread_stack_size": 1024,
+            "tls_version": "",
             "ttl": 0.5,
             "use_gr_notifications": false
         },
@@ -570,19 +1352,37 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "routerhost1::system": {
             "configuration": {
                 "common": {
-                    "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "bind_address": "0.0.0.0",
+                    "client_connect_timeout": 9,
+                    "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "client_ssl_cipher": "",
+                    "client_ssl_curves": "",
+                    "client_ssl_dh_params": "",
+                    "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "client_ssl_mode": "PREFERRED",
                     "connect_timeout": 5,
+                    "connection_sharing": false,
+                    "connection_sharing_delay": 1,
+                    "max_connect_errors": 100,
+                    "max_connections": 0,
                     "max_idle_server_connections": 64,
                     "max_total_connections": 512,
-                    "name": "system",
+                    "name": "my_router",
+                    "net_buffer_length": 16384,
                     "read_timeout": 30,
-                    "router_require_enforce": true,
+                    "server_ssl_ca": "",
+                    "server_ssl_capath": "",
+                    "server_ssl_cipher": "",
+                    "server_ssl_crl": "",
+                    "server_ssl_crlpath": "",
+                    "server_ssl_curves": "",
                     "server_ssl_mode": "PREFERRED",
                     "server_ssl_verify": "DISABLED",
+                    "socket": "",
+                    "thread_stack_size": 1024,
                     "unknown_config_option": "error",
-                    "user": ""
+                    "wait_for_my_writes": true,
+                    "wait_for_my_writes_timeout": 2
                 },
                 "connection_pool": {
                     "idle_timeout": 5,
@@ -594,25 +1394,24 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 },
                 "endpoints": {
                     "bootstrap_ro": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6447,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "round-robin-with-fallback",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -622,28 +1421,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_rw": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6446,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "first-available",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -653,28 +1454,31 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_rw_split": {
                         "access_mode": "auto",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6450,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": true,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "round-robin",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -684,28 +1488,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_x_ro": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6449,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "x",
+                        "router_require_enforce": false,
                         "routing_strategy": "round-robin-with-fallback",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -715,28 +1521,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_x_rw": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6448,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "x",
+                        "router_require_enforce": false,
                         "routing_strategy": "first-available",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -746,7 +1554,10 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     }
                 },
                 "http_authentication_backends": {
@@ -766,11 +1577,11 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                     "port": 8443,
                     "require_realm": "",
                     "ssl": true,
-                    "ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                    "ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                     "ssl_cipher": "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305",
                     "ssl_curves": "",
                     "ssl_dh_params": "",
-                    "ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "static_folder": ""
                 },
                 "io": {
@@ -788,11 +1599,20 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "metadata_cache": {
                     "auth_cache_refresh_interval": 2,
                     "auth_cache_ttl": -1,
+                    "close_connection_after_refresh": false,
                     "connect_timeout": 5,
                     "read_timeout": 30,
+                    "ssl_ca": "",
+                    "ssl_capath": "",
+                    "ssl_cipher": "",
+                    "ssl_crl": "",
+                    "ssl_crlpath": "",
+                    "ssl_mode": "PREFERRED",
+                    "thread_stack_size": 1024,
+                    "tls_version": "",
                     "ttl": 0.5,
                     "use_gr_notifications": false,
-                    "user": "mysql_router1_mc1zc8dzj7yn"
+                    "user": "mysql_router1_lyrks5g"
                 },
                 "rest_configs": {
                     "rest_api": {
@@ -867,17 +1687,35 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
     "clusterName": "cluster",
     "configuration": {
         "common": {
+            "bind_address": "0.0.0.0",
+            "client_connect_timeout": 9,
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "client_ssl_dh_params": "",
             "client_ssl_mode": "PREFERRED",
             "connect_timeout": 5,
+            "connection_sharing": false,
+            "connection_sharing_delay": 1,
+            "max_connect_errors": 100,
+            "max_connections": 0,
             "max_idle_server_connections": 64,
             "max_total_connections": 512,
             "name": "system",
+            "net_buffer_length": 16384,
             "read_timeout": 30,
-            "router_require_enforce": true,
+            "server_ssl_ca": "",
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_crl": "",
+            "server_ssl_crlpath": "",
+            "server_ssl_curves": "",
             "server_ssl_mode": "PREFERRED",
             "server_ssl_verify": "DISABLED",
+            "socket": "",
+            "thread_stack_size": 1024,
             "unknown_config_option": "error",
-            "user": ""
+            "wait_for_my_writes": true,
+            "wait_for_my_writes_timeout": 2
         },
         "connection_pool": {
             "idle_timeout": 5
@@ -888,139 +1726,41 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         },
         "endpoints": {
             "bootstrap_ro": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6447,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "protocol": "classic",
-                "routing_strategy": "round-robin-with-fallback",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": true,
+                "routing_strategy": "round-robin-with-fallback"
             },
             "bootstrap_rw": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6446,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "protocol": "classic",
-                "routing_strategy": "first-available",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": true,
+                "routing_strategy": "first-available"
             },
             "bootstrap_rw_split": {
                 "access_mode": "auto",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6450,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "connection_sharing": true,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                 "protocol": "classic",
-                "routing_strategy": "round-robin",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": true,
+                "routing_strategy": "round-robin"
             },
             "bootstrap_x_ro": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6449,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "protocol": "x",
-                "routing_strategy": "round-robin-with-fallback",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": false,
+                "routing_strategy": "round-robin-with-fallback"
             },
             "bootstrap_x_rw": {
-                "access_mode": "",
-                "bind_address": "0.0.0.0",
                 "bind_port": 6448,
-                "client_connect_timeout": 9,
-                "client_ssl_cert": "",
-                "client_ssl_cipher": "",
-                "client_ssl_curves": "",
-                "client_ssl_dh_params": "",
-                "client_ssl_key": "",
-                "connection_sharing": false,
-                "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
-                "max_connect_errors": 100,
-                "max_connections": 0,
-                "named_socket": "",
-                "net_buffer_length": 16384,
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "protocol": "x",
-                "routing_strategy": "first-available",
-                "server_ssl_ca": "",
-                "server_ssl_capath": "",
-                "server_ssl_cipher": "",
-                "server_ssl_crl": "",
-                "server_ssl_crlpath": "",
-                "server_ssl_curves": "",
-                "thread_stack_size": 1024
+                "router_require_enforce": false,
+                "routing_strategy": "first-available"
             }
         },
         "http_authentication_backends": {
@@ -1036,7 +1776,6 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
             "require": "valid-user"
         },
         "http_server": {
-            "bind_address": "0.0.0.0",
             "port": 8443,
             "require_realm": "",
             "ssl": true,
@@ -1061,6 +1800,14 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "metadata_cache": {
             "auth_cache_refresh_interval": 2,
             "auth_cache_ttl": -1,
+            "close_connection_after_refresh": false,
+            "ssl_ca": "",
+            "ssl_capath": "",
+            "ssl_cipher": "",
+            "ssl_crl": "",
+            "ssl_crlpath": "",
+            "ssl_mode": "PREFERRED",
+            "tls_version": "",
             "ttl": 0.5,
             "use_gr_notifications": false
         },
@@ -1091,18 +1838,19 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "routerhost1::system": {
             "configuration": {
                 "common": {
-                    "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem"
+                    "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
+                    "name": "my_router"
                 },
                 "http_server": {
-                    "ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem"
+                    "ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem"
                 },
                 "io": {
                     "backend": "linux_epoll"
                 },
                 "metadata_cache": {
-                    "user": "mysql_router1_mc1zc8dzj7yn"
+                    "user": "mysql_router1_lyrks5g"
                 }
             }
         }
@@ -1118,17 +1866,35 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
     "clusterName": "cluster",
     "configuration": {
         "common": {
+            "bind_address": "0.0.0.0",
+            "client_connect_timeout": 9,
+            "client_ssl_cipher": "",
+            "client_ssl_curves": "",
+            "client_ssl_dh_params": "",
             "client_ssl_mode": "PREFERRED",
             "connect_timeout": 5,
+            "connection_sharing": false,
+            "connection_sharing_delay": 1,
+            "max_connect_errors": 100,
+            "max_connections": 0,
             "max_idle_server_connections": 64,
             "max_total_connections": 512,
             "name": "system",
+            "net_buffer_length": 16384,
             "read_timeout": 30,
-            "router_require_enforce": true,
+            "server_ssl_ca": "",
+            "server_ssl_capath": "",
+            "server_ssl_cipher": "",
+            "server_ssl_crl": "",
+            "server_ssl_crlpath": "",
+            "server_ssl_curves": "",
             "server_ssl_mode": "PREFERRED",
             "server_ssl_verify": "DISABLED",
+            "socket": "",
+            "thread_stack_size": 1024,
             "unknown_config_option": "error",
-            "user": ""
+            "wait_for_my_writes": true,
+            "wait_for_my_writes_timeout": 2
         },
         "connection_pool": {
             "idle_timeout": 5,
@@ -1140,25 +1906,22 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         },
         "endpoints": {
             "bootstrap_ro": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6447,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "classic",
+                "router_require_enforce": true,
                 "routing_strategy": "round-robin-with-fallback",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -1168,28 +1931,28 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_rw": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6446,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "classic",
+                "router_require_enforce": true,
                 "routing_strategy": "first-available",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -1199,28 +1962,29 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_rw_split": {
                 "access_mode": "auto",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6450,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": true,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "classic",
+                "router_require_enforce": true,
                 "routing_strategy": "round-robin",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -1230,28 +1994,28 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_x_ro": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6449,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=SECONDARY",
+                "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "x",
+                "router_require_enforce": false,
                 "routing_strategy": "round-robin-with-fallback",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -1261,28 +2025,28 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             },
             "bootstrap_x_rw": {
-                "access_mode": "",
                 "bind_address": "0.0.0.0",
                 "bind_port": 6448,
                 "client_connect_timeout": 9,
-                "client_ssl_cert": "",
                 "client_ssl_cipher": "",
                 "client_ssl_curves": "",
                 "client_ssl_dh_params": "",
-                "client_ssl_key": "",
                 "client_ssl_mode": "PREFERRED",
                 "connect_timeout": 5,
                 "connection_sharing": false,
                 "connection_sharing_delay": 1,
-                "destinations": "metadata-cache://tst/?role=PRIMARY",
+                "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                 "max_connect_errors": 100,
                 "max_connections": 0,
-                "named_socket": "",
                 "net_buffer_length": 16384,
                 "protocol": "x",
+                "router_require_enforce": false,
                 "routing_strategy": "first-available",
                 "server_ssl_ca": "",
                 "server_ssl_capath": "",
@@ -1292,7 +2056,10 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "server_ssl_curves": "",
                 "server_ssl_mode": "PREFERRED",
                 "server_ssl_verify": "DISABLED",
-                "thread_stack_size": 1024
+                "socket": "",
+                "thread_stack_size": 1024,
+                "wait_for_my_writes": true,
+                "wait_for_my_writes_timeout": 2
             }
         },
         "http_authentication_backends": {
@@ -1333,8 +2100,17 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "metadata_cache": {
             "auth_cache_refresh_interval": 2,
             "auth_cache_ttl": -1,
+            "close_connection_after_refresh": false,
             "connect_timeout": 5,
             "read_timeout": 30,
+            "ssl_ca": "",
+            "ssl_capath": "",
+            "ssl_cipher": "",
+            "ssl_crl": "",
+            "ssl_crlpath": "",
+            "ssl_mode": "PREFERRED",
+            "thread_stack_size": 1024,
+            "tls_version": "",
             "ttl": 0.5,
             "use_gr_notifications": false
         },
@@ -1365,19 +2141,37 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "routerhost1::system": {
             "configuration": {
                 "common": {
-                    "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "bind_address": "0.0.0.0",
+                    "client_connect_timeout": 9,
+                    "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "client_ssl_cipher": "",
+                    "client_ssl_curves": "",
+                    "client_ssl_dh_params": "",
+                    "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "client_ssl_mode": "PREFERRED",
                     "connect_timeout": 5,
+                    "connection_sharing": false,
+                    "connection_sharing_delay": 1,
+                    "max_connect_errors": 100,
+                    "max_connections": 0,
                     "max_idle_server_connections": 64,
                     "max_total_connections": 512,
-                    "name": "system",
+                    "name": "my_router",
+                    "net_buffer_length": 16384,
                     "read_timeout": 30,
-                    "router_require_enforce": true,
+                    "server_ssl_ca": "",
+                    "server_ssl_capath": "",
+                    "server_ssl_cipher": "",
+                    "server_ssl_crl": "",
+                    "server_ssl_crlpath": "",
+                    "server_ssl_curves": "",
                     "server_ssl_mode": "PREFERRED",
                     "server_ssl_verify": "DISABLED",
+                    "socket": "",
+                    "thread_stack_size": 1024,
                     "unknown_config_option": "error",
-                    "user": ""
+                    "wait_for_my_writes": true,
+                    "wait_for_my_writes_timeout": 2
                 },
                 "connection_pool": {
                     "idle_timeout": 5,
@@ -1389,25 +2183,24 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 },
                 "endpoints": {
                     "bootstrap_ro": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6447,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "round-robin-with-fallback",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -1417,28 +2210,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_rw": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6446,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "first-available",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -1448,28 +2243,31 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_rw_split": {
                         "access_mode": "auto",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6450,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": true,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "round-robin",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -1479,28 +2277,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_x_ro": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6449,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "x",
+                        "router_require_enforce": false,
                         "routing_strategy": "round-robin-with-fallback",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -1510,28 +2310,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_x_rw": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6448,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "x",
+                        "router_require_enforce": false,
                         "routing_strategy": "first-available",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -1541,7 +2343,10 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     }
                 },
                 "http_authentication_backends": {
@@ -1561,11 +2366,11 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                     "port": 8443,
                     "require_realm": "",
                     "ssl": true,
-                    "ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                    "ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                     "ssl_cipher": "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305",
                     "ssl_curves": "",
                     "ssl_dh_params": "",
-                    "ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "static_folder": ""
                 },
                 "io": {
@@ -1583,11 +2388,20 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "metadata_cache": {
                     "auth_cache_refresh_interval": 2,
                     "auth_cache_ttl": -1,
+                    "close_connection_after_refresh": false,
                     "connect_timeout": 5,
                     "read_timeout": 30,
+                    "ssl_ca": "",
+                    "ssl_capath": "",
+                    "ssl_cipher": "",
+                    "ssl_crl": "",
+                    "ssl_crlpath": "",
+                    "ssl_mode": "PREFERRED",
+                    "thread_stack_size": 1024,
+                    "tls_version": "",
                     "ttl": 0.5,
                     "use_gr_notifications": false,
-                    "user": "mysql_router1_mc1zc8dzj7yn"
+                    "user": "mysql_router1_lyrks5g"
                 },
                 "rest_configs": {
                     "rest_api": {
@@ -1623,7 +2437,7 @@ When Shell detects that a Router is running 8.4.0+ but the global dynamic option
 */
 
 //@<> A warning must be included in the output when there's a router running 8.4.0+ but no global options are exposed in the topology table
-session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET version = '9.0.0' WHERE address = 'routerhost1'");
+session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET version = '9.3.0' WHERE address = 'routerhost1'");
 
 cluster.routerOptions();
 
@@ -1658,8 +2472,10 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
     "clusterName": "cluster",
     "routers": {
         "routerhost1::system": {
+            "currentRoutingGuideline": null,
             "hostname": "routerhost1",
             "lastCheckIn": null,
+            "localCluster": "devCluster",
             "roPort": "6447",
             "roXPort": "6449",
             "routerErrors": [
@@ -1668,23 +2484,27 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
             "rwPort": "6446",
             "rwSplitPort": "6450",
             "rwXPort": "6448",
-            "version": "9.0.0"
+            "supportedRoutingGuidelinesVersion": "1.0",
+            "version": "9.3.0"
         },
         "routerhost2::system": {
+            "currentRoutingGuideline": null,
             "hostname": "routerhost2",
             "lastCheckIn": "2024-02-14 11:22:33",
+            "localCluster": null,
             "roPort": "mysqlro.sock",
             "roXPort": "mysqlxro.sock",
             "rwPort": "mysql.sock",
             "rwSplitPort": null,
             "rwXPort": "mysqlx.sock",
+            "supportedRoutingGuidelinesVersion": null,
             "version": "8.1.0"
         }
     }
 }
 `);
 
-session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET version = '8.4.0' WHERE address = 'routerhost1'");
+session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET version = '9.2.0' WHERE address = 'routerhost1'");
 
 //@<> The same check must be done in clusterset.listRouters()
 
@@ -1697,8 +2517,10 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
     "domainName": "cs",
     "routers": {
         "routerhost1::system": {
+            "currentRoutingGuideline": null,
             "hostname": "routerhost1",
             "lastCheckIn": null,
+            "localCluster": "devCluster",
             "roPort": "6447",
             "roXPort": "6449",
             "routerErrors": [
@@ -1708,12 +2530,15 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
             "rwPort": "6446",
             "rwSplitPort": "6450",
             "rwXPort": "6448",
+            "supportedRoutingGuidelinesVersion": "1.0",
             "targetCluster": null,
-            "version": "8.4.0"
+            "version": "9.2.0"
         },
         "routerhost2::system": {
+            "currentRoutingGuideline": null,
             "hostname": "routerhost2",
             "lastCheckIn": "2024-02-14 11:22:33",
+            "localCluster": null,
             "roPort": "mysqlro.sock",
             "roXPort": "mysqlxro.sock",
             "routerErrors": [
@@ -1722,6 +2547,7 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
             "rwPort": "mysql.sock",
             "rwSplitPort": null,
             "rwXPort": "mysqlx.sock",
+            "supportedRoutingGuidelinesVersion": null,
             "targetCluster": null,
             "version": "8.1.0"
         }
@@ -1775,19 +2601,37 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "routerhost1::system": {
             "configuration": {
                 "common": {
-                    "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "bind_address": "0.0.0.0",
+                    "client_connect_timeout": 9,
+                    "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "client_ssl_cipher": "",
+                    "client_ssl_curves": "",
+                    "client_ssl_dh_params": "",
+                    "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "client_ssl_mode": "PREFERRED",
                     "connect_timeout": 5,
+                    "connection_sharing": false,
+                    "connection_sharing_delay": 1,
+                    "max_connect_errors": 100,
+                    "max_connections": 0,
                     "max_idle_server_connections": 64,
                     "max_total_connections": 512,
-                    "name": "system",
+                    "name": "my_router",
+                    "net_buffer_length": 16384,
                     "read_timeout": 30,
-                    "router_require_enforce": true,
+                    "server_ssl_ca": "",
+                    "server_ssl_capath": "",
+                    "server_ssl_cipher": "",
+                    "server_ssl_crl": "",
+                    "server_ssl_crlpath": "",
+                    "server_ssl_curves": "",
                     "server_ssl_mode": "PREFERRED",
                     "server_ssl_verify": "DISABLED",
+                    "socket": "",
+                    "thread_stack_size": 1024,
                     "unknown_config_option": "error",
-                    "user": ""
+                    "wait_for_my_writes": true,
+                    "wait_for_my_writes_timeout": 2
                 },
                 "connection_pool": {
                     "idle_timeout": 5
@@ -1798,129 +2642,41 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 },
                 "endpoints": {
                     "bootstrap_ro": {
-                        "access_mode": "",
-                        "bind_address": "0.0.0.0",
                         "bind_port": 6447,
-                        "client_connect_timeout": 9,
-                        "client_ssl_cipher": "",
-                        "client_ssl_curves": "",
-                        "client_ssl_dh_params": "",
-                        "connection_sharing": false,
-                        "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
-                        "max_connect_errors": 100,
-                        "max_connections": 0,
-                        "named_socket": "",
-                        "net_buffer_length": 16384,
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "protocol": "classic",
-                        "routing_strategy": "round-robin-with-fallback",
-                        "server_ssl_ca": "",
-                        "server_ssl_capath": "",
-                        "server_ssl_cipher": "",
-                        "server_ssl_crl": "",
-                        "server_ssl_crlpath": "",
-                        "server_ssl_curves": "",
-                        "thread_stack_size": 1024
+                        "router_require_enforce": true,
+                        "routing_strategy": "round-robin-with-fallback"
                     },
                     "bootstrap_rw": {
-                        "access_mode": "",
-                        "bind_address": "0.0.0.0",
                         "bind_port": 6446,
-                        "client_connect_timeout": 9,
-                        "client_ssl_cipher": "",
-                        "client_ssl_curves": "",
-                        "client_ssl_dh_params": "",
-                        "connection_sharing": false,
-                        "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
-                        "max_connect_errors": 100,
-                        "max_connections": 0,
-                        "named_socket": "",
-                        "net_buffer_length": 16384,
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "protocol": "classic",
-                        "routing_strategy": "first-available",
-                        "server_ssl_ca": "",
-                        "server_ssl_capath": "",
-                        "server_ssl_cipher": "",
-                        "server_ssl_crl": "",
-                        "server_ssl_crlpath": "",
-                        "server_ssl_curves": "",
-                        "thread_stack_size": 1024
+                        "router_require_enforce": true,
+                        "routing_strategy": "first-available"
                     },
                     "bootstrap_rw_split": {
                         "access_mode": "auto",
-                        "bind_address": "0.0.0.0",
                         "bind_port": 6450,
-                        "client_connect_timeout": 9,
-                        "client_ssl_cipher": "",
-                        "client_ssl_curves": "",
-                        "client_ssl_dh_params": "",
                         "connection_sharing": true,
-                        "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
-                        "max_connect_errors": 100,
-                        "max_connections": 0,
-                        "named_socket": "",
-                        "net_buffer_length": 16384,
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                         "protocol": "classic",
-                        "routing_strategy": "round-robin",
-                        "server_ssl_ca": "",
-                        "server_ssl_capath": "",
-                        "server_ssl_cipher": "",
-                        "server_ssl_crl": "",
-                        "server_ssl_crlpath": "",
-                        "server_ssl_curves": "",
-                        "thread_stack_size": 1024
+                        "router_require_enforce": true,
+                        "routing_strategy": "round-robin"
                     },
                     "bootstrap_x_ro": {
-                        "access_mode": "",
-                        "bind_address": "0.0.0.0",
                         "bind_port": 6449,
-                        "client_connect_timeout": 9,
-                        "client_ssl_cipher": "",
-                        "client_ssl_curves": "",
-                        "client_ssl_dh_params": "",
-                        "connection_sharing": false,
-                        "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
-                        "max_connect_errors": 100,
-                        "max_connections": 0,
-                        "named_socket": "",
-                        "net_buffer_length": 16384,
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "protocol": "x",
-                        "routing_strategy": "round-robin-with-fallback",
-                        "server_ssl_ca": "",
-                        "server_ssl_capath": "",
-                        "server_ssl_cipher": "",
-                        "server_ssl_crl": "",
-                        "server_ssl_crlpath": "",
-                        "server_ssl_curves": "",
-                        "thread_stack_size": 1024
+                        "router_require_enforce": false,
+                        "routing_strategy": "round-robin-with-fallback"
                     },
                     "bootstrap_x_rw": {
-                        "access_mode": "",
-                        "bind_address": "0.0.0.0",
                         "bind_port": 6448,
-                        "client_connect_timeout": 9,
-                        "client_ssl_cipher": "",
-                        "client_ssl_curves": "",
-                        "client_ssl_dh_params": "",
-                        "connection_sharing": false,
-                        "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
-                        "max_connect_errors": 100,
-                        "max_connections": 0,
-                        "named_socket": "",
-                        "net_buffer_length": 16384,
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "protocol": "x",
-                        "routing_strategy": "first-available",
-                        "server_ssl_ca": "",
-                        "server_ssl_capath": "",
-                        "server_ssl_cipher": "",
-                        "server_ssl_crl": "",
-                        "server_ssl_crlpath": "",
-                        "server_ssl_curves": "",
-                        "thread_stack_size": 1024
+                        "router_require_enforce": false,
+                        "routing_strategy": "first-available"
                     }
                 },
                 "http_authentication_backends": {
@@ -1936,15 +2692,14 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                     "require": "valid-user"
                 },
                 "http_server": {
-                    "bind_address": "0.0.0.0",
                     "port": 8443,
                     "require_realm": "",
                     "ssl": true,
-                    "ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                    "ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                     "ssl_cipher": "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305",
                     "ssl_curves": "",
                     "ssl_dh_params": "",
-                    "ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "static_folder": ""
                 },
                 "io": {
@@ -1962,9 +2717,17 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "metadata_cache": {
                     "auth_cache_refresh_interval": 2,
                     "auth_cache_ttl": -1,
+                    "close_connection_after_refresh": false,
+                    "ssl_ca": "",
+                    "ssl_capath": "",
+                    "ssl_cipher": "",
+                    "ssl_crl": "",
+                    "ssl_crlpath": "",
+                    "ssl_mode": "PREFERRED",
+                    "tls_version": "",
                     "ttl": 0.5,
                     "use_gr_notifications": false,
-                    "user": "mysql_router1_mc1zc8dzj7yn"
+                    "user": "mysql_router1_lyrks5g"
                 },
                 "rest_configs": {
                     "rest_api": {
@@ -2014,19 +2777,37 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
         "routerhost1::system": {
             "configuration": {
                 "common": {
-                    "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
-                    "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "bind_address": "0.0.0.0",
+                    "client_connect_timeout": 9,
+                    "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
+                    "client_ssl_cipher": "",
+                    "client_ssl_curves": "",
+                    "client_ssl_dh_params": "",
+                    "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "client_ssl_mode": "PREFERRED",
                     "connect_timeout": 5,
+                    "connection_sharing": false,
+                    "connection_sharing_delay": 1,
+                    "max_connect_errors": 100,
+                    "max_connections": 0,
                     "max_idle_server_connections": 64,
                     "max_total_connections": 512,
-                    "name": "system",
+                    "name": "my_router",
+                    "net_buffer_length": 16384,
                     "read_timeout": 30,
-                    "router_require_enforce": true,
+                    "server_ssl_ca": "",
+                    "server_ssl_capath": "",
+                    "server_ssl_cipher": "",
+                    "server_ssl_crl": "",
+                    "server_ssl_crlpath": "",
+                    "server_ssl_curves": "",
                     "server_ssl_mode": "PREFERRED",
                     "server_ssl_verify": "DISABLED",
+                    "socket": "",
+                    "thread_stack_size": 1024,
                     "unknown_config_option": "error",
-                    "user": ""
+                    "wait_for_my_writes": true,
+                    "wait_for_my_writes_timeout": 2
                 },
                 "connection_pool": {
                     "idle_timeout": 5,
@@ -2038,25 +2819,24 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 },
                 "endpoints": {
                     "bootstrap_ro": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6447,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "round-robin-with-fallback",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -2066,28 +2846,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_rw": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6446,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "first-available",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -2097,28 +2879,31 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_rw_split": {
                         "access_mode": "auto",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6450,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": true,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY_AND_SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY_AND_SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "classic",
+                        "router_require_enforce": true,
                         "routing_strategy": "round-robin",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -2128,28 +2913,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_x_ro": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6449,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=SECONDARY",
+                        "destinations": "metadata-cache://devCluster/?role=SECONDARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "x",
+                        "router_require_enforce": false,
                         "routing_strategy": "round-robin-with-fallback",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -2159,28 +2946,30 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     },
                     "bootstrap_x_rw": {
-                        "access_mode": "",
                         "bind_address": "0.0.0.0",
                         "bind_port": 6448,
                         "client_connect_timeout": 9,
-                        "client_ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                        "client_ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                         "client_ssl_cipher": "",
                         "client_ssl_curves": "",
                         "client_ssl_dh_params": "",
-                        "client_ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                        "client_ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                         "client_ssl_mode": "PREFERRED",
                         "connect_timeout": 5,
                         "connection_sharing": false,
                         "connection_sharing_delay": 1,
-                        "destinations": "metadata-cache://tst/?role=PRIMARY",
+                        "destinations": "metadata-cache://devCluster/?role=PRIMARY",
                         "max_connect_errors": 100,
                         "max_connections": 0,
-                        "named_socket": "",
                         "net_buffer_length": 16384,
                         "protocol": "x",
+                        "router_require_enforce": false,
                         "routing_strategy": "first-available",
                         "server_ssl_ca": "",
                         "server_ssl_capath": "",
@@ -2190,7 +2979,10 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                         "server_ssl_curves": "",
                         "server_ssl_mode": "PREFERRED",
                         "server_ssl_verify": "DISABLED",
-                        "thread_stack_size": 1024
+                        "socket": "",
+                        "thread_stack_size": 1024,
+                        "wait_for_my_writes": true,
+                        "wait_for_my_writes_timeout": 2
                     }
                 },
                 "http_authentication_backends": {
@@ -2210,11 +3002,11 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                     "port": 8443,
                     "require_realm": "",
                     "ssl": true,
-                    "ssl_cert": "/home/miguel/work/testbase/router_test/data/router-cert.pem",
+                    "ssl_cert": "/home/miguel/work/testbase/ngshell/router_test/data/router-cert.pem",
                     "ssl_cipher": "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305",
                     "ssl_curves": "",
                     "ssl_dh_params": "",
-                    "ssl_key": "/home/miguel/work/testbase/router_test/data/router-key.pem",
+                    "ssl_key": "/home/miguel/work/testbase/ngshell/router_test/data/router-key.pem",
                     "static_folder": ""
                 },
                 "io": {
@@ -2232,11 +3024,20 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
                 "metadata_cache": {
                     "auth_cache_refresh_interval": 2,
                     "auth_cache_ttl": -1,
+                    "close_connection_after_refresh": false,
                     "connect_timeout": 5,
                     "read_timeout": 30,
+                    "ssl_ca": "",
+                    "ssl_capath": "",
+                    "ssl_cipher": "",
+                    "ssl_crl": "",
+                    "ssl_crlpath": "",
+                    "ssl_mode": "PREFERRED",
+                    "thread_stack_size": 1024,
+                    "tls_version": "",
                     "ttl": 0.5,
                     "use_gr_notifications": false,
-                    "user": "mysql_router1_mc1zc8dzj7yn"
+                    "user": "mysql_router1_lyrks5g"
                 },
                 "rest_configs": {
                     "rest_api": {
@@ -2282,10 +3083,12 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 `);
 
 // Simulate a re-bootstrap
-
 var clusterset_id = session.runSql("SELECT clusterset_id FROM mysql_innodb_cluster_metadata.clusters WHERE cluster_id = ?", [cluster_id]).fetchOne()[0];
 
-session.runSql("UPDATE `mysql_innodb_cluster_metadata`.`clustersets` SET router_options = '{\"tags\": {}, \"Configuration\": {\"8.4.0\": {\"Defaults\": {\"io\": {\"threads\": 0}, \"common\": {\"name\": \"system\", \"user\": \"\", \"read_timeout\": 30, \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"server_ssl_mode\": \"PREFERRED\", \"server_ssl_verify\": \"DISABLED\", \"max_total_connections\": 512, \"unknown_config_option\": \"error\", \"router_require_enforce\": true, \"max_idle_server_connections\": 64}, \"loggers\": {\"filelog\": {\"level\": \"info\", \"filename\": \"mysqlrouter.log\", \"destination\": \"\", \"timestamp_precision\": \"second\"}}, \"endpoints\": {\"bootstrap_ro\": {\"protocol\": \"classic\", \"bind_port\": 6447, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin-with-fallback\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_rw\": {\"protocol\": \"classic\", \"bind_port\": 6446, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"first-available\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_x_ro\": {\"protocol\": \"x\", \"bind_port\": 6449, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin-with-fallback\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_x_rw\": {\"protocol\": \"x\", \"bind_port\": 6448, \"access_mode\": \"\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0, \"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"first-available\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": false, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9, \"connection_sharing_delay\": 1.0}, \"bootstrap_rw_split\": {\"protocol\": \"classic\", \"bind_port\": 6450, \"access_mode\": \"auto\", \"bind_address\": \"0.0.0.0\", \"destinations\": \"metadata-cache://tst/?role=PRIMARY_AND_SECONDARY\", \"named_socket\": \"\", \"server_ssl_ca\": \"\", \"client_ssl_key\": \"\", \"server_ssl_crl\": \"\", \"client_ssl_cert\": \"\", \"client_ssl_mode\": \"PREFERRED\", \"connect_timeout\": 5, \"max_connections\": 0,\"server_ssl_mode\": \"PREFERRED\", \"routing_strategy\": \"round-robin\", \"client_ssl_cipher\": \"\", \"client_ssl_curves\": \"\", \"net_buffer_length\": 16384, \"server_ssl_capath\": \"\", \"server_ssl_cipher\": \"\", \"server_ssl_curves\": \"\", \"server_ssl_verify\": \"DISABLED\", \"thread_stack_size\": 1024, \"connection_sharing\": true, \"max_connect_errors\": 100, \"server_ssl_crlpath\": \"\", \"client_ssl_dh_params\": \"\", \"client_connect_timeout\": 9,\"connection_sharing_delay\": 1.0}}, \"http_server\": {\"ssl\": true, \"port\": 8443, \"ssl_key\": \"\", \"ssl_cert\": \"\", \"ssl_cipher\": \"ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:TLS_AES_128_CCM_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-CCM:ECDHE-ECDSA-AES128-CCM:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-CCM:DHE-RSA-AES256-CCM:DHE-RSA-CHACHA20-POLY1305\", \"ssl_curves\": \"\", \"bind_address\": \"0.0.0.0\", \"require_realm\": \"\", \"ssl_dh_params\": \"\", \"static_folder\":\"\"}, \"rest_configs\": {\"rest_api\": {\"require_realm\": \"\"}, \"rest_router\": {\"require_realm\": \"default_auth_realm\"}, \"rest_routing\": {\"require_realm\": \"default_auth_realm\"}, \"rest_metadata_cache\": {\"require_realm\": \"default_auth_realm\"}}, \"routing_rules\": {\"read_only_targets\": \"secondaries\", \"stats_updates_frequency\": -1, \"use_replica_primary_as_rw\": false, \"invalidated_cluster_policy\": \"drop_all\", \"unreachable_quorum_allowed_traffic\": \"none\"}, \"metadata_cache\": {\"ttl\": 0.5, \"read_timeout\": 30, \"auth_cache_ttl\": -1.0, \"connect_timeout\": 5, \"use_gr_notifications\": false, \"auth_cache_refresh_interval\": 2.0}, \"connection_pool\": {\"idle_timeout\": 5, \"max_idle_server_connections\": 64}, \"destination_status\": {\"error_quarantine_interval\": 1, \"error_quarantine_threshold\": 1}, \"http_authentication_realm\": {\"name\": \"default_realm\", \"method\": \"basic\", \"backend\": \"default_auth_backend\", \"require\": \"valid-user\"}, \"http_authentication_backends\": {\"default_auth_backend\": {\"backend\": \"metadata_cache\", \"filename\": \"\"}}}, \"ConfigurationChangesSchema\": {\"type\": \"object\", \"title\": \"MySQL Router configuration JSON schema\", \"$schema\": \"http://json-schema.org/draft-04/schema#\", \"properties\": {\"routing_rules\": {\"type\": \"object\", \"properties\": {\"target_cluster\": {\"type\": \"string\"},\"read_only_targets\": {\"enum\": [\"all\", \"read_replicas\", \"secondaries\"], \"type\": \"string\"}, \"stats_updates_frequency\": {\"type\": \"number\"}, \"use_replica_primary_as_rw\": {\"type\": \"boolean\"}, \"invalidated_cluster_policy\": {\"enum\": [\"accept_ro\", \"drop_all\"], \"type\": \"string\"}, \"unreachable_quorum_allowed_traffic\": {\"enum\": [\"none\", \"read\", \"all\"], \"type\": \"string\"}}, \"additionalProperties\": false}}, \"description\":\"JSON Schema for the Router configuration options that can be changed in the runtime. Shared by the Router in the metadata to announce which options it supports changing.\", \"additionalProperties\": false}}}, \"read_only_targets\":\"secondaries\"}' WHERE clusterset_id=?", [clusterset_id])
+session.runSql(
+  "UPDATE `mysql_innodb_cluster_metadata`.`clustersets` SET router_options = ? WHERE clusterset_id = ?",
+  [JSON.stringify(router_options_json), clusterset_id]
+);
 
 session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET cluster_id=NULL where address = 'routerhost1'");
 session.runSql("UPDATE mysql_innodb_cluster_metadata.routers SET clusterset_id=? where address = 'routerhost1'", [clusterset_id]);
@@ -2336,11 +3139,11 @@ EXPECT_EQ("cluster", target_cluster);
 //@<> .removeRouterMetadata() should clear the Defaults Configuration Document if needed
 EXPECT_NO_THROWS(function() { cluster.removeRouterMetadata("routerhost2::system"); });
 
-EXPECT_NE(null, session.runSql(`select router_options->'$.Configuration."8.4.0"' from mysql_innodb_cluster_metadata.clusters`).fetchOne());
+EXPECT_NE(null, session.runSql(`select router_options->'$.Configuration."9.2.0"' from mysql_innodb_cluster_metadata.clusters`).fetchOne());
 
 EXPECT_NO_THROWS(function() { cluster.removeRouterMetadata("routerhost1::system"); });
 
-EXPECT_EQ([null], session.runSql(`select router_options->'$.Configuration."8.4.0"' from mysql_innodb_cluster_metadata.clustersets`).fetchOne());
+EXPECT_EQ([null], session.runSql(`select router_options->'$.Configuration."9.2.0"' from mysql_innodb_cluster_metadata.clustersets`).fetchOne());
 
 //@<> Cleanup
 scene.destroy();

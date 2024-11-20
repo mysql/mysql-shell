@@ -153,8 +153,16 @@ void SHCORE_PUBLIC parse_fully_qualified_cluster_name(
     const std::string &name, std::string *out_domain,
     std::string *out_partition, std::string *out_cluster_group);
 
-void SHCORE_PUBLIC validate_cluster_name(const std::string &name,
-                                         Cluster_type cluster_type);
+enum class Validation_context {
+  TOPOLOGY,
+  ROUTING_GUIDELINE,
+  ROUTING_GUIDELINE_DESTINATION,
+  ROUTING_GUIDELINE_ROUTE
+};
+
+void SHCORE_PUBLIC
+validate_name(const std::string &name, Validation_context context,
+              Cluster_type cluster_type = Cluster_type::NONE);
 void SHCORE_PUBLIC validate_label(const std::string &lavel);
 
 // Default names

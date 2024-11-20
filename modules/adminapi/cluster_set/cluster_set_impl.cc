@@ -32,6 +32,7 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/common.h"
 #include "adminapi/common/metadata_storage.h"
 #include "modules/adminapi/cluster/cluster_impl.h"
 #include "modules/adminapi/cluster/create_cluster_set.h"
@@ -880,8 +881,8 @@ void Cluster_set_impl::remove_cluster(
   // Validations and initializations of variables
   {
     // Validate the Cluster name
-    mysqlsh::dba::validate_cluster_name(cluster_name,
-                                        Cluster_type::GROUP_REPLICATION);
+    mysqlsh::dba::validate_name(cluster_name, Validation_context::TOPOLOGY,
+                                Cluster_type::GROUP_REPLICATION);
 
     // Get the Cluster object
     // NOTE: This will throw an exception if the Cluster does not exist in the
@@ -1992,7 +1993,8 @@ void Cluster_set_impl::remove_replica(Instance *instance, bool dry_run,
 void Cluster_set_impl::record_in_metadata(
     const Cluster_id &seed_cluster_id,
     const clusterset::Create_cluster_set_options &options,
-    Replication_auth_type auth_type, std::string_view member_auth_cert_issuer) {
+    Replication_auth_type auth_type, std::string_view member_auth_cert_issuer,
+    const std::string &active_routing_guideline) {
   auto metadata = get_metadata_storage();
 
   MetadataStorage::Transaction trx(metadata);
@@ -2044,8 +2046,12 @@ void Cluster_set_impl::record_in_metadata(
   log_info(
       "Adopting as the ClusterSet's global Read Only Targets the Cluster's "
       "current setting");
-  get_metadata_storage()->migrate_read_only_targets_to_clusterset(
-      seed_cluster_id, get_id());
+  metadata->migrate_read_only_targets_to_clusterset(seed_cluster_id, get_id());
+
+  // Migrate Routing Guidelines from Cluster to ClusterSet
+  log_info("Migrating the Cluster's Routing Guidelines to the ClusterSet");
+  upgrade_routing_guidelines(seed_cluster_id, get_id(),
+                             active_routing_guideline);
 
   trx.commit();
 }
@@ -2290,6 +2296,28 @@ void Cluster_set_impl::set_maximum_transaction_size_limit(Cluster_impl *cluster,
   config->set(kGrTransactionSizeLimit,
               std::optional<int64_t>(cluster_transaction_size_limit));
   config->apply();
+}
+
+void Cluster_set_impl::upgrade_routing_guidelines(
+    const Cluster_id &cluster_id, const Cluster_set_id &cluster_set_id,
+    const std::string &active_routing_guideline) {
+  auto guidelines = get_metadata_storage()->get_routing_guidelines(
+      Cluster_type::GROUP_REPLICATION, cluster_id);
+
+  for (const auto &guideline : guidelines) {
+    auto rg = Routing_guideline_impl::load(shared_from_this(), guideline);
+
+    rg->upgrade_routing_guideline_to_clusterset(cluster_set_id);
+
+    if (rg->get_name() == active_routing_guideline) {
+      // Migrate the active Routing Guideline setting from Cluster to ClusterSet
+      log_info(
+          "Adopting as the ClusterSet's active Routing Guideline the Cluster's "
+          "current setting");
+      set_global_routing_option(k_router_option_routing_guideline,
+                                shcore::Value(rg->get_id()));
+    }
+  }
 }
 
 void Cluster_set_impl::_set_option(const std::string &option,

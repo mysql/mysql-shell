@@ -40,6 +40,7 @@
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
+#include "utils/utils_string.h"
 #include "utils/version.h"
 
 namespace mysqlsh {
@@ -86,6 +87,19 @@ Router_metadata unserialize_router(const mysqlshdk::db::Row_ref_by_name &row) {
   if (row.has_field("targetCluster") && !row.is_null("targetCluster")) {
     router.target_cluster = row.get_string("targetCluster");
   }
+  if (row.has_field("local_cluster") && !row.is_null("local_cluster")) {
+    router.local_cluster = row.get_string("local_cluster");
+  }
+  if (row.has_field("current_routing_guideline") &&
+      !row.is_null("current_routing_guideline")) {
+    router.current_routing_guideline =
+        row.get_string("current_routing_guideline");
+  }
+  if (row.has_field("supported_routing_guidelines_version") &&
+      !row.is_null("supported_routing_guidelines_version")) {
+    router.supported_routing_guidelines_version =
+        row.get_string("supported_routing_guidelines_version");
+  }
 
   return router;
 }
@@ -111,6 +125,10 @@ constexpr const char *k_list_routers =
     " r.attributes->>'$.RWXEndpoint' AS rw_x_port,"
     " r.attributes->>'$.RWSplitEndpoint' AS rw_split_port,"
     " r.attributes->>'$.bootstrapTargetType' AS bootstrap_target_type,"
+    " r.attributes->>'$.LocalCluster' AS local_cluster,"
+    " r.attributes->>'$.CurrentRoutingGuideline' AS current_routing_guideline,"
+    " r.attributes->>'$.SupportedRoutingGuidelinesVersion' AS"
+    " supported_routing_guidelines_version,"
     " r.last_check_in, r.version,"
     " r.options->>'$.target_cluster' as targetCluster,"
     " r.options->'$.tags' as tags"
@@ -343,7 +361,16 @@ JSON_MERGE_PATCH(
           "stats_updates_frequency", JSON_EXTRACT(ro.merged_options, "$.stats_updates_frequency"),
           "read_only_targets", JSON_EXTRACT(ro.merged_options, "$.read_only_targets"),
           "unreachable_quorum_allowed_traffic", JSON_EXTRACT(ro.merged_options, "$.unreachable_quorum_allowed_traffic"),
-          "invalidated_cluster_policy", JSON_EXTRACT(ro.merged_options, "$.invalidated_cluster_policy")
+          "invalidated_cluster_policy", JSON_EXTRACT(ro.merged_options, "$.invalidated_cluster_policy"),
+          "guideline",
+              IF(JSON_EXTRACT(ro.merged_options, "$.guideline") IS NOT NULL, (
+                  SELECT name
+                  FROM mysql_innodb_cluster_metadata.routing_guidelines
+                  WHERE guideline_id = JSON_EXTRACT(ro.merged_options, "$.guideline")
+                  LIMIT 1
+                ),
+                NULL
+              )
         )
       )
       FROM ro
@@ -392,7 +419,16 @@ constexpr std::string_view k_select_default_router_options =
               "unreachable_quorum_allowed_traffic",
               JSON_EXTRACT(c.router_options, "$.unreachable_quorum_allowed_traffic"),
               "invalidated_cluster_policy",
-              JSON_EXTRACT(c.router_options, "$.invalidated_cluster_policy")
+              JSON_EXTRACT(c.router_options, "$.invalidated_cluster_policy"),
+              "guideline",
+              IF(JSON_EXTRACT(c.router_options, "$.guideline") IS NOT NULL, (
+                  SELECT name
+                  FROM mysql_innodb_cluster_metadata.routing_guidelines
+                  WHERE guideline_id = JSON_EXTRACT(c.router_options, "$.guideline")
+                  LIMIT 1
+                ),
+                NULL
+              )
             )
           ) AS routing_rules
       )
@@ -480,13 +516,23 @@ bool MetadataStorage::check_version(
 }
 
 bool MetadataStorage::is_valid() const {
-  if (m_md_server) {
-    if (m_md_server->get_session() && m_md_server->get_session()->is_open()) {
-      return m_md_state != mysqlsh::dba::metadata::State::NONEXISTING;
+  if (!m_md_server || !m_md_server->get_session() ||
+      !m_md_server->get_session()->is_open()) {
+    return false;
+  }
+
+  // Check if the server is still reachable even though the session is open
+  try {
+    m_md_server->get_session()->execute("select 1");
+  } catch (const shcore::Error &e) {
+    if (mysqlshdk::db::is_mysql_client_error(e.code())) {
+      return false;
+    } else {
+      throw;
     }
   }
 
-  return false;
+  return m_md_state != mysqlsh::dba::metadata::State::NONEXISTING;
 }
 
 bool MetadataStorage::check_instance_type(
@@ -2611,6 +2657,17 @@ std::string router_opt_select_items(std::string_view prefix,
           "WHERE c.attributes->>'$.group_replication_group_name' = ";
       ret.append(prefix);
       ret += "->>'$.target_cluster' limit 1))) AS target_cluster";
+    } else if (opt == k_router_option_routing_guideline) {
+      ret += ", ";
+      ret +=
+          "JSON_QUOTE((SELECT name FROM "
+          "mysql_innodb_cluster_metadata.routing_guidelines "
+          "WHERE guideline_id = ";
+      ret.append(prefix);
+      ret += "->'$.";
+      ret += opt;
+      ret += "' limit 1)) AS ";
+      ret += opt;
     } else {
       ret += ", ";
       ret.append(prefix);
@@ -3017,6 +3074,198 @@ shcore::Value MetadataStorage::get_routing_option(Cluster_type type,
   }
 
   return {};
+}
+
+namespace {
+Routing_guideline_metadata read_guideline(const mysqlshdk::db::IRow *row) {
+  return Routing_guideline_metadata{
+      row->get_string(0),     row->get_string(1),
+      row->get_string(2, ""), static_cast<bool>(row->get_int(3)),
+      row->get_string(4, ""), row->get_string(5, "")};
+}
+
+std::string routing_guideline_cluster_id_column(Cluster_type type) {
+  switch (type) {
+    case Cluster_type::REPLICATED_CLUSTER:
+      return "clusterset_id";
+
+    case Cluster_type::GROUP_REPLICATION:
+      return "cluster_id";
+
+    case Cluster_type::ASYNC_REPLICATION:
+      return "cluster_id";
+
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+  throw std::logic_error("internal error");
+}
+}  // namespace
+
+bool MetadataStorage::check_routing_guideline_exists(
+    Cluster_type type, const std::string &owner_id, const std::string &name) {
+  std::string owner_column;
+
+  switch (type) {
+    case Cluster_type::GROUP_REPLICATION:
+    case Cluster_type::ASYNC_REPLICATION:
+      owner_column = "cluster_id";
+      break;
+    case Cluster_type::REPLICATED_CLUSTER:
+      owner_column = "clusterset_id";
+      break;
+    case Cluster_type::NONE:
+      throw std::logic_error("internal error");
+  }
+
+  auto count = execute_sqlf(
+                   "SELECT count(*) FROM "
+                   "mysql_innodb_cluster_metadata.routing_guidelines"
+                   " WHERE ! = ? AND name = ?",
+                   owner_column, owner_id, name)
+                   ->fetch_one_or_throw()
+                   ->get_int(0);
+
+  if (count == 0) return false;
+
+  return true;
+}
+
+std::string MetadataStorage::create_routing_guideline(
+    const Routing_guideline_metadata &guideline) {
+  assert(guideline.cluster_id.empty() != guideline.clusterset_id.empty());
+
+  auto insert = [this](const char *owner_column, const std::string &owner_id,
+                       const Routing_guideline_metadata &gl) {
+    std::string guideline_id = m_md_server->generate_uuid();
+    execute_sqlf(
+        "INSERT INTO mysql_innodb_cluster_metadata.routing_guidelines"
+        " (guideline_id, name, guideline, !, last_update, default_guideline) "
+        "VALUES (?, ?, ?, ?, NOW(), ?)",
+        owner_column, guideline_id, gl.name, gl.guideline, owner_id,
+        gl.is_default_guideline);
+
+    return guideline_id;
+  };
+
+  std::string guideline_id;
+
+  if (guideline.cluster_id.empty()) {
+    guideline_id = insert("clusterset_id", guideline.clusterset_id, guideline);
+  } else {
+    guideline_id = insert("cluster_id", guideline.cluster_id, guideline);
+  }
+
+  return guideline_id;
+}
+
+void MetadataStorage::update_routing_guideline(
+    const Routing_guideline_metadata &guideline) {
+  if (guideline.cluster_id.empty())
+    execute_sqlf(
+        "UPDATE mysql_innodb_cluster_metadata.routing_guidelines"
+        " SET name = ?, guideline = ?, cluster_id = NULL, clusterset_id = ?,"
+        "   last_update = NOW()"
+        " WHERE guideline_id = ?",
+        guideline.name, guideline.guideline, guideline.clusterset_id,
+        guideline.id);
+  else
+    execute_sqlf(
+        "UPDATE mysql_innodb_cluster_metadata.routing_guidelines"
+        " SET name = ?, guideline = ?, cluster_id = ?, clusterset_id = NULL,"
+        "   last_update = NOW()"
+        " WHERE guideline_id = ?",
+        guideline.name, guideline.guideline, guideline.cluster_id,
+        guideline.id);
+}
+
+std::string MetadataStorage::get_routing_guideline_id(const std::string &name) {
+  constexpr auto query =
+      "SELECT guideline_id from "
+      "mysql_innodb_cluster_metadata.routing_guidelines WHERE "
+      "name = ?";
+
+  auto result = execute_sqlf(query, name);
+
+  if (auto row = result->fetch_one()) {
+    if (!row->is_null(0)) {
+      return row->get_as_string(0);
+    }
+  }
+
+  throw shcore::Exception(
+      shcore::str_format("Routing Guideline '%s' does not exist", name.c_str()),
+      SHERR_DBA_ROUTING_GUIDELINE_NOT_FOUND);
+}
+
+Routing_guideline_metadata MetadataStorage::get_routing_guideline(
+    Cluster_type type, const std::string &id, const std::string &name) const {
+  auto res = execute_sqlf(
+      "SELECT guideline_id, name, guideline, default_guideline, cluster_id, "
+      "clusterset_id "
+      " FROM mysql_innodb_cluster_metadata.routing_guidelines"
+      " WHERE ! = ? AND name = ?",
+      routing_guideline_cluster_id_column(type), id, name);
+
+  if (auto row = res->fetch_one()) {
+    return read_guideline(row);
+  }
+
+  throw shcore::Exception(
+      shcore::str_format("Routing Guideline '%s' does not exist", name.c_str()),
+      SHERR_DBA_ROUTING_GUIDELINE_NOT_FOUND);
+}
+
+std::vector<Routing_guideline_metadata> MetadataStorage::get_routing_guidelines(
+    Cluster_type type, const std::string &id) const {
+  auto res = execute_sqlf(
+      "SELECT guideline_id, name, guideline, default_guideline, cluster_id, "
+      "clusterset_id"
+      " FROM mysql_innodb_cluster_metadata.routing_guidelines"
+      " WHERE ! = ?",
+      routing_guideline_cluster_id_column(type), id);
+
+  std::vector<Routing_guideline_metadata> ret;
+
+  while (auto row = res->fetch_one()) {
+    ret.push_back(read_guideline(row));
+  }
+
+  return ret;
+}
+
+void MetadataStorage::delete_routing_guideline(const std::string &name) {
+  std::string guideline_id = get_routing_guideline_id(name);
+
+  auto res = execute_sqlf(
+      "SELECT c.cluster_name"
+      " FROM mysql_innodb_cluster_metadata.clusters c"
+      " WHERE c.router_options->>'$.routing_guideline' = ?"
+      " UNION ALL"
+      " SELECT cs.domain_name"
+      " FROM mysql_innodb_cluster_metadata.clustersets cs"
+      " WHERE cs.router_options->>'$.routing_guideline' = ?",
+      guideline_id, guideline_id);
+
+  std::string msg;
+
+  while (auto row = res->fetch_one()) {
+    msg += row->get_string(0) + ", ";
+  }
+
+  if (!msg.empty()) {
+    msg.resize(msg.size() - 2);
+
+    throw shcore::Exception(
+        shcore::str_format(
+            "Routing Guideline is in use and cannot be deleted (%s)",
+            msg.c_str()),
+        SHERR_DBA_ROUTING_GUIDELINE_IN_USE);
+  }
+  execute_sqlf(
+      "DELETE FROM mysql_innodb_cluster_metadata.routing_guidelines"
+      " WHERE guideline_id=?",
+      guideline_id);
 }
 
 std::string MetadataStorage::get_cluster_name(

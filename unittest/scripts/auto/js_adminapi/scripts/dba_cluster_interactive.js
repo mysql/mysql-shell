@@ -58,7 +58,12 @@ validateMembers(Cluster, [
   'addReplicaInstance',
   'routingOptions',
   'setRoutingOption',
-  'routerOptions'
+  'routerOptions',
+  'createRoutingGuideline',
+  'getRoutingGuideline',
+  'routingGuidelines',
+  'removeRoutingGuideline',
+  'importRoutingGuideline'
 ])
 
 //@<> Cluster: addInstance errors

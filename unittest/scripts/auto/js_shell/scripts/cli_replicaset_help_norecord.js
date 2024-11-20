@@ -50,3 +50,21 @@ callMysqlsh(["--", "rs", "setup-router-account", "--help"])
 
 //@ CLI replicaset status --help
 callMysqlsh(["--", "rs", "status", "--help"])
+
+//@ CLI replicaset execute --help
+callMysqlsh(["--", "rs", "execute", "--help"])
+
+//@ CLI replicaset create-routing-guideline --help
+callMysqlsh(["--", "rs", "create-routing-guideline", "--help"])
+
+//@ CLI replicaset get-routing-guideline --help
+callMysqlsh(["--", "rs", "get_routing_guideline", "--help"])
+
+//@ CLI replicaset remove-routing-guideline --help
+callMysqlsh(["--", "rs", "remove_routing_guideline", "--help"])
+
+//@ CLI replicaset routing-guidelines --help
+callMysqlsh(["--", "rs", "routing_guidelines", "--help"])
+
+//@ CLI replicaset import-routing-guideline --help
+callMysqlsh(["--", "rs", "import-routing-guideline", "--help"])

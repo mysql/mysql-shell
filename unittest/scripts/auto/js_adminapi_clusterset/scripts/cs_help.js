@@ -109,6 +109,51 @@ cs.help("setRoutingOption");
 //@ setupRouterAccount
 \? ClusterSet.setupRouterAccount
 
+//@ createRoutingGuideline
+cs.help("createRoutingGuideline")
+
+//@ createRoutingGuideline, \? [USE:createRoutingGuideline]
+\? ClusterSet.createRoutingGuideline
+
+//@ createRoutingGuideline, \help [USE:createRoutingGuideline]
+\help ClusterSet.createRoutingGuideline
+
+//@ getRoutingGuideline
+cs.help("getRoutingGuideline")
+
+//@ getRoutingGuideline, \? [USE:getRoutingGuideline]
+\? ClusterSet.getRoutingGuideline
+
+//@ getRoutingGuideline, \help [USE:getRoutingGuideline]
+\help ClusterSet.getRoutingGuideline
+
+//@ removeRoutingGuideline
+cs.help("removeRoutingGuideline")
+
+//@ removeRoutingGuideline, \? [USE:removeRoutingGuideline]
+\? ClusterSet.removeRoutingGuideline
+
+//@ removeRoutingGuideline, \help [USE:removeRoutingGuideline]
+\help ClusterSet.removeRoutingGuideline
+
+//@ routingGuidelines
+cs.help("routingGuidelines")
+
+//@ routingGuidelines, \? [USE:routingGuidelines]
+\? ClusterSet.routingGuidelines
+
+//@ routingGuidelines, \help [USE:routingGuidelines]
+\help ClusterSet.routingGuidelines
+
+//@ importRoutingGuideline
+cs.help("importRoutingGuideline")
+
+//@ importRoutingGuideline, \? [USE:importRoutingGuideline]
+\? ClusterSet.importRoutingGuideline
+
+//@ importRoutingGuideline, \help [USE:importRoutingGuideline]
+\help ClusterSet.importRoutingGuideline
+
 //@<> Clean-up.
 cs.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

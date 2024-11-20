@@ -246,8 +246,8 @@ void Create_cluster::prepare() {
   }
 
   // Validate the cluster_name
-  mysqlsh::dba::validate_cluster_name(m_cluster_name,
-                                      Cluster_type::GROUP_REPLICATION);
+  mysqlsh::dba::validate_name(m_cluster_name, Validation_context::TOPOLOGY,
+                              Cluster_type::GROUP_REPLICATION);
 
   // Validate values given for GR options.
   m_options.gr_options.check_option_values(

@@ -109,6 +109,18 @@ void ClusterSet::init() {
 
   expose("execute", &ClusterSet::execute, "cmd", "instances", "?options")
       ->cli();
+  expose("createRoutingGuideline", &ClusterSet::create_routing_guideline,
+         "name", "?json", "?options")
+      ->cli();
+  expose("getRoutingGuideline", &ClusterSet::get_routing_guideline, "?name")
+      ->cli();
+  expose("removeRoutingGuideline", &ClusterSet::remove_routing_guideline,
+         "name")
+      ->cli();
+  expose("routingGuidelines", &ClusterSet::routing_guidelines)->cli();
+  expose("importRoutingGuideline", &ClusterSet::import_routing_guideline,
+         "file", "?options")
+      ->cli();
 }
 
 void ClusterSet::assert_valid(const std::string &function_name) const {
@@ -934,6 +946,8 @@ Disabled by default.
 the ClusterSet metadata.
 @li read_only_targets: Routing policy to define Router's usage of Read
 Replicas. Default is 'append'.
+@li guideline: Name of the Routing Guideline to be set as active
+in the ClusterSet.
 
 The target_cluster option supports the following values:
 
@@ -980,6 +994,10 @@ other SECONDARY Cluster members for R/O traffic.
 R/O traffic.
 @li secondaries: Only Secondary members of the target Cluster should be used
 for R/O traffic (default).
+
+@attention When the ClusterSet has an active Routing Guideline, the options
+'read_only_targets' and 'target_cluster' are ignored since the Guideline has
+precedence over them.
 )*");
 
 #if DOXYGEN_JS
@@ -1129,6 +1147,78 @@ Dictionary ClusterSet::execute(String cmd, Object instances,
                                Dictionary options) {}
 #elif DOXYGEN_PY
 dict ClusterSet::execute(str cmd, Object instances, dict options);
+#endif
+
+REGISTER_HELP_FUNCTION(createRoutingGuideline, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_CREATEROUTINGGUIDELINE,
+                            CREATEROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTERSET_CREATEROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTERSET_CREATEROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline createRoutingGuideline(String name, Dictionary json,
+                                        Dictionary options) {}
+#elif DOXYGEN_PY
+RoutingGuideline create_routing_guideline(str name, dict json, dict options) {}
+#endif
+
+REGISTER_HELP_FUNCTION(getRoutingGuideline, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_GETROUTINGGUIDELINE,
+                            GETROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTERSET_GETROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTERSET_GETROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline getRoutingGuideline(String name) {}
+#elif DOXYGEN_PY
+RoutingGuideline get_routing_guideline(str name) {}
+#endif
+
+REGISTER_HELP_FUNCTION(removeRoutingGuideline, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_REMOVEROUTINGGUIDELINE,
+                            REMOVEROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTERSET_REMOVEROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTERSET_REMOVEROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+Undefined removeRoutingGuideline(String name) {}
+#elif DOXYGEN_PY
+None remove_routing_guideline(str name) {}
+#endif
+
+REGISTER_HELP_FUNCTION(routingGuidelines, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_ROUTINGGUIDELINES,
+                            ROUTINGGUIDELINES_HELP_TEXT);
+/**
+ * $(CLUSTERSET_ROUTINGGUIDELINES_BRIEF)
+ *
+ * $(CLUSTERSET_ROUTINGGUIDELINES)
+ */
+#if DOXYGEN_JS
+List routingGuidelines() {}
+#elif DOXYGEN_PY
+list routing_guidelines() {}
+#endif
+
+REGISTER_HELP_FUNCTION(importRoutingGuideline, ClusterSet);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_IMPORTROUTINGGUIDELINE,
+                            IMPORTROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTERSET_IMPORTROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTERSET_IMPORTROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline ClusterSet::importRoutingGuideline(String file,
+                                                    Dictionary options) {}
+#elif DOXYGEN_PY
+RoutingGuideline ClusterSet::import_routing_guideline(str file, dict options) {}
 #endif
 
 }  // namespace dba

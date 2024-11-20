@@ -217,8 +217,9 @@ class Router_configuration_changes_schema final {
 class Router_configuration_schema final {
  private:
   struct Option;
-  using Value =
-      std::variant<std::monostate, std::string, int64_t, double, bool>;
+  using Value = std::variant<std::monostate, std::string, int64_t, double, bool,
+                             std::map<std::string, std::string, std::less<>>>;
+
   using Sub_option = std::unordered_map<std::string, std::unique_ptr<Option>>;
 
   struct Option {
@@ -310,6 +311,22 @@ class Router_configuration_schema final {
   Router_configuration_schema filter_common_router_options() const;
 
   shcore::Value to_value();
+
+  bool is_option_set_to_value(const std::string &option_name,
+                              const std::string &option_value);
+
+  bool get_option_value(const std::string &option_name,
+                        std::string &option_value) const;
+
+  bool get_option_value(
+      const std::string &option_name,
+      std::map<std::string, std::string, std::less<>> &option_value) const;
+
+  std::optional<std::pair<std::string, Router_configuration_schema>>
+  get_endpoint(const std::string &port) const;
+
+  std::vector<std::pair<std::string, Router_configuration_schema>>
+  get_all_endpoints() const;
 
  private:
   Option parse_option(std::string name, const shcore::Value &value);

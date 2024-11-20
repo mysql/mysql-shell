@@ -1494,42 +1494,51 @@ TEST(mod_dba_common, is_valid_identifier) {
 
   EXPECT_NO_THROW(
       // Valid identifier, begins with valid characters (alpha)
-      t = "Valid1"; mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
+      t = "Valid1"; mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
   EXPECT_NO_THROW(
       // Valid identifier, begins with valid characters (_)
-      t = "_Valid_"; mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
+      t = "_Valid_"; mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
   EXPECT_NO_THROW(
       // Valid identifier, contains valid characters (_, -, .)
-      t = "Valid_3.still-valid"; mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
+      t = "Valid_3.still-valid"; mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 
   EXPECT_ANY_THROW(t = "";
                    // Invalid empty identifier
-                   mysqlsh::dba::validate_cluster_name(
-                       t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
+                   mysqlsh::dba::validate_name(
+                       t, mysqlsh::dba::Validation_context::TOPOLOGY,
+                       mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid too long identifier (over 63 characters)
       t = "o-ver63ch.ars_12345678901234567890123456789013456789012345678901";
-      mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
+      mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid identifier, begins with invalid character
-      t = "#not_allowed"; mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
+      t = "#not_allowed"; mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid identifier, contains invalid character
-      t = "not_allowed?"; mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
+      t = "not_allowed?"; mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
   EXPECT_ANY_THROW(
       // Invalid identifier, begins with invalid characters (numeric)
-      t = "2_not_Valid"; mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
+      t = "2_not_Valid"; mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
   EXPECT_ANY_THROW(
       // Invalid identifier, contains invalid character
-      t = "(*)%?"; mysqlsh::dba::validate_cluster_name(
-          t, mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
+      t = "(*)%?"; mysqlsh::dba::validate_name(
+          t, mysqlsh::dba::Validation_context::TOPOLOGY,
+          mysqlsh::dba::Cluster_type::GROUP_REPLICATION););
 }
 
 TEST_F(Admin_api_common_test, resolve_gr_local_address) {

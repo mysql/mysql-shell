@@ -315,9 +315,10 @@ OBJECTS
  - dba InnoDB Cluster, ReplicaSet, and ClusterSet management functions.
 
 CLASSES
- - Cluster    Represents an InnoDB Cluster.
- - ClusterSet Represents an InnoDB ClusterSet.
- - ReplicaSet Represents an InnoDB ReplicaSet.
+ - Cluster          Represents an InnoDB Cluster.
+ - ClusterSet       Represents an InnoDB ClusterSet.
+ - ReplicaSet       Represents an InnoDB ReplicaSet.
+ - RoutingGuideline Routing Guidelines operations
 
 //@<OUT> Help on shell commands
 The shell commands allow executing specific operations including updating the

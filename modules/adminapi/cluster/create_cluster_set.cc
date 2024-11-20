@@ -29,6 +29,7 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/common.h"
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/instance_validations.h"
@@ -173,8 +174,8 @@ void Create_cluster_set::prepare() {
   }
 
   // Validate the domain_name
-  mysqlsh::dba::validate_cluster_name(m_domain_name,
-                                      Cluster_type::REPLICATED_CLUSTER);
+  mysqlsh::dba::validate_name(m_domain_name, Validation_context::TOPOLOGY,
+                              Cluster_type::REPLICATED_CLUSTER);
 
   // The target cluster must comply with the following requirements to become
   // a ClusterSet:
@@ -321,9 +322,12 @@ shcore::Value Create_cluster_set::execute() {
           "dba_create_cluster_set_fail_post_create_replication_user",
           { throw std::logic_error("debug"); });
 
+      // Get the current active routing guideline, if any
+      auto active_rg = m_cluster->get_active_routing_guideline();
+
       // Store the new ClusterSet in the Metadata schema
       cs->record_in_metadata(seed_cluster_id, m_options, auth_type,
-                             auth_cert_issuer);
+                             auth_cert_issuer, active_rg);
     }
 
     undo_list.cancel();

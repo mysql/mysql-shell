@@ -25,8 +25,10 @@
 
 #include "modules/adminapi/base_cluster.h"
 #include "modules/adminapi/common/accounts.h"
-#include "mysqlshdk/include/shellcore/utils_help.h"
+#include "modules/adminapi/common/api_options.h"
+#include "modules/adminapi/mod_dba_routing_guideline.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
+#include "scripting/types.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -151,6 +153,66 @@ shcore::Value Base_cluster::execute(
 
   return execute_with_pool(
       [&]() { return base_impl()->execute(cmd, instances, options); }, false);
+}
+
+std::shared_ptr<RoutingGuideline> Base_cluster::create_routing_guideline(
+    const std::string &name, shcore::Dictionary_t json,
+    const shcore::Option_pack_ref<Create_routing_guideline_options> &options) {
+  assert_valid("createRoutingGuideline");
+
+  return execute_with_pool(
+      [&]() -> std::shared_ptr<RoutingGuideline> {
+        auto rg = base_impl()->create_routing_guideline(base_impl(), name, json,
+                                                        options);
+
+        return std::make_shared<RoutingGuideline>(rg);
+      },
+      false);
+}
+
+std::shared_ptr<RoutingGuideline> Base_cluster::get_routing_guideline(
+    const std::string &name) const {
+  assert_valid("getRoutingGuideline");
+
+  return execute_with_pool(
+      [&]() {
+        return std::make_shared<RoutingGuideline>(
+            base_impl()->get_routing_guideline(base_impl(), name));
+      },
+      false);
+}
+
+void Base_cluster::remove_routing_guideline(const std::string &name) {
+  assert_valid("removeRoutingGuideline");
+
+  return execute_with_pool(
+      [&]() { base_impl()->remove_routing_guideline(name); }, false);
+}
+
+std::shared_ptr<ShellResult> Base_cluster::routing_guidelines() const {
+  assert_valid("routingGuidelines");
+
+  return execute_with_pool(
+      [&]() {
+        return std::make_shared<ShellResult>(
+            base_impl()->routing_guidelines(base_impl()));
+      },
+      false);
+}
+
+std::shared_ptr<RoutingGuideline> Base_cluster::import_routing_guideline(
+    const std::string &file_path,
+    const shcore::Option_pack_ref<Import_routing_guideline_options> &options) {
+  assert_valid("importRoutingGuideline");
+
+  return execute_with_pool(
+      [&]() -> std::shared_ptr<RoutingGuideline> {
+        auto rg = base_impl()->import_routing_guideline(base_impl(), file_path,
+                                                        options);
+
+        return std::make_shared<RoutingGuideline>(rg);
+      },
+      false);
 }
 
 }  // namespace dba

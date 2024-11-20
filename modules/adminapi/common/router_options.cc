@@ -537,4 +537,147 @@ shcore::Value Router_configuration_schema::to_value() {
   return shcore::Value(std::move(result));
 }
 
+bool Router_configuration_schema::is_option_set_to_value(
+    const std::string &option_name, const std::string &option_value) {
+  for (const auto &category : options) {
+    for (const auto &option : category.second) {
+      if (option->name == option_name) {
+        if (auto str_value = std::get_if<std::string>(&option->value)) {
+          if (*str_value == option_value) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+bool Router_configuration_schema::get_option_value(
+    const std::string &option_name, std::string &option_value) const {
+  // Helper function to recursively search for the option
+  auto search_option = [&](const auto &option_list,
+                           const auto &self_ref) -> bool {
+    for (const auto &option : option_list) {
+      if (option->name == option_name) {
+        // Check if the value is a string
+        if (auto str_value = std::get_if<std::string>(&option->value)) {
+          option_value = *str_value;
+          return true;
+        }
+        // Check if the value is an integer and convert to string
+        else if (auto int_value = std::get_if<int64_t>(&option->value)) {
+          option_value = std::to_string(*int_value);
+          return true;
+        }
+        // TODO(miguel): Handle other types as needed
+        else {
+          return false;  // Option value is not a supported type
+        }
+      }
+
+      // If the option has sub-options, search recursively
+      if (!option->sub_option.empty()) {
+        std::vector<std::unique_ptr<Option>> sub_option_vector;
+        for (const auto &sub_option : option->sub_option) {
+          sub_option_vector.push_back(
+              std::make_unique<Option>(*sub_option.second));
+        }
+        if (self_ref(sub_option_vector, self_ref)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  // Iterate over top-level sections and search recursively
+  for (const auto &section : options) {
+    if (search_option(section.second, search_option)) {
+      return true;
+    }
+  }
+
+  return false;  // Option not found
+}
+
+bool Router_configuration_schema::get_option_value(
+    const std::string &option_name,
+    std::map<std::string, std::string, std::less<>> &option_value) const {
+  for (const auto &section : options) {
+    for (const auto &option : section.second) {
+      if (option->name == option_name) {
+        // Check if the option has sub-options
+        if (option->sub_option.empty()) {
+          return false;  // Not a valid "tags"-like option
+        }
+
+        // Extract sub-options as key-value pairs
+        for (const auto &sub_option : option->sub_option) {
+          if (auto str_value =
+                  std::get_if<std::string>(&sub_option.second->value)) {
+            option_value[sub_option.first] = *str_value;
+          } else {
+            return false;  // Sub-option value is not a string
+          }
+        }
+        return true;
+      }
+    }
+  }
+  return false;  // Option not found
+}
+
+std::optional<std::pair<std::string, Router_configuration_schema>>
+Router_configuration_schema::get_endpoint(const std::string &port) const {
+  if (!options.contains("endpoints")) return std::nullopt;
+
+  // Copy "endpoints"
+  const auto &endpoints = options.at("endpoints");
+
+  for (const auto &option : endpoints) {
+    // Look for the "bind_port"
+    for (const auto &endpoint_option : option->sub_option) {
+      if (endpoint_option.first == "bind_port") {
+        auto value = convert_option_to_value(*endpoint_option.second);
+
+        if (value.as_string() == port) {
+          // Create a filtered schema with only the matched endpoint
+          Router_configuration_schema filtered_schema;
+          filtered_schema.options["endpoints"].push_back(
+              std::make_unique<Option>(*option));
+
+          // Return the endpoint name and its configuration schema
+          return std::make_pair(option->name, std::move(filtered_schema));
+        }
+      }
+    }
+  }
+
+  return std::nullopt;  // No matching endpoint found
+}
+
+std::vector<std::pair<std::string, Router_configuration_schema>>
+Router_configuration_schema::get_all_endpoints() const {
+  std::vector<std::pair<std::string, Router_configuration_schema>>
+      all_endpoints;
+
+  if (!options.contains("endpoints")) return all_endpoints;
+
+  // Copy "endpoints"
+  const auto &endpoints = options.at("endpoints");
+
+  for (const auto &option : endpoints) {
+    // Create a filtered schema for each endpoint
+    Router_configuration_schema filtered_schema;
+    filtered_schema.options["endpoints"].push_back(
+        std::make_unique<Option>(*option));
+
+    // Add the endpoint name and its configuration schema to the result
+    all_endpoints.emplace_back(option->name, std::move(filtered_schema));
+  }
+
+  return all_endpoints;
+}
+
 }  // namespace mysqlsh::dba

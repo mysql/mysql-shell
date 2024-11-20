@@ -63,6 +63,7 @@ class Command_conditions::Builder {
   static Builder gen_cluster(std::string_view name);
   static Builder gen_replicaset(std::string_view name);
   static Builder gen_clusterset(std::string_view name);
+  static Builder gen_routing_guideline(std::string_view name);
 
   Builder &min_mysql_version(mysqlshdk::utils::Version version);
 

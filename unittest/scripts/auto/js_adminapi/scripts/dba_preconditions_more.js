@@ -302,6 +302,18 @@ var expect_output = `ERROR: Incompatible Metadata version. This operation is dis
 
 check_exception(function(){ cluster.addReplicaInstance(__sandbox_uri2); }, expect_exp, expect_output);
 
+// Routing Guidelines related tests
+
+testutil.dbugSet("+d,md_assume_version_2_2_0");
+var expect_exp = "Metadata version is not compatible";
+var expect_output = `ERROR: Incompatible Metadata version. This operation is disallowed because the installed Metadata version '2.2.0' is lower than the required version, '2.3.0'. Upgrade the Metadata to remove this restriction. See \\? dba.upgradeMetadata for additional details.`;
+
+check_exception(function(){ cluster.createRoutingGuideline("foo"); }, expect_exp, expect_output);
+check_exception(function(){ cluster.getRoutingGuideline("foo"); }, expect_exp, expect_output);
+check_exception(function(){ cluster.routingGuidelines(); }, expect_exp, expect_output);
+check_exception(function(){ cluster.removeRoutingGuideline("foo"); }, expect_exp, expect_output);
+check_exception(function(){ cluster.importRoutingGuideline("foo"); }, expect_exp, expect_output);
+
 testutil.dbugSet("");
 
 //@<> Check for min MD version requirements for replicaset commands {VER(>=8.0.11) && !__dbug_off}

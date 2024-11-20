@@ -36,19 +36,20 @@ cluster.routingOptions();
 
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 {
-  "clusterName": "cluster",
-  "global": {
-      "read_only_targets": "secondaries",
-      "stats_updates_frequency": null,
-      "tags": {},
-      "unreachable_quorum_allowed_traffic": null
-  },
-  "routers": {
-      "routerhost1::system": {},
-      "routerhost2::": {},
-      "routerhost2::another": {},
-      "routerhost2::system": {}
-  }
+    "clusterName": "cluster",
+    "global": {
+        "guideline": null,
+        "read_only_targets": "secondaries",
+        "stats_updates_frequency": null,
+        "tags": {},
+        "unreachable_quorum_allowed_traffic": null
+    },
+    "routers": {
+        "routerhost1::system": {},
+        "routerhost2::": {},
+        "routerhost2::another": {},
+        "routerhost2::system": {}
+    }
 }
 `
 );

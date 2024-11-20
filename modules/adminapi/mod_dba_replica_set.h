@@ -78,6 +78,12 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined setInstanceOption(String instance, String option, String value);
   Dictionary options(Dictionary options);
   Dictionary execute(String cmd, Object instances, Dictionary options);
+  RoutingGuideline createRoutingGuideline(String name, Dictionary json,
+                                          Dictionary options);
+  RoutingGuideline getRoutingGuideline(String name);
+  Undefined removeRoutingGuideline(String name);
+  List routingGuidelines();
+  RoutingGuideline importRoutingGuideline(String file, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(REPLICASET_GETNAME_BRIEF)
   None add_instance(str instance, dict options);
@@ -103,6 +109,11 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   None set_option(str option, str value);
   None set_instance_option(str instance, str option, str value);
   dict execute(str cmd, object instances, dict options);
+  RoutingGuideline create_routing_guideline(str name, dict json, dict options);
+  RoutingGuideline get_routing_guideline(str name);
+  None remove_routing_guideline(str name);
+  list routing_guidelines();
+  RoutingGuideline import_routing_guideline(str file, dict options);
 #endif
 
   explicit ReplicaSet(const std::shared_ptr<Replica_set_impl> &cluster);
@@ -112,7 +123,10 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   std::string class_name() const override { return "ReplicaSet"; }
 
   std::shared_ptr<Replica_set_impl> impl() const { return m_impl; }
-  Base_cluster_impl *base_impl() const override { return m_impl.get(); }
+
+  std::shared_ptr<Base_cluster_impl> base_impl() const override {
+    return m_impl;
+  }
 
   void assert_valid(const std::string &option_name) const override;
 

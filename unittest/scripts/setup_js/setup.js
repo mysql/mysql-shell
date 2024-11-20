@@ -1995,9 +1995,12 @@ function STDCHECK_ARGTYPES(func, min_args, good_args1, good_args2, good_args3, g
       EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0]); }, "Invalid number of arguments");
   if (min_args >= 5)
       EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0], good_args4[0]); }, "Invalid number of arguments");
-  
+
   // check bad arg types (this test doesn't support alternative typing)
-  if (good_args5 === undefined) {
+  if (min_args === 0) {
+      // No arguments case: Ensure any arguments passed result in a "too many arguments" error.
+      EXPECT_THROWS(function() { func(good_args1[0]); }, "Invalid number of arguments");
+  } else if (good_args5 === undefined) {
       if (good_args4 === undefined) {
           if (good_args3 === undefined) {
               if (good_args2 === undefined) {
@@ -2040,7 +2043,7 @@ function STDCHECK_ARGTYPES(func, min_args, good_args1, good_args2, good_args3, g
           for (arg2 of get_bad_values(good_args2))
               EXPECT_THROWS(function() { func(good_args1[0], arg2, good_args3[0], good_args4[0]); }, "Argument #2 is expected to be "+type_name(good_args2[0]));
 
-          for (arg1 of get_bad_values(good_args1)) 
+          for (arg1 of get_bad_values(good_args1))
               EXPECT_THROWS(function() { func(arg1, good_args2[0], good_args3[0], good_args4[0]); }, "Argument #1 is expected to be "+type_name(good_args1[0]));
 
           EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0], good_args4[0], "extra"); }, "Invalid number of arguments");
@@ -2059,7 +2062,7 @@ function STDCHECK_ARGTYPES(func, min_args, good_args1, good_args2, good_args3, g
       for (arg2 of get_bad_values(good_args2))
           EXPECT_THROWS(function() { func(good_args1[0], arg2, good_args3[0], good_args4[0]); }, "Argument #2 is expected to be "+type_name(good_args2[0]));
 
-      for (arg1 of get_bad_values(good_args1)) 
+      for (arg1 of get_bad_values(good_args1))
           EXPECT_THROWS(function() { func(arg1, good_args2[0], good_args3[0], good_args4[0]); }, "Argument #1 is expected to be "+type_name(good_args1[0]));
 
       EXPECT_THROWS(function(){ func(good_args1[0], good_args2[0], good_args3[0], good_args4[0], good_args5[0], "extra"); }, "Invalid number of arguments");

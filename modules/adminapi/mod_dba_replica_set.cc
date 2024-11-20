@@ -113,6 +113,18 @@ void ReplicaSet::init() {
 
   expose("execute", &ReplicaSet::execute, "cmd", "instances", "?options")
       ->cli();
+  expose("createRoutingGuideline", &ReplicaSet::create_routing_guideline,
+         "name", "?json", "?options")
+      ->cli();
+  expose("getRoutingGuideline", &ReplicaSet::get_routing_guideline, "?name")
+      ->cli();
+  expose("removeRoutingGuideline", &ReplicaSet::remove_routing_guideline,
+         "name")
+      ->cli();
+  expose("routingGuidelines", &ReplicaSet::routing_guidelines)->cli();
+  expose("importRoutingGuideline", &ReplicaSet::import_routing_guideline,
+         "file", "?options")
+      ->cli();
 }
 
 // Documentation of the getName function
@@ -978,6 +990,8 @@ The accepted options are:
 the ReplicaSet metadata.
 @li stats_updates_frequency: Number of seconds between updates that the Router
 is to make to its statistics in the InnoDB Cluster metadata.
+@li guideline: Name of the Routing Guideline to be set as active
+in the ReplicaSet.
 
 The stats_updates_frequency option accepts positive integers and sets the
 frequency of updates of Router stats (timestamp, version, etc.), in seconds,
@@ -1200,6 +1214,78 @@ Dictionary ReplicaSet::execute(String cmd, Object instances,
                                Dictionary options) {}
 #elif DOXYGEN_PY
 dict ReplicaSet::execute(str cmd, Object instances, dict options);
+#endif
+
+REGISTER_HELP_FUNCTION(createRoutingGuideline, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_CREATEROUTINGGUIDELINE,
+                            CREATEROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(REPLICASET_CREATEROUTINGGUIDELINE_BRIEF)
+ *
+ * $(REPLICASET_CREATEROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline createRoutingGuideline(String name, Dictionary json,
+                                        Dictionary options) {}
+#elif DOXYGEN_PY
+RoutingGuideline create_routing_guideline(str name, dict json, dict options) {}
+#endif
+
+REGISTER_HELP_FUNCTION(getRoutingGuideline, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_GETROUTINGGUIDELINE,
+                            GETROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(REPLICASET_GETROUTINGGUIDELINE_BRIEF)
+ *
+ * $(REPLICASET_GETROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline getRoutingGuideline(String name) {}
+#elif DOXYGEN_PY
+RoutingGuideline get_routing_guideline(str name) {}
+#endif
+
+REGISTER_HELP_FUNCTION(removeRoutingGuideline, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_REMOVEROUTINGGUIDELINE,
+                            REMOVEROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(REPLICASET_REMOVEROUTINGGUIDELINE_BRIEF)
+ *
+ * $(REPLICASET_REMOVEROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+Undefined removeRoutingGuideline(String name) {}
+#elif DOXYGEN_PY
+None remove_routing_guideline(str name) {}
+#endif
+
+REGISTER_HELP_FUNCTION(routingGuidelines, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_ROUTINGGUIDELINES,
+                            ROUTINGGUIDELINES_HELP_TEXT);
+/**
+ * $(REPLICASET_ROUTINGGUIDELINES_BRIEF)
+ *
+ * $(REPLICASET_ROUTINGGUIDELINES)
+ */
+#if DOXYGEN_JS
+List routingGuidelines() {}
+#elif DOXYGEN_PY
+list routing_guidelines() {}
+#endif
+
+REGISTER_HELP_FUNCTION(importRoutingGuideline, ReplicaSet);
+REGISTER_HELP_FUNCTION_TEXT(REPLICASET_IMPORTROUTINGGUIDELINE,
+                            IMPORTROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(REPLICASET_IMPORTROUTINGGUIDELINE_BRIEF)
+ *
+ * $(REPLICASET_IMPORTROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline ReplicaSet::importRoutingGuideline(String file,
+                                                    Dictionary options) {}
+#elif DOXYGEN_PY
+RoutingGuideline ReplicaSet::import_routing_guideline(str file, dict options) {}
 #endif
 
 }  // namespace dba

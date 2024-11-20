@@ -251,6 +251,51 @@ cluster.help("setRoutingOption")
 //@ setRoutingOption, \help [USE:setRoutingOption]
 \help cluster.setRoutingOption
 
+//@ createRoutingGuideline
+cluster.help("createRoutingGuideline")
+
+//@ createRoutingGuideline, \? [USE:createRoutingGuideline]
+\? cluster.createRoutingGuideline
+
+//@ createRoutingGuideline, \help [USE:createRoutingGuideline]
+\help cluster.createRoutingGuideline
+
+//@ getRoutingGuideline
+cluster.help("getRoutingGuideline")
+
+//@ getRoutingGuideline, \? [USE:getRoutingGuideline]
+\? cluster.getRoutingGuideline
+
+//@ getRoutingGuideline, \help [USE:getRoutingGuideline]
+\help cluster.getRoutingGuideline
+
+//@ removeRoutingGuideline
+cluster.help("removeRoutingGuideline")
+
+//@ removeRoutingGuideline, \? [USE:removeRoutingGuideline]
+\? cluster.removeRoutingGuideline
+
+//@ removeRoutingGuideline, \help [USE:removeRoutingGuideline]
+\help cluster.removeRoutingGuideline
+
+//@ routingGuidelines
+cluster.help("routingGuidelines")
+
+//@ routingGuidelines, \? [USE:routingGuidelines]
+\? cluster.routingGuidelines
+
+//@ routingGuidelines, \help [USE:routingGuidelines]
+\help cluster.routingGuidelines
+
+//@ importRoutingGuideline
+cluster.help("importRoutingGuideline")
+
+//@ importRoutingGuideline, \? [USE:importRoutingGuideline]
+\? cluster.importRoutingGuideline
+
+//@ importRoutingGuideline, \help [USE:importRoutingGuideline]
+\help cluster.importRoutingGuideline
+
 //@<> Finalization
 cluster.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

@@ -77,3 +77,21 @@ callMysqlsh(["--", "cluster", "routing-options", "--help"])
 
 //@ CLI cluster router-options --help
 callMysqlsh(["--", "cluster", "router-options", "--help"])
+
+//@ CLI cluster execute --help
+callMysqlsh(["--", "cluster", "execute", "--help"])
+
+//@ CLI cluster create-routing-guideline --help
+callMysqlsh(["--", "cluster", "create-routing-guideline", "--help"])
+
+//@ CLI cluster get-routing-guideline --help
+callMysqlsh(["--", "cluster", "get_routing_guideline", "--help"])
+
+//@ CLI cluster remove-routing-guideline --help
+callMysqlsh(["--", "cluster", "remove_routing_guideline", "--help"])
+
+//@ CLI cluster routing-guidelines --help
+callMysqlsh(["--", "cluster", "routing_guidelines", "--help"])
+
+//@ CLI cluster import-routing-guideline --help
+callMysqlsh(["--", "cluster", "import-routing-guideline", "--help"])

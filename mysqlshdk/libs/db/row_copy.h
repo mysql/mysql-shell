@@ -102,6 +102,10 @@ class SHCORE_PUBLIC Mem_row : public IRow {
     Data() = default;
     explicit Data(std::vector<Type> types_)
         : types(std::move(types_)), fields(types.size()) {}
+
+    explicit Data(const std::vector<Column> &columns) : fields(columns.size()) {
+      for (const auto &c : columns) types.push_back(c.get_type());
+    }
   };
   std::shared_ptr<Data> _data;
   mutable std::string m_raw_data_cache;
@@ -199,9 +203,19 @@ class SHCORE_PUBLIC Mutable_row : public Mem_row {
     _data = std::make_shared<Data>(types);
   }
 
+  explicit Mutable_row(const std::vector<Column> &columns) {
+    _data = std::make_shared<Data>(columns);  // only types used
+  }
+
   template <class... Args>
   Mutable_row(const std::vector<Type> &types, Args... args) {
     _data = std::make_shared<Data>(types);
+    set_row_values(std::forward<Args>(args)...);
+  }
+
+  template <class... Args>
+  Mutable_row(const std::vector<Column> &columns, Args... args) {
+    _data = std::make_shared<Data>(columns);
     set_row_values(std::forward<Args>(args)...);
   }
 

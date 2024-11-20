@@ -25,6 +25,7 @@
 
 #include "modules/adminapi/common/base_cluster_impl.h"
 
+#include <exception>
 #include <memory>
 #include <string>
 #include <vector>
@@ -43,9 +44,11 @@
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/preconditions.h"
 #include "modules/adminapi/common/router.h"
+#include "modules/adminapi/common/routing_guideline_impl.h"
 #include "modules/adminapi/common/server_features.h"
 #include "modules/adminapi/common/setup_account.h"
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/mutable_result.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -54,7 +57,9 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/version.h"
+#include "scripting/types.h"
 #include "utils/logger.h"
+#include "utils/utils_string.h"
 
 namespace mysqlsh::dba {
 
@@ -1398,6 +1403,15 @@ void Base_cluster_impl::disconnect_internal() {
   }
 }
 
+bool Base_cluster_impl::is_cluster_clusterset_member() const {
+  if (Cluster_impl *cluster =
+          dynamic_cast<Cluster_impl *>(const_cast<Base_cluster_impl *>(this))) {
+    return cluster->is_cluster_set_member();
+  }
+
+  return false;
+}
+
 void Base_cluster_impl::set_routing_option(const std::string &router,
                                            const std::string &option,
                                            const shcore::Value &value) {
@@ -1445,6 +1459,100 @@ void Base_cluster_impl::set_routing_option(const std::string &router,
 
   auto value_fixed = validate_router_option(*this, opt, val);
 
+  // Handling for routing guidelines
+  bool global_routing_guideline =
+      opt == k_router_option_routing_guideline && router.empty() &&
+      value_fixed.get_type() == shcore::Value_type::String;
+
+  if (value_fixed.get_type() != shcore::Value_type::Null) {
+    if (global_routing_guideline) {
+      // Check if the guideline is already active
+      if (get_active_routing_guideline() == value.get_string()) {
+        mysqlsh::current_console()->print_info(shcore::str_format(
+            "Routing Guideline '%s' is already active in the topology.",
+            value.get_string().c_str()));
+        return;
+      }
+    }
+
+    // Check if all routers support the guideline
+    if (opt == k_router_option_routing_guideline) {
+      Routing_guideline_metadata rg =
+          get_metadata_storage()->get_routing_guideline(get_type(), get_id(),
+                                                        value.get_string());
+
+      mysqlshdk::utils::Version guideline_version;
+      auto guideline = shcore::Value::parse(rg.guideline).as_map();
+
+      if (guideline->has_key("version")) {
+        try {
+          guideline_version =
+              mysqlshdk::utils::Version(guideline->get_string("version"));
+        } catch (...) {
+          throw shcore::Exception(
+              shcore::str_format("Invalid routing guideline version '%s'",
+                                 guideline->at("version").descr().c_str()),
+              SHERR_DBA_ROUTING_GUIDELINE_INVALID_VERSION);
+        }
+      }
+
+      auto throw_error = [&](const std::vector<std::string> &routers) {
+        std::string router_list = shcore::str_join(routers, ", ");
+        throw shcore::Exception(
+            shcore::str_format(
+                "The following Routers in the %s do not support the "
+                "Routing Guideline and must be upgraded: %s",
+                to_display_string(get_type(), Display_form::THING).c_str(),
+                router_list.c_str()),
+            SHERR_DBA_ROUTER_UNSUPPORTED_FEATURE);
+      };
+
+      std::vector<std::string> unsupported_routers;
+
+      for (const auto &router_md :
+           get_metadata_storage()->get_routers(get_id())) {
+        std::string router_label = shcore::str_format(
+            "%s::%s", router_md.hostname.c_str(), router_md.name.c_str());
+
+        // If not setting globally, we just need to check the target router
+        if (!global_routing_guideline && router_label != router) continue;
+
+        // Check if the router's supported guidelines version is available
+        if (!router_md.supported_routing_guidelines_version.has_value()) {
+          unsupported_routers.push_back(router_label);
+          continue;
+        }
+
+        // Check if the guideline is supported by the router:
+        //  - Guideline_version < Router_supported_version
+        //  - Router_supported_version.major - Guideline_version.major <= 1
+        auto router_version = mysqlshdk::utils::Version(
+            *router_md.supported_routing_guidelines_version);
+        if ((guideline_version > router_version) ||
+            (router_version.get_major() - guideline_version.get_major() > 1)) {
+          unsupported_routers.push_back(router_label);
+        }
+      }
+
+      if (!unsupported_routers.empty()) {
+        throw_error(unsupported_routers);
+      }
+    }
+  }
+
+  // If 'read_only_targets' or 'use_replica_primary_as_rw' are being changed and
+  // there's an active routing guideline, warn users about it
+  if (std::string active_rg = get_active_routing_guideline();
+      !active_rg.empty() &&
+      (opt == k_router_option_read_only_targets ||
+       opt == k_router_option_use_replica_primary_as_rw)) {
+    mysqlsh::current_console()->print_warning(shcore::str_format(
+        "The '%s' setting has no effect because the "
+        "Routing Guideline '%s' is currently active in the topology. Routing "
+        "Guidelines take precedence over this configuration.",
+        opt.c_str(), active_rg.c_str()));
+  }
+
   auto msg = shcore::str_format("Routing option '%s' successfully updated",
                                 opt.c_str());
   if (router.empty()) {
@@ -1458,6 +1566,13 @@ void Base_cluster_impl::set_routing_option(const std::string &router,
   }
 
   mysqlsh::current_console()->print_info(msg);
+
+  if (global_routing_guideline) {
+    mysqlsh::current_console()->print_info(
+        shcore::str_format("Routing Guideline '%s' has been enabled and is now "
+                           "the active guideline for the topology.",
+                           val.get_string().c_str()));
+  }
 }
 
 shcore::Dictionary_t Base_cluster_impl::routing_options(
@@ -1493,6 +1608,471 @@ shcore::Dictionary_t Base_cluster_impl::router_options(
 
   return mysqlsh::dba::router_options(get_metadata_storage().get(), get_type(),
                                       get_id(), get_name(), *options);
+}
+
+std::shared_ptr<Routing_guideline_impl>
+Base_cluster_impl::create_routing_guideline(
+    std::shared_ptr<Base_cluster_impl> self, const std::string &name,
+    shcore::Dictionary_t json,
+    const shcore::Option_pack_ref<Create_routing_guideline_options> &options) {
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds =
+            Command_conditions::Builder::gen_cluster("createRoutingGuideline")
+                .target_instance(TargetType::InnoDBCluster,
+                                 TargetType::InnoDBClusterSet)
+                .quorum_state(ReplicationQuorum::States::Normal)
+                .compatibility_check(
+                    metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                .primary_required()
+                .cluster_global_status_any_ok()
+                .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset(
+                    "createRoutingGuideline")
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_required()
+                    .build();
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds = Command_conditions::Builder::gen_clusterset(
+                    "createRoutingGuideline")
+                    .quorum_state(ReplicationQuorum::States::All_online)
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"createRoutingGuideline\".");
+    }
+
+    check_preconditions(conds);
+
+    if (is_cluster_clusterset_member()) {
+      current_console()->print_error(shcore::str_format(
+          "Cluster '%s' is a member of a ClusterSet, use "
+          "<ClusterSet>.<<<createRoutingGuideline>>>() instead.",
+          get_name().c_str()));
+      throw shcore::Exception::runtime_error(
+          "Function not available for ClusterSet members");
+    }
+  }
+
+  return Routing_guideline_impl::create(self, name, json, options);
+}
+
+std::string Base_cluster_impl::get_router_option(
+    const std::string &option) const {
+  auto md = get_metadata_storage();
+  auto highest_router_version =
+      md->get_highest_bootstrapped_router_version(get_type(), get_id());
+
+  auto default_global_options = md->get_default_router_options(
+      get_type(), get_id(), highest_router_version);
+
+  auto default_global_options_parsed =
+      Router_configuration_schema(default_global_options);
+
+  std::string value;
+
+  if (!default_global_options_parsed.get_option_value(option, value)) {
+    return "";
+  }
+
+  return value;
+}
+
+std::string Base_cluster_impl::get_active_routing_guideline() const {
+  return get_router_option(k_router_option_routing_guideline);
+}
+
+namespace {
+Read_only_targets from_string(const std::string &str) {
+  std::string lowered_str = shcore::str_lower(str);
+
+  if (lowered_str == k_router_option_read_only_targets_secondaries) {
+    return Read_only_targets::SECONDARIES;
+  } else if (lowered_str == k_router_option_read_only_targets_read_replicas) {
+    return Read_only_targets::READ_REPLICAS;
+  } else if (lowered_str == k_router_option_read_only_targets_all) {
+    return Read_only_targets::ALL;
+  } else if (lowered_str.empty()) {
+    return Read_only_targets::NONE;
+  } else {
+    throw std::invalid_argument("Invalid value for Read_only_targets: " + str);
+  }
+}
+}  // namespace
+
+Read_only_targets Base_cluster_impl::get_read_only_targets_option() const {
+  std::string read_only_targets =
+      get_router_option(k_router_option_read_only_targets);
+
+  return from_string(read_only_targets);
+}
+
+bool Base_cluster_impl::has_guideline(const std::string &name) const {
+  return get_metadata_storage()->check_routing_guideline_exists(get_type(),
+                                                                get_id(), name);
+}
+
+const std::vector<Routing_guideline_metadata>
+Base_cluster_impl::get_routing_guidelines() const {
+  return get_metadata_storage()->get_routing_guidelines(get_type(), get_id());
+}
+
+void Base_cluster_impl::set_global_routing_option(const std::string &option,
+                                                  const shcore::Value &value) {
+  get_metadata_storage()->set_global_routing_option(get_type(), get_id(),
+                                                    option, value);
+}
+
+void Base_cluster_impl::store_routing_guideline(
+    const std::shared_ptr<Routing_guideline_impl> &guideline) {
+  auto console = mysqlsh::current_console();
+  bool first_rg_or_no_active = false;
+
+  std::string active_rg = get_active_routing_guideline();
+
+  if (get_routing_guidelines().empty() || active_rg.empty()) {
+    first_rg_or_no_active = true;
+  }
+
+  // Save to the metadata
+  guideline->save_guideline();
+
+  // First guideline created or no active guidelines
+  if (first_rg_or_no_active) {
+    console->print_info();
+    console->print_note(shcore::str_format(
+        "Routing guideline '%s' won't be made active by default. To activate "
+        "this guideline, please use .<<<setRoutingOption()>>> with the option "
+        "'guideline'.",
+        guideline->get_name().c_str()));
+  } else if (!active_rg.empty()) {
+    // Print a message indicating which Guideline is the active one, if any
+    console->print_info();
+    console->print_note(shcore::str_format(
+        "Routing Guideline '%s' is the guideline currently active in the '%s'.",
+        active_rg.c_str(), api_class(get_type()).c_str()));
+  }
+}
+
+std::shared_ptr<Routing_guideline_impl>
+Base_cluster_impl::get_routing_guideline(
+    std::shared_ptr<Base_cluster_impl> self, const std::string &name) {
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds = Command_conditions::Builder::gen_cluster("getRoutingGuideline")
+                    .target_instance(TargetType::InnoDBCluster,
+                                     TargetType::InnoDBClusterSet)
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_not_required()
+                    .cluster_global_status_any_ok()
+                    .cluster_global_status_add_not_ok()
+                    .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds =
+            Command_conditions::Builder::gen_replicaset("getRoutingGuideline")
+                .compatibility_check(
+                    metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                .primary_not_required()
+                .build();
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds =
+            Command_conditions::Builder::gen_clusterset("getRoutingGuideline")
+                .compatibility_check(
+                    metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                .primary_not_required()
+                .cluster_global_status_any_ok()
+                .cluster_global_status_add_not_ok()
+                .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"getRoutingGuideline\".");
+    }
+
+    check_preconditions(conds);
+
+    if (is_cluster_clusterset_member()) {
+      current_console()->print_error(shcore::str_format(
+          "Cluster '%s' is a member of a ClusterSet, use "
+          "<ClusterSet>.<<<getRoutingGuideline>>>() instead.",
+          get_name().c_str()));
+      throw shcore::Exception::runtime_error(
+          "Function not available for ClusterSet members");
+    }
+  }
+
+  if (name.empty()) {
+    std::string active_rg = get_active_routing_guideline();
+
+    if (active_rg.empty()) {
+      throw std::invalid_argument("No active Routing Guideline");
+    }
+
+    return Routing_guideline_impl::load(self, active_rg);
+  }
+
+  return Routing_guideline_impl::load(self, name);
+}
+
+void Base_cluster_impl::remove_routing_guideline(const std::string &name) {
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds =
+            Command_conditions::Builder::gen_cluster("removeRoutingGuideline")
+                .target_instance(TargetType::InnoDBCluster,
+                                 TargetType::InnoDBClusterSet)
+                .quorum_state(ReplicationQuorum::States::Normal)
+                .compatibility_check(
+                    metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                .primary_required()
+                .cluster_global_status_any_ok()
+                .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset(
+                    "removeRoutingGuideline")
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_required()
+                    .build();
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds = Command_conditions::Builder::gen_clusterset(
+                    "removeRoutingGuideline")
+                    .quorum_state(ReplicationQuorum::States::All_online)
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"removeRoutingGuideline\".");
+    }
+
+    check_preconditions(conds);
+
+    if (is_cluster_clusterset_member()) {
+      current_console()->print_error(shcore::str_format(
+          "Cluster '%s' is a member of a ClusterSet, use "
+          "<ClusterSet>.<<<removeRoutingGuideline>>>() instead.",
+          get_name().c_str()));
+      throw shcore::Exception::runtime_error(
+          "Function not available for ClusterSet members");
+    }
+  }
+
+  auto md = get_metadata_storage();
+  MetadataStorage::Transaction trx(md);
+
+  // Get the default router options, i.e. the topology global ones, to check if
+  // the guideline is being in use. If not, proceed to check every single router
+  // options to check if any is using it
+  {
+    if (get_active_routing_guideline() == name) {
+      current_console()->print_error(
+          "Routing Guideline '" + name +
+          "' is currently being used by the topology.");
+      throw shcore::Exception(
+          "Routing Guideline is in use and cannot be deleted",
+          SHERR_DBA_ROUTING_GUIDELINE_IN_USE);
+    } else if (auto router_options_md =
+                   md->get_router_options(get_type(), get_id()).as_map()) {
+      for (const auto &[name_router, options] : *router_options_md) {
+        auto configuration_map_parsed = Router_configuration_schema(options);
+
+        if (configuration_map_parsed.is_option_set_to_value(
+                k_router_option_routing_guideline, name)) {
+          current_console()->print_error(
+              "Routing Guideline '" + name +
+              "' is currently being used by Router '" + name_router + "'");
+          throw shcore::Exception(
+              "Routing Guideline is in use and cannot be deleted",
+              SHERR_DBA_ROUTING_GUIDELINE_IN_USE);
+        }
+      }
+    }
+  }
+
+  md->delete_routing_guideline(name);
+  trx.commit();
+}
+
+std::unique_ptr<mysqlshdk::db::IResult> Base_cluster_impl::routing_guidelines(
+    std::shared_ptr<Base_cluster_impl> self) {
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds = Command_conditions::Builder::gen_cluster("routingGuidelines")
+                    .target_instance(TargetType::InnoDBCluster,
+                                     TargetType::InnoDBClusterSet)
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_not_required()
+                    .cluster_global_status_any_ok()
+                    .cluster_global_status_add_not_ok()
+                    .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset("routingGuidelines")
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_not_required()
+                    .build();
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds = Command_conditions::Builder::gen_clusterset("routingGuidelines")
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_not_required()
+                    .cluster_global_status_any_ok()
+                    .cluster_global_status_add_not_ok()
+                    .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"routingGuidelines\".");
+    }
+
+    if (is_cluster_clusterset_member()) {
+      current_console()->print_error(
+          shcore::str_format("Cluster '%s' is a member of a ClusterSet, use "
+                             "<ClusterSet>.<<<routingGuidelines>>>() instead.",
+                             get_name().c_str()));
+      throw shcore::Exception::runtime_error(
+          "Function not available for ClusterSet members");
+    }
+
+    check_preconditions(conds);
+  }
+
+  using mysqlshdk::db::Mutable_result;
+
+  static std::vector<mysqlshdk::db::Column> columns(
+      {Mutable_result::make_column("guideline"),
+       Mutable_result::make_column("active", mysqlshdk::db::Type::Integer),
+       Mutable_result::make_column("routes"),
+       Mutable_result::make_column("destinations")});
+
+  auto result = std::make_unique<Mutable_result>(columns);
+
+  for (const auto &guideline :
+       get_metadata_storage()->get_routing_guidelines(get_type(), get_id())) {
+    try {
+      auto po = Routing_guideline_impl::load(self, guideline);
+
+      std::string route_names;
+      auto routes = po->get_routes();
+
+      if (routes) {
+        for (auto row = routes->fetch_one_named(); row;
+             row = routes->fetch_one_named()) {
+          route_names.append(row.get_string("name")).append(",");
+        }
+        if (!route_names.empty()) route_names.pop_back();
+      }
+
+      std::string destination_names;
+      auto destinations = po->get_destinations();
+
+      if (destinations) {
+        for (auto row = destinations->fetch_one_named(); row;
+             row = destinations->fetch_one_named()) {
+          destination_names.append(row.get_string("destination")).append(",");
+        }
+        if (!destination_names.empty()) destination_names.pop_back();
+      }
+
+      result->append(guideline.name,
+                     get_active_routing_guideline() == guideline.name,
+                     route_names, destination_names);
+    } catch (std::exception &e) {
+      auto console = current_console();
+      console->print_warning(
+          shcore::str_format("Unable to load Routing Guideline '%s':\n %s",
+                             guideline.name.c_str(), e.what()));
+      console->print_info();
+      result->append(guideline.name, false, "<invalid>", "<invalid>");
+    }
+  }
+  return result;
+}
+
+std::shared_ptr<Routing_guideline_impl>
+Base_cluster_impl::import_routing_guideline(
+    std::shared_ptr<Base_cluster_impl> self, const std::string &file_path,
+    const shcore::Option_pack_ref<Import_routing_guideline_options> &options) {
+  {
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds =
+            Command_conditions::Builder::gen_cluster("importRoutingGuideline")
+                .target_instance(TargetType::InnoDBCluster,
+                                 TargetType::InnoDBClusterSet)
+                .quorum_state(ReplicationQuorum::States::Normal)
+                .compatibility_check(
+                    metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                .primary_required()
+                .cluster_global_status_any_ok()
+                .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset(
+                    "importRoutingGuideline")
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_required()
+                    .build();
+        break;
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds = Command_conditions::Builder::gen_clusterset(
+                    "importRoutingGuideline")
+                    .quorum_state(ReplicationQuorum::States::All_online)
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+                    .primary_required()
+                    .cluster_global_status_any_ok()
+                    .build();
+        break;
+      default:
+        throw std::logic_error(
+            "Command context is incorrect for \"importRoutingGuideline\".");
+    }
+
+    check_preconditions(conds);
+
+    if (is_cluster_clusterset_member()) {
+      current_console()->print_error(shcore::str_format(
+          "Cluster '%s' is a member of a ClusterSet, use "
+          "<ClusterSet>.<<<importRoutingGuideline>>>() instead.",
+          get_name().c_str()));
+      throw shcore::Exception::runtime_error(
+          "Function not available for ClusterSet members");
+    }
+  }
+
+  return Routing_guideline_impl::import(self, file_path, options);
 }
 
 }  // namespace mysqlsh::dba

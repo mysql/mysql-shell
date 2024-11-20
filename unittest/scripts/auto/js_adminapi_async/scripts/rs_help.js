@@ -173,6 +173,51 @@ rs.help("listRouters")
 //@ listRouters. \help [USE:listRouters]
 \help ReplicaSet.listRouters
 
+//@ createRoutingGuideline
+rs.help("createRoutingGuideline")
+
+//@ createRoutingGuideline, \? [USE:createRoutingGuideline]
+\? ReplicaSet.createRoutingGuideline
+
+//@ createRoutingGuideline, \help [USE:createRoutingGuideline]
+\help ReplicaSet.createRoutingGuideline
+
+//@ getRoutingGuideline
+rs.help("getRoutingGuideline")
+
+//@ getRoutingGuideline, \? [USE:getRoutingGuideline]
+\? ReplicaSet.getRoutingGuideline
+
+//@ getRoutingGuideline, \help [USE:getRoutingGuideline]
+\help ReplicaSet.getRoutingGuideline
+
+//@ removeRoutingGuideline
+rs.help("removeRoutingGuideline")
+
+//@ removeRoutingGuideline, \? [USE:removeRoutingGuideline]
+\? ReplicaSet.removeRoutingGuideline
+
+//@ removeRoutingGuideline, \help [USE:removeRoutingGuideline]
+\help ReplicaSet.removeRoutingGuideline
+
+//@ routingGuidelines
+rs.help("routingGuidelines")
+
+//@ routingGuidelines, \? [USE:routingGuidelines]
+\? ReplicaSet.routingGuidelines
+
+//@ routingGuidelines, \help [USE:routingGuidelines]
+\help ReplicaSet.routingGuidelines
+
+//@ importRoutingGuideline
+rs.help("importRoutingGuideline")
+
+//@ importRoutingGuideline, \? [USE:importRoutingGuideline]
+\? ReplicaSet.importRoutingGuideline
+
+//@ importRoutingGuideline, \help [USE:importRoutingGuideline]
+\help ReplicaSet.importRoutingGuideline
+
 //@<> Clean-up.
 rs.disconnect();
 testutil.destroySandbox(__mysql_sandbox_port1);

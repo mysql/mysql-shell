@@ -152,6 +152,18 @@ void Cluster::init() {
       ->cli();
 
   expose("execute", &Cluster::execute, "cmd", "instances", "?options")->cli();
+
+  expose("createRoutingGuideline", &Cluster::create_routing_guideline, "name",
+         "?json", "?options")
+      ->cli();
+  expose("getRoutingGuideline", &Cluster::get_routing_guideline, "?name")
+      ->cli();
+  expose("removeRoutingGuideline", &Cluster::remove_routing_guideline, "name")
+      ->cli();
+  expose("routingGuidelines", &Cluster::routing_guidelines)->cli();
+  expose("importRoutingGuideline", &Cluster::import_routing_guideline, "file",
+         "?options")
+      ->cli();
 }
 
 // Documentation of the getName function
@@ -1183,8 +1195,11 @@ the Cluster metadata.
 instance. Default is 'secondaries'.
 @li stats_updates_frequency: Number of seconds between updates that the Router
 is to make to its statistics in the InnoDB Cluster metadata.
-@li unreachable_quorum_allowed_traffic: Routing policy to define Router's behavior
-regarding traffic destinations (ports) when it loses access to the Cluster's quorum.
+@li unreachable_quorum_allowed_traffic: Routing policy to define Router's
+behavior regarding traffic destinations (ports) when it loses access to the
+Cluster's quorum.
+@li guideline: Name of the Routing Guideline to be set as active
+in the Cluster.
 
 The read_only_targets option supports the following values:
 
@@ -1231,6 +1246,9 @@ writes on a partition with no quorum will block until quorum is restored.
 This option has no practical effect if group_replication_unreachable_majority_timeout
 is set to a positive value and group_replication_exit_state_action is either
 OFFLINE_MODE or ABORT_SERVER.
+
+@attention When the Cluster has an active Routing Guideline, the option
+'read_only_targets' is ignored since the Guideline has precedence over it.
 )*");
 
 #if DOXYGEN_JS
@@ -1591,9 +1609,9 @@ for failover with <<<forcePrimaryCluster>>>().
  * $(CLUSTER_GETCLUSTERSET)
  */
 #if DOXYGEN_JS
-ReplicaSet Cluster::getClusterSet() {}
+ClusterSet Cluster::getClusterSet() {}
 #elif DOXYGEN_PY
-ReplicaSet Cluster::get_cluster_set() {}
+ClusterSet Cluster::get_cluster_set() {}
 #endif
 std::shared_ptr<ClusterSet> Cluster::get_cluster_set() const {
   assert_valid("getClusterSet");
@@ -1773,6 +1791,79 @@ secondaries) instances are targeted, except the read-replicas.
 Dictionary Cluster::execute(String cmd, Object instances, Dictionary options) {}
 #elif DOXYGEN_PY
 dict Cluster::execute(str cmd, Object instances, dict options);
+#endif
+
+REGISTER_HELP_FUNCTION(createRoutingGuideline, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_CREATEROUTINGGUIDELINE,
+                            CREATEROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTER_CREATEROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTER_CREATEROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline Cluster::createRoutingGuideline(String name, Dictionary json,
+                                                 Dictionary options) {}
+#elif DOXYGEN_PY
+RoutingGuideline Cluster::create_routing_guideline(str name, dict json,
+                                                   dict options) {}
+#endif
+
+REGISTER_HELP_FUNCTION(getRoutingGuideline, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_GETROUTINGGUIDELINE,
+                            GETROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTER_GETROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTER_GETROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline Cluster::getRoutingGuideline(String name) {}
+#elif DOXYGEN_PY
+RoutingGuideline Cluster::get_routing_guideline(str name) {}
+#endif
+
+REGISTER_HELP_FUNCTION(removeRoutingGuideline, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_REMOVEROUTINGGUIDELINE,
+                            REMOVEROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTER_REMOVEROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTER_REMOVEROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+Undefined Cluster::removeRoutingGuideline(String name) {}
+#elif DOXYGEN_PY
+None Cluster::remove_routing_guideline(str name) {}
+#endif
+
+REGISTER_HELP_FUNCTION(routingGuidelines, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ROUTINGGUIDELINES,
+                            ROUTINGGUIDELINES_HELP_TEXT);
+/**
+ * $(CLUSTER_ROUTINGGUIDELINES_BRIEF)
+ *
+ * $(CLUSTER_ROUTINGGUIDELINES)
+ */
+#if DOXYGEN_JS
+List Cluster::routingGuidelines() {}
+#elif DOXYGEN_PY
+list Cluster::routing_guidelines() {}
+#endif
+
+REGISTER_HELP_FUNCTION(importRoutingGuideline, Cluster);
+REGISTER_HELP_FUNCTION_TEXT(CLUSTER_IMPORTROUTINGGUIDELINE,
+                            IMPORTROUTINGGUIDELINE_HELP_TEXT);
+/**
+ * $(CLUSTER_IMPORTROUTINGGUIDELINE_BRIEF)
+ *
+ * $(CLUSTER_IMPORTROUTINGGUIDELINE)
+ */
+#if DOXYGEN_JS
+RoutingGuideline Cluster::importRoutingGuideline(String file,
+                                                 Dictionary options) {}
+#elif DOXYGEN_PY
+RoutingGuideline Cluster::import_routing_guideline(str file, dict options) {}
 #endif
 
 }  // namespace dba

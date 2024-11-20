@@ -88,6 +88,7 @@ enum class Compatibility {
   INCOMPATIBLE_MIN_VERSION_2_0_0,  // minimum MD 2.0.0 version required
   INCOMPATIBLE_MIN_VERSION_2_1_0,  // minimum MD 2.1.0 version required
   INCOMPATIBLE_MIN_VERSION_2_2_0,  // minimum MD 2.2.0 version required
+  INCOMPATIBLE_MIN_VERSION_2_3_0,  // minimum MD 2.3.0 version required
   IGNORE_NON_EXISTING,             // don't error out if MD doesn't exist
   IGNORE_FAILED_UPGRADE            // don't error out if FAILED_UPGRADE
 };

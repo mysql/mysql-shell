@@ -40,7 +40,12 @@ validate_members(cluster, [
     'add_replica_instance',
     'routing_options',
     'set_routing_option',
-    'router_options'
+    'router_options',
+    'create_routing_guideline',
+    'get_routing_guideline',
+    'routing_guidelines',
+    'remove_routing_guideline',
+    'import_routing_guideline'
     ])
 
 cluster.disconnect()

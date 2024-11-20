@@ -157,8 +157,9 @@ void Set_option::ensure_option_valid() const {
           "string.");
     }
 
-    mysqlsh::dba::validate_cluster_name(std::get<std::string>(m_value),
-                                        Cluster_type::GROUP_REPLICATION);
+    mysqlsh::dba::validate_name(std::get<std::string>(m_value),
+                                Validation_context::TOPOLOGY,
+                                Cluster_type::GROUP_REPLICATION);
     return;
   }
 

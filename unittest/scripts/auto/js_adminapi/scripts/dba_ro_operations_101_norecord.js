@@ -35,7 +35,7 @@ testutil.rmfile(metadata_1_0_1_file);
 //@<> Get Cluster from master
 var c;
 EXPECT_NO_THROWS(function(){ c = dba.getCluster(); });
-EXPECT_OUTPUT_CONTAINS("WARNING: The installed metadata version '1.0.1' is lower than the version supported by Shell, version '2.2.0'. It is recommended to upgrade the Metadata. See \\? dba.upgradeMetadata for additional details.");
+EXPECT_OUTPUT_CONTAINS("WARNING: The installed metadata version '1.0.1' is lower than the version supported by Shell, version '2.3.0'. It is recommended to upgrade the Metadata. See \\? dba.upgradeMetadata for additional details.");
 
 //@ Status from master
 testutil.wipeAllOutput();
@@ -55,7 +55,7 @@ shell.connect(__sandbox_uri2);
 testutil.waitMemberTransactions(__mysql_sandbox_port2, __mysql_sandbox_port1);
 
 var c = dba.getCluster();
-EXPECT_OUTPUT_CONTAINS("WARNING: The installed metadata version '1.0.1' is lower than the version supported by Shell, version '2.2.0'. It is recommended to upgrade the Metadata. See \\? dba.upgradeMetadata for additional details.")
+EXPECT_OUTPUT_CONTAINS("WARNING: The installed metadata version '1.0.1' is lower than the version supported by Shell, version '2.3.0'. It is recommended to upgrade the Metadata. See \\? dba.upgradeMetadata for additional details.")
 
 //@ Status from slave  [USE:Status from master]
 testutil.wipeAllOutput();

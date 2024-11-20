@@ -15,6 +15,9 @@ FUNCTIONS
       addInstance(instance[, options])
             Adds an instance to the replicaset.
 
+      createRoutingGuideline(name[, json][, options])
+            Creates a new Routing Guideline for the ReplicaSet.
+
       describe()
             Describe the structure of the ReplicaSet.
 
@@ -33,8 +36,14 @@ FUNCTIONS
       getName()
             Returns the name of the replicaset.
 
+      getRoutingGuideline([name])
+            Returns the named Routing Guideline.
+
       help([member])
             Provides help about this class and it's members
+
+      importRoutingGuideline(file[, options])
+            Imports a Routing Guideline from a JSON file into the ReplicaSet.
 
       listRouters([options])
             Lists the Router instances.
@@ -51,11 +60,17 @@ FUNCTIONS
       removeRouterMetadata(routerDef)
             Removes metadata for a router instance.
 
+      removeRoutingGuideline(name)
+            Removes the named Routing Guideline.
+
       rescan(options)
             Rescans the ReplicaSet.
 
       routerOptions(options)
             Lists the configuration options of the ReplicaSet's Routers.
+
+      routingGuidelines()
+            Lists the Routing Guidelines defined for the ReplicaSet.
 
       routingOptions([router])
             Lists the ReplicaSet Routers configuration options.
@@ -790,6 +805,8 @@ DESCRIPTION
         with the ReplicaSet metadata.
       - stats_updates_frequency: Number of seconds between updates that the
         Router is to make to its statistics in the InnoDB Cluster metadata.
+      - guideline: Name of the Routing Guideline to be set as active in the
+        ReplicaSet.
 
       The stats_updates_frequency option accepts positive integers and sets the
       frequency of updates of Router stats (timestamp, version, etc.), in
@@ -1024,3 +1041,137 @@ DESCRIPTION
       - onlyUpgradeRequired: boolean, enables filtering so only router
         instances that support older version of the Metadata Schema and require
         upgrade are included.
+
+//@<OUT> createRoutingGuideline
+NAME
+      createRoutingGuideline - Creates a new Routing Guideline for the
+                               ReplicaSet.
+
+SYNTAX
+      <ReplicaSet>.createRoutingGuideline(name[, json][, options])
+
+WHERE
+      name: The identifier name for the new Routing Guideline.
+      json: JSON document defining the Routing Guideline content.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A RoutingGuideline object representing the newly created Routing
+      Guideline.
+
+DESCRIPTION
+      This command creates a new Routing Guideline that defines MySQL Router's
+      routing behavior using rules that specify potential destination MySQL
+      servers for incoming client sessions.
+
+      You can optionally pass a JSON document defining the Routing Guideline
+      via the 'json' parameter. This must be a valid Routing Guideline
+      definition, with the exception of the "name" field, which is overridden
+      by the provided 'name' parameter.
+
+      If the 'json' parameter is not provided, a default Routing Guideline is
+      created based on the parent topology type. The guideline is automatically
+      populated with default values tailored to the topology, ensuring the
+      Router's default behavior for that topology is represented.
+
+      The newly created guideline won't be set as the active guideline for the
+      topology. That needs to be explicitly done with
+      ReplicaSet.setRoutingOption() using the option 'guideline'.
+
+      The following options are supported:
+
+      - force (boolean): Allows overwriting an existing Routing Guideline with
+        the specified name. Disabled by default.
+
+      Behavior
+
+      - If 'json' is not provided, a default Routing Guideline is created
+        according to the parent topology type.
+      - If 'json' is provided, the content from the JSON is used, except for
+        the "name" field, which is overridden by the 'name' parameter.
+
+      For more information on Routing Guidelines, see \? RoutingGuideline.
+
+//@<OUT> getRoutingGuideline
+NAME
+      getRoutingGuideline - Returns the named Routing Guideline.
+
+SYNTAX
+      <ReplicaSet>.getRoutingGuideline([name])
+
+WHERE
+      name: Name of the Guideline to be returned.
+
+RETURNS
+      The Routing Guideline object.
+
+DESCRIPTION
+      Returns the named Routing Guideline object associated to the ReplicaSet.
+      If no name is given, the guideline currently active for the ReplicaSet is
+      returned. If there is none, then an exception is thrown.
+
+      For more information about Routing Guidelines, see \? RoutingGuideline
+
+//@<OUT> removeRoutingGuideline
+NAME
+      removeRoutingGuideline - Removes the named Routing Guideline.
+
+SYNTAX
+      <ReplicaSet>.removeRoutingGuideline(name)
+
+WHERE
+      name: Name of the Guideline to be removed.
+
+RETURNS
+      Nothing.
+
+DESCRIPTION
+      Removes the named Routing Guideline object associated to the ReplicaSet.
+
+      For more information about Routing Guidelines, see \? RoutingGuideline
+
+//@<OUT> routingGuidelines
+NAME
+      routingGuidelines - Lists the Routing Guidelines defined for the
+                          ReplicaSet.
+
+SYNTAX
+      <ReplicaSet>.routingGuidelines()
+
+RETURNS
+      The list of Routing Guidelines of the ReplicaSet.
+
+DESCRIPTION
+      For more information about Routing Guidelines, see \? RoutingGuideline
+
+//@<OUT> importRoutingGuideline
+NAME
+      importRoutingGuideline - Imports a Routing Guideline from a JSON file
+                               into the ReplicaSet.
+
+SYNTAX
+      <ReplicaSet>.importRoutingGuideline(file[, options])
+
+WHERE
+      file: The file path to the JSON file containing the Routing Guideline.
+      options: Dictionary with options for the operation.
+
+RETURNS
+      A RoutingGuideline object representing the newly imported Routing
+      Guideline.
+
+DESCRIPTION
+      This command imports a Routing Guideline from a JSON file into the target
+      topology. The imported guideline will be validated before it is saved in
+      the topology's metadata.
+
+      The imported guideline won't be set as the active guideline for the
+      topology. That needs to be explicitly done with
+      ReplicaSet.setRoutingOption() using the option 'guideline'.
+
+      The following options are supported:
+
+      - force (boolean): Allows overwriting an existing Routing Guideline with
+        the same name. Disabled by default.
+
+      For more information on Routing Guidelines, see \? RoutingGuideline.

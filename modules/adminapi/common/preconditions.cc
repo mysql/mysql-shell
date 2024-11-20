@@ -217,6 +217,21 @@ Command_conditions::Builder Command_conditions::Builder::gen_clusterset(
   return builder;
 }
 
+Command_conditions::Builder Command_conditions::Builder::gen_routing_guideline(
+    std::string_view name) {
+  Builder builder;
+  builder.m_conds.name = shcore::str_format(
+      "RoutingGuideline.%.*s", static_cast<int>(name.size()), name.data());
+
+  builder.min_mysql_version(
+      Precondition_checker::k_min_adminapi_server_version);
+  builder.target_instance(TargetType::InnoDBCluster,
+                          TargetType::InnoDBClusterSet,
+                          TargetType::AsyncReplicaSet);
+
+  return builder;
+}
+
 Command_conditions::Builder &Command_conditions::Builder::min_mysql_version(
     mysqlshdk::utils::Version version) {
   m_conds.min_mysql_version = std::move(version);
@@ -826,7 +841,8 @@ metadata::State Precondition_checker::check_metadata_state_actions(
     switch (cur_compatibility) {
       case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0:
       case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0:
-      case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_2_0: {
+      case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_2_0:
+      case metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0: {
         auto version_required = mysqlshdk::utils::Version(2, 0, 0);
         if (cur_compatibility ==
             metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0)
@@ -834,6 +850,9 @@ metadata::State Precondition_checker::check_metadata_state_actions(
         else if (cur_compatibility ==
                  metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_2_0)
           version_required = mysqlshdk::utils::Version(2, 2, 0);
+        else if (cur_compatibility ==
+                 metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_3_0)
+          version_required = mysqlshdk::utils::Version(2, 3, 0);
 
         auto version_installed = m_metadata->installed_version();
         DBUG_EXECUTE_IF("md_assume_version_1_0_1", {
@@ -844,6 +863,9 @@ metadata::State Precondition_checker::check_metadata_state_actions(
         });
         DBUG_EXECUTE_IF("md_assume_version_2_1_0", {
           version_installed = mysqlshdk::utils::Version(2, 1, 0);
+        });
+        DBUG_EXECUTE_IF("md_assume_version_2_2_0", {
+          version_installed = mysqlshdk::utils::Version(2, 2, 0);
         });
 
         if (version_installed >= version_required) continue;

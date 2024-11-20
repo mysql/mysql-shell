@@ -169,7 +169,7 @@ inline constexpr shcore::Option_data<std::optional<std::string>>
 inline constexpr shcore::Option_data<bool> kOptionGtidSetIsComplete{
     "gtidSetIsComplete"};
 
-constexpr shcore::Option_data<std::string> kOptionReplicationAllowedHost{
+inline constexpr shcore::Option_data<std::string> kOptionReplicationAllowedHost{
     "replicationAllowedHost"};
 
 }  // namespace mysqlsh::dba

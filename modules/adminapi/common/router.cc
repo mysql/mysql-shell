@@ -29,12 +29,14 @@
 #include <utility>
 #include <vector>
 
+#include "adminapi/common/base_cluster_impl.h"
 #include "adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/router_options.h"
 #include "scripting/types.h"
+#include "utils/utils_string.h"
 #include "utils/version.h"
 
 namespace mysqlsh {
@@ -50,19 +52,21 @@ const std::map<std::string, shcore::Value> k_default_clusterset_router_options =
      {k_router_option_use_replica_primary_as_rw, shcore::Value::False()},
      {k_router_option_tags, shcore::Value(shcore::make_dict())},
      {k_router_option_read_only_targets,
-      shcore::Value(k_default_router_option_read_only_targets)}};
+      shcore::Value(k_default_router_option_read_only_targets)},
+     {k_router_option_routing_guideline, shcore::Value::Null()}};
 
 const std::map<std::string, shcore::Value> k_default_cluster_router_options = {
     {k_router_option_tags, shcore::Value(shcore::make_dict())},
     {k_router_option_read_only_targets,
      shcore::Value(k_default_router_option_read_only_targets)},
     {k_router_option_stats_updates_frequency, shcore::Value::Null()},
-    {k_router_option_unreachable_quorum_allowed_traffic,
-     shcore::Value::Null()}};
+    {k_router_option_unreachable_quorum_allowed_traffic, shcore::Value::Null()},
+    {k_router_option_routing_guideline, shcore::Value::Null()}};
 
 const std::map<std::string, shcore::Value> k_default_replicaset_router_options =
     {{k_router_option_tags, shcore::Value(shcore::make_dict())},
-     {k_router_option_stats_updates_frequency, shcore::Value::Null()}};
+     {k_router_option_stats_updates_frequency, shcore::Value::Null()},
+     {k_router_option_routing_guideline, shcore::Value::Null()}};
 
 inline bool is_router_upgrade_required(
     const mysqlshdk::utils::Version &version) {
@@ -131,6 +135,23 @@ shcore::Dictionary_t get_router_dict(const Router_metadata &router_md,
     (*router)["rwSplitPort"] = shcore::Value::Null();
   else
     (*router)["rwSplitPort"] = shcore::Value(*router_md.rw_split_port);
+
+  if (!router_md.local_cluster.has_value())
+    (*router)["localCluster"] = shcore::Value::Null();
+  else
+    (*router)["localCluster"] = shcore::Value(*router_md.local_cluster);
+
+  if (!router_md.current_routing_guideline.has_value())
+    (*router)["currentRoutingGuideline"] = shcore::Value::Null();
+  else
+    (*router)["currentRoutingGuideline"] =
+        shcore::Value(*router_md.current_routing_guideline);
+
+  if (!router_md.supported_routing_guidelines_version.has_value())
+    (*router)["supportedRoutingGuidelinesVersion"] = shcore::Value::Null();
+  else
+    (*router)["supportedRoutingGuidelinesVersion"] =
+        shcore::Value(*router_md.supported_routing_guidelines_version);
 
   return router;
 }
@@ -509,8 +530,25 @@ shcore::Value validate_router_option(const Base_cluster_impl &cluster,
                              k_router_option_read_only_targets_read_replicas,
                              k_router_option_read_only_targets_secondaries));
     }
+  } else if (name == k_router_option_routing_guideline) {
+    if (value.get_type() == shcore::Value_type::String) {
+      // Translate the name into the routing guideline ID. If not found, it
+      // errors out
+      try {
+        Routing_guideline_metadata rg =
+            cluster.get_metadata_storage()->get_routing_guideline(
+                cluster.get_type(), cluster.get_id(), value.get_string());
+        fixed_value = shcore::Value(rg.id);
+      } catch (const shcore::Exception &) {
+        throw;
+      }
+    } else {
+      throw shcore::Exception::argument_error(
+          shcore::str_format("Invalid value for routing option '%s'. Accepted "
+                             "value must be valid Routing Guideline name.",
+                             k_router_option_routing_guideline));
+    }
   }
-
   return fixed_value;
 }
 

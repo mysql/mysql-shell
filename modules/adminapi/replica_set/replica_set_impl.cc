@@ -255,8 +255,8 @@ std::shared_ptr<Replica_set_impl> Replica_set_impl::create(
   auto i_lock = target_server->get_lock_exclusive();
 
   // Validate the cluster_name
-  mysqlsh::dba::validate_cluster_name(full_cluster_name,
-                                      Cluster_type::ASYNC_REPLICATION);
+  mysqlsh::dba::validate_name(full_cluster_name, Validation_context::TOPOLOGY,
+                              Cluster_type::ASYNC_REPLICATION);
 
   // if adopting, memberAuth only support "password"
   if (options.adopt) {

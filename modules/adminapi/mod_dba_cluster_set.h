@@ -72,6 +72,12 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Undefined setOption(String option, String value);
   Dictionary options();
   Dictionary execute(String cmd, Object instances, Dictionary options);
+  RoutingGuideline createRoutingGuideline(String name, Dictionary json,
+                                          Dictionary options);
+  RoutingGuideline getRoutingGuideline(String name);
+  Undefined removeRoutingGuideline(String name);
+  List routingGuidelines();
+  RoutingGuideline importRoutingGuideline(String file, Dictionary options);
 #elif DOXYGEN_PY
   str name;  //!< $(CLUSTERSET_GETNAME_BRIEF)
   str get_name();
@@ -95,6 +101,11 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   None set_option(str option, str value);
   dict options();
   dict execute(str cmd, object instances, dict options);
+  RoutingGuideline create_routing_guideline(str name, dict json, dict options);
+  RoutingGuideline get_routing_guideline(str name);
+  None remove_routing_guideline(str name);
+  list routing_guidelines();
+  RoutingGuideline import_routing_guideline(str file, dict options);
 #endif
 
   explicit ClusterSet(const std::shared_ptr<Cluster_set_impl> &clusterset);
@@ -139,7 +150,9 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
       const shcore::Option_pack_ref<clusterset::Dissolve_options> &options);
 
   std::shared_ptr<Cluster_set_impl> impl() const { return m_impl; }
-  Base_cluster_impl *base_impl() const override { return m_impl.get(); }
+  std::shared_ptr<Base_cluster_impl> base_impl() const override {
+    return m_impl;
+  }
 
   shcore::Value options();
 
