@@ -41,7 +41,6 @@
 #include "modules/mod_mysql_session.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/shell_jscript.h"
 #include "shellcore/shell_python.h"
 #include "shellcore/shell_sql.h"
 #include "utils/utils_general.h"
@@ -307,7 +306,7 @@ TEST_F(Interrupt_mysql, sql_classic) {
     thd.join();
   }
 }
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysql, sql_classic_javascript) {
   // Test case for FR5-a
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
@@ -437,7 +436,7 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 // Test that JS code running SQL gets interrupted
 TEST_F(Interrupt_mysqlx, db_javascript_sql) {
   // Test case for FR5-b-1
@@ -884,7 +883,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysqlx, db_javascript_drop) {
   // Test case for FR5 b
   execute("\\js");
@@ -1012,7 +1011,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
 }
 
 // Test that native JavaScript code gets interrupted
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysql, javascript) {
   // Test case for FR4 JS
   execute("\\js");

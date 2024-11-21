@@ -461,6 +461,15 @@ inline Array_t make_array(const C<T> &container) {
   return array;
 }
 
+template <template <typename...> class C, typename T>
+inline Array_t make_array(C<T> &&container) {
+  auto array = make_array();
+  for (auto &item : container) {
+    array->emplace_back(std::move(item));
+  }
+  return array;
+}
+
 class SHCORE_PUBLIC Exception : public shcore::Error {
   std::shared_ptr<Value::Map_type> _error;
 
@@ -1000,6 +1009,9 @@ class SHCORE_PUBLIC Object_bridge {
 
   //! Sets the value of a member
   virtual void set_member(size_t index, Value value) = 0;
+
+  //! Returns the number of indexable members
+  virtual size_t length() const = 0;
 
   //! Returns true if a method with the given name exists.
   virtual bool has_method(const std::string &name) const = 0;

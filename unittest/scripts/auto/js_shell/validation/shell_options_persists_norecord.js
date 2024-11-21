@@ -391,7 +391,7 @@
 //@ Verify error messages
 ||Valid values for shell mode are sql, js, py or none. (ArgumentError)
 ||Valid values for shell mode are sql, js, py or none.
-||ReferenceError: InvalidOption is not defined
+||InvalidOption is not defined (ReferenceError)
 ||Unrecognized option: InvalidOption.
 ||No help found for filter: InvalidOption
 ||No help found for filter: InvalidOption

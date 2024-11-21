@@ -437,7 +437,7 @@ check_option(options2, "replicationNetworkNamespace", "", null);
 
 //@<> FR14 / BUG#35434803 check heartbeat period precision (which is 0.001)
 
-let status = rs.status();
+var status = rs.status();
 EXPECT_FALSE("instanceErrors" in status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
 EXPECT_FALSE("instanceErrors" in status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
 
@@ -466,7 +466,7 @@ check_repl_option(session, session2, "opt_replHeartbeatPeriod", 30.001);
 
 //@<> FR14 verify that status warns about option mismatch
 
-let status = rs.status();
+var status = rs.status();
 EXPECT_FALSE("instanceErrors" in status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port1}`]);
 EXPECT_FALSE("instanceErrors" in status["replicaSet"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]);
 

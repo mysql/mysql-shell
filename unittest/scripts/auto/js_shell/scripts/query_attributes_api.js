@@ -78,5 +78,6 @@ EXPECT_THROWS(function() {session.setQueryAttributes({at1: [1,2,3], at2: {inner1
 validate_query_attributes([null, null, null, null])
 
 //@<> Cleanup
+shell.disconnect()
 testutil.stopSandbox(__mysql_sandbox_port1, {wait:1})
 testutil.destroySandbox(__mysql_sandbox_port1)

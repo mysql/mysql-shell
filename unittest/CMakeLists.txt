@@ -41,10 +41,6 @@ if(WITH_TESTS)
                 ${MYSQL_INCLUDE_DIRS}
                 ${GMOCK_INCLUDE_DIRS})
 
-    if(HAVE_V8)
-      include_directories(SYSTEM "${V8_INCLUDE_DIR}")
-    endif()
-
     if(HAVE_PYTHON)
       include_directories("${PYTHON_INCLUDE_DIRS}")
     endif()
@@ -110,7 +106,7 @@ if(WITH_TESTS)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/mod_mysqlx_t.cc")
     endif()
 
-    if(NOT HAVE_V8)
+    if(NOT HAVE_JS)
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/value_js_bridging_t.cc")
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/shell_js_t.cc")
       list(REMOVE_ITEM mysqlsh_tests_SRC "${CMAKE_SOURCE_DIR}/unittest/auto_script_js_t.cc")
@@ -173,7 +169,6 @@ if(WITH_TESTS)
             ${LZ4_LIBRARY}
             ${SSL_LIBRARIES}
             ${SSL_LIBRARIES_DL}
-            ${V8_LINK_LIST}
             ${PYTHON_LIBRARIES}
             ${MYSQL_EXTRA_LIBRARIES}
             ${ANTLR4_LIBRARIES}
@@ -185,8 +180,8 @@ if(WITH_TESTS)
       target_link_libraries(run_unit_tests pthread ${GCOV_LDFLAGS})
     ENDIF()
 
-    if(HAVE_V8)
-      target_link_libraries(run_unit_tests ${V8_LINK_LIST})
+    if(HAVE_POLYGLOT)
+      target_link_libraries(run_unit_tests ${POLYGLOT_LIBRARY})
     endif()
 
     if(HAVE_PYTHON)

@@ -164,27 +164,29 @@ TEST(Json_shell, incomplete_javascript) {
                                             print_capture, print_capture};
   current_console()->add_print_handler(&handler);
 
+  std::string eof_error = "Expected } but found eof (SyntaxError)";
+  std::string params_error = "Expected , but found ; (SyntaxError)";
+  std::string quote_error = "Missing close quote (SyntaxError)";
+
   std::vector<std::tuple<std::string, std::string>> invalid_inputs = {
       {
           R"*(function sample() {
         print("sample");
       )*",
-          "{\"error\":\"SyntaxError: Unexpected end of input at (shell):2:1"},
+          "{\"error\":\"" + eof_error},
       {
           R"*(function sample() {
         print("sample";
         }
       )*",
-          "{\"error\":\"SyntaxError: missing ) after argument list at "
-          "(shell):1:15"},
+          "{\"error\":\"" + params_error},
       {
           R"*(function sample() {
         print("sample);
         }
       )*",
-          "{\"error\":\"SyntaxError: Invalid or unexpected token at "
-          "(shell):1:15"},
-  };  // namespace mysqlsh
+          "{\"error\":\"" + quote_error},
+  };
 
   for (const auto &input : invalid_inputs) {
     shcore::JSON_dumper doc;

@@ -108,7 +108,6 @@ set(mysqlsh_SRC
   mysqlsh/debug_shell.cc
 )
 
-# Last, to make -lrt -lpthread last, v8 needs it
 target_link_libraries(mysqlsh
     shellfe
     api_modules
@@ -165,13 +164,6 @@ if(BUNDLED_OPENSSL)
   ENDIF()
 endif()
 
-
-### Bundling of V8 if needed
-if(WITH_DEV)
-  if(HAVE_V8 AND WIN32)
-    install(PROGRAMS ${V8_LIBS} DESTINATION lib COMPONENT dev)
-  endif()
-endif()
 
 ### Bundling of Python runtime if needed
 IF(HAVE_PYTHON)
@@ -454,4 +446,13 @@ IF(BUNDLED_PROTOBUF_LIBRARY)
         TARGET mysqlsh
     )
   ENDIF()
+ENDIF()
+
+IF (BUNDLED_POLYGLOT_DIR)
+  install_bundled_binaries(
+      DESCRIPTION "Polyglot library"
+      BINARIES ${POLYGLOT_LIBRARY}
+      DESTINATION "${INSTALL_LIBDIR}"
+      TARGET mysqlsh
+  )
 ENDIF()

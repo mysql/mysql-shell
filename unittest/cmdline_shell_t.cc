@@ -97,7 +97,7 @@ TEST(Cmdline_shell, query_variable_x) {
                     "bogus", mysqlsh::Prompt_manager::Mysql_system_variable));
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST(Cmdline_shell, prompt_js) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   const_cast<char *>("--interactive"), nullptr};

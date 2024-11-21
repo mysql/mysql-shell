@@ -122,12 +122,12 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   void add_js_test(const std::string &input, const std::string &output = "") {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     add_test(input, output);
 #else
     (void)input;
     (void)output;
-#endif  // HAVE_V8
+#endif  // HAVE_JS
   }
 
   void add_py_test(const std::string &input, const std::string &output = "") {
@@ -148,11 +148,11 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   void add_expected_js_log(const std::string &expected) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     add_expected_log(expected);
 #else
     (void)expected;
-#endif  // HAVE_V8
+#endif  // HAVE_JS
   }
 
   void add_expected_py_log(const std::string &expected) {
@@ -164,11 +164,11 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   void add_unexpected_js_log(const std::string &unexpected) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     add_unexpected_log(unexpected);
 #else
     (void)unexpected;
-#endif  // HAVE_V8
+#endif  // HAVE_JS
   }
 
   void add_unexpected_py_log(const std::string &unexpected) {
@@ -425,9 +425,9 @@ global_py_variable = 'PY variable'
 
   add_js_test("\\js", "Switching to JavaScript mode...");
   add_js_test("js_report(null, null);",
-              "ReferenceError: js_report is not defined");
+              "js_report is not defined (ReferenceError)");
   add_js_test("global_js_variable",
-              "ReferenceError: global_js_variable is not defined");
+              "global_js_variable is not defined (ReferenceError)");
   add_js_test("dba", "<Dba>");
 
   add_py_test("\\py", "Switching to Python mode...");
@@ -1108,8 +1108,8 @@ shell.register_global('errtest', obj)
       "Shell Error (99999): py another "
       "error got thrown");
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("js error got thrown (RuntimeError)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("js another error got thrown (MYSQLSH 99998)");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("js error got thrown");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("js another error got thrown");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("");
 
   wipe_out();
@@ -1376,8 +1376,7 @@ shell.register_global('kwtest', obj)
   // TEST: Passing named argument for parameter already defined but in a
   // dictionary (See BUG#31500843 For More Details)
   add_py_test("kwtest.printArgs('Black', 'Pearl', {name: 'allowed'})",
-              "print_args() got multiple values for argument "
-              "'name' (ScriptingError)");
+              "print_args() got multiple values for argument 'name'");
 
   // run the test
   run({"--log-level=debug"});

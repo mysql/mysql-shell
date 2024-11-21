@@ -170,11 +170,8 @@ else()
   endif()
 endif()
 
-if(V8_INCLUDE_DIR)
-  list(APPEND EXTRA_CMAKE_OPTS "-DV8_INCLUDE_DIR=${V8_INCLUDE_DIR}")
-endif()
-if(V8_LIB_DIR)
-  list(APPEND EXTRA_CMAKE_OPTS "-DV8_LIB_DIR=${V8_LIB_DIR}")
+if(BUNDLED_POLYGLOT_DIR)
+  list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_POLYGLOT_DIR=${BUNDLED_POLYGLOT_DIR}")
 endif()
 
 if(HAVE_PYTHON)
@@ -309,3 +306,18 @@ file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 usr/lib/mysqlsh/libantlr4-runtime*.so*
 ")
 endif()
+
+if (WITH_YACC_PARSER)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"
+usr/lib/mysqlsh/yparser
+")
+endif()
+
+if(BUNDLED_POLYGLOT_DIR)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"
+usr/lib/mysqlsh/libpolyglot.so
+")
+endif()
+

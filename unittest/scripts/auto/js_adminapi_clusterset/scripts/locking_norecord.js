@@ -183,7 +183,7 @@ EXPECT_THROWS(function() {
 EXPECT_OUTPUT_CONTAINS(`The operation cannot be executed because it failed to acquire the Cluster lock through primary member '${hostname}:${__mysql_sandbox_port3}'. Another operation requiring access to the member is still in progress, please wait for it to finish and try again.`);
 EXPECT_SHELL_LOG_NOT_CONTAINS("AdminAPI_metadata");
 
-testutil.releaseLocks(session3, lock_instance);
+testutil.releaseLocks(session3, lock_cluster);
 
 //@<> exclusive lock on clusterset.dissolve() (with an exclusive lock on each cluster)
 

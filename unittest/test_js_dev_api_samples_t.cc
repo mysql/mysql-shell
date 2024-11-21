@@ -33,7 +33,6 @@
 
 #include "shell_script_tester.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/shell_jscript.h"
 
 namespace shcore {
 class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {

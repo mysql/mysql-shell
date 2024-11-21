@@ -57,12 +57,11 @@ set(SHELLCORE_SOURCES
   wizard.cc
   custom_result.cc)
 
-if(HAVE_V8)
-  include_directories(SYSTEM "${V8_INCLUDE_DIR}")
+if(HAVE_POLYGLOT)
   set(SHELLCORE_SOURCES
         ${SHELLCORE_SOURCES}
-        provider_javascript.cc
-        shell_jscript.cc)
+        provider_polyglot.cc
+        shell_polyglot.cc)
 endif()
 
 if(HAVE_PYTHON)

@@ -34,13 +34,6 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 
-#ifdef HAVE_V8
-namespace shcore {
-extern void JScript_context_init();
-extern void JScript_context_fini();
-}  // namespace shcore
-#endif
-
 namespace mysqlsh {
 
 namespace {
@@ -65,10 +58,6 @@ void thread_init() { mysql_thread_init(); }
 void thread_end() { mysql_thread_end(); }
 
 void global_init() {
-#ifdef HAVE_V8
-  shcore::JScript_context_init();
-#endif
-
   mysql_library_init(0, nullptr, nullptr);
 
   thread_init();
@@ -81,10 +70,6 @@ void global_init() {
 void global_end() {
   thread_end();
   mysql_library_end();
-
-#ifdef HAVE_V8
-  shcore::JScript_context_fini();
-#endif
 }
 
 Mysql_thread::Mysql_thread() {

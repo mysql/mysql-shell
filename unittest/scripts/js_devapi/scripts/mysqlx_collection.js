@@ -45,11 +45,11 @@ print('session:', collection.session);
 print('getSchema():', collection.getSchema());
 print('schema:', collection.schema);
 
-//@ Testing dropping index {VER(>=8.0.11)}
+//@<> Testing dropping index {VER(>=8.0.11)}
 collection.createIndex('_name', {fields: [{field: '$.myField', type: 'TEXT(10)'}]});
-print (collection.dropIndex('_name'));
-print (collection.dropIndex('_name'));
-print (collection.dropIndex('not_an_index'));
+EXPECT_EQ('undefined', String(collection.dropIndex('_name')));
+EXPECT_EQ('undefined', String(collection.dropIndex('_name')));
+EXPECT_EQ('undefined', String(collection.dropIndex('not_an_index')));
 
 //@ Testing dropping index using execute {VER(>=8.0.11)}
 collection.dropIndex('_name').execute()

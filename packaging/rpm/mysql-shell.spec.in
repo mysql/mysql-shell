@@ -37,8 +37,6 @@
 %global product_suffix @PRODUCT_SUFFIX@
 %endif
 
-# define v8_includedir and v8_libdir for rpmbuild when building static
-
 Summary:        Command line shell and scripting environment for MySQL
 Name:           mysql-shell@PRODUCT_SUFFIX@
 Version:        @MYSH_NO_DASH_VERSION@
@@ -87,8 +85,6 @@ BuildRequires:  openssl-devel
 %if 0%{!?bundled_curl:1}
 BuildRequires:  libcurl-devel
 %endif
-#BuildRequires:  v8-devel
-#BuildRequires:  v8-python
 %endif
 %if 0%{?commercial} || %{?cloud}
 Provides:      mysql-shell = %{version}-%{release}
@@ -197,11 +193,9 @@ cmake .. \
 %endif
 %if 0%{?static}
     -DMYSQLCLIENT_STATIC_LINKING=ON \
-    -DV8_INCLUDE_DIR=%{v8_includedir} \
-    -DV8_LIB_DIR=%{v8_libdir} \
 %else
     -DMYSQLCLIENT_STATIC_LINKING=ON \
-    -DHAVE_V8=OFF
+    -DHAVE_JS=OFF
 %endif
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \
@@ -228,15 +222,14 @@ cmake .. \
 %if 0%{?bundled_antlr:1}
     -DBUNDLED_ANTLR_DIR="%{bundled_antlr}" \
 %endif
+%if 0%{?with_yacc_parser:1}
+    -DWITH_YACC_PARSER=1 \
+%endif
+%if 0%{?bundled_polyglot:1}
+    -DBUNDLED_POLYGLOT_DIR="%{bundled_polyglot}" \
+%endif
     -DHAVE_PYTHON=1 \
     -DLIBEXECDIR=`basename %{_libexecdir}`
-
-# Supported V8 versions are limited, disable
-# V8 in non static for now.
-# -DV8_INCLUDE_DIR=%{_includedir}/v8 \
-# -DV8_LIB_DIR=%{_libdir} \
-# Shared linking don't work
-# -DMYSQLCLIENT_STATIC_LINKING=ON \
 
 make %{?_smp_mflags}
 
@@ -305,6 +298,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_prefix}/lib/mysqlsh/python-packages/*
 %{_prefix}/lib/mysqlsh/yparser/*
 %{_mandir}/man1/mysqlsh.1*
+%if 0%{?bundled_polyglot:1}
+    %{_prefix}/lib/mysqlsh/libpolyglot*
+%endif
 
 %changelog
 * Tue Aug 16 2022 Nawaz Nazeer Ahamed <nawaz.nazeer.ahamed@oracle.com> - 8.0.31

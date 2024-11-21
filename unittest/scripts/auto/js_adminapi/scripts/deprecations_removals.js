@@ -8,9 +8,9 @@ var cluster = scene.cluster;
 shell.connect(__sandbox_uri1);
 
 //@<> APIs that no longer exist
-EXPECT_THROWS_TYPE(function() { dba.configureLocalInstance(); }, "Invalid object member configureLocalInstance", "AttributeError");
+EXPECT_THROWS_LIKE(function() {dba.configureLocalInstance()}, /invokeMember \(configureLocalInstance\).*failed due to: Unknown identifier: configureLocalInstance/)
 
-EXPECT_THROWS_TYPE(function() { cluster.checkInstanceState(); }, "Invalid object member checkInstanceState", "AttributeError");
+EXPECT_THROWS_LIKE(function() {cluster.checkInstanceState()}, /invokeMember \(checkInstanceState\).*failed due to: Unknown identifier: checkInstanceState/)
 
 // ** Cluster / ClusterSet **
 

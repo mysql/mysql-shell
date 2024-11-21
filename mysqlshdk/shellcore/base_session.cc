@@ -271,8 +271,8 @@ std::shared_ptr<mysqlshdk::db::IResult> ShellBaseSession::execute_sql(
     } else {
       throw shcore::Exception::logic_error(
           shcore::str_format("Unable to execute a sql handler while another "
-                             "is being executed.\n "
-                             "Executing SQL: %s\n Unable to execute: %.*s",
+                             "is being executed. "
+                             "Executing SQL: %s. Unable to execute: %.*s",
                              m_active_custom_sql.c_str(),
                              static_cast<int>(query.length()), query.data()));
     }

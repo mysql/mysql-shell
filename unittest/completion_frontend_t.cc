@@ -540,7 +540,7 @@ TEST_F(Completer_frontend, builtin_others) {
                       "\\show",    "\\source",     "\\sql",        "\\status",
                       "\\system",  "\\use",        "\\warnings",   "\\watch"});
 
-#ifndef HAVE_V8
+#ifndef HAVE_JS
   expect.erase(std::find(expect.begin(), expect.end(), "\\js"));
 #endif
 
@@ -632,7 +632,7 @@ TEST_F(Completer_frontend, sql_inline) {
   EXPECT_AFTER_TAB("\\sql set gl", "\\sql set GLOBAL");
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Completer_frontend, js_keywords) {
   execute("\\js");
 

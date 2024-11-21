@@ -11,13 +11,8 @@
 |getSchema(): <Schema:js_shell_test>|
 |schema: <Schema:js_shell_test>|
 
-//@ Testing dropping index
-|undefined|
-|undefined|
-|undefined|
-
 //@ Testing dropping index using execute
-||TypeError: Cannot read properties of undefined (reading 'execute')
+||Cannot read property 'execute' of undefined (TypeError)
 
 //@ Testing existence
 |Valid: true|

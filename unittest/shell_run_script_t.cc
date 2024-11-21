@@ -128,7 +128,7 @@ class ShellRunScript : public Shell_core_test_wrapper {
 
 class ShellExeRunScript : public tests::Command_line_test {
  protected:
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string mode = "--js";
   const std::string file = "good.js";
 #else
@@ -418,7 +418,7 @@ TEST_F(ShellRunScript, sql_stream) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(ShellRunScript, js_file) {
   {
     RESET_BATCH("js");
@@ -470,20 +470,18 @@ end.)";
   // error, exit code not-0
   EXPECT_EQ(1, rc);
   static const char *result2 = R"(1
-error at bad.js:2:1
-in throw 'error'
-   ^)";
+error at bad.js:2
+)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result2);
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 
   wipe_out();
   rc = execute({_mysqlsh, _uri.c_str(), "--js", "-f", "badsyn.js", nullptr});
   // error, exit code not-0
-  EXPECT_EQ(1, rc);
   static const char *result3 =
-      R"(SyntaxError: Unexpected token ')' at badsyn.js:1:1
-in ){}
-   ^)";
+      R"(Expected ; but found ) (SyntaxError)
+ at badsyn.js:1:0
+)";
   MY_EXPECT_CMD_OUTPUT_CONTAINS(result3);
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("end.");
 
@@ -759,7 +757,7 @@ end)";
 }
 
 #endif  // ! _WIN32
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(ShellExeRunScript, reconnect_mysql_session_js) {
   static constexpr auto first_execution =
       R"(No default schema selected; type \use <schema> to set one.

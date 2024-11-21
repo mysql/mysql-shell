@@ -323,7 +323,7 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute(
       "var c = dba.createCluster('sample', {memberSslMode:'REQUIRED', "
       "gtidSetIsComplete: true})");
@@ -420,7 +420,7 @@ TEST_F(Admin_api_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute(
       "var c = dba.createCluster('sample', {memberSslMode:'DISABLED', "
       "gtidSetIsComplete: true})");
@@ -1870,7 +1870,7 @@ TEST_F(Admin_api_cmdline_test, bug26970629) {
   } else {
     std::string usr = "--user=" + _user;
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     Command_line_test::execute({_mysqlsh, "--js", usr.c_str(), pwd.c_str(),
                                 host.c_str(), socket.c_str(), "-e",
                                 "dba.createCluster('sample')", NULL});

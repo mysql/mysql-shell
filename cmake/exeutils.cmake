@@ -71,7 +71,7 @@ function(add_shell_executable)
     set_property(TARGET "${ARGV0}" PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
   endif()
 
-  if(HAVE_V8)
+  if(HAVE_JS)
     # strip the whole binary on 32bit Ubuntu 18.04, avoid OOM linker errors
     if(LINUX_UBUNTU_18_04 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
       MY_TARGET_LINK_OPTIONS("${ARGV0}" "LINKER:--strip-all")

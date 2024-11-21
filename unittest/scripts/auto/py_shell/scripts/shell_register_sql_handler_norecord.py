@@ -188,10 +188,7 @@ testutil.create_file(plugin_path, plugin_code)
 
 call_mysqlsh([__mysqluripwd, "-i", "--tabbed", "--py",
              "-e", "session.run_sql('showme')"])
-EXPECT_STDOUT_CONTAINS("""RuntimeError: LogicError: Unable to execute a sql handler while another is being executed.
- Executing SQL: showme
- Unable to execute: showme tables
-""")
+EXPECT_STDOUT_CONTAINS("RuntimeError: LogicError: Unable to execute a sql handler while another is being executed. Executing SQL: showme. Unable to execute: showme tables")
 EXPECT_STDOUT_NOT_CONTAINS("====> SQL HANDLER: showme tables")
 
 

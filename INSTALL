@@ -7,7 +7,7 @@ Dependencies
 Mandatory
 - cmake 3.5.1 (note: if you're using a very recent version of cmake and it
   doesn't work, try downgrading)
-- gcc 5/VisualStudio 2015/clang 8
+- gcc 10/VisualStudio 2019/clang 10
 - MySQL client libraries built from sources
   (libmysqlclient, libmysqlxclient)
 - zip (gnuwin32 in windows)
@@ -16,7 +16,7 @@ Mandatory
 
 Optional
 - gtest and gmock 1.8 (can be automatically downloaded)
-- v8 12.0.267.8
+- GraalVM 23.0.1
 
 Building From Source
 ====================
@@ -86,22 +86,26 @@ Windows
 
 Enabling JavaScript Support
 ---------------------------
-JavaScript is enabled by satisfying the dependency with V8.
-To build V8 follow the build V8 standard build instructions.
-To support JavaScript on the MySQL Shell add the next flags to the CMake call:
+JavaScript is enabled by satisfying the native Polyglot API library
+(From GraalVM) dependency.
 
--DHAVE_V8=1
+To build The native Polyglot API library follow the instructions at
+ext/polyglot/README.txt
 
--DV8_INCLUDE_DIR=<path_to_v8>/include
--DV8_LIB_DIR=<path_to_folder_containing_the_built_libraries>
+To support JavaScript on the MySQL Shell add the following flag to the CMake call:
 
-Note that version 12.0.267.8 is needed and newer versions may not work.
+-DBUNDLED_POLYGLOT_DIR=<Path>
+
+Where Path is the path to the folder containing the native Polyglot API library
+and headers
+
+Note that version 23.0.1 is needed and newer versions may not work.
 
 
 Enabling Python Support
 -----------------------
 Python is enabled by satisfying the dependency with Python.
-To support Python on the MySQL Shell add the next flags to the CMake call:
+To support Python on the MySQL Shell add the following flags to the CMake call:
 
 -DHAVE_PYTHON=1
 

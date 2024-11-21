@@ -160,9 +160,7 @@ shell.registerSqlHandler("showHandler", "Handler for SHOW statements", ["SHOWME"
 testutil.createFile(plugin_path, plugin_code)
 
 callMysqlsh([__mysqluripwd, "--js", "-i", "--tabbed", "-e", "session.runSql('showme')"])
-EXPECT_STDOUT_CONTAINS_MULTILINE(`Unable to execute a sql handler while another is being executed.
-Executing SQL: showme
-Unable to execute: showme databases (LogicError)`)
+EXPECT_STDOUT_CONTAINS("Unable to execute a sql handler while another is being executed. Executing SQL: showme. Unable to execute: showme databases")
 
 //@<> Execution of standard SQL while executing extended SQL is allowed
 plugin_code = `
