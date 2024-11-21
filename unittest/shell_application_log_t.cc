@@ -74,14 +74,16 @@ class Shell_application_log_tests : public Shell_core_test_wrapper {
 
 std::string Shell_application_log_tests::error = "";
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Shell_application_log_tests, test) {
   mysqlsh::Scoped_logger log(m_logger);
   // issue a stmt with syntax error, then check the log.
   error =
-      R"(SyntaxError: missing ) after argument list at (shell):1:7
-in print('x';
-         ^^^)";
+      R"(Expected , but found ; (SyntaxError)
+ at (shell):1:9
+ in print('x';
+             ^
+)";
   execute("print('x';");
 
   error =

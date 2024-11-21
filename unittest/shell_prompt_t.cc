@@ -997,7 +997,7 @@ class Shell_prompt_exe : public tests::Command_line_test {
 };
 
 TEST_F(Shell_prompt_exe, environment) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const auto expect_prompt = "mysql-js>";
 #else
   const auto expect_prompt = "mysql-py>";
@@ -1196,7 +1196,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_nocolor) {
                "--ssl-mode=REQUIRED", "-e", "1", nullptr});
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   EXPECT_PROMPT("MySQL [" + _host + ":" + _port + "+ ssl/mysql] JS> ");
 #else
   EXPECT_PROMPT("MySQL [" + _host + ":" + _port + "+ ssl/mysql] Py> ");
@@ -1217,7 +1217,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_16) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   EXPECT_PROMPT("MySQL \x1B[1m[" + _host + "+ ssl/mysql] \x1B[0mJS> ");
 #else
   EXPECT_PROMPT("MySQL \x1B[1m[" + _host + "+ ssl/mysql] \x1B[0mPy> ");
@@ -1238,7 +1238,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
       "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " +
@@ -1271,7 +1271,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_dbl_256) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   EXPECT_DBL_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
       "\x1B[0m\x1B[48;5;237m\x1B[38;5;15m " +
@@ -1304,7 +1304,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
   EXPECT_EQ(0, rc);
   std::cout << _output << "\n";
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   EXPECT_PROMPT(
       "\x1B[48;5;254m\x1B[38;5;23m My\x1B[0m\x1B[48;5;254m\x1B[38;5;166mSQL "
       "\x1B[48;5;237m\x1B[38;5;254m\xEE\x82\xB0\x1B[0m\x1B[48;5;237m\x1B[38;5;"
@@ -1332,7 +1332,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
   shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Shell_prompt_exe, bug28314383_js) {
   static constexpr auto k_file = "close.js";
   shcore::setenv("MYSQLSH_PROMPT_THEME",
@@ -1363,7 +1363,7 @@ TEST_F(Shell_prompt_exe, bug28314383_js) {
   shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
   shcore::delete_file(k_file);
 }
-#endif  // HAVE_V8
+#endif  // HAVE_JS
 
 #ifdef HAVE_PYTHON
 TEST_F(Shell_prompt_exe, bug28314383_py) {
@@ -1401,7 +1401,7 @@ TEST_F(Shell_prompt_exe, bug28314383_py) {
 TEST_F(Shell_prompt_exe, bug30406283) {
   const std::string prompt_file = "invalid-utf8.json";
   const auto expect_prompt =
-#ifdef HAVE_V8
+#ifdef HAVE_JS
       "mysql-js> "
 #else
       "mysql-py> "

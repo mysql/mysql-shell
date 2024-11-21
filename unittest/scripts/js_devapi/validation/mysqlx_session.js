@@ -149,21 +149,8 @@
 //@ release after rollback (WL10869-ET1_9)
 ||SAVEPOINT TXSP5 does not exist
 
-
-//@ Session: test for drop schema functions
-||Invalid object member dropCollection (AttributeError)
-||Invalid object member dropTable (AttributeError)
-||Invalid object member dropView (AttributeError)
-
-
-//@ Session: Testing dropping existing schema
-|undefined|
-
 //@ Session: Testing if the schema is actually dropped
 ||Unknown database 'node_session_schema'
-
-//@ Session: Testing dropping non-existing schema
-|undefined|
 
 
 //@ Session: current schema validations: nodefault, mysql

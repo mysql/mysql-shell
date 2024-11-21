@@ -232,19 +232,19 @@ mySession.rollbackTo(sp);
 //@ release after rollback (WL10869-ET1_9)
 mySession.releaseSavepoint(sp);
 
-//@ Session: test for drop schema functions
-mySession.dropCollection('node_session_schema', 'coll');
-mySession.dropTable('node_session_schema', 'table');
-mySession.dropView('node_session_schema', 'view');
+//@<> Session: test for drop schema functions
+EXPECT_THROWS_LIKE(function() {mySession.dropCollection('node_session_schema', 'coll')}, /invokeMember \(dropCollection\).*failed due to: Unknown identifier: dropCollection/)
+EXPECT_THROWS_LIKE(function() {mySession.dropTable('node_session_schema', 'table')}, /invokeMember \(dropTable\).*failed due to: Unknown identifier: dropTable/)
+EXPECT_THROWS_LIKE(function() {mySession.dropView('node_session_schema', 'view')}, /invokeMember \(dropView\).*failed due to: Unknown identifier: dropView/)
 
-//@ Session: Testing dropping existing schema
-print(mySession.dropSchema('node_session_schema'));
+//@<> Session: Testing dropping existing schema
+EXPECT_EQ('undefined', String(mySession.dropSchema('node_session_schema')));
 
 //@ Session: Testing if the schema is actually dropped
 mySession.getSchema('node_session_schema');
 
-//@ Session: Testing dropping non-existing schema
-print(mySession.dropSchema('non_existing'));
+//@<> Session: Testing dropping non-existing schema
+EXPECT_EQ('undefined', String(mySession.dropSchema('non_existing')));
 
 //@ Session: current schema validations: nodefault, mysql
 mySession.setCurrentSchema('mysql');

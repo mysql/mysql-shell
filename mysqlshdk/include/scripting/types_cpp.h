@@ -930,6 +930,7 @@ class SHCORE_PUBLIC Cpp_object_bridge : public Object_bridge {
   bool is_indexed() const override;
   Value get_member(size_t index) const override;
   void set_member(size_t index, Value value) override;
+  size_t length() const override;
 
   bool has_method(const std::string &name) const override;
 

@@ -30,6 +30,10 @@
 #include "scripting/types.h"
 
 namespace shcore {
+
+namespace polyglot {
+class Polyglot_context;
+}
 class SHCORE_PUBLIC Object_registry {
  public:
   typedef std::list<std::shared_ptr<Object_bridge>> Object_list;
@@ -52,6 +56,7 @@ class SHCORE_PUBLIC Object_registry {
  private:
   friend class JScript_context;
   friend class Python_context;
+  friend class polyglot::Polyglot_context;
 
   std::shared_ptr<Value::Map_type> _registry;  // map of values
 };

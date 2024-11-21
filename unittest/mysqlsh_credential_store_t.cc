@@ -32,7 +32,7 @@ namespace tests {
 
 class Mysqlsh_credential_store : public tests::Command_line_test {
  protected:
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string mode = "--js";
 #else
   const std::string mode = "--py";

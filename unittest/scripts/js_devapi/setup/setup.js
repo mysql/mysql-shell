@@ -1,6 +1,7 @@
 if (__mysqluripwd) {
   var s = mysql.getSession(__mysqluripwd);
   var r = s.runSql("SELECT @@hostname, @@report_host").fetchOne();
+  s.close();
   var __mysql_hostname = r[0];
   var __mysql_report_host = r[1];
   var __mysql_host = __mysql_report_host ? __mysql_report_host : __mysql_hostname;
@@ -16,92 +17,90 @@ if (__mysqluripwd) {
   var __address3r = __mysql_host + ":" + __mysql_sandbox_port3;
 }
 
-function validate_crud_functions(crud, expected)
-{
-    var actual = dir(crud);
+function validate_crud_functions(crud, expected) {
+  var actual = dir(crud);
 
-    // Ensures expected functions are on the actual list
-    var missing = [];
-    for(exp_funct of expected){
-        var pos = actual.indexOf(exp_funct);
-        if(pos == -1){
-            missing.push(exp_funct);
-        }
-        else{
-            actual.splice(pos, 1);
-        }
+  // Ensures expected functions are on the actual list
+  var missing = [];
+  for (exp_funct of expected) {
+    var pos = actual.indexOf(exp_funct);
+    if (pos == -1) {
+      missing.push(exp_funct);
     }
+    else {
+      actual.splice(pos, 1);
+    }
+  }
 
-    if(missing.length == 0){
-        print ("All expected functions are available\n");
-    }
-    else{
-        print("Missing Functions:", missing);
-    }
+  if (missing.length == 0) {
+    print("All expected functions are available\n");
+  }
+  else {
+    print("Missing Functions:", missing);
+  }
 
-    // help is ignored cuz it's always available
-    if (actual.length == 0 || (actual.length == 1 && actual[0] == "help")){
-        print("No additional functions are available\n")
-    }
-    else{
-        print("Extra Functions:", actual);
-    }
+  // help is ignored cuz it's always available
+  if (actual.length == 0 || (actual.length == 1 && actual[0] == "help")) {
+    print("No additional functions are available\n")
+  }
+  else {
+    print("Extra Functions:", actual);
+  }
 }
 
-function validateMembers(obj, expected)
-{
-    var actual = dir(obj);
+function validateMembers(obj, expected) {
+  var actual = dir(obj);
 
-    // Ensures expected members are on the actual list
-    var missing = [];
-    for(exp of expected){
-        var pos = actual.indexOf(exp);
-        if(pos == -1){
-            missing.push(exp);
-        }
-        else{
-            actual.splice(pos, 1);
-        }
+  // Ensures expected members are on the actual list
+  var missing = [];
+  for (exp of expected) {
+    var pos = actual.indexOf(exp);
+    if (pos == -1) {
+      missing.push(exp);
     }
-
-    var errors = []
-
-    if(missing.length) {
-        errors.push("Missing Members: " + missing.join(", "));
+    else {
+      actual.splice(pos, 1);
     }
+  }
 
-    // help is ignored cuz it's always available
-    if (actual.length > 1  || (actual.length == 1 && actual[0] != 'help')) {
-      errors.push("Extra Members: " + actual.join(", "));
-    }
+  var errors = []
 
-    if (errors.length) {
-      testutil.fail(errors.join("\n"))
-    }
+  if (missing.length) {
+    errors.push("Missing Members: " + missing.join(", "));
+  }
+
+  // help is ignored cuz it's always available
+  if (actual.length > 1 || (actual.length == 1 && actual[0] != 'help')) {
+    errors.push("Extra Members: " + actual.join(", "));
+  }
+
+  if (errors.length) {
+    testutil.fail(errors.join("\n"))
+  }
 }
 
 function ensure_schema_does_not_exist(session, name) {
   try {
     var schema = session.getSchema(name);
     session.dropSchema(name);
-  } catch(err) {
+  } catch (err) {
     // Nothing happens, it means the schema did not exist
   }
 }
 
-function getSchemaFromList(schemas, name){
-  for(index in schemas){
-    if(schemas[index].name == name)
+function getSchemaFromList(schemas, name) {
+  for (index in schemas) {
+    if (schemas[index].name == name)
       return schemas[index];
   }
 
   return null;
 }
 
-function wait(timeout, wait_interval, condition){
+function wait(timeout, wait_interval, condition) {
   waiting = 0;
   res = condition();
-  while(!res && waiting < timeout) {
+  while (!res && waiting < timeout) {
     os.sleep(wait_interval);
     waiting = waiting + 1;
     res = condition();
@@ -113,10 +112,10 @@ function wait(timeout, wait_interval, condition){
 // cb_params is an array with whatever parameters required by the
 // called callback, this way we can pass params to that function
 // right from the caller of retry
-function retry(attempts, wait_interval, callback, cb_params){
+function retry(attempts, wait_interval, callback, cb_params) {
   attempt = 1;
   res = callback(cb_params);
-  while(!res && attempt < attempts) {
+  while (!res && attempt < attempts) {
     println("Attempt " + attempt + " of " + attempts + " failed, retrying...");
 
     os.sleep(wait_interval);
@@ -147,7 +146,7 @@ function connect_to_sandbox(params) {
   var port = params[0];
   var connected = false;
   try {
-    shell.connect({scheme: 'mysql', user:'root', password:'root', host:'localhost', port:port})
+    shell.connect({ scheme: 'mysql', user: 'root', password: 'root', host: 'localhost', port: port })
     connected = true;
     println('connected to sandbox at ' + port);
   } catch (err) {
@@ -159,33 +158,33 @@ function connect_to_sandbox(params) {
 
 //Function to delete sandbox (only succeed after full server shutdown).
 function try_delete_sandbox(port, sandbox_dir) {
-    var deleted = false;
+  var deleted = false;
 
-    options = {}
-    if (sandbox_dir != '')
-        options['sandboxDir'] = sandbox_dir;
+  options = {}
+  if (sandbox_dir != '')
+    options['sandboxDir'] = sandbox_dir;
 
-    print('Try deleting sandbox at: ' + port);
-    started = wait(10, 1, function() {
-        try {
-            dba.deleteSandboxInstance(port, options);
+  print('Try deleting sandbox at: ' + port);
+  started = wait(10, 1, function () {
+    try {
+      dba.deleteSandboxInstance(port, options);
 
-            println(' succeeded');
-            return true;
-        } catch (err) {
-            println(' failed: ' + err.message);
-            return false;
-        }
-    });
-    if (deleted) {
-        println('Delete succeeded at: ' + port);
-    } else {
-        println('Delete failed at: ' + port);
+      println(' succeeded');
+      return true;
+    } catch (err) {
+      println(' failed: ' + err.message);
+      return false;
     }
+  });
+  if (deleted) {
+    println('Delete succeeded at: ' + port);
+  } else {
+    println('Delete failed at: ' + port);
+  }
 }
 
 function set_sysvar(session, variable, value) {
-    session.runSql("SET GLOBAL "+variable+" = ?", [value]);
+  session.runSql("SET GLOBAL " + variable + " = ?", [value]);
 }
 
 function get_sysvar(session, variable, type) {
@@ -230,7 +229,7 @@ function enable_auto_rejoin(session, port) {
     close_session = true;
   }
 
-   testutil.changeSandboxConf(port, "group_replication_start_on_boot", "ON");
+  testutil.changeSandboxConf(port, "group_replication_start_on_boot", "ON");
 
   if (__version_num > 80011)
     session.runSql("RESET PERSIST group_replication_start_on_boot");
@@ -281,16 +280,16 @@ function disable_expel_timeout(session) {
 }
 
 function create_root_from_anywhere(session, clear_super_read_only) {
-    var super_read_only = get_sysvar(session, "super_read_only");
-    var super_read_only_enabled = super_read_only === "ON";
-    session.runSql("SET SQL_LOG_BIN=0");
-    if (clear_super_read_only && super_read_only_enabled)
-        set_sysvar(session, "super_read_only", 0);
-    session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
-    session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
-    if (clear_super_read_only && super_read_only_enabled)
-        set_sysvar(session, "super_read_only", 1);
-    session.runSql("SET SQL_LOG_BIN=1");
+  var super_read_only = get_sysvar(session, "super_read_only");
+  var super_read_only_enabled = super_read_only === "ON";
+  session.runSql("SET SQL_LOG_BIN=0");
+  if (clear_super_read_only && super_read_only_enabled)
+    set_sysvar(session, "super_read_only", 0);
+  session.runSql("CREATE USER root@'%' IDENTIFIED BY 'root'");
+  session.runSql("GRANT ALL ON *.* to root@'%' WITH GRANT OPTION");
+  if (clear_super_read_only && super_read_only_enabled)
+    set_sysvar(session, "super_read_only", 1);
+  session.runSql("SET SQL_LOG_BIN=1");
 }
 
 
@@ -331,20 +330,20 @@ function ensure_plugin_disabled(plugin_name) {
 // Return true if the server version is >= than the one specified one, otherwise
 // false.
 function check_server_version(major, minor, patch) {
-    var result = session.runSql("SELECT sys.version_major(), sys.version_minor(), sys.version_patch()");
-    var row = result.fetchOne();
-    var srv_major = row[0];
-    var srv_minor = row[1];
-    var srv_patch = row[2];
-    return (srv_major > major ||
-        (srv_major == major &&
-            (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
+  var result = session.runSql("SELECT sys.version_major(), sys.version_minor(), sys.version_patch()");
+  var row = result.fetchOne();
+  var srv_major = row[0];
+  var srv_minor = row[1];
+  var srv_patch = row[2];
+  return (srv_major > major ||
+    (srv_major == major &&
+      (srv_minor > minor || (srv_minor == minor && srv_patch >= patch))));
 }
 
 // Check if the instance exists in the Metadata schema
 function exist_in_metadata_schema() {
   var result = session.runSql(
-      'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS CHAR CHARACTER SET ASCII) = CAST(@@server_uuid AS CHAR CHARACTER SET ASCII);');
+    'SELECT COUNT(*) FROM mysql_innodb_cluster_metadata.instances where CAST(mysql_server_uuid AS CHAR CHARACTER SET ASCII) = CAST(@@server_uuid AS CHAR CHARACTER SET ASCII);');
   var row = result.fetchOne();
   return row[0] != 0;
 }
@@ -355,7 +354,7 @@ function EXPECT_EQ(expected, actual, note) {
   if (note == undefined)
     note = "";
   if (repr(expected) != repr(actual)) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual:</yellow> " + repr(actual) + "\n\t<yellow>Expected:</yellow> " + repr(expected);
     testutil.fail(context);
   }
 }
@@ -373,6 +372,17 @@ function WARNING_SKIPPED_TEST(reason) {
   return false;
 }
 
+function get_exception_message(exception) {
+  if (exception.cause != undefined) {
+    if (exception.cause.message != undefined) {
+      return exception.cause.message;
+    }
+  }
+  return exception.message
+}
+
+
+
 function EXPECT_THROWS_TYPE(func, etext, type) {
   try {
     func();
@@ -382,7 +392,8 @@ function EXPECT_THROWS_TYPE(func, etext, type) {
     if (err.message.indexOf(etext) < 0) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
     }
-    if (err.type  !== type) {
+
+    if (err.cause.type !== type) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception type expected:</red> " + type + "\n\t<yellow>Actual:</yellow> " + err.type);
     }
   }
@@ -400,12 +411,44 @@ function libmysql_host_description(hostname, port) {
   return hostname;
 }
 
+function EXPECT_THROWS_LIKE(func, pattern) {
+  try {
+    func();
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + String(etext) + "</red>");
+  } catch (err) {
+    msg = get_exception_message(err);
+    testutil.dprint("Caught exception: " + msg);
+    if (!pattern.test(msg)) {
+      testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + String(pattern) + "\n\t<yellow>Actual:</yellow> " + err.message);
+    }
+  }
+}
+
+function EXPECT_NO_THROWS(func, context) {
+  try {
+    func();
+  } catch (err) {
+    testutil.dprint("Unexpected exception: " + JSON.stringify(err));
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Unexpected exception thrown (" + context + "): " + err.message + "</red>");
+  }
+
+  return hostname;
+}
+
+function EXPECT_OUTPUT_CONTAINS(text) {
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  if (out.indexOf(text) < 0 && err.indexOf(text) < 0) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
+}
 
 function __split_trim_join(text) {
   const needle = '\n';
   const s = text.split(needle);
   s.forEach(function (item, index) { this[index] = item.trimEnd(); }, s);
-  return {'str': s.join(needle), 'array': s};
+  return { 'str': s.join(needle), 'array': s };
 }
 
 function __check_wildcard_match(expected, actual) {
@@ -441,18 +484,18 @@ function __multi_value_compare(expected, actual) {
   if (start < 0) {
     return __check_wildcard_match(expected, actual);
   } else {
-     const end = expected.indexOf('}}');
-     const pre = expected.substring(0, start);
-     const post = expected.substring(end + 2);
-     const opts = expected.substring(start + 2, end);
+    const end = expected.indexOf('}}');
+    const pre = expected.substring(0, start);
+    const post = expected.substring(end + 2);
+    const opts = expected.substring(start + 2, end);
 
-     for (const item of opts.split('|')) {
-       if (__check_wildcard_match(pre + item + post, actual)) {
-         return true;
-       }
-     }
+    for (const item of opts.split('|')) {
+      if (__check_wildcard_match(pre + item + post, actual)) {
+        return true;
+      }
+    }
 
-     return false;
+    return false;
   }
 }
 
@@ -525,7 +568,7 @@ function __check_multiline_expect(expected_lines, actual_lines) {
     diff = __diff_with_error(expected_lines, '<yellow><------ INCONSISTENCY</yellow>', 0);
   }
 
-  return {'matches': matches, 'diff': diff};
+  return { 'matches': matches, 'diff': diff };
 }
 
 function EXPECT_OUTPUT_CONTAINS_MULTILINE(t) {

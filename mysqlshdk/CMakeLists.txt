@@ -75,15 +75,7 @@ merge_convenience_libraries(mysqlshdk-static
     aws
     tinyxml2 SKIP_INSTALL)
 
-  #target_link_libraries(mysqlshdk
-  #        ${V8_LINK_LIST}
-  #        ${PYTHON_LIBRARIES}
-  #        ${MYSQL_LIBRARIES}
-  #        ${PROTOBUF_LIBRARY}
-  #        ${SSL_LIBRARIES})
-
 target_link_libraries(mysqlshdk-static PUBLIC
-          ${V8_LINK_LIST}
           ${PYTHON_LIBRARIES}
           ${MYSQL_LIBRARIES}
           ${MYSQLX_LIBRARIES}
@@ -91,3 +83,7 @@ target_link_libraries(mysqlshdk-static PUBLIC
           ${LZ4_LIBRARY}
           ${SSL_LIBRARIES}
           ${ANTLR4_LIBRARIES})
+
+IF(HAVE_POLYGLOT)
+    target_link_libraries(mysqlshdk-static PUBLIC ${POLYGLOT_LIBRARY})
+ENDIF()

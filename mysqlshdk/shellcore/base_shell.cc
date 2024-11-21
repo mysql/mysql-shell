@@ -40,13 +40,13 @@
 #include "utils/utils_general.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
-#ifdef HAVE_V8
-#include "mysqlshdk/shellcore/provider_javascript.h"
-#include "shellcore/shell_jscript.h"
-#endif
 #ifdef HAVE_PYTHON
 #include "mysqlshdk/shellcore/provider_python.h"
 #include "shellcore/shell_python.h"
+#endif
+#ifdef HAVE_POLYGLOT
+#include "mysqlshdk/include/shellcore/shell_polyglot.h"
+#include "mysqlshdk/shellcore/provider_polyglot.h"
 #endif
 #include "shellcore/shell_sql.h"
 
@@ -105,7 +105,7 @@ void Base_shell::finish_init() {
 
   shcore::IShell_core::Mode initial_mode = options().initial_mode;
   if (initial_mode == shcore::IShell_core::Mode::None) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     initial_mode = shcore::IShell_core::Mode::JavaScript;
 #else
 #ifdef HAVE_PYTHON
@@ -418,11 +418,11 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
         }
         break;
       case shcore::Shell_core::Mode::JavaScript:
-#ifdef HAVE_V8
+#ifdef HAVE_JS
         if (_shell->switch_mode(mode) && !initializing)
           println("Switching to JavaScript mode...");
         {
-          auto js = static_cast<shcore::Shell_javascript *>(
+          auto js = static_cast<shcore::Shell_polyglot *>(
               _shell->language_object(mode));
           if (!js->result_processor()) {
             js->set_result_processor(
@@ -431,8 +431,8 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
                 shcore::IShell_core::Mode_mask(
                     shcore::IShell_core::Mode::JavaScript),
                 std::unique_ptr<shcore::completer::Provider>(
-                    new shcore::completer::Provider_javascript(
-                        _completer_object_registry, js->javascript_context())));
+                    new shcore::completer::Provider_polyglot(
+                        _completer_object_registry, js->polyglot_context())));
             lang_initialized = true;
           }
         }

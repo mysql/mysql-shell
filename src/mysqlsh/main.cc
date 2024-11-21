@@ -603,7 +603,7 @@ static void finalize_shell(mysqlsh::Command_line_shell *shell) {
   shell->restore_print();
 
   // shell needs to be destroyed before global_end() is called, because it
-  // needs to call destructors of JS contexts before V8 is shut down
+  // needs to call destructors of JS contexts
   delete shell;
 
   mysqlsh::global_end();

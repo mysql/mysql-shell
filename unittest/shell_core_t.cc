@@ -51,7 +51,7 @@ class Shell_core_test : public Shell_core_test_wrapper {
   std::string _file_name;
   int _ret_val;
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string to_scripting = "\\js";
 #else
   const std::string to_scripting = "\\py";
@@ -116,7 +116,7 @@ TEST_F(Shell_core_test, test_process_stream) {
               std::string::npos != output_handler.std_err.find(err_table_80));
   EXPECT_NE(-1, static_cast<int>(output_handler.std_out.find("second_result")));
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   // JS tests: outputs are not validated since in batch mode there's no
   // autoprinting of resultsets
   //
@@ -148,7 +148,7 @@ TEST_F(Shell_core_test, test_process_stream) {
   _interactive_shell->process_line("session.close()");
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Shell_core_test, test_process_js_file_with_params) {
   // TODO(alfredo) this test and feature are broken.. it was
   // testing \source on non-interactive no, where the feature works

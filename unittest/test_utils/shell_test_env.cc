@@ -205,6 +205,7 @@ void Shell_test_env::TearDown() {
   if (_recording_enabled) {
     const ::testing::TestInfo *const test_info =
         ::testing::UnitTest::GetInstance()->current_test_info();
+
     // Don't bother with checking session leaks if the test itself failed
     if (!test_info->result()->Failed() && !check_open_sessions()) {
       ADD_FAILURE() << "Leaky sessions detected\n";
@@ -491,6 +492,13 @@ std::string Shell_test_env::resolve_string(const std::string &source) {
 bool Shell_test_env::check_open_sessions() {
   // check that there aren't any sessions still open
   size_t leaks = 0;
+
+  // We don't want sessions closed on this loop to be removed or it will cause
+  // the array to be modified while traversing, leading to crash.
+  m_remove_closed_sessions = false;
+  shcore::Scoped_callback finally(
+      [this]() { m_remove_closed_sessions = true; });
+
   for (const auto &s : _open_sessions) {
     if (auto session = s.session.lock()) {
       std::cerr << makered("Unclosed/leaked session at") << makeblue(s.location)
@@ -500,6 +508,7 @@ bool Shell_test_env::check_open_sessions() {
       leaks++;
     }
   }
+
   if (leaks > 0) {
     std::cerr << makered("SESSION LEAK CHECK ERROR:") << " There are " << leaks
               << " sessions still open at the end of the test\n";
@@ -526,7 +535,9 @@ void Shell_test_env::on_session_close(
        ++iter) {
     auto ptr = iter->session.lock();
     if (ptr && ptr.get() == session.get()) {
-      _open_sessions.erase(iter);
+      if (m_remove_closed_sessions) {
+        _open_sessions.erase(iter);
+      }
       return;
     }
   }

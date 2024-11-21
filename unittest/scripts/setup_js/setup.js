@@ -3,34 +3,34 @@ sandbox_uris[__mysql_sandbox_port1] = __sandbox_uri1;
 sandbox_uris[__mysql_sandbox_port2] = __sandbox_uri2;
 sandbox_uris[__mysql_sandbox_port3] = __sandbox_uri3;
 
-var add_instance_options = {HoSt:localhost, port: 0000, PassWord:'root', scheme:'mysql'};
+var add_instance_options = { HoSt: localhost, port: 0000, PassWord: 'root', scheme: 'mysql' };
 
 // Gets the initial UUID of the given instance caching the data
 // for further requests
 var sandbox_uuids = {}
-function get_sandbox_uuid(port){
-    if (!sandbox_uuids.hasOwnProperty(port)) {
-        var mySession = mysql.getSession(sandbox_uris[port]);
-        var result = mySession.runSql("select @@server_uuid as uuid");
-        sandbox_uuids[port] = result.fetchOneObject().uuid;
-        mySession.close()
-    }
+function get_sandbox_uuid(port) {
+  if (!sandbox_uuids.hasOwnProperty(port)) {
+    var mySession = mysql.getSession(sandbox_uris[port]);
+    var result = mySession.runSql("select @@server_uuid as uuid");
+    sandbox_uuids[port] = result.fetchOneObject().uuid;
+    mySession.close()
+  }
 
-    return sandbox_uuids[port];
+  return sandbox_uuids[port];
 }
 
 // Gets the initial auto.cnf file for the given sandbox
 var auto_cnfs = {}
 var auto_cnf_paths = {}
-function get_sandbox_auto_cnf(port){
-    if (!auto_cnfs.hasOwnProperty(port)) {
-        var auto_path = testutil.getSandboxLogPath(port);
-        var auto_path = auto_path.replace("error.log", "auto.cnf");
-        auto_cnf_paths[port] = auto_path;
-        auto_cnfs[port] = os.loadTextFile(auto_path);
-    }
+function get_sandbox_auto_cnf(port) {
+  if (!auto_cnfs.hasOwnProperty(port)) {
+    var auto_path = testutil.getSandboxLogPath(port);
+    var auto_path = auto_path.replace("error.log", "auto.cnf");
+    auto_cnf_paths[port] = auto_path;
+    auto_cnfs[port] = os.loadTextFile(auto_path);
+  }
 
-    return auto_cnfs[port];
+  return auto_cnfs[port];
 }
 
 
@@ -38,23 +38,23 @@ function get_sandbox_auto_cnf(port){
 // characters of the current UUID with the value provided
 // at sequence
 function update_sandbox_uuid(port, sequence) {
-    var uuid = get_sandbox_uuid(port)
-    var new_uuid = uuid.substring(0, uuid.length - sequence.length) + sequence;
-    var new_auto_cnf = [];
-    function update_auto_cnf(value, index, array) {
-        if(value.startsWith("server-uuid")) {
-            new_auto_cnf.push("server-uuid = " + new_uuid);
-        } else {
-            new_auto_cnf.push(value);
-        }
+  var uuid = get_sandbox_uuid(port)
+  var new_uuid = uuid.substring(0, uuid.length - sequence.length) + sequence;
+  var new_auto_cnf = [];
+  function update_auto_cnf(value, index, array) {
+    if (value.startsWith("server-uuid")) {
+      new_auto_cnf.push("server-uuid = " + new_uuid);
+    } else {
+      new_auto_cnf.push(value);
     }
-    var auto_cnf = get_sandbox_auto_cnf(port)
-    auto_cnf.split("\n").forEach(update_auto_cnf);
-    auto_cnfs[port] = new_auto_cnf.join("\n");
-    sandbox_uuids[port] = new_uuid;
-    testutil.createFile(auto_cnf_paths[port], auto_cnfs[port]);
+  }
+  var auto_cnf = get_sandbox_auto_cnf(port)
+  auto_cnf.split("\n").forEach(update_auto_cnf);
+  auto_cnfs[port] = new_auto_cnf.join("\n");
+  sandbox_uuids[port] = new_uuid;
+  testutil.createFile(auto_cnf_paths[port], auto_cnfs[port]);
 
-    return new_uuid;
+  return new_uuid;
 }
 
 function create_root_from_anywhere(session, clear_super_read_only) {
@@ -79,7 +79,7 @@ function get_socket_path(session, uri = undefined) {
 
   if (row[0][0] == '/' || __os_type == 'windows')
     p = row[0];
-  else if (row[1][row[1].length-1] == '/')
+  else if (row[1][row[1].length - 1] == '/')
     p = row[1] + row[0];
   else
     p = row[1] + "/" + row[0];
@@ -90,48 +90,48 @@ function get_socket_path(session, uri = undefined) {
 }
 
 function run_nolog(session, query) {
-    session.runSql("set session sql_log_bin=0");
-    if (type(query) == "String") {
-      session.runSql(query);
-    } else {
-      for (var s of query) {
-        session.runSql(s);
-      }
+  session.runSql("set session sql_log_bin=0");
+  if (type(query) == "String") {
+    session.runSql(query);
+  } else {
+    for (var s of query) {
+      session.runSql(s);
     }
-    session.runSql("set session sql_log_bin=1");
+  }
+  session.runSql("set session sql_log_bin=1");
 }
 
 function genlog_last_timestamp(port) {
-    var logs = testutil.readGeneralLog(port);
-    if (logs) {
-      return logs[logs.length-1]["timestamp"];
-    }
-    return null;
+  var logs = testutil.readGeneralLog(port);
+  if (logs) {
+    return logs[logs.length - 1]["timestamp"];
+  }
+  return null;
 }
 
 function genlog_filter_reads(logs, pattern) {
-    var out = [];
-    for (log of logs) {
-      sql = log["sql"];
-      if (pattern === undefined) {
-        if (sql.match("select 1") || sql.match(/select.*from.*/i) ||
-            sql.match(/(show|begin|start transaction|rollback|.*@@hostname|.*@@server_uuid|select.*gtid)/i) ||
-            sql.match(/set (session|@)/i) || sql.match(/select\s*(service_get_write_locks|service_get_read_locks|service_release_locks)\(.*\)/i)) {
-        } else {
-          out.push(log);
-        }
+  var out = [];
+  for (log of logs) {
+    sql = log["sql"];
+    if (pattern === undefined) {
+      if (sql.match("select 1") || sql.match(/select.*from.*/i) ||
+        sql.match(/(show|begin|start transaction|rollback|.*@@hostname|.*@@server_uuid|select.*gtid)/i) ||
+        sql.match(/set (session|@)/i) || sql.match(/select\s*(service_get_write_locks|service_get_read_locks|service_release_locks)\(.*\)/i)) {
       } else {
-        if (sql.match(pattern) || sql.match("select 1") || sql.match(/select\s*(service_get_write_locks|service_get_read_locks|service_release_locks)\(.*\)/i)) {
-        } else {
-          out.push(log);
-        }
+        out.push(log);
+      }
+    } else {
+      if (sql.match(pattern) || sql.match("select 1") || sql.match(/select\s*(service_get_write_locks|service_get_read_locks|service_release_locks)\(.*\)/i)) {
+      } else {
+        out.push(log);
       }
     }
-    return out;
+  }
+  return out;
 }
 
 function prepare_genlog_nop_check(port) {
-  return {port:port, ts:genlog_last_timestamp(port)};
+  return { port: port, ts: genlog_last_timestamp(port) };
 }
 
 function EXPECT_GENLOG_NOP(state, extra_filter) {
@@ -152,15 +152,15 @@ function EXPECT_DRYRUN(fun, port, extra_filter) {
 }
 
 var kGrantsForPerformanceSchema = ["GRANT SELECT ON `performance_schema`.`replication_applier_configuration` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`replication_applier_status` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`replication_connection_configuration` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`replication_connection_status` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`replication_group_member_stats` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`replication_group_members` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `performance_schema`.`threads` TO `admin`@`%` WITH GRANT OPTION",
-"GRANT SELECT ON `mysql`.`func` TO `admin`@`%` WITH GRANT OPTION"];
+  "GRANT SELECT ON `performance_schema`.`replication_applier_status_by_coordinator` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `performance_schema`.`replication_applier_status_by_worker` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `performance_schema`.`replication_applier_status` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `performance_schema`.`replication_connection_configuration` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `performance_schema`.`replication_connection_status` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `performance_schema`.`replication_group_member_stats` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `performance_schema`.`replication_group_members` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `performance_schema`.`threads` TO `admin`@`%` WITH GRANT OPTION",
+  "GRANT SELECT ON `mysql`.`func` TO `admin`@`%` WITH GRANT OPTION"];
 
 /**
  * Verifies if a variable is defined, returning true or false accordingly
@@ -186,16 +186,16 @@ function hasOciEnvironment(context) {
   }
 
   let variables = ['OCI_CONFIG_HOME',
-                   'OCI_COMPARTMENT_ID',
-                   'OS_NAMESPACE',
-                   'OS_BUCKET_NAME'];
+    'OCI_COMPARTMENT_ID',
+    'OS_NAMESPACE',
+    'OS_BUCKET_NAME'];
   if (context == 'MDS') {
     variables = variables.concat(['MDS_URI']);
   }
 
-  let missing=[];
-  for (var index = 0; index < variables.length; index ++) {
-    if (!defined(function(){eval(variables[index])})) {
+  let missing = [];
+  for (var index = 0; index < variables.length; index++) {
+    if (!defined(function () { eval(variables[index]) })) {
       missing.push(variables[index])
     }
   }
@@ -209,7 +209,7 @@ function hasAwsEnvironment() {
   const variables = ['MYSQLSH_S3_BUCKET_NAME'];
   const missing = [];
   for (const variable of variables) {
-    if (!defined(function(){eval(variable)})) {
+    if (!defined(function () { eval(variable) })) {
       missing.push(variable);
     }
   }
@@ -230,40 +230,40 @@ function hasAuthEnvironment(context) {
 
   if (context == 'LDAP_SIMPLE') {
     variables = ['LDAP_SIMPLE_SERVER_HOST',
-                 'LDAP_SIMPLE_SERVER_PORT',
-                 'LDAP_SIMPLE_BIND_BASE_DN',
-                 'LDAP_SIMPLE_USER',
-                 'LDAP_SIMPLE_PWD',
-                 'LDAP_SIMPLE_AUTH_STRING'];
+      'LDAP_SIMPLE_SERVER_PORT',
+      'LDAP_SIMPLE_BIND_BASE_DN',
+      'LDAP_SIMPLE_USER',
+      'LDAP_SIMPLE_PWD',
+      'LDAP_SIMPLE_AUTH_STRING'];
   } else if (context == 'LDAP_SASL') {
     variables = ['LDAP_SASL_SERVER_HOST',
-                 'LDAP_SASL_SERVER_PORT',
-                 'LDAP_SASL_BIND_BASE_DN',
-                 'LDAP_SASL_USER',
-                 'LDAP_SASL_PWD',
-                 'LDAP_SASL_GROUP_SEARCH_FILTER'];
+      'LDAP_SASL_SERVER_PORT',
+      'LDAP_SASL_BIND_BASE_DN',
+      'LDAP_SASL_USER',
+      'LDAP_SASL_PWD',
+      'LDAP_SASL_GROUP_SEARCH_FILTER'];
   } else if (context == 'LDAP_KERBEROS') {
     variables = ['LDAP_KERBEROS_SERVER_HOST',
-                 'LDAP_KERBEROS_SERVER_PORT',
-                 'LDAP_KERBEROS_BIND_BASE_DN',
-                 'LDAP_KERBEROS_USER_SEARCH_ATTR',
-                 'LDAP_KERBEROS_USER',
-                 'LDAP_KERBEROS_PWD',
-                 'LDAP_KERBEROS_AUTH_STRING',
-                 'LDAP_KERBEROS_DOMAIN'];
+      'LDAP_KERBEROS_SERVER_PORT',
+      'LDAP_KERBEROS_BIND_BASE_DN',
+      'LDAP_KERBEROS_USER_SEARCH_ATTR',
+      'LDAP_KERBEROS_USER',
+      'LDAP_KERBEROS_PWD',
+      'LDAP_KERBEROS_AUTH_STRING',
+      'LDAP_KERBEROS_DOMAIN'];
   } else if (context == 'KERBEROS') {
     variables = ['KERBEROS_USER',
-                 'KERBEROS_PWD',
-                 'KERBEROS_DOMAIN'];
+      'KERBEROS_PWD',
+      'KERBEROS_DOMAIN'];
   } else if (context == 'OCI_AUTH') {
     variables = ['OCI_AUTH_URI',
-                 'OCI_AUTH_CONFIG_FILE',
-                 'OCI_AUTH_PROFILE'];
+      'OCI_AUTH_CONFIG_FILE',
+      'OCI_AUTH_PROFILE'];
   }
 
-  let missing=[];
-  for (var index = 0; index < variables.length; index ++) {
-    if (!defined(function(){eval(variables[index])})) {
+  let missing = [];
+  for (var index = 0; index < variables.length; index++) {
+    if (!defined(function () { eval(variables[index]) })) {
       missing.push(variables[index])
     }
   }
@@ -629,7 +629,7 @@ function enable_auto_rejoin(session, port) {
     close_session = true;
   }
 
-   testutil.changeSandboxConf(port, "group_replication_start_on_boot", "ON");
+  testutil.changeSandboxConf(port, "group_replication_start_on_boot", "ON");
 
   if (__version_num > 80011)
     session.runSql("RESET PERSIST group_replication_start_on_boot");
@@ -655,7 +655,7 @@ function disable_auto_rejoin(session, port) {
     try {
       session.runSql("RESET PERSIST group_replication_start_on_boot");
     } catch (e) {
-      if (e["code"] != 3615) {
+      if (e.cause.code != 3615) {
         throw e;
       }
     }
@@ -673,26 +673,26 @@ function wait_member_state_from(session, member_port, state) {
   for (i = 0; i < timeout; i++) {
     var r = session.runSql("SELECT member_state FROM performance_schema.replication_group_members WHERE member_port=?", [member_port]).fetchOne();
     if (!r) {
-      testutil.fail("member_state query returned no rows for "+member_port);
+      testutil.fail("member_state query returned no rows for " + member_port);
       break;
     }
     if (r[0] == state) return;
     os.sleep(1);
   }
-  testutil.fail("Timeout while waiting for "+member_port+" to become "+state+" when queried from "+session.runSql("select @@port").fetchOne()[0]);
+  testutil.fail("Timeout while waiting for " + member_port + " to become " + state + " when queried from " + session.runSql("select @@port").fetchOne()[0]);
 }
 
 function wait_channel_ready(session, port, channel) {
-  wait(10, 0.5, function(){
+  wait(10, 0.5, function () {
     row = session.runSql("select s.service_state, port from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name=?", [channel]).fetchOne();
-    return row && row[0]=="ON" && row[1]==port;
+    return row && row[0] == "ON" && row[1] == port;
   });
 }
 
 function wait_channel_reconnecting(session, channel) {
-  wait(10, 0.5, function(){
+  wait(10, 0.5, function () {
     row = session.runSql("select s.service_state, port from performance_schema.replication_connection_status s join performance_schema.replication_connection_configuration c on s.channel_name = c.channel_name where s.channel_name=?", [channel]).fetchOne();
-    return row && row[0]=="CONNECTING";
+    return row && row[0] == "CONNECTING";
   });
 }
 
@@ -726,28 +726,28 @@ function exist_in_metadata_schema(port) {
 function reset_instance(session) {
   session.runSql("STOP SLAVE");
   try {
-  session.runSql("STOP group_replication");
-  } catch (e) {}
+    session.runSql("STOP group_replication");
+  } catch (e) { }
   session.runSql("SET GLOBAL super_read_only=0");
   session.runSql("SET GLOBAL read_only=0");
   session.runSql("DROP SCHEMA IF EXISTS mysql_innodb_cluster_metadata");
   var r = session.runSql("SHOW SCHEMAS");
   var rows = r.fetchAll();
   for (var i in rows) {
-      var row = rows[i];
-      if (["mysql", "performance_schema", "sys", "information_schema"].includes(row[0]))
-          continue;
-      session.runSql("DROP SCHEMA "+row[0]);
+    var row = rows[i];
+    if (["mysql", "performance_schema", "sys", "information_schema"].includes(row[0]))
+      continue;
+    session.runSql("DROP SCHEMA " + row[0]);
   }
   var r = session.runSql("SELECT user,host FROM mysql.user");
   var rows = r.fetchAll();
   for (var i in rows) {
-      var row = rows[i];
-      if (["mysql.sys", "mysql.session", "mysql.infoschema"].includes(row[0]))
-          continue;
-      if (row[0] == "root" && (row[1] == "localhost" || row[1] == "%"))
-          continue;
-      session.runSql("DROP USER ?@?", [row[0], row[1]]);
+    var row = rows[i];
+    if (["mysql.sys", "mysql.session", "mysql.infoschema"].includes(row[0]))
+      continue;
+    if (row[0] == "root" && (row[1] == "localhost" || row[1] == "%"))
+      continue;
+    session.runSql("DROP USER ?@?", [row[0], row[1]]);
   }
   session.runSql("RESET MASTER");
   session.runSql("RESET SLAVE ALL");
@@ -757,10 +757,11 @@ var SANDBOX_PORTS = [__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandb
 var SANDBOX_LOCAL_URIS = [__sandbox_uri1, __sandbox_uri2, __sandbox_uri3];
 var SANDBOX_URIS = [__hostname_uri1, __hostname_uri2, __hostname_uri3];
 
-var s = mysql.getSession(__mysqluripwd+"?ssl-mode=disabled");
+var s = mysql.getSession(__mysqluripwd + "?ssl-mode=disabled");
 var r = s.runSql("SELECT @@hostname, @@report_host").fetchOne();
 var __mysql_hostname = r[0];
 var __mysql_report_host = r[1];
+s.close()
 var __mysql_host = __mysql_report_host ? __mysql_report_host : __mysql_hostname;
 
 // Address that appear in pre-configured sandboxes that set report_host to 127.0.0.1
@@ -835,7 +836,7 @@ function wait(timeout, wait_interval, condition) {
   if (__replaying) wait_interval = 0;
   waiting = 0;
   res = condition();
-  while(!res && waiting < timeout) {
+  while (!res && waiting < timeout) {
     os.sleep(wait_interval);
     waiting = waiting + 1;
     res = condition();
@@ -861,7 +862,7 @@ function end_dba_log_sql(level) {
 
 function EXPECT_NO_SQL(instance, logs, allowed_stmts) {
   var fail = false;
-  for(var i in logs) {
+  for (var i in logs) {
     var line = logs[i];
     if (line.startsWith(instance)) {
       var bad = false;
@@ -882,7 +883,7 @@ function EXPECT_NO_SQL(instance, logs, allowed_stmts) {
 
 function EXPECT_SQL(instance, logs, expected_stmt) {
   var fail = true;
-  for(var i in logs) {
+  for (var i in logs) {
     var line = logs[i];
     if (line.startsWith(instance)) {
       if (line.split(": ")[1].startsWith(expected_stmt)) {
@@ -893,7 +894,7 @@ function EXPECT_SQL(instance, logs, expected_stmt) {
   }
   if (fail) {
     println("MISSING EXPECTED SQL:");
-    for(var i in logs) {
+    for (var i in logs) {
       var line = logs[i];
       if (line.startsWith(instance)) {
         println("\t", line);
@@ -929,7 +930,7 @@ function EXPECT_GT(value1, value2, note) {
   if (note === undefined)
     note = "";
   if (value1 <= value2) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_GT failed:</red> " + note + "\n\t"+repr(value1)+" expected to be > "+repr(value2)+" but isn't.";
+    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_GT failed:</red> " + note + "\n\t" + repr(value1) + " expected to be > " + repr(value2) + " but isn't.";
     testutil.fail(context);
   }
 }
@@ -938,7 +939,7 @@ function EXPECT_LT(value1, value2, note) {
   if (note === undefined)
     note = "";
   if (value1 >= value2) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_LT failed:</red> " + note + "\n\t"+repr(value1)+" expected to be < "+repr(value2)+" but isn't.";
+    var context = "<b>Context:</b> " + __test_context + "\n<red>EXPECT_LT failed:</red> " + note + "\n\t" + repr(value1) + " expected to be < " + repr(value2) + " but isn't.";
     testutil.fail(context);
   }
 }
@@ -987,14 +988,14 @@ function EXPECT_JSON_EQ(expected, actual, note) {
   if (typeof expected == "object" && typeof actual == "object" && !Array.isArray(expected) && !Array.isArray(actual)) {
     diffs = compare_objects(expected, actual, "$");
     if (diffs > 0) {
-      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected.</red> "+note+"\n\t<yellow>Actual:</yellow> " + JSON.stringify(actual, undefined, 2) + "\n\t<yellow>Expected:</yellow> " + JSON.stringify(expected, undefined, 2);
+      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected.</red> " + note + "\n\t<yellow>Actual:</yellow> " + JSON.stringify(actual, undefined, 2) + "\n\t<yellow>Expected:</yellow> " + JSON.stringify(expected, undefined, 2);
       testutil.fail(context);
     }
   } else {
     expected = JSON.stringify(expected, undefined, 2);
     actual = JSON.stringify(actual, undefined, 2);
     if (expected != actual) {
-      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> "+note+"\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
+      var context = "<b>Context:</b> " + __test_context + "\n<red>Tested values don't match as expected:</red> " + note + "\n\t<yellow>Actual:</yellow> " + actual + "\n\t<yellow>Expected:</yellow> " + expected;
       testutil.fail(context);
     }
   }
@@ -1045,9 +1046,9 @@ function EXPECT_TRUE(value, note) {
   if (note === undefined)
     note = "";
   else
-    note = ": "+note;
+    note = ": " + note;
   if (!value) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be true but is false</red>"+note;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be true but is false</red>" + note;
     testutil.fail(context);
   }
 }
@@ -1056,42 +1057,54 @@ function EXPECT_FALSE(value, note) {
   if (note === undefined)
     note = "";
   else
-    note = ": "+note;
+    note = ": " + note;
   if (value) {
-    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be false but is true</red>"+note;
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Tested value expected to be false but is true</red>" + note;
     testutil.fail(context);
   }
 }
 
+function get_exception_message(exception) {
+  if (exception.cause != undefined) {
+    if (exception.cause.message != undefined) {
+      return exception.cause.message;
+    }
+  }
+  return exception.message
+}
+
+
 function EXPECT_THROWS(func, etext) {
-  if (typeof(etext) != "string" && typeof(etext) != "object") {
-      testutil.fail("EXPECT_THROWS expects string or array, " +typeof(etext) + " given");
+  if (typeof (etext) != "string" && typeof (etext) != "object") {
+    testutil.fail("EXPECT_THROWS expects string or array, " + typeof (etext) + " given");
   }
   try {
     func();
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
   } catch (err) {
-    testutil.dprint("Got exception as expected: " + JSON.stringify(err));
-    if (typeof(etext) === "string") {
-        if (err.message.indexOf(etext) < 0) {
-          testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
+    message = get_exception_message(err);
+    testutil.dprint("Got exception as expected: " + message);
+
+    if (typeof (etext) === "string") {
+      if (message.indexOf(etext) < 0) {
+        testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + message);
+      }
+    } else if (typeof (etext) === "object") {
+      var found = false;
+      for (i in etext) {
+        if (message.indexOf(etext[i]) >= 0) {
+          found = true;
+          break;
         }
-    } else if (typeof(etext) === "object") {
-        var found = false;
+      }
+      if (!found) {
+        var msg = "<b>Context:</b> " + __test_context + "\n<red>One of the exceptions expected:</red>\n";
         for (i in etext) {
-            if (err.message.indexOf(etext[i]) >= 0) {
-                found = true;
-                break;
-            }
+          msg += etext[i] + "\n";
         }
-        if (!found) {
-            var msg = "<b>Context:</b> " + __test_context + "\n<red>One of the exceptions expected:</red>\n";
-            for (i in etext) {
-                msg += etext[i] + "\n";
-            }
-            msg += "<yellow>Actual:</yellow> " + err.message;
-            testutil.fail(msg);
-        }
+        msg += "<yellow>Actual:</yellow> " + message;
+        testutil.fail(msg);
+      }
     }
   }
 }
@@ -1105,8 +1118,22 @@ function EXPECT_THROWS_TYPE(func, etext, type) {
     if (err.message.indexOf(etext) < 0) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
     }
-    if (err.type  !== type) {
+
+    if (err.cause.type !== type) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception type expected:</red> " + type + "\n\t<yellow>Actual:</yellow> " + err.type);
+    }
+  }
+}
+
+function EXPECT_THROWS_LIKE(func, pattern) {
+  try {
+    func();
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + String(etext) + "</red>");
+  } catch (err) {
+    msg = get_exception_message(err);
+    testutil.dprint("Caught exception: " + msg);
+    if (!pattern.test(msg)) {
+      testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + String(pattern) + "\n\t<yellow>Actual:</yellow> " + err.message);
     }
   }
 }
@@ -1130,23 +1157,23 @@ function EXPECT_OUTPUT_CONTAINS(text) {
 }
 
 function EXPECT_OUTPUT_CONTAINS_ONE_OF(text) {
-    var out = testutil.fetchCapturedStdout(false);
-    var err = testutil.fetchCapturedStderr(false);
-    var found = false;
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  var found = false;
+  for (i in text) {
+    if (out.indexOf(text[i]) >= 0 || err.indexOf(text[i]) >= 0) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:\n</red>";
     for (i in text) {
-        if (out.indexOf(text[i]) >= 0 || err.indexOf(text[i]) >= 0) {
-            found = true;
-            break;
-        }
+      context += text[i] + "\n";
     }
-    if (!found) {
-        var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:\n</red>";
-        for (i in text) {
-            context += text[i] + "\n";
-        }
-        context += "<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
-        testutil.fail(context);
-    }
+    context += "<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
 }
 
 function EXPECT_OUTPUT_NOT_CONTAINS(text) {
@@ -1177,43 +1204,43 @@ function EXPECT_STDOUT_CONTAINS(text) {
 }
 
 function EXPECT_STDOUT_CONTAINS_ONE_OF(text) {
-    var out = testutil.fetchCapturedStdout(false);
-    var err = testutil.fetchCapturedStderr(false);
-    var found = false;
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  var found = false;
+  for (i in text) {
+    if (out.indexOf(text[i]) >= 0) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing STDOUT output:</red>\n";
     for (i in text) {
-        if (out.indexOf(text[i])>= 0) {
-            found = true;
-            break;
-        }
+      context += text[i] + "\n";
     }
-    if (!found) {
-      var context = "<b>Context:</b> " + __test_context + "\n<red>Missing STDOUT output:</red>\n";
-      for (i in text) {
-          context += text[i] + "\n";
-      }
-      context += "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
-      testutil.fail(context);
-    }
+    context += "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
 }
 
 function EXPECT_STDERR_CONTAINS_ONE_OF(text) {
-    var out = testutil.fetchCapturedStdout(false);
-    var err = testutil.fetchCapturedStderr(false);
-    var found = false;
+  var out = testutil.fetchCapturedStdout(false);
+  var err = testutil.fetchCapturedStderr(false);
+  var found = false;
+  for (i in text) {
+    if (err.indexOf(text[i]) >= 0) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing STDERR output:</red>\n";
     for (i in text) {
-        if (err.indexOf(text[i])>= 0) {
-            found = true;
-            break;
-        }
+      context += text[i] + "\n";
     }
-    if (!found) {
-      var context = "<b>Context:</b> " + __test_context + "\n<red>Missing STDERR output:</red>\n";
-      for (i in text) {
-          context += text[i] + "\n";
-      }
-      context += "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
-      testutil.fail(context);
-    }
+    context += "\n<yellow>Actual stdout:</yellow> " + out + "\n<yellow>Actual stderr:</yellow> " + err;
+    testutil.fail(context);
+  }
 }
 
 function EXPECT_STDERR_CONTAINS(text) {
@@ -1229,7 +1256,7 @@ function __split_trim_join(text) {
   const needle = '\n';
   const s = text.split(needle);
   s.forEach(function (item, index) { this[index] = item.trimEnd(); }, s);
-  return {'str': s.join(needle), 'array': s};
+  return { 'str': s.join(needle), 'array': s };
 }
 
 function __check_wildcard_match(expected, actual) {
@@ -1265,18 +1292,18 @@ function __multi_value_compare(expected, actual) {
   if (start < 0) {
     return __check_wildcard_match(expected, actual);
   } else {
-     const end = expected.indexOf('}}');
-     const pre = expected.substring(0, start);
-     const post = expected.substring(end + 2);
-     const opts = expected.substring(start + 2, end);
+    const end = expected.indexOf('}}');
+    const pre = expected.substring(0, start);
+    const post = expected.substring(end + 2);
+    const opts = expected.substring(start + 2, end);
 
-     for (const item of opts.split('|')) {
-       if (__check_wildcard_match(pre + item + post, actual)) {
-         return true;
-       }
-     }
+    for (const item of opts.split('|')) {
+      if (__check_wildcard_match(pre + item + post, actual)) {
+        return true;
+      }
+    }
 
-     return false;
+    return false;
   }
 }
 
@@ -1349,91 +1376,91 @@ function __check_multiline_expect(expected_lines, actual_lines) {
     diff = __diff_with_error(expected_lines, '<yellow><------ INCONSISTENCY</yellow>', 0);
   }
 
-  return {'matches': matches, 'diff': diff};
+  return { 'matches': matches, 'diff': diff };
 }
 
 
 function __check_output_contains_multiline(input_text, output_type) {
-    if (!["both", "err", "out"].includes(output_type))
-        testutil.fail("EXPECT_CONTAINS_MULTILINE got unknown argument: " + output_type + " allowed: both, err, out");
-    const out = __split_trim_join(testutil.fetchCapturedStdout(false));
-    const err = __split_trim_join(testutil.fetchCapturedStderr(false));
+  if (!["both", "err", "out"].includes(output_type))
+    testutil.fail("EXPECT_CONTAINS_MULTILINE got unknown argument: " + output_type + " allowed: both, err, out");
+  const out = __split_trim_join(testutil.fetchCapturedStdout(false));
+  const err = __split_trim_join(testutil.fetchCapturedStderr(false));
 
-    var for_match = [];
-    if (typeof(input_text) === "object") {
-        for_match = input_text;
-    } else if (typeof(input_text) === "string"){
-        for_match = [input_text];
-    } else {
-        testutil.fail("EXPECT_CONTAINS_MULTILINE got unknown argument: " + input_text + " allowed: string or array(string)");
-    }
+  var for_match = [];
+  if (typeof (input_text) === "object") {
+    for_match = input_text;
+  } else if (typeof (input_text) === "string") {
+    for_match = [input_text];
+  } else {
+    testutil.fail("EXPECT_CONTAINS_MULTILINE got unknown argument: " + input_text + " allowed: string or array(string)");
+  }
 
-    var found = false;
-    for (i in for_match) {
-        const text = __split_trim_join(for_match[i]);
-        var out_result = {"matches": false, "diff":""};
-        var err_result = {"matches": false, "diff":""};
-        if (output_type === "both") {
-            out_result = __check_multiline_expect(text.array, out.array);
-            err_result = __check_multiline_expect(text.array, err.array);
-        } else if (output_type === "err") {
-            err_result = __check_multiline_expect(text.array, err.array);
-        } else if (output_type === "out") {
-            out_result = __check_multiline_expect(text.array, out.array);
-        }
-        found = out_result.matches || err_result.matches;
-        if (found)
-            return {"found": found, "out":out, "err":err, "out_result":out_result, "err_result":err_result};
+  var found = false;
+  for (i in for_match) {
+    const text = __split_trim_join(for_match[i]);
+    var out_result = { "matches": false, "diff": "" };
+    var err_result = { "matches": false, "diff": "" };
+    if (output_type === "both") {
+      out_result = __check_multiline_expect(text.array, out.array);
+      err_result = __check_multiline_expect(text.array, err.array);
+    } else if (output_type === "err") {
+      err_result = __check_multiline_expect(text.array, err.array);
+    } else if (output_type === "out") {
+      out_result = __check_multiline_expect(text.array, out.array);
     }
-    return {"found": found, "out":out, "err":err, "out_result":{"matches": false, "diff":""}, "err_result":{"matches": false, "diff":""}};
+    found = out_result.matches || err_result.matches;
+    if (found)
+      return { "found": found, "out": out, "err": err, "out_result": out_result, "err_result": err_result };
+  }
+  return { "found": found, "out": out, "err": err, "out_result": { "matches": false, "diff": "" }, "err_result": { "matches": false, "diff": "" } };
 }
 
 function EXPECT_OUTPUT_CONTAINS_MULTILINE_ONE_OF(t) {
-    var ret = __check_output_contains_multiline(t, "both");
-    if (!ret.found) {
-        var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
-        if (typeof(t) === "string") {
-            context += text.str;
-        } else {
-            for (i in t) {
-                context += t[i] + "\n";
-            }
-        }
-        context += "\n<yellow>Actual stdout:</yellow> " + ret.out.str + "\n<yellow>Actual stderr:</yellow> " + ret.err.str + "\n<yellow>Diff with stdout:</yellow>\n" + ret.out_result.diff + "\n<yellow>Diff with stderr:</yellow>\n" + ret.err_result.diff;
-        testutil.fail(context);
+  var ret = __check_output_contains_multiline(t, "both");
+  if (!ret.found) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
+    if (typeof (t) === "string") {
+      context += text.str;
+    } else {
+      for (i in t) {
+        context += t[i] + "\n";
+      }
     }
+    context += "\n<yellow>Actual stdout:</yellow> " + ret.out.str + "\n<yellow>Actual stderr:</yellow> " + ret.err.str + "\n<yellow>Diff with stdout:</yellow>\n" + ret.out_result.diff + "\n<yellow>Diff with stderr:</yellow>\n" + ret.err_result.diff;
+    testutil.fail(context);
+  }
 }
 
 function EXPECT_STDOUT_CONTAINS_MULTILINE_ONE_OF(t) {
-    var ret = __check_output_contains_multiline(t, "out");
-    if (!ret.found) {
-        var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
-        if (typeof(t) === "string") {
-            context += t;
-        } else {
-            for (i in t) {
-                context += t[i] + "\n";
-            }
-        }
-        context += "\n<yellow>Actual stdout:</yellow> " + ret.out.str + "\n<yellow>Actual stderr:</yellow> " + ret.err.str + "\n<yellow>Diff with stdout:</yellow>\n" + ret.out_result.diff;
-        testutil.fail(context);
+  var ret = __check_output_contains_multiline(t, "out");
+  if (!ret.found) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
+    if (typeof (t) === "string") {
+      context += t;
+    } else {
+      for (i in t) {
+        context += t[i] + "\n";
+      }
     }
+    context += "\n<yellow>Actual stdout:</yellow> " + ret.out.str + "\n<yellow>Actual stderr:</yellow> " + ret.err.str + "\n<yellow>Diff with stdout:</yellow>\n" + ret.out_result.diff;
+    testutil.fail(context);
+  }
 }
 
 function EXPECT_STDERR_CONTAINS_MULTILINE_ONE_OF(t) {
-    var ret = __check_output_contains_multiline(t, "err");
-    if (!ret.found) {
-        var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
-        if (typeof(t) === "string") {
-            context += text.str;
-        } else {
-            for (i in t) {
-                context += t[i] + "\n";
-            }
-        }
-        context += "\n<yellow>Actual stdout:</yellow> " + ret.out.str + "\n<yellow>Actual stderr:</yellow> " + ret.err.str + "\n<yellow>Diff with stderr:</yellow>\n" + ret.err_result.diff;
-        testutil.fail(context);
+  var ret = __check_output_contains_multiline(t, "err");
+  if (!ret.found) {
+    var context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red>\n";
+    if (typeof (t) === "string") {
+      context += text.str;
+    } else {
+      for (i in t) {
+        context += t[i] + "\n";
+      }
     }
+    context += "\n<yellow>Actual stdout:</yellow> " + ret.out.str + "\n<yellow>Actual stderr:</yellow> " + ret.err.str + "\n<yellow>Diff with stderr:</yellow>\n" + ret.err_result.diff;
+    testutil.fail(context);
+  }
 }
 
 
@@ -1641,7 +1668,7 @@ function StandaloneScenario(ports) {
 // ** Cluster based scenarios
 function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
   for (i in ports) {
-    testutil.deploySandbox(ports[i], "root", {report_host: hostname});
+    testutil.deploySandbox(ports[i], "root", { report_host: hostname });
 
     if (sandboxConfiguration) {
       var uri = `root:root@localhost:${ports[i]}`;
@@ -1680,12 +1707,12 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
       if (allowList === undefined) {
         this.cluster.addInstance(uri);
       } else {
-        this.cluster.addInstance(uri, {ipAllowlist: allowList});
+        this.cluster.addInstance(uri, { ipAllowlist: allowList });
       }
       testutil.waitMemberState(ports[i], "ONLINE");
 
       if (testutil.versionCheck(__version, "<", "8.0.0")) {
-        dba.configureLocalInstance(uri, {mycnfPath: testutil.getSandboxConfPath(ports[i])});
+        dba.configureLocalInstance(uri, { mycnfPath: testutil.getSandboxConfPath(ports[i]) });
       }
     }
   }
@@ -1756,28 +1783,28 @@ function validate_crud_functions(crud, expected) {
 }
 
 function validateMembers(obj, expected) {
-    var actual = dir(obj);
-    // Ensures expected members are on the actual list
-    var missing = [];
-    for(exp of expected) {
-        var pos = actual.indexOf(exp);
-        if(pos == -1){
-            missing.push(exp);
-        } else {
-            actual.splice(pos, 1);
-        }
+  var actual = dir(obj);
+  // Ensures expected members are on the actual list
+  var missing = [];
+  for (exp of expected) {
+    var pos = actual.indexOf(exp);
+    if (pos == -1) {
+      missing.push(exp);
+    } else {
+      actual.splice(pos, 1);
     }
-    var errors = [];
-    if(missing.length) {
-        errors.push("Missing Members: " + missing.join(", "));
-    }
-    // help is ignored cuz it's always available
-    if (actual.length > 1  || (actual.length == 1 && actual[0] != 'help')) {
-      errors.push("Extra Members: " + actual.join(", "));
-    }
-    if (errors.length) {
-      testutil.fail(errors.join("\n"));
-    }
+  }
+  var errors = [];
+  if (missing.length) {
+    errors.push("Missing Members: " + missing.join(", "));
+  }
+  // help is ignored cuz it's always available
+  if (actual.length > 1 || (actual.length == 1 && actual[0] != 'help')) {
+    errors.push("Extra Members: " + actual.join(", "));
+  }
+  if (errors.length) {
+    testutil.fail(errors.join("\n"));
+  }
 }
 
 function WARNING_SKIPPED_TEST(reason) {
@@ -1822,10 +1849,10 @@ function EXPECT_CLUSTER_THROWS_PROTOCOL_ERROR(context, f, classic, ...args) {
   }
 }
 
-function wait(timeout, wait_interval, condition){
+function wait(timeout, wait_interval, condition) {
   waiting = 0;
   res = condition();
-  while(!res && waiting < timeout) {
+  while (!res && waiting < timeout) {
     os.sleep(wait_interval);
     waiting = waiting + 1;
     res = condition();
@@ -1846,10 +1873,10 @@ function libmysql_host_description(hostname, port) {
 }
 
 function clone_installed(session) {
-    var row = session.runSql("select plugin_status from information_schema.plugins where plugin_name='clone'").fetchOne();
-    if (row)
-        return row[0] == "ACTIVE";
-    return false;
+  var row = session.runSql("select plugin_status from information_schema.plugins where plugin_name='clone'").fetchOne();
+  if (row)
+    return row[0] == "ACTIVE";
+  return false;
 }
 
 

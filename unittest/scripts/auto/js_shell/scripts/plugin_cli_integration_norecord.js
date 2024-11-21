@@ -244,24 +244,24 @@ WIPE_OUTPUT()
 // optionA interpreted as JSON array as defined by the user
 callMysqlsh(["--", "customObj", "dummyFunction", "1", "2", "--optionA:json=[\"a\",\"b\"]"])
 // NOTES: To be analyzed, out of the scope of WL14297
-// - object Object might be result of wrong toString conversion of Array
+// - a,b is the toString conversion of Array
 // - m.Array is the data type for arrays defined in C++, to review why.
-EXPECT_OUTPUT_CONTAINS("param_c.optionA=[object Object] with data type as m.Array")
+EXPECT_OUTPUT_CONTAINS("param_c.optionA=a,b with data type as m.Array")
 WIPE_OUTPUT()
 
 
 // optionA interpreted as list as defined by the user
 callMysqlsh(["--", "customObj", "dummyFunction", "1", "2", "--optionA:list=[\"a\",\"b\"]"])
 // NOTES: To be analyzed, out of the scope of WL14297
-// - object Object might be result of wrong toString conversion of Array
+// - a,b is the toString conversion of Array
 // - m.Array is the data type for JSON Arrays, tTBD: review why.
-EXPECT_OUTPUT_CONTAINS("param_c.optionA=[object Object] with data type as m.Array")
+EXPECT_OUTPUT_CONTAINS("param_c.optionA=a,b with data type as m.Array")
 WIPE_OUTPUT()
 
 // optionA interpreted as JSON Object as defined by the user
 callMysqlsh(["--", "customObj", "dummyFunction", "1", "2", "--optionA:json={\"a\":\"b\"}"])
 // NOTES: To be analyzed, out of the scope of WL14297
-// - object Object might be result of wrong toString conversion of Array
+// - object Object might be result of wrong toString conversion of Map
 // - m.Map is the data type for JSON objects in JavaScript, TBD: review why.
 EXPECT_OUTPUT_CONTAINS("param_c.optionA=[object Object] with data type as m.Map")
 WIPE_OUTPUT()
@@ -269,7 +269,7 @@ WIPE_OUTPUT()
 // optionA interpreted as JSON Object as defined by the user
 callMysqlsh(["--", "customObj", "dummyFunction", "1", "2", "--optionA:dict={\"a\":\"b\"}"])
 // NOTES: To be analyzed, out of the scope of WL14297
-// - object Object might be result of wrong toString conversion of Array
+// - object Object might be result of wrong toString conversion of Map
 // - m.Map is the data type for JSON objects in JavaScript, TBD: review why.
 EXPECT_OUTPUT_CONTAINS("param_c.optionA=[object Object] with data type as m.Map")
 WIPE_OUTPUT()

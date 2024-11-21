@@ -42,18 +42,11 @@
 //@ Collection creation
 |createCollection(): <Collection:my_sample_collection>|
 
-//@ Testing dropping existing schema objects
-|<Collection:collection1>|
-|undefined|
-
 //@ Testing dropped objects are actually dropped
 ||The collection js_shell_test.collection1 does not exist
 
-//@ Testing dropping non-existing schema objects
-|undefined|
-
 //@ Testing drop functions using execute
-||TypeError: Cannot read properties of undefined (reading 'execute')
+||Cannot read property 'execute' of undefined (TypeError)
 
 //@ Testing existence
 |Valid: true|

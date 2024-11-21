@@ -1915,7 +1915,7 @@ void Shell_js_script_tester::set_defaults() {
   _interactive_shell->process_line("\\js");
   Shell_script_tester::set_defaults();
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   exec_and_out_equals("var __have_javascript = true");
 #else
   exec_and_out_equals("var __have_javascript = false");
@@ -1926,7 +1926,7 @@ void Shell_py_script_tester::set_defaults() {
   _interactive_shell->process_line("\\py");
   Shell_script_tester::set_defaults();
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   exec_and_out_equals("__have_javascript = True");
 #else
   exec_and_out_equals("__have_javascript = False");

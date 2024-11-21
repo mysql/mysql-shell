@@ -33,16 +33,48 @@ set(SCRIPTING_SOURCES
     shexcept.cc
     type_info/custom.cc)
 
+
+if (HAVE_POLYGLOT)
+    set(SCRIPTING_SOURCES
+      ${SCRIPTING_SOURCES}
+      polyglot/native_wrappers/polyglot_collectable.cc
+      polyglot/native_wrappers/polyglot_iterator_wrapper.cc
+      polyglot/native_wrappers/polyglot_object_wrapper.cc
+      polyglot/native_wrappers/polyglot_function_wrapper.cc
+      polyglot/native_wrappers/polyglot_array_wrapper.cc
+      polyglot/native_wrappers/polyglot_map_wrapper.cc
+      polyglot/native_wrappers/polyglot_file_system_wrapper.cc
+      polyglot/native_wrappers/polyglot_seekable_channel_wrapper.cc
+      polyglot/polyglot_wrappers/types_polyglot.cc
+      polyglot/utils/polyglot_scope.cc
+      polyglot/utils/polyglot_store.cc
+      polyglot/utils/polyglot_error.cc
+      polyglot/utils/polyglot_utils.cc
+      polyglot/polyglot_type_conversion.cc
+      polyglot/languages/polyglot_language.cc
+      polyglot/languages/polyglot_common_context.cc
+      polyglot/languages/polyglot_garbage_collector.cc
+      polyglot/polyglot_context.cc
+      polyglot/shell_polyglot_common_context.cc
+      polyglot/shell_javascript.cc
+      )
+endif()
+
 # Will generate the js_core_definitions file which will contain the
 # core.js file in a variable.
-if(HAVE_V8)
-  include_directories(SYSTEM "${V8_INCLUDE_DIR}")
+if(HAVE_JS)
   # Copy the core.js file to another directory.
   # This ensures that it's treated as a dependency, allowing to reconfigure
   # the jscript_core_definitions.h header file whenever core.js is changed.
   configure_file("${CMAKE_SOURCE_DIR}/mysqlshdk/scripts/core.js"
                  "${CMAKE_BINARY_DIR}/scripting/core.js"
                  COPYONLY)
+
+  set(SCRIPTING_SOURCES
+    ${SCRIPTING_SOURCES}
+    polyglot/languages/polyglot_javascript.cc
+  )
+
 
   # Loads the core.js file
   FILE(READ "${CMAKE_BINARY_DIR}/scripting/core.js" JS_CORE_MODULE)
@@ -56,15 +88,6 @@ if(HAVE_V8)
   configure_file("${CMAKE_SOURCE_DIR}/mysqlshdk/scripting/jscript_core_definitions.h.in"
                  "${CMAKE_BINARY_DIR}/scripting/jscript_core_definitions.h")
 
-  set(SCRIPTING_SOURCES
-    ${SCRIPTING_SOURCES}
-    types_jscript.cc
-    jscript_array_wrapper.cc
-    jscript_context.cc
-    jscript_function_wrapper.cc
-    jscript_map_wrapper.cc
-    jscript_object_wrapper.cc
-    jscript_type_conversion.cc)
 endif()
 
 if(HAVE_PYTHON)

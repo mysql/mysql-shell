@@ -32,11 +32,14 @@
 #include <unistd.h>
 #endif
 #include "mysqlshdk/include/shellcore/base_shell.h"
+#ifdef HAVE_POLYGLOT
+#include "mysqlshdk/include/shellcore/shell_polyglot.h"
+#include "mysqlshdk/scripting/polyglot/utils/polyglot_utils.h"
+#endif
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
 #include "shellcore/base_session.h"
-#include "shellcore/shell_jscript.h"
 #include "shellcore/shell_python.h"
 #include "shellcore/shell_sql.h"
 #include "utils/base_tokenizer.h"
@@ -203,16 +206,19 @@ void Shell_core::init_mode(Mode mode) {
 void Shell_core::init_sql() { _langs[Mode::SQL] = new Shell_sql(this); }
 
 void Shell_core::init_js() {
-#ifdef HAVE_V8
-  Shell_javascript *js;
-  _langs[Mode::JavaScript] = js = new Shell_javascript(this);
+#ifdef HAVE_JS
 
-  for (std::map<std::string, std::pair<Mode_mask, Value>>::const_iterator iter =
-           _globals.begin();
-       iter != _globals.end(); ++iter) {
-    if (iter->second.first.is_set(Mode::JavaScript))
-      js->set_global(iter->first, iter->second.second);
+  if (_langs.find(Mode::JavaScript) == _langs.end()) {
+    Shell_polyglot *js;
+    _langs[Mode::JavaScript] = js =
+        new Shell_polyglot(this, polyglot::Language::JAVASCRIPT);
+
+    for (const auto &global : _globals) {
+      if (global.second.first.is_set(Mode::JavaScript))
+        js->set_global(global.first, global.second.second);
+    }
   }
+
 #endif
 }
 

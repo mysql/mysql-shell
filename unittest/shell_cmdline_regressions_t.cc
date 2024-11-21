@@ -71,7 +71,7 @@ TEST_F(Command_line_test, bug24912358) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Command_line_test, bug23508428) {
   // Test if the xplugin is installed using enableXProtocol in the --dba option
   // In 8.0.4, the mysqlx_cache_cleaner is also supposed to be installed
@@ -399,7 +399,7 @@ TEST_F(Command_line_test, bug26970629) {
   } else {
     std::string usr = "--user=" + _user;
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute({_mysqlsh, "--js", usr.c_str(), pwd.c_str(), host.c_str(),
              socket.c_str(), "-e", "dba.createCluster('sample')", NULL});
 #else
@@ -412,7 +412,7 @@ TEST_F(Command_line_test, bug26970629) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Command_line_test, bug28814112_js) {
   // SEG-FAULT WHEN CALLING SHELL.SETCURRENTSCHEMA() WITHOUT AN ACTIVE SHELL
   // SESSION

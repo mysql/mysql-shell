@@ -74,7 +74,7 @@ TEST_F(Completion_cache_refresh, startup) {
   _options->devapi_schema_object_handles = true;
 
   // No connection, no refresh
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell("", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
@@ -90,7 +90,7 @@ TEST_F(Completion_cache_refresh, startup) {
 
   // Classic
   // Connection without default schema, refresh schemas only
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
@@ -105,7 +105,7 @@ TEST_F(Completion_cache_refresh, startup) {
   MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
 
   // Connection with default schema, refresh schemas and objects
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_mysql_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
@@ -122,7 +122,7 @@ TEST_F(Completion_cache_refresh, startup) {
 
   // X proto
   // Connection without default schema, refresh schemas only
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_uri, shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
@@ -137,7 +137,7 @@ TEST_F(Completion_cache_refresh, startup) {
   MY_EXPECT_STDOUT_CONTAINS("Fetching global names for auto-completion");
 
   // Connection with default schema, refresh schemas and objects
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_CONTAINS("Fetching schema names for auto-completion");
@@ -168,7 +168,7 @@ TEST_F(Completion_cache_refresh, connect_interactive) {
   _options->devapi_schema_object_handles = true;
 
   // Start with no connection
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell("", shcore::IShell_core::Mode::JavaScript);
   MY_EXPECT_STDOUT_NOT_CONTAINS("Creating a session to");
   MY_EXPECT_STDOUT_NOT_CONTAINS("for auto-completion");
@@ -235,7 +235,7 @@ TEST_F(Completion_cache_refresh, switch_to_sql) {
   _options->devapi_schema_object_handles = true;
 
   shcore::IShell_core::Mode scripting_mode;
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   scripting_mode = shcore::IShell_core::Mode::JavaScript;
 #else
   scripting_mode = shcore::IShell_core::Mode::Python;
@@ -284,7 +284,7 @@ TEST_F(Completion_cache_refresh, switch_schema_js) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
 #else
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::Python);
@@ -316,7 +316,7 @@ TEST_F(Completion_cache_refresh, switch_schema_sql) {
       "Fetching global names, object names from `information_schema` for "
       "auto-completion");
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::JavaScript);
 #else
   reset_shell(_mysql_uri, shcore::IShell_core::Mode::Python);
@@ -375,7 +375,7 @@ TEST_F(Completion_cache_refresh, rehash_db) {
   _options->devapi_schema_object_handles = true;
 
   // Check that rehash also updates the object cache in db
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_uri, shcore::IShell_core::Mode::JavaScript);
 #else
   reset_shell(_uri, shcore::IShell_core::Mode::Python);
@@ -404,7 +404,7 @@ TEST_F(Completion_cache_refresh, rehash_db) {
 
   _options->devapi_schema_object_handles = true;
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
 #else
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
@@ -423,7 +423,7 @@ TEST_F(Completion_cache_refresh, rehash_db) {
 
   _options->devapi_schema_object_handles = false;
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string bool_true = "true";
   const std::string bool_false = "false";
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
@@ -466,7 +466,7 @@ TEST_F(Completion_cache_refresh, rehash_db) {
 TEST_F(Completion_cache_refresh, options_db_object_handles) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string bool_true = "true";
   const std::string bool_false = "false";
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
@@ -480,7 +480,7 @@ TEST_F(Completion_cache_refresh, options_db_object_handles) {
 
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = false;
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
 #else
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);
@@ -520,7 +520,7 @@ TEST_F(Completion_cache_refresh, options_db_name_cache) {
   _options->db_name_cache = true;
   _options->devapi_schema_object_handles = true;
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::JavaScript);
 #else
   reset_shell(_uri + "/mysql", shcore::IShell_core::Mode::Python);

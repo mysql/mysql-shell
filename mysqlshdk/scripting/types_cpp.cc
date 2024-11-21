@@ -469,6 +469,10 @@ void Cpp_object_bridge::set_member(size_t, Value) {
   throw Exception::attrib_error("Can't set object member using an index");
 }
 
+size_t Cpp_object_bridge::length() const {
+  throw Exception::attrib_error("Can't get count of indexed members");
+}
+
 bool Cpp_object_bridge::has_method(const std::string &name) const {
   auto method_index = _funcs.find(name);
 

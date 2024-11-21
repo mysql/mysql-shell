@@ -44,7 +44,7 @@ TEST(Bug25684798, regression_python_cmdline) {
 
   EXPECT_EQ(0, system(cmd.c_str()));
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   cmd = mysqlsh_path + " --js -e '1'";
   EXPECT_EQ(0, system(cmd.c_str()));
 #endif

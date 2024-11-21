@@ -41,7 +41,6 @@
 #include "modules/mod_mysql_session.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
-#include "shellcore/shell_jscript.h"
 #include "shellcore/shell_python.h"
 #include "shellcore/shell_sql.h"
 #include "utils/utils_general.h"
@@ -346,7 +345,7 @@ TEST_F(Interrupt_mysql, sql_classic) {
     thd.join();
   }
 }
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysql, sql_classic_javascript) {
   mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5-a
@@ -480,7 +479,7 @@ TEST_F(Interrupt_mysqlx, sql_x_err) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 // Test that JS code running SQL gets interrupted
 TEST_F(Interrupt_mysqlx, db_javascript_sql) {
   mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
@@ -938,7 +937,7 @@ TEST_F(Interrupt_mysqlx, db_python_crud_collection2) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysqlx, db_javascript_drop) {
   mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR5 b
@@ -1068,7 +1067,7 @@ TEST_F(Interrupt_mysqlx, db_python_drop) {
 }
 
 // Test that native JavaScript code gets interrupted
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysql, javascript) {
   mysqlsh::Scoped_interrupt interrupt_handler(m_current_interrupt);
   // Test case for FR4 JS

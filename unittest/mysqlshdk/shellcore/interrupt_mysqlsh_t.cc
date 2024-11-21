@@ -350,7 +350,7 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
   std::thread kill_thread;
 };
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysqlsh, crud_js_x_cli) {
   // FR8-b-8 FR9-b-9
   kill_on_ready();
@@ -387,7 +387,7 @@ TEST_F(Interrupt_mysqlsh, py_cli) {
   EXPECT_EQ(130, rc);
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysqlsh, js_cli) {
   // FR8-b-8 FR9-b-8
   kill_on_ready();
@@ -486,7 +486,7 @@ TEST_F(Interrupt_mysqlsh, py_file_batch) {
   TEST_INTERRUPT_SCRIPT_B(_mysql_uri.c_str(), "--py", "test_queryc.py");
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysqlsh, js_file_interactive) {
   // Test cases for FR8-a-2 FR8-b-2 FR9-a-2 FR9-b-2
   const char *expect = "Script execution interrupted by user";
@@ -674,7 +674,7 @@ TEST_F(Interrupt_mysqlsh, json_import) {
   const char *expect = "JSON documents import cancelled.";
   const char *unexpect = nullptr;
   const int exitcode = 0;
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   TEST_INTERRUPT_ON_MSG_SCRIPT_I(_uri.c_str(), "--js", "test_jsonimport.js",
                                  "Importing from file ");
 #else
@@ -729,7 +729,7 @@ TEST_F(Interrupt_mysqlsh, prompt_password_from_stdin) {
   test_prompt(false, true, true);
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interrupt_mysqlsh, js_prompt) { test_prompt(true, false, false); }
 
 TEST_F(Interrupt_mysqlsh, js_prompt_password) {
@@ -743,7 +743,7 @@ TEST_F(Interrupt_mysqlsh, js_prompt_password) {
 TEST_F(Interrupt_mysqlsh, js_prompt_password_from_stdin) {
   test_prompt(true, true, true);
 }
-#endif  // HAVE_V8
+#endif  // HAVE_JS
 
 }  // namespace mysqlsh
 

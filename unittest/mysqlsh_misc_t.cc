@@ -79,7 +79,7 @@ TEST_F(Mysqlsh_misc, trace_proto) {
 TEST_F(Mysqlsh_misc, load_builtin_modules) {
 // Regression test for Bug #26174373
 // Built-in modules should auto-load in non-interactive sessions too
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   wipe_out();
   execute({_mysqlsh, "--js", "-e", "println(mysqlx)", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("<mysqlx>");
@@ -96,7 +96,7 @@ TEST_F(Mysqlsh_misc, load_builtin_modules) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("<module 'mysqlsh.mysql' (built-in)>");
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Mysqlsh_misc, connection_attribute) {
   // Regression test for Bug #24735491
   // MYSQL SHELL DOESN'T SET CONNECTION ATTRIBUTES
@@ -154,7 +154,7 @@ TEST_F(Mysqlsh_misc, warning_insecure_password) {
   wipe_out();
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Mysqlsh_misc, autocompletion_options) {
   execute({_mysqlsh, "--js", "-e",
            "println(shell.options['devapi.dbObjectHandles'], "
@@ -200,7 +200,7 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   } catch (...) {
   }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute({_mysqlsh, "-f", "bla.js", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("JavaScript works");
   wipe_out();
@@ -222,7 +222,7 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works!");
   wipe_out();
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   // will exec using JS - OK
   execute({_mysqlsh, "-f", "js.foo", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("JS works!");
@@ -245,7 +245,7 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works!");
   wipe_out();
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   // now change the default startup mode and persist it
   // Bug#27861407  SHELL DOESN'T EXECUTE SCRIPTS USING CORRECT LANGUAGE
   execute({_mysqlsh, "--js", "-e",
@@ -260,7 +260,7 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works");
   wipe_out();
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute({_mysqlsh, "-f", "js.foo", nullptr});
   MY_EXPECT_CMD_OUTPUT_CONTAINS("JS works!");
   wipe_out();
@@ -274,7 +274,7 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Not connected");
   wipe_out();
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   // again with Python as default
   execute({_mysqlsh, "--js", "-e",
            "shell.options.setPersist('defaultMode', 'py')", nullptr});
@@ -287,7 +287,7 @@ TEST_F(Mysqlsh_misc, autodetect_script_type) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Python works");
   wipe_out();
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute({_mysqlsh, "-f", "js.foo", nullptr});
   wipe_out();
 #endif

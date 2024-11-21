@@ -34,7 +34,7 @@
 namespace tests {
 class Table_select : public Shell_core_test_wrapper {
  protected:
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string start_txn_stmt = "session.startTransaction();";
   const std::string lock_shared_fn = "lockShared";
   const std::string lock_exclusive_fn = "lockExclusive";
@@ -60,7 +60,7 @@ class Table_select : public Shell_core_test_wrapper {
     // Connects the two shell instances to be used on these tests
     execute("\\connect --mx " + _uri);
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute("var schema = session.getSchema('test_locking');");
     execute("var table = schema.getTable('test_table');");
 #else
@@ -88,7 +88,7 @@ class Table_select : public Shell_core_test_wrapper {
     // preparation
     global_shell.execute(
         "session.sql('drop schema if exists test_locking').execute();");
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     global_shell.execute("var schema = session.createSchema('test_locking');");
 #else
     global_shell.execute("schema = session.create_schema('test_locking');");
@@ -99,7 +99,7 @@ class Table_select : public Shell_core_test_wrapper {
         "session.sql('create table test_locking.test_table (_id int "
         "primary key, name varchar(10))').execute();");
     // global_shell.execute("\\js");
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     global_shell.execute("var table = schema.getTable('test_table');");
 #else
     global_shell.execute("table = schema.get_table('test_table');");
@@ -116,7 +116,6 @@ class Table_select : public Shell_core_test_wrapper {
   static void TearDownTestCase() {
     tests::Shell_test_wrapper global_shell;
     global_shell.execute("\\connect --mx " + shell_test_server_uri('x'));
-
     global_shell.execute("session.dropSchema('test_locking');");
     global_shell.execute("session.close();");
   }

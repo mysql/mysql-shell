@@ -304,7 +304,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_required) {
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute(
       "var c = dba.createCluster('sample', {memberSslMode:'REQUIRED', "
       "gtidSetIsComplete: true})");
@@ -562,7 +562,7 @@ TEST_F(Dba_common_test, resolve_instance_ssl_cluster_with_ssl_disabled) {
 
   testutil->expect_prompt(
       "Should the configuration be changed accordingly? [y/N]: ", "y");
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute(
       "var c = dba.createCluster('sample', {memberSslMode:'DISABLED', "
       "gtidSetIsComplete: true})");
