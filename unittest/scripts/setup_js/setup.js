@@ -1,5 +1,6 @@
 var sandbox_uris = {}
-const PLUGIN_ALREADY_EXISTS = 1125;
+// script should be found, atm it executes 3 times when running a single JS test
+var PLUGIN_ALREADY_EXISTS = 1125;
 sandbox_uris[__mysql_sandbox_port1] = __sandbox_uri1;
 sandbox_uris[__mysql_sandbox_port2] = __sandbox_uri2;
 sandbox_uris[__mysql_sandbox_port3] = __sandbox_uri3;
@@ -656,7 +657,7 @@ function disable_auto_rejoin(session, port) {
     try {
       session.runSql("SET PERSIST group_replication_start_on_boot=OFF");
     } catch (e) {
-      if (e["code"] != 3615 && e["code"] != 1193) {
+      if (e.cause.code != 3615 && e.cause.code != 1193) {
         throw e;
       }
     }
@@ -770,6 +771,7 @@ var s = mysql.getSession(__mysqluripwd+"?ssl-mode=preferred");
 var r = s.runSql("SELECT @@hostname, @@report_host").fetchOne();
 var __mysql_hostname = r[0];
 var __mysql_report_host = r[1];
+s.close()
 var __mysql_host = __mysql_report_host ? __mysql_report_host : __mysql_hostname;
 
 // Address that appear in pre-configured sandboxes that set report_host to 127.0.0.1
@@ -1090,6 +1092,16 @@ function EXPECT_FALSE(value, note) {
   }
 }
 
+function get_exception_message(exception) {
+  if (exception.cause != undefined) {
+    if (exception.cause.message != undefined) {
+      return exception.cause.message;
+    }
+  }
+  return exception.message
+}
+
+
 function EXPECT_THROWS(func, etext) {
   if (typeof(etext) != "string" && typeof(etext) != "object") {
       testutil.fail("EXPECT_THROWS expects string or array, " +typeof(etext) + " given");
@@ -1098,15 +1110,17 @@ function EXPECT_THROWS(func, etext) {
     func();
     testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + etext + "</red>");
   } catch (err) {
-    testutil.dprint("Got exception as expected: " + JSON.stringify(err));
+    message = get_exception_message(err);
+    testutil.dprint("Got exception as expected: " + message);
+
     if (typeof(etext) === "string") {
-        if (err.message.indexOf(etext) < 0) {
-          testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
+        if (message.indexOf(etext) < 0) {
+          testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + message);
         }
     } else if (typeof(etext) === "object") {
         var found = false;
         for (i in etext) {
-            if (err.message.indexOf(etext[i]) >= 0) {
+            if (message.indexOf(etext[i]) >= 0) {
                 found = true;
                 break;
             }
@@ -1116,7 +1130,7 @@ function EXPECT_THROWS(func, etext) {
             for (i in etext) {
                 msg += etext[i] + "\n";
             }
-            msg += "<yellow>Actual:</yellow> " + err.message;
+            msg += "<yellow>Actual:</yellow> " + message;
             testutil.fail(msg);
         }
     }
@@ -1132,8 +1146,22 @@ function EXPECT_THROWS_TYPE(func, etext, type) {
     if (err.message.indexOf(etext) < 0) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + etext + "\n\t<yellow>Actual:</yellow> " + err.message);
     }
-    if (err.type  !== type) {
+
+    if (err.cause.type  !== type) {
       testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception type expected:</red> " + type + "\n\t<yellow>Actual:</yellow> " + err.type);
+    }
+  }
+}
+
+function EXPECT_THROWS_LIKE(func, pattern) {
+  try {
+    func();
+    testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Missing expected exception throw like " + String(etext) + "</red>");
+  } catch (err) {
+    msg = get_exception_message(err);
+    testutil.dprint("Caught exception: " + msg);
+    if (!pattern.test(msg)) {
+      testutil.fail("<b>Context:</b> " + __test_context + "\n<red>Exception expected:</red> " + String(pattern) + "\n\t<yellow>Actual:</yellow> " + err.message);
     }
   }
 }

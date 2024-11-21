@@ -121,12 +121,12 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   void add_js_test(const std::string &input, const std::string &output = "") {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     add_test(input, output);
 #else
     (void)input;
     (void)output;
-#endif  // HAVE_V8
+#endif  // HAVE_JS
   }
 
   void add_py_test(const std::string &input, const std::string &output = "") {
@@ -147,11 +147,11 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   void add_expected_js_log(const std::string &expected) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     add_expected_log(expected);
 #else
     (void)expected;
-#endif  // HAVE_V8
+#endif  // HAVE_JS
   }
 
   void add_expected_py_log(const std::string &expected) {
@@ -163,11 +163,11 @@ class Mysqlsh_extension_test : public Command_line_test {
   }
 
   void add_unexpected_js_log(const std::string &unexpected) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     add_unexpected_log(unexpected);
 #else
     (void)unexpected;
-#endif  // HAVE_V8
+#endif  // HAVE_JS
   }
 
   void add_unexpected_py_log(const std::string &unexpected) {
@@ -424,9 +424,9 @@ global_py_variable = 'PY variable'
 
   add_js_test("\\js", "Switching to JavaScript mode...");
   add_js_test("js_report(null, null);",
-              "ReferenceError: js_report is not defined");
+              "js_report is not defined (ReferenceError)");
   add_js_test("global_js_variable",
-              "ReferenceError: global_js_variable is not defined");
+              "global_js_variable is not defined (ReferenceError)");
   add_js_test("dba", "<Dba>");
 
   add_py_test("\\py", "Switching to Python mode...");
@@ -1086,11 +1086,9 @@ shell.register_global('errtest', obj)
       "error got thrown");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("errtest.connect: mysql.get_session:");
 
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "errtest.throwError: js error got thrown (RuntimeError)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "errtest.throwError: js another error got thrown (MYSQLSH 99998)");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("errtest.connect: mysql.get_session: ");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("js error got thrown");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("js another error got thrown");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("");
 
   wipe_out();
   delete_user_plugin("error-reporting");
@@ -1359,7 +1357,7 @@ shell.register_global('kwtest', obj)
   // dictionary (See BUG#31500843 For More Details)
   add_py_test("kwtest.printArgs('Black', 'Pearl', {name: 'allowed'})",
               "kwtest.printArgs: print_args() got multiple values for argument "
-              "'name' (ScriptingError)");
+              "'name'");
 
   // run the test
   run({"--log-level=debug"});

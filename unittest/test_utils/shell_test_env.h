@@ -249,6 +249,7 @@ class Shell_test_env : public ::testing::Test {
     std::string stacktrace_at_open;
   };
 
+  bool m_remove_closed_sessions = true;
   std::list<Open_session> _open_sessions;
   bool check_open_sessions();
   void on_session_connect(std::shared_ptr<mysqlshdk::db::ISession> session);

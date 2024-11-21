@@ -467,9 +467,7 @@ DESCRIPTION
 ||
 
 //@<ERR> Call JS report which throws in JS mode
-reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
-in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
-                                                                                            ^
+reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1
 
 //@ Switch to Python to create a report and call both of them
 |Switching to Python mode...|
@@ -478,9 +476,7 @@ in shell.registerReport('javascript_report_which_throws_an_exception', 'print', 
 ||
 
 //@<ERR> Call JS report which throws in PY mode
-reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
-in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
-                                                                                            ^
+reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1
 
 //@<ERR> Call PY report which throws in PY mode
 reports.python_report_which_throws_an_exception: 
@@ -492,9 +488,7 @@ Exception: This is a Python exception
 |Switching to SQL mode... Commands end with ;|
 
 //@<ERR> Call JS report which throws in SQL mode
-reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1:90
-in shell.registerReport('javascript_report_which_throws_an_exception', 'print', function (){throw 'This is a JavaScript exception'})
-                                                                                            ^
+reports.javascript_report_which_throws_an_exception: This is a JavaScript exception at (shell):1
 
 //@<ERR> Call PY report which throws in SQL mode
 reports.python_report_which_throws_an_exception: 

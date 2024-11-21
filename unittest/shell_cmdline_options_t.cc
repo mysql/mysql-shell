@@ -893,7 +893,7 @@ TEST_F(Shell_cmdline_options, app) {
   test_option_with_no_value("--sqlx", "initial-mode",
                             shell_mode_name(IShell_core::Mode::SQL));
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   test_option_with_no_value("--javascript", "initial-mode",
                             shell_mode_name(IShell_core::Mode::JavaScript));
   test_option_with_no_value("--js", "initial-mode",

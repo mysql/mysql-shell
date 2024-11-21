@@ -653,7 +653,7 @@ Mysql_shell::Mysql_shell(const std::shared_ptr<Shell_options> &cmdline_options,
         return true;
       },
       false, global_command, false);
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   SET_CUSTOM_SHELL_COMMAND(
       "\\js", "CMD_JS",
       [this](const std::vector<std::string> &args) -> bool {
@@ -826,7 +826,7 @@ void Mysql_shell::get_startup_scripts(File_list *file_list) {
   // iterate over directories, find files to load
   if (shcore::is_folder(dir)) {
     shcore::iterdir(dir, [&dir, file_list](const std::string &name) {
-#if !defined(HAVE_V8) && !defined(HAVE_PYTHON)
+#if !defined(HAVE_JS) && !defined(HAVE_PYTHON)
       (void)file_list;
 #endif
       const auto full_path = shcore::path::join_path(dir, name);
@@ -834,13 +834,13 @@ void Mysql_shell::get_startup_scripts(File_list *file_list) {
       // make sure it's a file, not a directory
       if (shcore::is_file(full_path)) {
         if (shcore::str_iendswith(name, ".js")) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
           (*file_list)[shcore::IShell_core::Mode::JavaScript].emplace_back(
               full_path, true);
 #else
         log_warning("Ignoring startup script at '%s', JavaScript is not "
                     "available.", full_path.c_str());
-#endif  // HAVE_V8
+#endif  // HAVE_JS
         } else if (shcore::str_iendswith(name, ".py")) {
 #ifdef HAVE_PYTHON
           (*file_list)[shcore::IShell_core::Mode::Python].emplace_back(
@@ -900,7 +900,7 @@ bool Mysql_shell::get_plugins(File_list *file_list, const std::string &dir,
           print_warning(msg);
         } else if (is_js) {
           ret_val = true;
-#ifdef HAVE_V8
+#ifdef HAVE_JS
           (*file_list)[shcore::IShell_core::Mode::JavaScript].emplace_back(
               init_js, allow_recursive);
 #else
@@ -1296,7 +1296,7 @@ void Mysql_shell::init_extra_globals() {
   // When globals are initialized Shell should start in scripting mode
   if (switch_mode &&
       _shell->interactive_mode() == shcore::Shell_core::Mode::SQL) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     switch_shell_mode(shcore::Shell_core::Mode::JavaScript, {});
 #elif HAVE_PYTHON
     switch_shell_mode(shcore::Shell_core::Mode::Python, {});

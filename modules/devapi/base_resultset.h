@@ -305,25 +305,25 @@ class SHCORE_PUBLIC Row : public shcore::Cpp_object_bridge {
   Row(std::shared_ptr<std::vector<std::string>> names,
       const mysqlshdk::db::IRow &row);
 
-  virtual std::string class_name() const { return "Row"; }
+  std::string class_name() const override { return "Row"; }
 
   std::shared_ptr<std::vector<std::string>> names;
   std::vector<shcore::Value> value_array;
 
-  virtual std::string &append_descr(std::string &s_out, int indent = -1,
-                                    int quote_strings = 0) const;
-  virtual std::string &append_repr(std::string &s_out) const;
-  virtual void append_json(shcore::JSON_dumper &dumper) const;
+  std::string &append_descr(std::string &s_out, int indent = -1,
+                            int quote_strings = 0) const override;
+  std::string &append_repr(std::string &s_out) const override;
+  void append_json(shcore::JSON_dumper &dumper) const override;
 
   shcore::Value get_field(const std::string &field) const;
 
-  virtual bool operator==(const Object_bridge &other) const;
+  bool operator==(const Object_bridge &other) const override;
 
-  virtual shcore::Value get_member(const std::string &prop) const;
-  shcore::Value get_member(size_t index) const;
+  shcore::Value get_member(const std::string &prop) const override;
+  shcore::Value get_member(size_t index) const override;
 
-  size_t get_length() { return value_array.size(); }
-  virtual bool is_indexed() const { return true; }
+  size_t length() const override { return value_array.size(); }
+  bool is_indexed() const override { return true; }
 
   void add_item(const std::string &key, shcore::Value value);
 

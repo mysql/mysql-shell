@@ -1,24 +1,3 @@
-//@ ClassicSession: accessing Schemas
-||Invalid object member getSchemas
-
-//@ ClassicSession: accessing individual schema
-||Invalid object member getSchema
-
-//@ ClassicSession: accessing default schema
-||Invalid object member getDefaultSchema
-
-//@ ClassicSession: accessing current schema
-||Invalid object member getCurrentSchema
-
-//@ ClassicSession: create schema
-||Invalid object member createSchema
-
-//@ ClassicSession: set current schema
-||Invalid object member setCurrentSchema
-
-//@ ClassicSession: drop schema
-||Invalid object member dropSchema
-
 //@Preparation for transaction tests
 ||
 

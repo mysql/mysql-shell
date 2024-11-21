@@ -82,8 +82,8 @@ select mysql_query_attribute_string("at1"), mysql_query_attribute_string("at2"),
 
 //@<> Query attributes, after reconnect 1
 \js
-let global_id = session.runSql("select connection_id()").fetchOne()[0];
-let other_session = mysql.getSession(__sandbox_uri1);
+var global_id = session.runSql("select connection_id()").fetchOne()[0];
+var other_session = mysql.getSession(__sandbox_uri1);
 shell.options.useWizards = true
 other_session.runSql(`kill ${global_id}`);
 other_session.close();
@@ -94,13 +94,13 @@ select mysql_query_attribute_string("at2"), mysql_query_attribute_string("at2");
 
 //@<> Query attributes, after reconnect 2
 \js
-let global_id = session.runSql("select connection_id()").fetchOne()[0];
+var global_id = session.runSql("select connection_id()").fetchOne()[0];
 
 \sql
 \query_attributes at1 val1 at2 val2
 
 \js
-let other_session = mysql.getSession(__sandbox_uri1);
+var other_session = mysql.getSession(__sandbox_uri1);
 shell.options.useWizards = true
 other_session.runSql(`kill ${global_id}`);
 other_session.close();

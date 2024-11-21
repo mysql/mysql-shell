@@ -98,15 +98,16 @@ print('getCollectionAsTable().select():', mySchema.getCollectionAsTable('collect
 var collection = schema.createCollection('my_sample_collection');
 print('createCollection():', collection);
 
-//@ Testing dropping existing schema objects
+//@<> Testing dropping existing schema objects
 print(mySchema.getCollection('collection1'));
-print(mySchema.dropCollection('collection1'));
+EXPECT_OUTPUT_CONTAINS("<Collection:collection1>");
+EXPECT_EQ('undefined', String(mySchema.dropCollection('collection1')));
 
 //@ Testing dropped objects are actually dropped
 mySchema.getCollection('collection1');
 
-//@ Testing dropping non-existing schema objects
-print(mySchema.dropCollection('non_existing_collection'));
+//@<> Testing dropping non-existing schema objects
+EXPECT_EQ('undefined', String(mySchema.dropCollection('non_existing_collection')));
 
 //@ Testing drop functions using execute
 mySchema.dropCollection('collection1').execute();

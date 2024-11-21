@@ -47,7 +47,7 @@ TEST_F(Command_line_test, bug26102807) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "create table bug26102807.test(a varchar (32));\nQuery OK");
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute(
         {_mysqlsh, uri.c_str(), "--js", "--interactive=full", "-e",
          "session.sql('select * from bug26102807.test').execute().getColumns()",
@@ -76,7 +76,7 @@ TEST_F(Command_line_test, bug26102807) {
     MY_EXPECT_CMD_OUTPUT_CONTAINS(
         "create table bug26102807.test(a varchar (32));\nQuery OK");
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute({_mysqlsh, uri.c_str(), "--js", "--interactive=full", "-e",
              "session.runSql('select * from bug26102807.test');", NULL});
 #else

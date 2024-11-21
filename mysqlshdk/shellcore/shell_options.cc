@@ -515,7 +515,7 @@ Shell_options::Shell_options(
         std::bind(
             &Shell_options::override_session_type, this, _1, _2))
     (cmdline("--js", "--javascript"), "Start in JavaScript mode.",
-#ifdef HAVE_V8
+#ifdef HAVE_JS
         [this](const std::string&, const char*) {
           storage.initial_mode = shcore::IShell_core::Mode::JavaScript;
         }

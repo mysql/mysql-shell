@@ -3,16 +3,16 @@ Cache cleared.
 Cache backed up.
 
 //@ wrong type of the argument - undefined
-||TypeError: The 'module_name_or_path' parameter is expected to be a string.
+||The 'module_name_or_path' parameter is expected to be a string. (TypeError)
 
 //@ WL13119-TSFR1_1: Call the require() function with empty module name/path, validate that an exception is thrown.
-||Error: The path must contain at least one character.
+||The path must contain at least one character. (Error)
 
 //@ WL13119-TSFR1_2
-||Error: The '\' character is disallowed.
+||The '\' character is disallowed. (Error)
 
 //@ WL13119-TSFR2_1: Call the require() function with an absolute path to a module, validate that an exception is thrown
-||Error: The absolute path is disallowed.
+||The absolute path is disallowed. (Error)
 
 //@ WL13119-TSFR3_1: clear the cache
 |Cache cleared.|
@@ -147,18 +147,18 @@ Done
 |true|
 
 //@<ERR> load the module which throws an exception
-Error: Exception!!! at <<<exe_file>>>:2:7
-in throw new Error('Exception!!!');
-         ^
-Error: Exception!!!
-    at <<<exe_file>>>:2:7
-    at <<<exe_file>>>:4:3
+Exception!!! (Error)
+ at [[*]]<<<exe_file>>>:2
+ at ModuleHandler.__load_module(core.js:94)
+ at ModuleHandler.__require(core.js:83)
+ at this.require(core.js:100)
+ at :program((shell):1)
 
 //@ delete modules in the current working directory
 |Module has been removed.|
 
 //@ WL13119-TSFR4_6: If Shell can't find the file or module specified, validate that an exception is thrown.
-||Error: Could not find module 'invalid_module'.
+||Could not find module 'invalid_module'. (Error)
 
 //@<OUT> WL13119-TSFR7_1
 <<<sys.path[0]>>>

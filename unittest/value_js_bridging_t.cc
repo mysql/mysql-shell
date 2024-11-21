@@ -31,9 +31,9 @@
 #include "gtest_clean.h"
 #include "modules/mod_sys.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/scripting/polyglot/polyglot_context.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "scripting/common.h"
-#include "scripting/jscript_context.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
 #include "scripting/types.h"
@@ -44,15 +44,14 @@
 using namespace std::placeholders;
 using namespace shcore;
 
-namespace shcore {
-extern void JScript_context_init();
-}  // namespace shcore
-
 class Test_object : public shcore::Cpp_object_bridge {
  public:
   int _value;
 
-  Test_object(int v) : _value(v) {}
+  Test_object(int v) : _value(v) {
+    add_property("value");
+    add_property("constant");
+  }
 
   virtual std::string class_name() const { return "Test"; }
 
@@ -110,21 +109,21 @@ class Maparray : public shcore::Cpp_object_bridge {
 
   Maparray() {}
 
-  virtual bool is_indexed() const { return true; }
-  virtual std::string class_name() const { return "MapArray"; }
+  bool is_indexed() const override { return true; }
+  std::string class_name() const override { return "MapArray"; }
 
-  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1,
-                                    int UNUSED(quote_strings) = 0) const {
+  std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1,
+                            int UNUSED(quote_strings) = 0) const override {
     s_out.append(str_format("<MapArray>"));
     return s_out;
   }
 
-  virtual std::string &append_repr(std::string &s_out) const {
+  std::string &append_repr(std::string &s_out) const override {
     return append_descr(s_out);
   }
 
   //! Returns the list of members that this object has
-  virtual std::vector<std::string> get_members() const {
+  std::vector<std::string> get_members() const override {
     std::vector<std::string> l = shcore::Cpp_object_bridge::get_members();
     for (std::map<std::string, int>::const_iterator i = keys.begin();
          i != keys.end(); ++i)
@@ -133,12 +132,12 @@ class Maparray : public shcore::Cpp_object_bridge {
   }
 
   //! Implements equality operator
-  virtual bool operator==(const Object_bridge &UNUSED(other)) const {
+  bool operator==(const Object_bridge &UNUSED(other)) const override {
     return false;
   }
 
   //! Returns the value of a member
-  virtual shcore::Value get_member(const std::string &prop) const {
+  shcore::Value get_member(const std::string &prop) const override {
     if (prop == "length")
       return shcore::Value((int)values.size());
     else {
@@ -149,9 +148,16 @@ class Maparray : public shcore::Cpp_object_bridge {
     return shcore::Cpp_object_bridge::get_member(prop);
   }
 
-  virtual shcore::Value get_member(size_t index) const {
+  shcore::Value get_member(size_t index) const override {
     if (index > values.size() - 1) return shcore::Value();
     return values[index];
+  }
+
+  size_t length() const override { return values.size(); }
+
+  bool has_member(const std::string &prop) const override {
+    return (keys.find(prop) != keys.end()) ||
+           shcore::Cpp_object_bridge::has_member(prop) || prop == "length";
   }
 
   void add_item(const std::string &key, shcore::Value value) {
@@ -161,32 +167,31 @@ class Maparray : public shcore::Cpp_object_bridge {
 };
 
 namespace shcore {
-namespace tests {
 class Environment {
  public:
   Environment()
       : m_options{std::make_shared<mysqlsh::Shell_options>(0, nullptr)},
         m_console{
             std::make_shared<mysqlsh::Shell_console>(&output_handler.deleg)} {
-    shcore::JScript_context_init();
-
-    js = new JScript_context(&reg);
+    js = std::make_shared<polyglot::Polyglot_context>(
+        &reg, polyglot::Language::JAVASCRIPT);
 
     js->set_global("sys", shcore::Value::wrap<mysqlsh::Sys>(
                               std::make_shared<mysqlsh::Sys>(nullptr)));
   }
 
-  ~Environment() { delete js; }
+  ~Environment() {}
 
   Shell_test_output_handler output_handler;
   Object_registry reg;
-  JScript_context *js;
+  std::shared_ptr<polyglot::Polyglot_context> js;
 
  private:
   mysqlsh::Scoped_shell_options m_options;
   mysqlsh::Scoped_console m_console;
 };
 
+namespace polyglot {
 class JavaScript : public ::testing::Test {
  protected:
   Environment env;
@@ -210,12 +215,6 @@ TEST_F(JavaScript, globals) {
 }
 
 TEST_F(JavaScript, simple_to_js_and_back) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
-
   {
     shcore::Value v(Value::True());
     ASSERT_EQ(env.js->convert(env.js->convert(v)), v);
@@ -287,12 +286,6 @@ TEST_F(JavaScript, simple_to_js_and_back) {
 }
 
 TEST_F(JavaScript, array_to_js) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
-
   std::shared_ptr<Value::Array_type> arr2(new Value::Array_type);
   arr2->push_back(Value(444));
 
@@ -320,7 +313,18 @@ TEST_F(JavaScript, array_to_js) {
 
   env.js->execute("for (i in arr) { g = i; }");
   // enumerated array keys become strings, this is normal
-  ASSERT_EQ(Value("2").repr(), env.js->get_global("g").repr());
+
+  // NOTE: In graal, the array proxy does not have an enumerator
+  // interface that allows us to return a list of indexes as strings as in V8
+  // For example:
+  //    for (i in arr) { g = i; print(i); print(type(i)) }
+  // Would output:
+  //    0Integer1Integer2Integer
+  // While in V8 it would output
+  //    0String1String2String
+  // However, if arr is defined using pure JavaScript (is not a bridged array)
+  // it would behave the same as in V8
+  ASSERT_EQ(Value(2).repr(), env.js->get_global("g").repr());
 
   // this forces conversion of a native JS array into a Value
   shcore::Value result = env.js->execute("[1,2,3]").first;
@@ -334,6 +338,7 @@ text
 ])*";
     Input_state cont = Input_state::Ok;
     env.output_handler.wipe_all();
+
     EXPECT_EQ(
         Value_type::Undefined,
         env.js->execute_interactive("for (var v of arr) println(v)", &cont)
@@ -344,12 +349,6 @@ text
 }
 
 TEST_F(JavaScript, map_to_js) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
-
   std::shared_ptr<Value::Map_type> map2(new Value::Map_type);
   (*map2)["submap"] = Value(444);
 
@@ -411,6 +410,7 @@ TEST_F(JavaScript, map_to_js) {
 ])*";
     Input_state cont = Input_state::Ok;
     env.output_handler.wipe_all();
+
     EXPECT_EQ(
         Value_type::Undefined,
         env.js->execute_interactive("for (var m of mapval) println(m)", &cont)
@@ -421,12 +421,6 @@ TEST_F(JavaScript, map_to_js) {
 }
 
 TEST_F(JavaScript, object_to_js) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
-
   std::shared_ptr<Test_object> obj =
       std::shared_ptr<Test_object>(new Test_object(1234));
   std::shared_ptr<Test_object> obj2 =
@@ -458,12 +452,6 @@ TEST_F(JavaScript, object_to_js) {
 }
 
 TEST_F(JavaScript, maparray_to_js) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
-
   std::shared_ptr<Maparray> obj = std::shared_ptr<Maparray>(new Maparray());
 
   obj->add_item("one", Value(42));
@@ -491,11 +479,6 @@ shcore::Value do_test(const Argument_list &args) {
 }
 
 TEST_F(JavaScript, function_to_js) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
   std::shared_ptr<Function_base> func(Cpp_function::create(
       "do_test", std::bind(do_test, _1), {{"bla", String}}));
 
@@ -513,36 +496,35 @@ TEST_F(JavaScript, function_to_js) {
 
   env.js->set_global("test_func", v);
 
-  ASSERT_EQ(env.js->execute("type(test_func)").first.descr(false), "Function");
+  std::string expected_type = "m.Function";
+
+  ASSERT_EQ(env.js->execute("type(test_func)").first.descr(false),
+            expected_type.c_str());
 
   ASSERT_EQ(env.js->execute("test_func('hello')").first.descr(false), "HELLO");
 
   ASSERT_THROW(env.js->execute("test_func(123)"), shcore::Exception);
+
+  env.js->execute("function js_function() { return 'it_works';}");
+
+  ASSERT_EQ(env.js->execute("type(js_function)").first.descr(false),
+            "Function");
+
+  ASSERT_EQ(env.js->execute("js_function()").first.descr(false), "it_works");
 }
 
 TEST_F(JavaScript, builtin_functions) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
-
   ASSERT_EQ(
       env.js->execute("repr(unrepr(repr(\"hello world\")))").first.descr(false),
       "\"hello world\"");
 }
 
 TEST_F(JavaScript, js_date_object) {
-  v8::Isolate::Scope isolate_scope(env.js->isolate());
-  v8::HandleScope handle_scope(env.js->isolate());
-  v8::TryCatch try_catch{env.js->isolate()};
-  v8::Context::Scope context_scope(
-      v8::Local<v8::Context>::New(env.js->isolate(), env.js->context()));
   shcore::Value object = env.js->execute("new Date(2014,0,1)").first;
 
   ASSERT_EQ(Object, object.get_type());
   ASSERT_TRUE(object.as_object()->class_name() == "Date");
   ASSERT_EQ("\"2014-01-01 00:00:00\"", object.repr());
 }
-}  // namespace tests
+}  // namespace polyglot
 }  // namespace shcore

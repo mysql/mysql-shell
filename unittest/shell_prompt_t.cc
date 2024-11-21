@@ -1293,7 +1293,7 @@ TEST_F(Shell_prompt_exe, sample_prompt_theme_256pl) {
   shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Shell_prompt_exe, bug28314383_js) {
   static constexpr auto k_file = "close.js";
   shcore::setenv("MYSQLSH_PROMPT_THEME", s_prompt_dir + "/prompt_nocolor.json");
@@ -1323,7 +1323,7 @@ TEST_F(Shell_prompt_exe, bug28314383_js) {
   shcore::unsetenv("MYSQLSH_TERM_COLOR_MODE");
   shcore::delete_file(k_file);
 }
-#endif  // HAVE_V8
+#endif  // HAVE_JS
 
 #ifdef HAVE_PYTHON
 TEST_F(Shell_prompt_exe, bug28314383_py) {

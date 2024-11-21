@@ -58,26 +58,26 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`+--------------------+
 | NULL               |
 +--------------------+`);
 
-//@ ClassicSession: accessing Schemas
-var schemas = classicSession.getSchemas();
+//@<> ClassicSession: accessing Schemas
+EXPECT_THROWS_LIKE(function() {classicSession.getSchemas()}, /invokeMember \(getSchemas\).*failed due to: Unknown identifier: getSchemas/)
 
-//@ ClassicSession: accessing individual schema
-var schema = classicSession.getSchema('mysql');
+//@<> ClassicSession: accessing individual schema
+EXPECT_THROWS_LIKE(function() {classicSession.getSchema('mysql')}, /invokeMember \(getSchema\).*failed due to: Unknown identifier: getSchema/)
 
-//@ ClassicSession: accessing default schema
-var dschema = classicSession.getDefaultSchema();
+//@<> ClassicSession: accessing default schema
+EXPECT_THROWS_LIKE(function() {classicSession.getDefaultSchema()}, /invokeMember \(getDefaultSchema\).*failed due to: Unknown identifier: getDefaultSchema/)
 
-//@ ClassicSession: accessing current schema
-var cschema = classicSession.getCurrentSchema();
+//@<> ClassicSession: accessing current schema
+EXPECT_THROWS_LIKE(function() {classicSession.getCurrentSchema()}, /invokeMember \(getCurrentSchema\).*failed due to: Unknown identifier: getCurrentSchema/)
 
-//@ ClassicSession: create schema
-var sf = classicSession.createSchema('classic_session_schema');
+//@<> ClassicSession: create schema
+EXPECT_THROWS_LIKE(function() {classicSession.createSchema('classic_session_schema')}, /invokeMember \(createSchema\).*failed due to: Unknown identifier: createSchema/)
 
-//@ ClassicSession: set current schema
-classicSession.setCurrentSchema('classic_session_schema');
+//@<> ClassicSession: set current schema
+EXPECT_THROWS_LIKE(function() {classicSession.setCurrentSchema('classic_session_schema')}, /invokeMember \(setCurrentSchema\).*failed due to: Unknown identifier: setCurrentSchema/)
 
-//@ ClassicSession: drop schema
-classicSession.dropSchema('node_session_schema');
+//@<> ClassicSession: drop schema
+EXPECT_THROWS_LIKE(function() {classicSession.dropSchema('node_session_schema')}, /invokeMember \(dropSchema\).*failed due to: Unknown identifier: dropSchema/)
 
 //@Preparation for transaction tests
 var result = classicSession.runSql('drop schema if exists classic_session_schema');

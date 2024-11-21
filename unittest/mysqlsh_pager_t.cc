@@ -34,7 +34,7 @@
 
 namespace tests {
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 
 #define SCRIPTING_LANGUAGE "JavaScript"
 #define SCRIPTING_LANGUAGE_SHORT "js"

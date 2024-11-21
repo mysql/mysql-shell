@@ -246,7 +246,7 @@ class Shell_api_tester : public Helper_tester {
 
     EXPECT_EQ(Secret_type::PASSWORD, type);
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute("shell.storeCredential(" + shcore::quote_string(url, '\"') + ", " +
             shcore::quote_string(secret, '\"') + ");");
 #else
@@ -266,7 +266,7 @@ class Shell_api_tester : public Helper_tester {
 
     EXPECT_EQ(Secret_type::PASSWORD, type);
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute("shell.deleteCredential(" + shcore::quote_string(url, '\"') + ");");
 #else
     execute("shell.delete_credential(" + shcore::quote_string(url, '\"') +
@@ -279,7 +279,7 @@ class Shell_api_tester : public Helper_tester {
   bool list(std::vector<Secret_spec> *specs) override {
     SCOPED_TRACE("Shell_api_tester::list()");
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute("print(shell.listCredentials());");
 #else
     execute("print(shell.list_credentials());");
@@ -320,7 +320,7 @@ class Shell_api_tester : public Helper_tester {
   void expect_delete_all_credentials() {
     SCOPED_TRACE("Shell_api_tester::expect_delete_all_credentials()");
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
     execute("shell.deleteAllCredentials();");
 #else
     execute("shell.delete_all_credentials();");

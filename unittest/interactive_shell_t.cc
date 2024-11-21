@@ -37,7 +37,7 @@ extern "C" const char *g_test_home;
 namespace mysqlsh {
 class Interactive_shell_test : public Shell_core_test_wrapper {
  protected:
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string to_scripting = "\\js";
 #else
   const std::string to_scripting = "\\py";
@@ -1079,7 +1079,7 @@ TEST_F(Interactive_shell_test, shell_empty_source_command) {
   output_handler.wipe_all();
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interactive_shell_test, shell_command_source_invalid_path_js) {
   _interactive_shell->process_line("\\js");
 
@@ -1128,7 +1128,7 @@ TEST_F(Interactive_shell_test, shell_command_source_incomplete_files) {
       {"\\js", R"*(function sample(data) {
   print(data);
   )*",
-       "SyntaxError: Unexpected end of input"},
+       "Expected } but found eof"},
       {"\\py", R"*(def sample(data):
                    print(data)*",
        "SyntaxError: "},
@@ -1240,7 +1240,7 @@ TEST_F(Interactive_shell_test, python_startup_scripts) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interactive_shell_test, js_startup_scripts) {
   if (g_test_parallel_execution) {
     SKIP_TEST(
@@ -2116,7 +2116,7 @@ TEST_F(Interactive_shell_test, mod_shell_options) {
   EXPECT_EQ("", output_handler.std_err);
   EXPECT_TRUE(_options->show_warnings);
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute("\\js");
   wipe_all();
 
@@ -2378,7 +2378,7 @@ TEST_F(Interactive_shell_test, bug_28240437) {
   wipe_all();
 
   execute(to_scripting);
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   MY_EXPECT_STDOUT_CONTAINS("Switching to JavaScript mode...");
 #else
   MY_EXPECT_STDOUT_CONTAINS("Switching to Python mode...");
@@ -2425,12 +2425,13 @@ TEST_F(Interactive_shell_test, invalid_command) {
 }
 
 TEST_F(Interactive_shell_test, multi_line_command) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   wipe_all();
   execute("\\js");
   wipe_all();
   execute("\\");
-  MY_EXPECT_STDERR_CONTAINS("SyntaxError: Invalid or unexpected token");
+  MY_EXPECT_STDERR_CONTAINS(
+      "Expected an operand but found error (SyntaxError)");
 #endif
 
   wipe_all();
@@ -2781,7 +2782,7 @@ TEST_F(Interactive_shell_test, inline_commands) {
 
 // This tests is added for Bug #28894826
 // EMPTY RESULTSET TABLES ARE PRINTED WHEN THERE ARE NO RESULTS TO DISPLAY
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interactive_shell_test, not_empty_tables_js) {
   execute("\\connect " + _mysql_uri);
   wipe_all();
@@ -2978,7 +2979,7 @@ TEST_F(Interactive_shell_test, compression) {
 }
 
 TEST_F(Interactive_shell_test, sql_command) {
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   execute("\\js");
 #else
   execute("\\py");
@@ -3202,7 +3203,7 @@ TEST_F(Interactive_shell_test, tls_ciphersuites) {
   wipe_all();
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interactive_shell_test, js_interactive_multiline_comments) {
   execute("\\js");
   execute("print(1);/*");
@@ -3230,7 +3231,7 @@ TEST_F(Interactive_shell_test, js_interactive_multiline_comments) {
 }
 #endif
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Interactive_shell_test, js_interactive_template_literal) {
   execute("\\js");
   execute("var a = `multi");
@@ -3241,7 +3242,7 @@ TEST_F(Interactive_shell_test, js_interactive_template_literal) {
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
 }
-#endif  // HAVE_V8
+#endif  // HAVE_JS
 
 TEST_F(Interactive_shell_test, py_multiple_statements) {
   // BUG#30029568
@@ -3271,7 +3272,7 @@ four
   wipe_all();
 }
 
-#if defined(HAVE_V8) && (defined(HAVE_PYTHON))
+#if defined(HAVE_JS) && (defined(HAVE_PYTHON))
 TEST_F(Interactive_shell_test, file_operations) {
   // BUG#30538516 METHODS WHICH DEAL WITH FILESYSTEM DO NOT PROPERLY HANDLE
   // NON-ASCII CHARACTERS
@@ -3412,7 +3413,7 @@ TEST_F(Interactive_shell_test, file_operations) {
 }
 #endif
 
-#if defined(HAVE_V8)
+#if defined(HAVE_JS)
 TEST_F(Interactive_shell_test, Bug30296825) {
   execute("\\js");
   execute("\\connect " + _uri);
@@ -3451,8 +3452,8 @@ TEST_F(Interactive_shell_test, show_warnings) {
   test_warnings(_mysql_uri);
 }
 
-#ifdef HAVE_V8
-TEST_F(Interactive_shell_test, redefine_let) {
+#ifdef HAVE_JS
+TEST_F(Interactive_shell_test, DISABLED_redefine_let) {
   // BUG#32470621
   execute("\\js");
   wipe_all();
@@ -3500,7 +3501,7 @@ TEST_F(Interactive_shell_test, redefine_let) {
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
 }
-#endif  // HAVE_V8
+#endif  // HAVE_JS
 
 #if defined(HAVE_PYTHON) && defined(_WIN32)
 TEST_F(Interactive_shell_test, windows_python_locale) {

@@ -622,7 +622,7 @@ void Command_line_shell::load_state(shcore::Shell_core::Mode mode) {
     if (shcore::is_file(old_hist_file)) {
       shcore::copy_file(old_hist_file,
                         history_file(shcore::IShell_core::Mode::SQL));
-#ifdef HAVE_V8
+#ifdef HAVE_JS
       shcore::copy_file(old_hist_file,
                         history_file(shcore::IShell_core::Mode::JavaScript));
 #endif
@@ -1060,7 +1060,7 @@ void Command_line_shell::command_loop() {
 
     switch (_shell->interactive_mode()) {
       case shcore::Shell_core::Mode::SQL:
-#ifdef HAVE_V8
+#ifdef HAVE_JS
         message =
             "Currently in SQL mode. Use \\js or \\py to switch the shell to "
             "a scripting language.";

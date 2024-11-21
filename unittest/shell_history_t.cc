@@ -41,7 +41,7 @@ namespace mysqlsh {
 
 class Shell_history : public ::testing::Test {
  protected:
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   const std::string to_scripting = "\\js";
 #else
   const std::string to_scripting = "\\py";
@@ -210,7 +210,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_EQ(3, linenoiseHistorySize());
   EXPECT_STREQ("top;", linenoiseHistoryLine(2));
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   std::string print_stmt = "println('secret');";
 #else
   std::string print_stmt = "print('secret')";
@@ -222,7 +222,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   EXPECT_EQ(1, linenoiseHistorySize());
   EXPECT_STREQ(print_stmt.c_str(), linenoiseHistoryLine(0));
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   shell.process_line("\\py");
   shell.process_line("print('secret')");
   EXPECT_EQ(1, linenoiseHistorySize());
@@ -662,7 +662,7 @@ TEST_F(Shell_history, history_autosave_int) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Shell_history, check_history_source_js) {
   // WL#10446 says \source shall no add entries to the history
   // Only history entry shall the \source itself
@@ -1685,7 +1685,7 @@ TEST_F(Shell_history, migrate_old_history) {
   EXPECT_TRUE(
       shcore::is_file(shell.history_file(shcore::IShell_core::Mode::SQL)));
   shcore::delete_file(shell.history_file(shcore::IShell_core::Mode::SQL));
-#ifdef HAVE_V8
+#ifdef HAVE_JS
   shell.process_line("\\js\n");
   EXPECT_EQ(history_size, linenoiseHistorySize());
   EXPECT_TRUE(shcore::is_file(

@@ -94,7 +94,7 @@ TEST_F(Shell_error_printing, python_stack) {
       output_handler.std_err);
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Shell_error_printing, js_stack) {
   _opts->set_interactive(false);
   reset_shell();
@@ -102,18 +102,15 @@ TEST_F(Shell_error_printing, js_stack) {
   wipe_all();
   execute("foo.bar");
   EXPECT_EQ(
-      R"(ReferenceError: foo is not defined at (shell):1:1
-in foo.bar
-   ^
+      R"(foo is not defined (ReferenceError)
+ at (shell):1
 )",
       output_handler.std_err);
 
   wipe_all();
   execute("throw 'SomethingWrong'");
   EXPECT_EQ(
-      R"(SomethingWrong at (shell):1:1
-in throw 'SomethingWrong'
-   ^
+      R"(SomethingWrong at (shell):1
 )",
       output_handler.std_err);
 
@@ -121,9 +118,7 @@ in throw 'SomethingWrong'
   execute("dba.deploySandboxInstance(-1, {'password':''})");
   EXPECT_EQ(
       R"(Dba.deploySandboxInstance: Invalid value for 'port': Please use a valid TCP port number >= 1024 and <= 65535 (ArgumentError)
- at (shell):1:5
-in dba.deploySandboxInstance(-1, {'password':''})
-       ^
+ at (shell):1
 )",
       output_handler.std_err);
 }

@@ -69,7 +69,7 @@ TEST_F(Command_line_test, bug24912358) {
   }
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Command_line_test, bug23508428) {
   // Test if the xplugin is installed using enableXProtocol in the --dba option
   // In 8.0.4, the mysqlx_cache_cleaner is also supposed to be installed
@@ -337,7 +337,7 @@ TEST_F(Command_line_test, bug25653170) {
       "use near '/*' at line 1");
 }
 
-#ifdef HAVE_V8
+#ifdef HAVE_JS
 TEST_F(Command_line_test, bug28814112_js) {
   // SEG-FAULT WHEN CALLING SHELL.SETCURRENTSCHEMA() WITHOUT AN ACTIVE SHELL
   // SESSION

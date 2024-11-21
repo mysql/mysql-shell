@@ -270,7 +270,7 @@ EXPECT_THROWS(function(){ Cluster.removeInstance(); }, "Invalid number of argume
 EXPECT_THROWS(function(){ Cluster.rescan(); }, "Can't call function 'rescan' on an offline Cluster");
 EXPECT_THROWS(function(){ Cluster.status(); }, "Can't call function 'status' on an offline Cluster");
 EXPECT_THROWS(function(){ Cluster.listRouters(); }, "Can't call function 'listRouters' on an offline Cluster");
-EXPECT_THROWS(function(){ Cluster.removeRouterInstance(); }, "The cluster object is disconnected. Please use dba.getCluster() to obtain a fresh cluster handle");
+EXPECT_THROWS(function() { Cluster.removeRouterMetadata('anything'); }, "Can't call function 'removeRouterMetadata' on an offline Cluster");
 
 //@<> Cluster: disconnect() is ok on an offline cluster
 EXPECT_NO_THROWS(function(){ Cluster.disconnect(); });
