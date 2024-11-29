@@ -66,8 +66,12 @@ const std::unordered_map<std::string_view, std::string_view> k_short_names = {
     {"ork", "eu-dcc-dublin-1"},   {"dac", "ap-dcc-gazipur-1"},
     {"vll", "eu-madrid-2"},       {"str", "eu-frankfurt-2"},
     {"beg", "eu-jovanovac-1"},    {"doh", "me-dcc-doha-1"},
-    {"avz", "eu-dcc-zurich-1"},   {"ahu", "me-abudhabi-3"},
+    {"ebb", "us-somerset-1"},     {"ebl", "us-thames-1"},
+    {"avz", "eu-dcc-zurich-1"},   {"avf", "eu-crissier-1"},
+    {"ahu", "me-abudhabi-3"},     {"rba", "me-alain-1"},
     {"rkt", "me-abudhabi-2"},     {"shj", "me-abudhabi-4"},
+    {"dtz", "ap-seoul-2"},        {"dln", "ap-suwon-1"},
+    {"bno", "ap-chuncheon-2"},
 };
 
 }  // namespace
