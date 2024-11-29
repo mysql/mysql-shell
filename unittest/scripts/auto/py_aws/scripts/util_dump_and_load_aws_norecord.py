@@ -273,7 +273,7 @@ with write_profile(default_aws_config_file, "profile " + local_aws_profile, {}):
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "aws_secret_access_key": "", "aws_access_key_id": "invalid" }):
     with write_profile(local_aws_credentials_file, local_aws_profile, {}):
         # aws_access_key_id is invalid, so we're expecting an 403 Forbidden error
-        EXPECT_FAIL("Error: Shell Error (54403)", re.compile(".* \(403\)"), { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file }, argument_error = False)
+        EXPECT_FAIL("Error: Shell Error (54403)", re.compile(".* \\(403\\)"), { "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": local_aws_credentials_file }, argument_error = False)
 
 #@<> WL14387-TSFR_5_2_2
 with write_profile(local_aws_config_file, "profile " + local_aws_profile, { "region": aws_settings.get("region", default_aws_region) }):
