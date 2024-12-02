@@ -66,10 +66,12 @@ class Load_binlogs_options final : public common::Common_options {
     return m_first_gtid_set;
   }
 
-  const std::string &stop_at_gtid() const noexcept { return m_stop_at_gtid; }
+  const std::string &stop_before_gtid() const noexcept {
+    return m_stop_before_gtid;
+  }
 
-  const dump::common::Binlog::File &stop_at_file() const noexcept {
-    return m_stop_at;
+  const std::string &stop_after_gtid() const noexcept {
+    return m_stop_after_gtid;
   }
 
   const std::vector<Binlog_file> &binlogs() const noexcept { return m_binlogs; }
@@ -83,6 +85,9 @@ class Load_binlogs_options final : public common::Common_options {
  private:
   // options handling
   void set_stop_before(const std::string &stop_before);
+  void set_stop_after(const std::string &stop_after);
+
+  void on_unpacked_options();
 
   // URLs handling
   void read_dump(std::unique_ptr<mysqlshdk::storage::IDirectory> dir);
@@ -111,8 +116,9 @@ class Load_binlogs_options final : public common::Common_options {
   dump::common::Binlog m_start_from;
 
   std::string m_first_gtid_set;
-  std::string m_stop_at_gtid;
-  dump::common::Binlog::File m_stop_at;
+
+  std::string m_stop_before_gtid;
+  std::string m_stop_after_gtid;
 
   // information about the dump which is going to be loaded
   std::shared_ptr<Binlog_dump_info> m_dump;

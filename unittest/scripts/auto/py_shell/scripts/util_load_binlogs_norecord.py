@@ -242,62 +242,22 @@ TEST_STRING_OPTION("stopBefore")
 EXPECT_FAIL("ValueError", "Argument #2: The 'stopBefore' option cannot be set to an empty string.", options={"stopBefore": ""})
 
 #@<> WL15977-FR3.2.3.2 - `stopBefore` - no colon
-EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopBefore' option, expected: <binary-log-file>:<binary-log-file-position>.", options={"stopBefore": "log"})
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopBefore' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopBefore": "3e11fa47-71ca-11e1-9e33-c80aa9429562"})
 
-#@<> WL15977-FR3.2.3.2 - `stopBefore` - negative position
-EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopBefore' option, expected: <binary-log-file>:<binary-log-file-position>", options={"stopBefore": "log:-1"})
+#@<> WL15977-FR3.2.3.2 - `stopBefore` - negative transaction ID
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopBefore' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopBefore": "3e11fa47-71ca-11e1-9e33-c80aa9429562:-1"})
+
+#@<> WL15977-FR3.2.3.2 - `stopBefore` - transaction ID set to 0
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopBefore' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopBefore": "3e11fa47-71ca-11e1-9e33-c80aa9429562:0"})
+
+#@<> WL15977-FR3.2.3.2 - `stopBefore` - could not find GTID
+EXPECT_FAIL("ValueError", "Could not find the final binary log file to be loaded that contains GTID '3e11fa47-71ca-11e1-9e33-c80aa9429562:1'", incremental_dump_dir, options={"stopBefore": "3e11fa47-71ca-11e1-9e33-c80aa9429562:1"})
 
 #@<> WL15977-FR3.2.3.2 - `stopBefore` GTID - range
 EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopBefore' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopBefore": "3e11fa47-71ca-11e1-9e33-c80aa9429562:22-57"})
 
 #@<> WL15977-FR3.2.3.2 - `stopBefore` GTID - multiple GTIDs
 EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopBefore' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopBefore": "3e11fa47-71ca-11e1-9e33-c80aa9429562:21:25"})
-
-# WL15977-TSFR_3_2_3_1
-#@<> WL15977-FR3.2.3.2 - `stopBefore` - log file does not exist
-EXPECT_FAIL("ValueError", f"Could not find the last binary log file to be loaded 'log' that contains position 4.", incremental_dump_dir, options={"stopBefore": "log:4"})
-
-#@<> WL15977-FR3.2.3.2 - `stopBefore` - position out of range
-EXPECT_FAIL("ValueError", f"Could not find the last binary log file to be loaded '{binlog_file_prefix}.000002' that contains position 1000000.", incremental_dump_dir, options={"stopBefore": f"{binlog_file_prefix}.000002:1000000"})
-
-#@<> WL15977-FR3.2.3.2 - `stopBefore` - position below 4
-EXPECT_SUCCESS(incremental_dump_dir, options={"stopBefore": f"{binlog_file_prefix}.000002:2"})
-EXPECT_STDOUT_CONTAINS("Stopped before position: 2")
-
-wipeout_server(session)
-
-#@<> WL15977-FR3.2.3.2 - `stopBefore` - position inside event
-EXPECT_SUCCESS(incremental_dump_dir, options={"stopBefore": f"{binlog_file_prefix}.000002:5"})
-EXPECT_STDOUT_CONTAINS("Stopped before position: 5")
-
-wipeout_server(session)
-
-#@<> WL15977-FR3.2.3.3 - `stopBefore` binlog
-stop_before_file = f"{binlog_file_prefix}.000002:{position_after_description_event}"
-
-EXPECT_SUCCESS(incremental_dump_dir, options={"stopBefore": stop_before_file})
-EXPECT_STDOUT_CONTAINS(f"Loading binary log file '{binlog_file_prefix}.000002'")
-EXPECT_STDOUT_CONTAINS(f"Stopped before position: {position_after_description_event}")
-
-EXPECT_FALSE(gtid_subset(session, expected_gtid_set, binary_log_status(session).executed_gtid_set))
-
-wipeout_server(session)
-
-#@<> WL15977-FR3.2.3.3 - `stopBefore` - load a binlog file till the end
-last_binlog = source_binary_logs[-2]
-next_binlog = source_binary_logs[-1]
-stop_at_end_of_file = f"{last_binlog.file}:{last_binlog.position}"
-
-EXPECT_SUCCESS(incremental_dump_dir, options={"stopBefore": stop_at_end_of_file})
-EXPECT_STDOUT_CONTAINS(f"Loading binary log file '{last_binlog.file}'")
-# the whole file was loaded, so message is not displayed, as there was no event that starts at this position
-EXPECT_STDOUT_NOT_CONTAINS(f"Stopped before position: ")
-# subsequent file is not loaded
-EXPECT_STDOUT_NOT_CONTAINS(f"Loading binary log file '{next_binlog.file}'")
-
-EXPECT_FALSE(gtid_subset(session, expected_gtid_set, binary_log_status(session).executed_gtid_set))
-
-wipeout_server(session)
 
 #@<> WL15977-FR3.2.3.3 - `stopBefore` GTID
 stop_before_gtid = f"{server_uuid}:10"
@@ -309,6 +269,44 @@ EXPECT_FALSE(gtid_subset(session, expected_gtid_set, binary_log_status(session).
 EXPECT_FALSE(gtid_subset(session, stop_before_gtid, binary_log_status(session).executed_gtid_set))
 
 wipeout_server(session)
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` is a string option
+TEST_STRING_OPTION("stopAfter")
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` cannot be empty
+EXPECT_FAIL("ValueError", "Argument #2: The 'stopAfter' option cannot be set to an empty string.", options={"stopAfter": ""})
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` - no colon
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopAfter' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopAfter": "3e11fa47-71ca-11e1-9e33-c80aa9429562"})
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` - negative transaction ID
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopAfter' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopAfter": "3e11fa47-71ca-11e1-9e33-c80aa9429562:-1"})
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` - transaction ID set to 0
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopAfter' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopAfter": "3e11fa47-71ca-11e1-9e33-c80aa9429562:0"})
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` - could not find GTID
+EXPECT_FAIL("ValueError", "Could not find the final binary log file to be loaded that contains GTID '3e11fa47-71ca-11e1-9e33-c80aa9429562:1'", incremental_dump_dir, options={"stopAfter": "3e11fa47-71ca-11e1-9e33-c80aa9429562:1"})
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` GTID - range
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopAfter' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopAfter": "3e11fa47-71ca-11e1-9e33-c80aa9429562:22-57"})
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` GTID - multiple GTIDs
+EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'stopAfter' option, expected a GTID in format: source_id:[tag:]:transaction_id", options={"stopAfter": "3e11fa47-71ca-11e1-9e33-c80aa9429562:21:25"})
+
+#@<> WL15977-FR3.2.3.5 - `stopAfter` GTID
+stop_after_gtid = f"{server_uuid}:11"
+
+EXPECT_SUCCESS(incremental_dump_dir, options={"stopAfter": stop_after_gtid})
+EXPECT_STDOUT_CONTAINS(f"Stopped after GTID: {stop_after_gtid}")
+
+EXPECT_FALSE(gtid_subset(session, expected_gtid_set, binary_log_status(session).executed_gtid_set))
+EXPECT_TRUE(gtid_subset(session, stop_after_gtid, binary_log_status(session).executed_gtid_set))
+
+wipeout_server(session)
+
+#@<> WL15977-FR3.2.3.6 - `stopBefore` + `stopAfter`
+EXPECT_FAIL("ValueError", "Argument #2: The 'stopBefore' and 'stopAfter' options cannot be both set.", options={"stopBefore": stop_before_gtid, "stopAfter": stop_after_gtid})
 
 #@<> WL15977-FR3.2.4 - `dryRun` is a boolean option
 TEST_BOOL_OPTION("dryRun")
@@ -326,16 +324,16 @@ for full_path in get_subdirs(incremental_dump_dir):
 EXPECT_STDOUT_CONTAINS(f"    Loading binary log file '{first_binlog_file}', GTID set: {server_uuid}:1-5")
 EXPECT_STDOUT_CONTAINS(f"      Found starting GTID: {server_uuid}:1")
 
-#@<> WL15977-FR3.2.4.1 - load with `dryRun` + `stopBefore` binlog
-EXPECT_SUCCESS(incremental_dump_dir, options={"dryRun": True, "stopBefore": stop_before_file})
-EXPECT_STDOUT_CONTAINS(f"Loading binary log file '{binlog_file_prefix}.000002'")
-EXPECT_STDOUT_CONTAINS(f"Stopped before position: {position_after_description_event}")
-EXPECT_EQ("", binary_log_status(session).executed_gtid_set)
-
 #@<> WL15977-FR3.2.4.1 - load with `dryRun` + `stopBefore` GTID
 EXPECT_SUCCESS(incremental_dump_dir, options={"dryRun": True, "stopBefore": stop_before_gtid})
 EXPECT_STDOUT_CONTAINS(f"Stopped before GTID: {stop_before_gtid}")
 EXPECT_EQ("", binary_log_status(session).executed_gtid_set)
+
+#@<> WL15977-FR3.2.4.1 - load with `dryRun` + `stopAfter` GTID
+EXPECT_SUCCESS(incremental_dump_dir, options={"dryRun": True, "stopAfter": stop_after_gtid})
+EXPECT_STDOUT_CONTAINS(f"Stopped after GTID: {stop_after_gtid}")
+EXPECT_EQ("", binary_log_status(session).executed_gtid_set)
+
 
 #@<> WL15977-FR3.2.5 - `showProgress` is a boolean option
 TEST_BOOL_OPTION("showProgress")

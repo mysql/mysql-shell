@@ -2071,11 +2071,15 @@ OPTIONS
             Enable or disable dump progress information. Default: true if
             stdout is a TTY device, false otherwise.
 
+--stopAfter=<str>
+            Stops the load right after the specified binary log event is
+            applied. Accepts a GTID: <UUID>[:tag]:<transaction-id>. Default:
+            not set.
+
 --stopBefore=<str>
             Stops the load right before the specified binary log event is
-            applied. Accepted format:
-            <binary-log-file>:<binary-log-file-position> or GTID:
-            <UUID>[:tag]:<transaction-id>. Default: not set.
+            applied. Accepts a GTID: <UUID>[:tag]:<transaction-id>. Default:
+            not set.
 
 //@<OUT> CLI util load-dump --help
 NAME

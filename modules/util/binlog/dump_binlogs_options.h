@@ -67,12 +67,10 @@ class Dump_binlogs_options final : public common::Common_options {
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> output() const;
 
-  const std::string &start_from_dump() const noexcept {
-    return m_start_from_dump;
-  }
+  const std::string &previous_dump() const noexcept { return m_previous_dump; }
 
-  const std::string &start_from_timestamp() const noexcept {
-    return m_start_from_timestamp;
+  const std::string &previous_dump_timestamp() const noexcept {
+    return m_previous_dump_timestamp;
   }
 
   const dump::common::Binlog &start_from() const noexcept {
@@ -141,12 +139,15 @@ class Dump_binlogs_options final : public common::Common_options {
 
   // validations
   void verify_startup_options() const;
+  void validate_continuity() const;
   void validate_start_from();
 
   void gather_binlogs();
 
   void find_start_from(
       const std::vector<mysqlshdk::storage::File_info> &binlogs);
+
+  bool is_same_instance() const noexcept;
 
   // original options
   shcore::Dictionary_t m_options;
@@ -169,12 +170,14 @@ class Dump_binlogs_options final : public common::Common_options {
   std::optional<bool> m_ignore_ddl_changes;
 
   // computed from other options
-  std::string m_start_from_dump;
-  std::string m_start_from_timestamp;
   dump::common::Binlog m_start_from_binlog;
+
   std::string m_gtid_set;
-  bool m_same_instance = true;
-  dump::common::Server_info m_previous_instance;
+
+  std::string m_previous_server_uuid;
+  dump::common::Replication_topology m_previous_topology;
+  std::string m_previous_dump;
+  std::string m_previous_dump_timestamp;
 
   // data
   dump::common::Server_info m_source_instance;

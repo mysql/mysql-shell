@@ -2547,8 +2547,10 @@ current value of <b>gtid_executed</b> in the target instance does not fully
 contain the starting value of <b>gtid_executed</b> of the first binary log file
 to be loaded.
 @li <b>stopBefore</b>: string (default: not set) - Stops the load right before
-the specified binary log event is applied. Accepted format:
-<b>@<binary-log-file@>:@<binary-log-file-position@></b> or GTID:
+the specified binary log event is applied. Accepts a GTID:
+<b>@<UUID@>[:tag]:@<transaction-id@></b>.
+@li <b>stopAfter</b>: string (default: not set) - Stops the load right after the
+specified binary log event is applied. Accepts a GTID:
 <b>@<UUID@>[:tag]:@<transaction-id@></b>.
 
 @li <b>dryRun</b>: bool (default: false) - Print information about what would be
