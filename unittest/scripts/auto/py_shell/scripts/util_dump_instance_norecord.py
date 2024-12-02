@@ -1613,6 +1613,8 @@ for table in missing_pks[test_schema]:
     excluded_tables.append("`{0}`.`{1}`".format(test_schema, table))
 
 recreate_verification_schema()
+WIPE_SHELL_LOG()
+
 EXPECT_FAIL("Error: Shell Error (52004)", "While 'Validating MySQL HeatWave Service compatibility': Compatibility issues were found", test_output_relative, { "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
 
 # BUG#35663805 print a note to always use the lastest shell
@@ -1623,6 +1625,12 @@ EXPECT_STDOUT_CONTAINS("Checking for compatibility with MySQL HeatWave Service {
 if __version_num < 80000:
     EXPECT_STDOUT_CONTAINS("NOTE: MySQL Server 5.7 detected, please consider upgrading to 8.0 first.")
     EXPECT_STDOUT_CONTAINS("Checking for potential upgrade issues.")
+
+# BUG#37154456 write compatibility issues and applied fixes to the log file
+EXPECT_SHELL_LOG_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error_no_prefix())
+EXPECT_SHELL_LOG_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_data_directory).fixed_no_prefix())
+if __version_num < 80000:
+    EXPECT_SHELL_LOG_CONTAINS("Warning: The new default authentication plugin 'caching_sha2_password' offers more secure password hashing than previously used 'mysql_native_password' (and consequent improved client connection authentication). However, it also has compatibility implications that may affect existing MySQL installations.  If your MySQL installation must serve pre-8.0 clients, you may encounter compatibility issues after upgrading unless newly created accounts are created to use 'mysql_native_password'.")
 
 EXPECT_STDOUT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 

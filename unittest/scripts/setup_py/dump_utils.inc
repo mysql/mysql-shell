@@ -251,16 +251,22 @@ class Compatibility_issue:
             return self.__error_msg
         else:
             raise Exception("No error message")
+    def error_no_prefix(self):
+        return self.error()[7:]
     def warning(self):
         if self.__warning_msg:
             return self.__warning_msg
         else:
             raise Exception("No warning message")
+    def warning_no_prefix(self):
+        return self.warning()[9:]
     def fixed(self):
         if self.__fixed_msg:
             return self.__fixed_msg
         else:
             raise Exception("No fixed message")
+    def fixed_no_prefix(self):
+        return self.fixed()[6:]
 
 def strip_restricted_grants(user, privileges):
     all_privileges = ", ".join(sorted(privileges))

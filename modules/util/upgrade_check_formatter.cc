@@ -84,6 +84,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     if (results.empty()) {
       print_paragraph("No issues found");
     } else if (check.get_description() != nullptr) {
+      log(check.get_level(), check.get_description());
       print_paragraph(check.get_description());
       print_doc_links(check.get_doc_link());
       m_console->println();
@@ -91,20 +92,32 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       issue_formater = format_upgrade_issue;
     }
 
-    for (const auto &issue : results) print_paragraph(issue_formater(issue));
+    for (const auto &issue : results) {
+      const auto msg = issue_formater(issue);
+      log(issue.level, msg.c_str());
+      print_paragraph(msg);
+    }
   }
 
   void check_error(const Upgrade_check &check, const char *description,
                    bool runtime_error = true) override {
     print_title(check.get_title());
     m_console->print("  ");
-    if (runtime_error) m_console->print_diag("Check failed: ");
+
+    if (runtime_error) {
+      static constexpr auto k_check_failed = "Check failed: ";
+      log(Upgrade_issue::Level::ERROR, k_check_failed);
+      m_console->print_diag(k_check_failed);
+    }
+
+    log(Upgrade_issue::Level::ERROR, description);
     m_console->println(description);
     print_doc_links(check.get_doc_link());
   }
 
   void manual_check(const Upgrade_check &check) override {
     print_title(check.get_title());
+    log(check.get_level(), check.get_description());
     print_paragraph(check.get_description());
     print_doc_links(check.get_doc_link());
   }
@@ -145,6 +158,22 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     if (links != nullptr) {
       std::string docs("More information:\n");
       print_paragraph(docs + links);
+    }
+  }
+
+  void log(Upgrade_issue::Level level, const char *msg) {
+    switch (level) {
+      case Upgrade_issue::Level::ERROR:
+        log_error("%s", msg);
+        break;
+
+      case Upgrade_issue::Level::WARNING:
+        log_warning("%s", msg);
+        break;
+
+      case Upgrade_issue::Level::NOTICE:
+        log_info("%s", msg);
+        break;
     }
   }
 
