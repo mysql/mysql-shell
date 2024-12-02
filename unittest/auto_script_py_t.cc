@@ -404,8 +404,7 @@ class Azure_tests_py : public Auto_script_py {
 
     Auto_script_py::set_defaults();
 
-    execute(shcore::str_format("__container_name = '%s'",
-                               s_container_name.c_str()));
+    execute(shcore::str_format("__container_name = '%s'", s_container_name));
     execute(shcore::str_format("__azure_configured = %s",
                                m_azure_configured ? "True" : "False"));
     execute(shcore::str_format("__azure_emulator = %s",
@@ -420,7 +419,7 @@ class Azure_tests_py : public Auto_script_py {
   }
 
  private:
-  static constexpr std::string s_container_name = "devtestingpy";
+  static constexpr const char *s_container_name = "devtestingpy";
   bool m_azure_configured = false;
   std::string m_account;
   std::string m_key;
