@@ -727,9 +727,6 @@ class Dumper::Table_worker final {
 
       open_session();
 
-      m_rate_limit =
-          mysqlshdk::utils::Rate_limit(m_dumper->m_options.max_rate());
-
       while (true) {
         auto work = m_dumper->m_worker_tasks.pop();
 
@@ -845,6 +842,7 @@ class Dumper::Table_worker final {
     const auto controller = table.controller.get();
 
     try {
+      mysqlshdk::utils::Rate_limit rate_limit{m_dumper->m_options.max_rate()};
       const auto result = query(full_query);
 
       controller->start_writing(result->get_metadata(), pre_encoded_columns);
@@ -862,8 +860,8 @@ class Dumper::Table_worker final {
 
           // we don't know how much data was read from the server, number of
           // bytes written to the dump file is a good approximation
-          if (m_rate_limit.enabled()) {
-            m_rate_limit.throttle(controller->progress_stats().data_bytes());
+          if (rate_limit.enabled()) {
+            rate_limit.throttle(controller->progress_stats().data_bytes());
           }
 
           controller->reset_progress();
@@ -1661,7 +1659,6 @@ class Dumper::Table_worker final {
   const std::string m_log_id;
   Dumper *m_dumper;
   Exception_strategy m_strategy;
-  mysqlshdk::utils::Rate_limit m_rate_limit;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 };
 
