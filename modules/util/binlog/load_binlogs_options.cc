@@ -45,6 +45,52 @@
 namespace mysqlsh {
 namespace binlog {
 
+namespace {
+
+std::string validate_gtid(const std::string &gtid, const char *option) {
+  if (gtid.empty()) {
+    // WL15977-FR3.2.3.2
+    throw std::invalid_argument{shcore::str_format(
+        "The '%s' option cannot be set to an empty string.", option)};
+  }
+
+  const auto k_invalid_gtid = shcore::str_format(
+      "Invalid value of the '%s' option, expected a GTID in format: "
+      "source_id:[tag:]:transaction_id",
+      option);
+
+  // WL15977-FR3.2.3.1 - check if this is a single-transaction GTID
+
+  using mysqlshdk::mysql::Gtid_range;
+  using mysqlshdk::mysql::Gtid_set;
+
+  Gtid_range range;
+  Gtid_set::from_normalized_string(gtid).enumerate_ranges(
+      [&range, &k_invalid_gtid](Gtid_range r) {
+        if (!r || range) {
+          // WL15977-FR3.2.3.2
+          // invalid GTID or parsing has failed
+          //   or
+          // we already have a range, this means multiple intervals were given
+          throw std::invalid_argument{k_invalid_gtid};
+        }
+
+        range = std::move(r);
+      });
+
+  if (!range || !range.is_single()) {
+    // WL15977-FR3.2.3.2
+    // parsing has failed
+    //   or
+    // we don't want an interval, but a single transaction ID
+    throw std::invalid_argument{k_invalid_gtid};
+  }
+
+  return range.str();
+}
+
+}  // namespace
+
 Load_binlogs_options::Load_binlogs_options()
     : Common_options(Common_options::Config{"util.loadBinlogs", true, false}) {}
 
@@ -56,7 +102,9 @@ const shcore::Option_pack_def<Load_binlogs_options>
           .optional("ignoreVersion", &Load_binlogs_options::m_ignore_version)
           .optional("ignoreGtidGap", &Load_binlogs_options::m_ignore_gtid_gap)
           .optional("stopBefore", &Load_binlogs_options::set_stop_before)
-          .optional("dryRun", &Load_binlogs_options::m_dry_run);
+          .optional("stopAfter", &Load_binlogs_options::set_stop_after)
+          .optional("dryRun", &Load_binlogs_options::m_dry_run)
+          .on_done(&Load_binlogs_options::on_unpacked_options);
 
   return opts;
 }
@@ -89,73 +137,18 @@ void Load_binlogs_options::set_url(const std::string &url) {
 }
 
 void Load_binlogs_options::set_stop_before(const std::string &stop_before) {
-  if (stop_before.empty()) {
-    // WL15977-FR3.2.3.2
+  m_stop_before_gtid = validate_gtid(stop_before, "stopBefore");
+}
+
+void Load_binlogs_options::set_stop_after(const std::string &stop_after) {
+  m_stop_after_gtid = validate_gtid(stop_after, "stopAfter");
+}
+
+void Load_binlogs_options::on_unpacked_options() {
+  if (!m_stop_before_gtid.empty() && !m_stop_after_gtid.empty()) {
+    // WL15977-FR3.2.3.6
     throw std::invalid_argument{
-        "The 'stopBefore' option cannot be set to an empty string."};
-  }
-
-  // WL15977-FR3.2.3.1:
-  // parse the input string, format is <binlog-file>:<binlog-position>
-  // this can also be a GTID: source_id:[tag:]transaction_id
-
-  // both have the same general format, we can use the GTID parsing to verify if
-  // format is correct, then decide if this a file or a GTID depending on
-  // whether source_id matches the UUID format
-
-  using mysqlshdk::mysql::Gtid_range;
-  using mysqlshdk::mysql::Gtid_set;
-
-  static constexpr auto k_invalid_binlog =
-      "Invalid value of the 'stopBefore' option, expected: "
-      "<binary-log-file>:<binary-log-file-position>.";
-  static constexpr auto k_invalid_gtid =
-      "Invalid value of the 'stopBefore' option, expected a GTID in format: "
-      "source_id:[tag:]:transaction_id";
-
-  Gtid_range range;
-  Gtid_set::from_normalized_string(stop_before)
-      .enumerate_ranges([&range](Gtid_range r) {
-        if (!r) {
-          // WL15977-FR3.2.3.2
-          // invalid GTID or parsing has failed
-          throw std::invalid_argument{k_invalid_binlog};
-        }
-
-        if (range) {
-          // WL15977-FR3.2.3.2
-          // we already have a range, this means multiple intervals were given
-          throw std::invalid_argument{k_invalid_gtid};
-        }
-
-        range = std::move(r);
-      });
-
-  if (range) {
-    if (!range.is_single()) {
-      // WL15977-FR3.2.3.2
-      // we don't want an interval, but a single transaction ID
-      throw std::invalid_argument{k_invalid_gtid};
-    }
-
-    std::string_view uuid = range.uuid_tag;
-
-    // range.uuid_tag may include a tag, remove it if it's there
-    if (const auto pos = uuid.find_first_of(':');
-        std::string_view::npos != pos) {
-      uuid = uuid.substr(0, pos);
-    }
-
-    if (shcore::is_uuid(uuid)) {
-      m_stop_at_gtid = range.str();
-    } else {
-      m_stop_at.name = std::move(range.uuid_tag);
-      m_stop_at.position = range.begin;
-    }
-  } else {
-    // WL15977-FR3.2.3.2
-    // parsing has failed
-    throw std::invalid_argument{k_invalid_binlog};
+        "The 'stopBefore' and 'stopAfter' options cannot be both set."};
   }
 }
 
@@ -267,6 +260,8 @@ void Load_binlogs_options::gather_binlogs() {
   bool begin_found = false;
   bool end_found = false;
   const auto &s = session();
+  const auto &stop_at_gtid =
+      !m_stop_before_gtid.empty() ? m_stop_before_gtid : m_stop_after_gtid;
 
   for (const auto &dump : m_dump->dumps()) {
     if (!begin_found) {
@@ -310,17 +305,15 @@ void Load_binlogs_options::gather_binlogs() {
     }
 
     if (!end_found) {
-      if (!m_stop_at_gtid.empty()) {
+      if (!stop_at_gtid.empty()) {
         // check if dump contains the stopping GTID
-        if (s->queryf("SELECT GTID_SUBSET(?,?)", m_stop_at_gtid,
-                      dump.gtid_set())
+        if (s->queryf("SELECT GTID_SUBSET(?,?)", stop_at_gtid, dump.gtid_set())
                 ->fetch_one_or_throw()
                 ->get_uint(0)) {
           // find the binlog which contains the stopping GTID
           for (auto it = candidates.begin(), end = candidates.end(); it != end;
                ++it) {
-            if (s->queryf("SELECT GTID_SUBSET(?,?)", m_stop_at_gtid,
-                          it->gtid_set)
+            if (s->queryf("SELECT GTID_SUBSET(?,?)", stop_at_gtid, it->gtid_set)
                     ->fetch_one_or_throw()
                     ->get_uint(0)) {
               candidates.erase(++it, end);
@@ -334,18 +327,6 @@ void Load_binlogs_options::gather_binlogs() {
                 shcore::str_format("Could not find the final binary log file "
                                    "in the '%s' dump subdirectory.",
                                    dump.directory_name().c_str())};
-          }
-        }
-      } else if (!m_stop_at.name.empty()) {
-        for (auto it = candidates.begin(), end = candidates.end(); it != end;
-             ++it) {
-          if (m_stop_at.name == it->name && m_stop_at.position >= it->begin &&
-              ((0 == it->end &&
-                m_stop_at.position <= it->data_bytes + it->begin) ||
-               m_stop_at.position <= it->end)) {
-            candidates.erase(++it, end);
-            end_found = true;
-            break;
           }
         }
       }
@@ -365,16 +346,11 @@ void Load_binlogs_options::gather_binlogs() {
   }
 
   if (!end_found) {
-    if (!m_stop_at_gtid.empty()) {
+    if (!stop_at_gtid.empty()) {
       throw std::invalid_argument{
           shcore::str_format("Could not find the final binary log file to be "
                              "loaded that contains GTID '%s'.",
-                             m_stop_at_gtid.c_str())};
-    } else if (!m_stop_at.name.empty()) {
-      throw std::invalid_argument{
-          shcore::str_format("Could not find the last binary log file to be "
-                             "loaded '%s' that contains position %" PRIu64 ".",
-                             m_stop_at.name.c_str(), m_stop_at.position)};
+                             stop_at_gtid.c_str())};
     }
   }
 

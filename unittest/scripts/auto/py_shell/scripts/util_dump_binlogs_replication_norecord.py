@@ -14,6 +14,27 @@ def EXPECT_FAIL(*args, **kwargs):
 def EXPECT_SOURCE_HAS_CHANGED(previous, current):
     EXPECT_STDOUT_MATCHES(re.compile(f"NOTE: Previous dump was taken from '.*:{previous}', current instance is: '.*:{current}', scanning binary log files for starting position"))
 
+def dissolve_topology(uri, method):
+    setup_session(uri)
+    topology = dba[method]()
+    topology.dissolve({"force": True})
+    reset_instance(session)
+    wipeout_server(session)
+
+def dissolve_replica_set(uri):
+    dissolve_topology(uri, "get_replica_set")
+
+def dissolve_cluster(uri):
+    dissolve_topology(uri, "get_cluster")
+
+def dissolve_cluster_set(uri):
+    dissolve_topology(uri, "get_cluster_set")
+
+def wipe_replica(uri):
+    setup_session(uri)
+    reset_instance(session)
+    wipeout_server(session)
+
 #@<> deploy sandboxes
 testutil.deploy_raw_sandbox(__mysql_sandbox_port1, "root", {
     "server-id": str(random.randint(1, 4294967295)),
@@ -42,7 +63,7 @@ setup_session(__sandbox_uri1)
 EXPECT_SUCCESS(dump_binlogs_dir, options={"startFrom": start_from_beginning})
 
 setup_session(__sandbox_uri2)
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump.", dump_binlogs_dir)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and it's not part of an InnoDB Cluster group.", dump_binlogs_dir)
 
 wipe_dir(dump_binlogs_dir)
 
@@ -69,75 +90,36 @@ expected_gtid_set = binary_log_status(session).executed_gtid_set
 #@<> `since` dump_instance() - replica set
 setup_session(__sandbox_uri3)
 
-EXPECT_SUCCESS(working_binlogs_dir, options={"since": dump_instance_dir})
-EXPECT_SOURCE_HAS_CHANGED(__mysql_sandbox_port2, __mysql_sandbox_port3)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and it's not part of an InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_instance_dir})
 
 wipe_dir(working_binlogs_dir)
 
 #@<> WL15977-FR2.4.2 - wrong instance - `since` dump_instance() - replica set
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", working_binlogs_dir, options={"since": dump_instance_dir})
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and it's not part of an InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_instance_dir})
 
 #@<> `since` dump_binlogs() - replica set
 setup_session(__sandbox_uri3)
 
-EXPECT_SUCCESS(working_binlogs_dir, options={"since": dump_binlogs_dir})
-EXPECT_SOURCE_HAS_CHANGED(__mysql_sandbox_port2, __mysql_sandbox_port3)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and it's not part of an InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_binlogs_dir})
 
 wipe_dir(working_binlogs_dir)
 
 #@<> WL15977-FR2.4.2 - wrong instance - `since` dump_binlogs() - replica set
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", working_binlogs_dir, options={"since": dump_binlogs_dir})
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and it's not part of an InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_binlogs_dir})
 
 #@<> WL15977-FR2.4.2 - wrong instance - incremental dump - replica set
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", dump_binlogs_dir)
-
-#@<> incremental dump - replica set
-setup_session(__sandbox_uri3)
-
-EXPECT_SUCCESS(dump_binlogs_dir)
-EXPECT_SOURCE_HAS_CHANGED(__mysql_sandbox_port2, __mysql_sandbox_port3)
-
-#@<> incremental dump - nothing more to be dumped - replica set
-setup_session(__sandbox_uri2)
-
-EXPECT_SUCCESS(dump_binlogs_dir, nothing_dumped=True)
-
-#@<> WL15977-FR2.3.3 - warn that instance is not ONLINE - replica set
-setup_session(__sandbox_uri3)
-session.run_sql("STOP REPLICA")
-testutil.wait_replication_channel_state(__mysql_sandbox_port3, "read_replica_replication", "OFF")
-
-EXPECT_SUCCESS(dump_binlogs_dir, nothing_dumped=True)
-EXPECT_STDOUT_CONTAINS("WARNING: The source instance is part of a replication/managed topology, but it's not currently ONLINE.")
-
-#@<> load the binlog dump - replica set
-setup_session(__sandbox_uri1)
-rs = dba.get_replica_set()
-rs.dissolve({'force': True})
-reset_instance(session)
-wipeout_server(session)
-
-EXPECT_LOAD_SUCCESS(dump_binlogs_dir)
-EXPECT_TRUE(gtid_subset(session, expected_gtid_set, binary_log_status(session).executed_gtid_set))
-
-wipeout_server(session)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and it's not part of an InnoDB Cluster group.", dump_binlogs_dir)
 
 #@<> dissolve replica set
-setup_session(__sandbox_uri2)
-rs = dba.get_replica_set()
-rs.dissolve({'force': True})
-reset_instance(session)
-wipeout_server(session)
-
-setup_session(__sandbox_uri3)
-reset_instance(session)
-wipeout_server(session)
+dissolve_replica_set(__sandbox_uri1)
+dissolve_replica_set(__sandbox_uri2)
+wipe_replica(__sandbox_uri3)
 
 wipe_dir(dump_instance_dir)
 wipe_dir(dump_binlogs_dir)
@@ -174,7 +156,7 @@ wipe_dir(working_binlogs_dir)
 #@<> WL15977-FR2.4.2 - wrong instance - `since` dump_instance() - cluster
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", working_binlogs_dir, options={"since": dump_instance_dir})
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_instance_dir})
 
 #@<> `since` dump_binlogs() - cluster
 setup_session(__sandbox_uri3)
@@ -187,12 +169,12 @@ wipe_dir(working_binlogs_dir)
 #@<> WL15977-FR2.4.2 - wrong instance - `since` dump_binlogs() - cluster
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", working_binlogs_dir, options={"since": dump_binlogs_dir})
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_binlogs_dir})
 
 #@<> WL15977-FR2.4.2 - wrong instance - incremental dump - cluster
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", dump_binlogs_dir)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", dump_binlogs_dir)
 
 #@<> incremental dump - cluster
 setup_session(__sandbox_uri3)
@@ -205,7 +187,7 @@ setup_session(__sandbox_uri2)
 
 EXPECT_SUCCESS(dump_binlogs_dir, nothing_dumped=True)
 
-#@<> WL15977-FR2.3.3 - warn that instance is not ONLINE - cluster
+#@<> instance is not ONLINE, but it's the same as previous dump - cluster
 setup_session(__sandbox_uri3)
 session.run_sql("STOP GROUP_REPLICATION")
 
@@ -215,30 +197,62 @@ testutil.wait_member_state(__mysql_sandbox_port3, "(MISSING)")
 setup_session(__sandbox_uri3)
 
 EXPECT_SUCCESS(dump_binlogs_dir, nothing_dumped=True)
-EXPECT_STDOUT_CONTAINS("WARNING: The source instance is part of a replication/managed topology, but it's not currently ONLINE.")
 
 #@<> load the binlog dump - cluster
-setup_session(__sandbox_uri1)
-c = dba.get_cluster()
-c.dissolve({'force': True})
-reset_instance(session)
-wipeout_server(session)
+dissolve_cluster(__sandbox_uri1)
 
 EXPECT_LOAD_SUCCESS(dump_binlogs_dir)
 EXPECT_TRUE(gtid_subset(session, expected_gtid_set, binary_log_status(session).executed_gtid_set))
 
 wipeout_server(session)
 
-#@<> dissolve cluster
-setup_session(__sandbox_uri2)
-c = dba.get_cluster()
-c.dissolve({'force': True})
-reset_instance(session)
-wipeout_server(session)
+#@<> instance is not ONLINE and it's different from previous dump - cluster
+c.add_instance(__sandbox_uri1, {"recoveryMethod": "clone"})
 
-setup_session(__sandbox_uri3)
-reset_instance(session)
-wipeout_server(session)
+setup_session(__sandbox_uri1)
+session.run_sql("STOP GROUP_REPLICATION")
+
+setup_session(__sandbox_uri2)
+testutil.wait_member_state(__mysql_sandbox_port1, "(MISSING)")
+
+setup_session(__sandbox_uri1)
+
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump, it's part of the same InnoDB Cluster group, but is not currently ONLINE.", dump_binlogs_dir)
+
+wipe_replica(__sandbox_uri1)
+c.remove_instance(__sandbox_uri1, {"force": True})
+
+#@<> BUG#37334759 - former member - cluster
+c.add_instance(__sandbox_uri1, {"recoveryMethod": "clone"})
+c.remove_instance(__sandbox_uri1)
+
+setup_session(__sandbox_uri1)
+
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump, it's part of the same InnoDB Cluster group, but is not currently ONLINE.", dump_binlogs_dir)
+
+wipe_replica(__sandbox_uri1)
+#@<> BUG#37335360 - read replica + cluster
+c.add_replica_instance(__sandbox_uri1, {"recoveryMethod": "incremental"})
+setup_session(__sandbox_uri1)
+
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and is not an ONLINE member of the same InnoDB Cluster replication group.", dump_binlogs_dir)
+
+c.remove_instance(__sandbox_uri1)
+wipe_replica(__sandbox_uri1)
+
+#@<> cluster without metadata + previous instance which is no longer part of the group
+c.add_instance(__sandbox_uri1, {"recoveryMethod": "incremental"})
+
+setup_session(__sandbox_uri1)
+dba.drop_metadata_schema({"force": True})
+
+EXPECT_SUCCESS(dump_binlogs_dir)
+
+wipe_replica(__sandbox_uri1)
+
+#@<> dissolve cluster
+wipe_replica(__sandbox_uri2)
+wipe_replica(__sandbox_uri3)
 
 wipe_dir(dump_instance_dir)
 wipe_dir(dump_binlogs_dir)
@@ -269,79 +283,36 @@ expected_gtid_set = binary_log_status(session).executed_gtid_set
 #@<> `since` dump_instance() - cluster set
 setup_session(__sandbox_uri3)
 
-EXPECT_SUCCESS(working_binlogs_dir, options={"since": dump_instance_dir})
-EXPECT_SOURCE_HAS_CHANGED(__mysql_sandbox_port2, __mysql_sandbox_port3)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_instance_dir})
 
 wipe_dir(working_binlogs_dir)
 
 #@<> WL15977-FR2.4.2 - wrong instance - `since` dump_instance() - cluster set
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", working_binlogs_dir, options={"since": dump_instance_dir})
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_instance_dir})
 
 #@<> `since` dump_binlogs() - cluster set
 setup_session(__sandbox_uri3)
 
-EXPECT_SUCCESS(working_binlogs_dir, options={"since": dump_binlogs_dir})
-EXPECT_SOURCE_HAS_CHANGED(__mysql_sandbox_port2, __mysql_sandbox_port3)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_binlogs_dir})
 
 wipe_dir(working_binlogs_dir)
 
 #@<> WL15977-FR2.4.2 - wrong instance - `since` dump_binlogs() - cluster set
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", working_binlogs_dir, options={"since": dump_binlogs_dir})
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", working_binlogs_dir, options={"since": dump_binlogs_dir})
 
 #@<> WL15977-FR2.4.2 - wrong instance - incremental dump - cluster set
 setup_session(__sandbox_uri1)
 
-EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same replication/managed topology.", dump_binlogs_dir)
-
-#@<> incremental dump - cluster set
-setup_session(__sandbox_uri3)
-
-EXPECT_SUCCESS(dump_binlogs_dir)
-EXPECT_SOURCE_HAS_CHANGED(__mysql_sandbox_port2, __mysql_sandbox_port3)
-
-#@<> incremental dump - nothing more to be dumped - cluster set
-setup_session(__sandbox_uri2)
-
-EXPECT_SUCCESS(dump_binlogs_dir, nothing_dumped=True)
-
-#@<> WL15977-FR2.3.3 - warn that instance is not ONLINE - cluster set
-setup_session(__sandbox_uri3)
-session.run_sql("STOP GROUP_REPLICATION")
-
-setup_session(__sandbox_uri2)
-testutil.wait_member_state(__mysql_sandbox_port3, "(MISSING)")
-
-setup_session(__sandbox_uri3)
-
-EXPECT_SUCCESS(dump_binlogs_dir, nothing_dumped=True)
-EXPECT_STDOUT_CONTAINS("WARNING: The source instance is part of a replication/managed topology, but it's not currently ONLINE.")
-
-#@<> load the binlog dump - cluster set
-setup_session(__sandbox_uri1)
-cs = dba.get_cluster_set()
-cs.dissolve({'force': True})
-reset_instance(session)
-wipeout_server(session)
-
-EXPECT_LOAD_SUCCESS(dump_binlogs_dir)
-EXPECT_TRUE(gtid_subset(session, expected_gtid_set, binary_log_status(session).executed_gtid_set))
-
-wipeout_server(session)
+EXPECT_FAIL("ValueError", "The source instance is different from the one used in the previous dump and they do not belong to the same InnoDB Cluster group.", dump_binlogs_dir)
 
 #@<> dissolve cluster set
-setup_session(__sandbox_uri2)
-cs = dba.get_cluster_set()
-cs.dissolve({'force': True})
-reset_instance(session)
-wipeout_server(session)
-
-setup_session(__sandbox_uri3)
-reset_instance(session)
-wipeout_server(session)
+dissolve_cluster_set(__sandbox_uri1)
+dissolve_cluster_set(__sandbox_uri2)
+wipe_replica(__sandbox_uri3)
 
 wipe_dir(dump_instance_dir)
 wipe_dir(dump_binlogs_dir)

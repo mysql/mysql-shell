@@ -327,11 +327,11 @@ void Binlog_dumper::async_interrupt() {
 void Binlog_dumper::do_run() {
   const auto console = current_console();
 
-  if (const auto &source_dump = m_options.start_from_dump();
+  if (const auto &source_dump = m_options.previous_dump();
       !source_dump.empty()) {
     console->print_info(shcore::str_format(
         "Starting from previous dump: %s, created at: %s UTC",
-        source_dump.c_str(), m_options.start_from_timestamp().c_str()));
+        source_dump.c_str(), m_options.previous_dump_timestamp().c_str()));
   }
 
   console->print_info(

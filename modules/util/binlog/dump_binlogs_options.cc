@@ -39,7 +39,6 @@
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
 
-#include "modules/adminapi/common/common.h"
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -152,49 +151,6 @@ bool verify_dump_instance_options(const shcore::json::Value &options) {
   }
 
   return true;
-}
-
-bool validate_source_instances(const dump::common::Server_info &previous,
-                               const dump::common::Server_info &current) {
-  if (previous.sysvars.server_uuid == current.sysvars.server_uuid) {
-    // this is the same instance
-    return true;
-  }
-
-  if (previous.topology.group_name.empty() &&
-      previous.topology.view_change_uuid.empty() &&
-      previous.topology.cluster_id.empty() &&
-      previous.topology.cluster_set_id.empty() &&
-      current.topology.group_name.empty() &&
-      current.topology.view_change_uuid.empty() &&
-      current.topology.cluster_id.empty() &&
-      current.topology.cluster_set_id.empty()) {
-    // both instances are not part of a replication topology
-    throw std::invalid_argument{
-        "The source instance is different from the one used in the previous "
-        "dump."};
-  }
-
-  const auto compare = [](const std::string &p, const std::string &c) {
-    return !p.empty() && p == c;
-  };
-
-  if (compare(previous.topology.group_name, current.topology.group_name) ||
-      (compare(previous.topology.view_change_uuid,
-               current.topology.view_change_uuid) &&
-       !shcore::str_caseeq(previous.topology.view_change_uuid, "AUTOMATIC")) ||
-      compare(previous.topology.cluster_id, current.topology.cluster_id) ||
-      compare(previous.topology.cluster_set_id,
-              current.topology.cluster_set_id)) {
-    // both instances are part of the same replication topology
-    return false;
-  }
-
-  // at least one instance is part of a replication topology, but the other
-  // one is either standalone, or belongs to a different topology
-  throw std::invalid_argument{
-      "The source instance is different from the one used in the previous dump "
-      "and they do not belong to the same replication/managed topology."};
 }
 
 }  // namespace
@@ -389,6 +345,7 @@ void Dump_binlogs_options::on_configure() {
     read_dump_binlogs(output());
   }
 
+  validate_continuity();
   validate_start_from();
   gather_binlogs();
 }
@@ -479,17 +436,14 @@ void Dump_binlogs_options::read_dump_instance(
         "inconsistent dump."};
   }
 
-  // WL15977-FR2.4.2
-  m_same_instance =
-      validate_source_instances(dump_info.source, m_source_instance);
-
   // WL15977-FR2.2.1.2:
-  m_previous_instance = std::move(dump_info.source);
-  m_start_from_binlog = m_previous_instance.binlog;
+  m_previous_server_uuid = dump_info.source.sysvars.server_uuid;
+  m_previous_topology = std::move(dump_info.source.topology);
+  m_start_from_binlog = std::move(dump_info.source.binlog);
 
   // store information about the source dump
-  m_start_from_dump = dir->full_path().masked();
-  m_start_from_timestamp = shcore::json::required(json, "begin", false);
+  m_previous_dump = dir->full_path().masked();
+  m_previous_dump_timestamp = shcore::json::required(json, "begin", false);
 }
 
 void Dump_binlogs_options::read_dump_binlogs(
@@ -497,24 +451,21 @@ void Dump_binlogs_options::read_dump_binlogs(
   const auto info = Binlog_dump_info{std::move(dir)};
   const auto &dump_info = info.dumps().back();
 
-  // WL15977-FR2.4.2
-  m_same_instance =
-      validate_source_instances(dump_info.source_instance(), m_source_instance);
-
   // WL15977-FR2.1.4 + WL15977-FR2.2.1.2:
-  m_previous_instance = dump_info.source_instance();
+  m_previous_server_uuid = dump_info.source_instance().sysvars.server_uuid;
+  m_previous_topology = dump_info.source_instance().topology;
   m_start_from_binlog = dump_info.end_at();
 
   // store information about the source dump
-  m_start_from_dump = dump_info.full_path();
-  m_start_from_timestamp = dump_info.timestamp();
+  m_previous_dump = dump_info.full_path();
+  m_previous_dump_timestamp = dump_info.timestamp();
 }
 
 void Dump_binlogs_options::on_set_session(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   Common_options::on_set_session(session);
 
-  mysqlsh::dba::Instance instance{session};
+  mysqlshdk::mysql::Instance instance{session};
 
   if (!DBUG_EVALUATE_IF("dump_binlogs_binlog_disabled", false,
                         instance.get_sysvar_bool("log_bin").value_or(false))) {
@@ -532,44 +483,6 @@ void Dump_binlogs_options::on_set_session(
         "The 'gtid_mode' system variable on the source instance is set to "
         "'%s'. This utility requires GTID support to be enabled.",
         mode.c_str())};
-  }
-
-  {
-    mysqlsh::dba::MetadataStorage metadata{instance};
-    const auto cluster_info = mysqlsh::dba::get_cluster_check_info(metadata);
-
-    if (!mysqlsh::dba::is_instance_standalone(cluster_info.source_type)) {
-      using mysqlsh::dba::ManagedInstance::State;
-      using mysqlsh::dba::TargetType::Type;
-
-      bool online = false;
-
-      if (Type::AsyncReplicaSet == cluster_info.source_type) {
-        // state is not reliable here, check replication channel instead
-        mysqlshdk::mysql::Replication_channel channel;
-
-        if (mysqlshdk::mysql::get_channel_status(
-                instance, mysqlsh::dba::k_replicaset_channel_name, &channel)) {
-          using Status = mysqlshdk::mysql::Replication_channel::Status;
-          online = Status::ON == channel.status();
-        } else {
-          // couldn't get the replication channel status, there's a single
-          // instance in the ReplicaSet, check if it's online
-          online = State::OnlineRW == cluster_info.source_state;
-        }
-      } else {
-        online = State::OnlineRO == cluster_info.source_state ||
-                 State::OnlineRW == cluster_info.source_state ||
-                 State::Recovering == cluster_info.source_state;
-      }
-
-      if (!online) {
-        // WL15977-FR2.3.3
-        current_console()->print_warning(
-            "The source instance is part of a replication/managed topology, "
-            "but it's not currently ONLINE.");
-      }
-    }
   }
 }
 
@@ -719,14 +632,14 @@ void Dump_binlogs_options::find_start_from(
     const std::vector<mysqlshdk::storage::File_info> &binlogs) {
   // if dump is done from the same instance, we already have the correct binlog
   // file and position
-  if (m_same_instance) {
+  if (is_same_instance()) {
     return;
   }
 
   current_console()->print_note(shcore::str_format(
       "Previous dump was taken from '%s', current instance is: '%s', scanning "
       "binary log files for starting position...",
-      m_previous_instance.topology.canonical_address.c_str(),
+      m_previous_topology.canonical_address.c_str(),
       m_source_instance.topology.canonical_address.c_str()));
 
   // we need to scan the binlogs and find the first GTID event that does not
@@ -850,6 +763,111 @@ void Dump_binlogs_options::find_start_from(
     // that was the last file, all transactions are in gtid_executed, there's
     // nothing to be dumped
     m_start_from_binlog.file = end_at().file;
+  }
+}
+
+bool Dump_binlogs_options::is_same_instance() const noexcept {
+  // if server_uuid of the previous dump is empty, we're dumping with startFrom
+  return m_previous_server_uuid.empty() ||
+         m_previous_server_uuid == m_source_instance.sysvars.server_uuid;
+}
+
+// WL15977-FR2.4.2
+void Dump_binlogs_options::validate_continuity() const {
+  if (is_same_instance()) {
+    return;
+  }
+
+  class Instance_error : public std::invalid_argument {
+   public:
+    explicit Instance_error(const char *msg)
+        : invalid_argument(
+              shcore::str_format("The source instance is different from the "
+                                 "one used in the previous dump%s",
+                                 msg)) {}
+
+    explicit Instance_error(const std::string &msg)
+        : Instance_error(msg.c_str()) {}
+  };
+
+  try {
+    const auto &s = session();
+    bool online = false;
+
+    {
+      const auto result = s->query(
+          "SELECT MEMBER_STATE FROM "
+          "performance_schema.replication_group_members WHERE "
+          "MEMBER_ID=@@server_uuid");
+      const auto row = result->fetch_one();
+
+      if (!row) {
+        throw Instance_error{shcore::str_format(
+            " and it's not part of %s InnoDB Cluster group.",
+            m_previous_topology.group_name.empty() ? "an" : "the same")};
+      }
+
+      const auto status = row->get_string(0);
+      online = shcore::str_caseeq(status, "ONLINE");
+
+      if (!online && shcore::str_caseeq(status, "OFFLINE")) {
+        try {
+          // check if this is a group member, provide a custom error if it's not
+          mysqlsh::dba::Instance instance{s};
+          mysqlsh::dba::MetadataStorage metadata{instance};
+          if (mysqlsh::dba::Instance_type::GROUP_MEMBER !=
+              metadata
+                  .get_instance_by_uuid(m_source_instance.sysvars.server_uuid)
+                  .instance_type) {
+            throw Instance_error{
+                " and is not an ONLINE member of the same InnoDB Cluster "
+                "replication group."};
+          }
+        } catch (const Instance_error &) {
+          // rethrow our exception
+          throw;
+        } catch (...) {
+          // just use the error below
+        }
+      }
+    }
+
+    if (m_previous_topology.group_name.empty()) {
+      // previous instance was standalone
+      if (!online) {
+        // this instance is not online, information is outdated
+        throw Instance_error{
+            " and is not an ONLINE member of an InnoDB Cluster group."};
+      }
+
+      // check if it was added to this group in the meantime
+      if (!s->queryf(
+                "SELECT 1 FROM performance_schema.replication_group_members "
+                "WHERE MEMBER_ID=?",
+                m_previous_server_uuid)
+               ->fetch_one()) {
+        // throw std::runtime_error in order use generic error message
+        throw std::runtime_error{"Previous instance was standalone."};
+      }
+    } else {
+      if (m_previous_topology.group_name !=
+          m_source_instance.topology.group_name) {
+        throw Instance_error{
+            " and they do not belong to the same InnoDB Cluster group."};
+      }
+
+      if (!online) {
+        throw Instance_error{
+            ", it's part of the same InnoDB Cluster group, but is not "
+            "currently ONLINE."};
+      }
+    }
+  } catch (const Instance_error &) {
+    // rethrow our exceptions
+    throw;
+  } catch (...) {
+    // something went wrong, throw generic error message
+    throw Instance_error{"."};
   }
 }
 

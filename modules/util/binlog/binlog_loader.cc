@@ -577,8 +577,8 @@ class Binlog_loader::File_reader final {
   }
 
   inline bool should_filter_last_file() const noexcept {
-    return !m_options.stop_at_gtid().empty() ||
-           !m_options.stop_at_file().name.empty();
+    return !m_options.stop_before_gtid().empty() ||
+           !m_options.stop_after_gtid().empty();
   }
 
   void filter_last_file(Binlog_event_filter *filter) {
@@ -586,9 +586,9 @@ class Binlog_loader::File_reader final {
                                   ? Binlog_event_filter::Action::Skip
                                   : Binlog_event_filter::Action::Write;
 
-    if (!m_options.stop_at_gtid().empty()) {
+    if (!m_options.stop_before_gtid().empty()) {
       const auto stop_at =
-          mysqlshdk::mysql::Gtid_range::from_gtid(m_options.stop_at_gtid());
+          mysqlshdk::mysql::Gtid_range::from_gtid(m_options.stop_before_gtid());
 
       filter->filter(
           [&write_action](const Binary_log_event &) { return write_action; },
@@ -605,18 +605,33 @@ class Binlog_loader::File_reader final {
               return write_action;
             }
           });
-    } else {
-      const auto stop_at = m_options.stop_at_file().position;
+    } else if (!m_options.stop_after_gtid().empty()) {
+      const auto stop_at =
+          mysqlshdk::mysql::Gtid_range::from_gtid(m_options.stop_after_gtid());
+      bool should_stop = false;
 
-      filter->filter([&write_action, &stop_at](const Binary_log_event &event) {
-        if (event.position >= stop_at) {
-          current_console()->print_status(shcore::str_format(
-              "      Stopped before position: %" PRIu64, stop_at));
-          return Binlog_event_filter::Action::Stop;
-        } else {
-          return write_action;
-        }
-      });
+      filter->filter(
+          [&write_action](const Binary_log_event &) { return write_action; },
+          [&write_action, &stop_at, &should_stop](const Gtid_event &gtid) {
+            const auto tsid = gtid.get_tsid().to_string();
+
+            if (should_stop) {
+              return Binlog_event_filter::Action::Stop;
+            } else if (stop_at.uuid_tag == tsid &&
+                       stop_at.begin == static_cast<uint64_t>(gtid.get_gno())) {
+              // we found the GTID we were looking for, continue for now, stop
+              // on a new GTID event (next transaction)
+              should_stop = true;
+              current_console()->print_status(
+                  shcore::str_format("      Stopped after GTID: %s:%" PRId64,
+                                     tsid.c_str(), gtid.get_gno()));
+              return write_action;
+            } else {
+              return write_action;
+            }
+          });
+    } else {
+      assert(false);
     }
   }
 

@@ -2329,8 +2329,10 @@ DESCRIPTION
         contain the starting value of gtid_executed of the first binary log
         file to be loaded.
       - stopBefore: string (default: not set) - Stops the load right before the
-        specified binary log event is applied. Accepted format:
-        <binary-log-file>:<binary-log-file-position> or GTID:
+        specified binary log event is applied. Accepts a GTID:
+        <UUID>[:tag]:<transaction-id>.
+      - stopAfter: string (default: not set) - Stops the load right after the
+        specified binary log event is applied. Accepts a GTID:
         <UUID>[:tag]:<transaction-id>.
       - dryRun: bool (default: false) - Print information about what would be
         loaded, but do not load anything.
