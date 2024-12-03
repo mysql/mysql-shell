@@ -392,8 +392,15 @@ TEST(Upgrade_check_registry, create_checklist) {
       version_checks.emplace_back(v5_7_0, Version(8, 0, patch));
       for (auto patch2 = 0; patch2 <= k_latest_versions["8.4"].get_patch();
            patch2++) {
-        version_checks.emplace_back(Version(8, 0, patch),
-                                    Version(8, 4, patch2));
+        /*
+         * std::make_pair here is intentional - in some cases on some compilers,
+         * it fails to deduce the correct template instantiation for this type,
+         * and reports a "maybe uninitialized" warning inside the std::string
+         * type. std::make_pair tells the compiler directly, how to instance
+         * this template correctly.
+         */
+        version_checks.emplace_back(
+            std::make_pair(Version(8, 0, patch), Version(8, 4, patch2)));
       }
     }
     for (auto major = 9; major <= mysqlshdk::utils::k_shell_version.get_major();
