@@ -127,7 +127,11 @@ Host *
 
 #@<> Tunnel Creation Errors - Invalid SSH host
 testutil.call_mysqlsh(["--ssh", "ssh_user@invalid_host", MYSQL_OVER_SSH_URI])
-EXPECT_STDOUT_CONTAINS("Cannot open SSH Tunnel: Failed to resolve hostname invalid_host")
+EXPECT_STDOUT_CONTAINS("SSH: Error setting remote host in ssh session: host 'invalid_host' is not valid")
+WIPE_STDOUT()
+
+testutil.call_mysqlsh(["--ssh", "ssh_user@Whatever", MYSQL_OVER_SSH_URI])
+EXPECT_STDOUT_CONTAINS("Cannot open SSH Tunnel: Failed to resolve hostname Whatever")
 WIPE_STDOUT()
 
 #@<> Tunnel Creation Errors - Invalid User
