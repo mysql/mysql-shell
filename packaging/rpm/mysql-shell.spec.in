@@ -152,7 +152,7 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 %global _protobuflibs %{nil}
 %endif
 
-%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs}|%{_protobuflibs}|libmysql_deps\.so.*)$
+%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs}|%{_protobuflibs}|libmysql_deps\.so.*|libpolyglot.*)$
 
 %if 0%{?rhel} && 0%{?rhel} < 7
 %filter_setup
