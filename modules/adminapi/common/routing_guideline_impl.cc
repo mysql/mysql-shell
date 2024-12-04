@@ -130,7 +130,7 @@ mysqlshdk::utils::Version check_if_cluster_supports_guideline_version(
 shcore::Value parse_destination_selector(const std::string &dest) {
   // format is strategy(destclass[, ...])
   std::regex re(
-      "^([a-zA-Z-]+)\\(([a-zA-Z0-9_]+(?:\\s*,\\s*[a-zA-Z0-9_]+)*)\\)$");
+      R"(^\s*([a-zA-Z-]+)\s*\(\s*([a-zA-Z0-9_]+(?:\s*,\s*[a-zA-Z0-9_]+)*)\s*\)\s*$)");
   std::smatch m;
 
   if (!std::regex_match(dest, m, re) || m.size() != 3) {
@@ -141,12 +141,15 @@ shcore::Value parse_destination_selector(const std::string &dest) {
   std::string strategy = shcore::str_lower(std::string(m[1]));
 
   auto classes = shcore::make_array();
-  for (auto s : shcore::str_split(m[2].str(), ", ", -1, true)) {
-    if (s.empty()) {
+  for (auto s : shcore::str_split(m[2].str(), ",")) {  // Split on commas
+    std::string trimmed =
+        shcore::str_strip(s);  // trim whitespaces from each class name
+    if (trimmed.empty()) {
       throw std::runtime_error("Invalid syntax for destination: " + dest);
     }
-    classes->emplace_back(s);
+    classes->emplace_back(trimmed);  // Add trimmed class to array
   }
+
   return shcore::Value(shcore::make_dict("strategy", shcore::Value(strategy),
                                          "classes", shcore::Value(classes)));
 }

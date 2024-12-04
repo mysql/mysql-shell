@@ -844,6 +844,15 @@ EXPECT_OUTPUT_CONTAINS("dryRun enabled, guideline not updated.");
 
 EXPECT_EQ(before, rg2.asJson());
 
+//@<> addRoute - whitespaces on destination classes should be allowed
+EXPECT_NO_THROWS(function() { rg2.addRoute("whitespaces", "true", [" round-robin(Secondary)"], { dryRun: 1 }); } );
+EXPECT_NO_THROWS(function() { rg2.addRoute("whitespaces", "true", ["round-robin(Secondary) "], { dryRun: 1 }); } );
+EXPECT_NO_THROWS(function() { rg2.addRoute("whitespaces", "true", [" round-robin(Primary,     Secondary) "], { dryRun: 1 }); } );
+EXPECT_NO_THROWS(function() { rg2.addRoute("whitespaces", "true", [" round-robin(    Primary,     Secondary) "], { dryRun: 1 }); } );
+EXPECT_NO_THROWS(function() { rg2.addRoute("whitespaces", "true", [" round-robin     (    Primary,     Secondary ) "], { dryRun: 1 }); } );
+
+EXPECT_THROWS(function() { rg2.addRoute("whitespaces", "true", [" round-robin     (    Primary.     Secondary) "], { dryRun: 1 }); }, "Invalid syntax for destination selector:");
+
 //@<> removeDestination() - bad args
 STDCHECK_ARGTYPES(rg2.removeDestination, 1, ["xx"]);
 
@@ -2207,6 +2216,17 @@ expected_routes_destinations_changed = [
     "round-robin(Secondary), round-robin(Primary)",
     "round-robin(Secondary), round-robin(Primary)"
 ];
+
+//@<> setRouteOption - whitespaces on destination classes should be allowed
+EXPECT_NO_THROWS(function() { rg2.setRouteOption("ro", "destinations", [" round-robin(Secondary)"]); } );
+EXPECT_NO_THROWS(function() { rg2.setRouteOption("ro", "destinations", ["round-robin(Secondary) "]); } );
+EXPECT_NO_THROWS(function() { rg2.setRouteOption("ro", "destinations", [" round-robin(Primary,     Secondary) "]); } );
+EXPECT_NO_THROWS(function() { rg2.setRouteOption("ro", "destinations", [" round-robin(    Primary,     Secondary) "]); } );
+EXPECT_NO_THROWS(function() { rg2.setRouteOption("ro", "destinations", [" round-robin     (    Primary,     Secondary ) "]); } );
+
+EXPECT_THROWS(function() { rg2.setRouteOption("ro", "destinations", [" round-robin     (    Primary.     Secondary) "]); }, "Invalid syntax for destination selector:");
+
+EXPECT_NO_THROWS(function(){ rg2.setRouteOption("ro", "destinations", ["round-robin(ReadReplica)", "round-robin(Primary)"]);} );
 
 var routes;
 EXPECT_NO_THROWS(function() { routes = rg2.routes().fetchAll(); });
