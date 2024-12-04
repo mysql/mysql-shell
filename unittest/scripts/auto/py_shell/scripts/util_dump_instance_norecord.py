@@ -1619,6 +1619,8 @@ for table in missing_pks[test_schema]:
     excluded_tables.append("`{0}`.`{1}`".format(test_schema, table))
 
 recreate_verification_schema()
+WIPE_SHELL_LOG()
+
 target_version = "8.1.0"
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "targetVersion": target_version, "ocimds": True, "excludeSchemas": excluded_schemas, "excludeTables": excluded_tables })
 
@@ -1634,6 +1636,12 @@ EXPECT_STDOUT_CONTAINS("Checking for potential upgrade issues.")
 
 if testutil.version_check(target_version, "<=", __version):
     EXPECT_STDOUT_CONTAINS(f"NOTE: The value of 'targetVersion' option ({target_version}) is not greater than current version of the server ({__version}), skipping upgrade compatibility checks")
+
+# BUG#37154456 write compatibility issues and applied fixes to the log file
+EXPECT_SHELL_LOG_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error_no_prefix())
+EXPECT_SHELL_LOG_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_data_directory).fixed_no_prefix())
+if __version_num < 80000:
+    EXPECT_SHELL_LOG_CONTAINS("Warning: The default authentication plugin 'caching_sha2_password' offers more secure password hashing than previously used 'mysql_native_password' (and consequent improved client connection authentication).")
 
 EXPECT_STDOUT_CONTAINS(strip_restricted_grants(test_user_account, test_privileges).error())
 
@@ -3669,8 +3677,9 @@ session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 #@<> BUG#35550282 - exclude `mysql_audit` schema if the `ocimds` option is set
 # BUG#35805866 - exclude `mysql_firewall` schema if the `ocimds` option is set
 # BUG#37023079 - exclude `mysql_option` schema if the `ocimds` option is set
+# BUG#37278169 - exclude `mysql_autopilot` schema if the `ocimds` option is set
 # setup
-schema_names = [ "mysql_audit", "mysql_firewall", "mysql_option" ]
+schema_names = [ "mysql_audit", "mysql_autopilot", "mysql_firewall", "mysql_option" ]
 
 for schema_name in schema_names:
     session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])

@@ -3096,8 +3096,9 @@ session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
 #@<> BUG#35830920 mysql_audit and mysql_firewall schemas should be automatically excluded when loading a dump into MHS - setup {not __dbug_off}
 # BUG#37023079 - exclude mysql_option schema
+# BUG#37278169 - exclude mysql_autopilot schema
 # create schemas
-schema_names = [ "mysql_audit", "mysql_firewall", "mysql_option" ]
+schema_names = [ "mysql_audit", "mysql_autopilot", "mysql_firewall", "mysql_option" ]
 
 def create_mhs_schemas(s):
     for schema_name in schema_names:
