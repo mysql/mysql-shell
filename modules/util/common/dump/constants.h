@@ -50,6 +50,8 @@ constexpr inline std::array k_excluded_schemas = {
 constexpr inline std::array k_mhs_excluded_schemas = {
     // stores the audit plugin's configuration
     "mysql_audit",
+    // stores the autopilot's information
+    "mysql_autopilot",
     // stores the firewall's configuration
     "mysql_firewall",
     // stores the options information

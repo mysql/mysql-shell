@@ -278,16 +278,22 @@ class Compatibility_issue:
             return self.__remove_src(self.__error_msg, copy_op)
         else:
             raise Exception("No error message")
+    def error_no_prefix(self):
+        return self.error()[7:]
     def warning(self, copy_op=False):
         if self.__warning_msg:
             return self.__remove_src(self.__warning_msg, copy_op)
         else:
             raise Exception("No warning message")
+    def warning_no_prefix(self):
+        return self.warning()[9:]
     def fixed(self, copy_op=False):
         if self.__fixed_msg:
             return self.__remove_src(self.__fixed_msg, copy_op)
         else:
             raise Exception("No fixed message")
+    def fixed_no_prefix(self):
+        return self.fixed()[6:]
     def __remove_src(self, msg, copy_op):
         return msg if copy_op else msg.replace("SRC: ", "")
 

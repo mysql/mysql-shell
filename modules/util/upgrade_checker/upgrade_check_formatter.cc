@@ -107,16 +107,19 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     if (results.empty()) {
       print_paragraph("No issues found", 3, 0);
     } else {
+      const auto description = check.get_description();
+
       // Prints the check description
-      if (!check.get_description().empty()) {
-        print_paragraph(check.get_description(), 3, 0);
+      if (!description.empty()) {
+        log(Upgrade_issue::Level::NOTICE, description.c_str());
+        print_paragraph(description, 3, 0);
         m_console->println();
       }
 
       if (!check.groups().empty()) {
         print_grouped_issues(check, results);
       } else {
-        if (!check.get_description().empty()) {
+        if (!description.empty()) {
           if (check.is_multi_lvl_check())
             issue_formater = multi_lvl_format_issue;
         } else {
@@ -124,7 +127,9 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
         }
 
         for (const auto &issue : results) {
-          print_paragraph(issue_formater(issue));
+          const auto msg = issue_formater(issue);
+          log(issue.level, msg.c_str());
+          print_paragraph(msg);
           print_doc_links(issue.doclink);
         }
         m_console->println();
@@ -151,13 +156,22 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
   void check_error(const Upgrade_check &check, const char *description,
                    bool runtime_error = true) override {
     m_console->print("  ");
-    if (runtime_error) m_console->print_diag("Check failed: ");
+
+    if (runtime_error) {
+      static constexpr auto k_check_failed = "Check failed: ";
+      log(Upgrade_issue::Level::ERROR, k_check_failed);
+      m_console->print_diag(k_check_failed);
+    }
+
+    log(Upgrade_issue::Level::ERROR, description);
+
     m_console->println(description);
     print_doc_links(check.get_doc_link());
   }
 
   void manual_check(const Upgrade_check &check) override {
     print_title(check.get_title(), check.get_name());
+    log(Upgrade_issue::Level::NOTICE, check.get_description().c_str());
     print_paragraph(check.get_description());
     print_doc_links(check.get_doc_link());
   }
@@ -306,10 +320,11 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
       // Prints the group description first
       Token_definitions tokens;
       tokens["group"] = group;
-      auto issue_level = Upgrade_issue::level_to_string(group_levels[group]);
+      const auto issue_level = group_levels[group];
+      const auto issue_level_str = Upgrade_issue::level_to_string(issue_level);
       print_paragraph(
           shcore::str_format(
-              "%s: %s", issue_level,
+              "%s: %s", issue_level_str,
               check
                   .get_description(is_dynamic_group ? k_dynamic_group : group,
                                    tokens)
@@ -317,7 +332,9 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
           3, 0);
 
       for (const auto &item : issues->second) {
-        print_paragraph("- " + item, 3, 0);
+        const auto msg = "- " + item;
+        log(issue_level, msg.c_str());
+        print_paragraph(msg, 3, 0);
       }
       m_console->println();
 
@@ -333,6 +350,22 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
         print_doc_links(doc_links);
         m_console->println();
       }
+    }
+  }
+
+  void log(Upgrade_issue::Level level, const char *msg) {
+    switch (level) {
+      case Upgrade_issue::Level::ERROR:
+        log_error("%s", msg);
+        break;
+
+      case Upgrade_issue::Level::WARNING:
+        log_warning("%s", msg);
+        break;
+
+      case Upgrade_issue::Level::NOTICE:
+        log_info("%s", msg);
+        break;
     }
   }
 
