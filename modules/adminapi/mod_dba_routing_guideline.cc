@@ -400,7 +400,7 @@ the topology's metadata for that instance.
 @li $.server.clusterName: Name of the Cluster the instance is part of.
 @li $.server.clusterSetName: Name of the ClusterSet the instance belongs to.
 @li $.server.clusterRole: Role of the Cluster the instance is part of, if it's
-in a ClusterSet. One of PRIMARY or REPLICA.
+in a ClusterSet. One of PRIMARY, REPLICA, or UNDEFINED.
 @li $.server.isClusterInvalidated: Indicates if the Cluster the instance
 belongs to is invalidated.
 

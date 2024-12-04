@@ -1889,9 +1889,9 @@ void Base_cluster_impl::remove_routing_guideline(const std::string &name) {
   // options to check if any is using it
   {
     if (get_active_routing_guideline() == name) {
-      current_console()->print_error(
-          "Routing Guideline '" + name +
-          "' is currently being used by the topology.");
+      current_console()->print_error(shcore::str_format(
+          "Routing Guideline '%s' is currently being used by the topology.",
+          name.c_str()));
       throw shcore::Exception(
           "Routing Guideline is in use and cannot be deleted",
           SHERR_DBA_ROUTING_GUIDELINE_IN_USE);
@@ -1902,9 +1902,9 @@ void Base_cluster_impl::remove_routing_guideline(const std::string &name) {
 
         if (configuration_map_parsed.is_option_set_to_value(
                 k_router_option_routing_guideline, name)) {
-          current_console()->print_error(
-              "Routing Guideline '" + name +
-              "' is currently being used by Router '" + name_router + "'");
+          current_console()->print_error(shcore::str_format(
+              "Routing Guideline '%s' is currently being used by Router '%s'.",
+              name.c_str(), name_router.c_str()));
           throw shcore::Exception(
               "Routing Guideline is in use and cannot be deleted",
               SHERR_DBA_ROUTING_GUIDELINE_IN_USE);
@@ -1915,6 +1915,9 @@ void Base_cluster_impl::remove_routing_guideline(const std::string &name) {
 
   md->delete_routing_guideline(name);
   trx.commit();
+
+  current_console()->print_info(shcore::str_format(
+      "Routing Guideline '%s' successfully removed.", name.c_str()));
 }
 
 std::unique_ptr<mysqlshdk::db::IResult> Base_cluster_impl::routing_guidelines(
