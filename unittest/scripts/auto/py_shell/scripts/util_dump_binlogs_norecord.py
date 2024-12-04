@@ -686,6 +686,115 @@ EXPECT_SUCCESS()
 wipeout_server(session)
 wipe_dir(default_dump_dir)
 
+#@<> BUG#37338679 - check version compatibility with the previous dump - dump_instance()
+# MAJOR.MINOR
+current_version = __version[:__version.rfind('.')]
+
+create_default_test_table(session)
+DUMP_INSTANCE()
+create_default_test_table(session)
+
+md_file = os.path.join(default_since_dir, "@.json")
+md = read_json(md_file)
+
+# wrong version
+md["source"]["sysvars"]["version"] = "100.0.0"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_FAIL("ValueError", f"Version of the source instance ({current_version}) is incompatible with version of the instance used in the previous dump (100.0).", options={"since": default_since_dir})
+
+# patch difference is OK
+md["source"]["sysvars"]["version"] = current_version + ".100"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_SUCCESS(options={"since": default_since_dir})
+
+wipeout_server(session)
+wipe_dir(default_since_dir)
+wipe_dir(default_dump_dir)
+
+#@<> BUG#37338679 - check version compatibility with the previous dump - dump_binlogs()
+# MAJOR.MINOR
+current_version = __version[:__version.rfind('.')]
+
+create_default_test_table(session)
+EXPECT_SUCCESS(default_since_dir, options={"startFrom": start_from_beginning})
+create_default_test_table(session)
+
+full_path, dir_name = get_subdir(default_since_dir)
+md_file = os.path.join(full_path, "@.binlog.json")
+md = read_json(md_file)
+
+# wrong version
+md["source"]["sysvars"]["version"] = "100.0.0"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_FAIL("ValueError", f"Version of the source instance ({current_version}) is incompatible with version of the instance used in the previous dump (100.0).", options={"since": default_since_dir})
+
+# patch difference is OK
+md["source"]["sysvars"]["version"] = current_version + ".100"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_SUCCESS(options={"since": default_since_dir})
+
+wipeout_server(session)
+wipe_dir(default_since_dir)
+wipe_dir(default_dump_dir)
+
+#@<> BUG#37338679 - check version compatibility with the previous dump - incremental dump
+# MAJOR.MINOR
+current_version = __version[:__version.rfind('.')]
+
+create_default_test_table(session)
+EXPECT_SUCCESS(options={"startFrom": start_from_beginning})
+create_default_test_table(session)
+
+full_path, dir_name = get_subdir(default_dump_dir)
+md_file = os.path.join(full_path, "@.binlog.json")
+md = read_json(md_file)
+
+# wrong version
+md["source"]["sysvars"]["version"] = "100.0.0"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_FAIL("ValueError", f"Version of the source instance ({current_version}) is incompatible with version of the instance used in the previous dump (100.0).")
+
+# patch difference is OK
+md["source"]["sysvars"]["version"] = current_version + ".100"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_SUCCESS()
+
+# multiple dumps in the dir
+create_default_test_table(session)
+
+full_path = sorted(get_subdirs(default_dump_dir))[1]
+md_file = os.path.join(full_path, "@.binlog.json")
+md = read_json(md_file)
+
+# wrong version - multiple dumps
+md["source"]["sysvars"]["version"] = "100.0.0"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_FAIL("ValueError", f"Version of the source instance ({current_version}) is incompatible with version of the instance used in the previous dump (100.0).")
+
+# patch difference is OK - multiple dumps
+md["source"]["sysvars"]["version"] = current_version + ".200"
+
+with backup_file(md_file) as backup:
+    write_json(md_file, md)
+    EXPECT_SUCCESS()
+
+wipeout_server(session)
+wipe_dir(default_dump_dir)
+
 #@<> Cleanup
 session.close()
 testutil.destroy_sandbox(__mysql_sandbox_port1)

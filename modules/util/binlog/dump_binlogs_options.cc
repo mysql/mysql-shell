@@ -438,6 +438,7 @@ void Dump_binlogs_options::read_dump_instance(
 
   // WL15977-FR2.2.1.2:
   m_previous_server_uuid = dump_info.source.sysvars.server_uuid;
+  m_previous_version = std::move(dump_info.source.version);
   m_previous_topology = std::move(dump_info.source.topology);
   m_start_from_binlog = std::move(dump_info.source.binlog);
 
@@ -453,6 +454,7 @@ void Dump_binlogs_options::read_dump_binlogs(
 
   // WL15977-FR2.1.4 + WL15977-FR2.2.1.2:
   m_previous_server_uuid = dump_info.source_instance().sysvars.server_uuid;
+  m_previous_version = dump_info.source_instance().version;
   m_previous_topology = dump_info.source_instance().topology;
   m_start_from_binlog = dump_info.end_at();
 
@@ -774,6 +776,16 @@ bool Dump_binlogs_options::is_same_instance() const noexcept {
 
 // WL15977-FR2.4.2
 void Dump_binlogs_options::validate_continuity() const {
+  if (m_previous_version.number &&
+      m_previous_version.number.get_short() !=
+          m_source_instance.version.number.get_short()) {
+    throw std::invalid_argument{shcore::str_format(
+        "Version of the source instance (%s) is incompatible with version of "
+        "the instance used in the previous dump (%s).",
+        m_source_instance.version.number.get_short().c_str(),
+        m_previous_version.number.get_short().c_str())};
+  }
+
   if (is_same_instance()) {
     return;
   }
