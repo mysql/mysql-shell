@@ -60,7 +60,20 @@ Ssh_session_options::Ssh_session_options(const std::string &config,
     m_no_host = true;
     return;
   }
-  m_session->setOption(SSH_OPTIONS_HOST, host.c_str());
+  try {
+    m_session->setOption(SSH_OPTIONS_HOST, host.c_str());
+  } catch (::ssh::SshException &exc) {
+    auto error = exc.getError();
+    if (error.empty()) {
+      error = shcore::str_format(
+          "SSH: Error setting remote host in ssh session: host '%s' is not "
+          "valid",
+          host.c_str());
+    }
+
+    throw std::invalid_argument(error);
+  }
+
   try {
     // On empty we pass nullptr to trigger loading the default configuration
     // files

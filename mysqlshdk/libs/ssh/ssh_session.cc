@@ -564,11 +564,16 @@ void Ssh_session::authenticate_user(const ssh::Ssh_connection_options &config) {
   }
 
   if (ret_val != Ssh_auth_return::AUTH_SUCCESS) {
-    if (ret_val == Ssh_auth_return::AUTH_DENIED)
+    if (ret_val == Ssh_auth_return::AUTH_DENIED) {
       throw Ssh_auth_exception("Access denied");
-    else if (ret_val != Ssh_auth_return::AUTH_NONE)
+    } else if (ret_val != Ssh_auth_return::AUTH_NONE) {
       throw std::runtime_error(
           "Unable to authenticate, all known authentication methods failed.");
+    } else {
+      throw std::runtime_error(
+          "Unable to authenticate, no compatible authentication methods "
+          "found.");
+    }
   }
 }
 

@@ -362,7 +362,7 @@ session.close()
 conns = [{'uri':MYSQL_OVER_SSH_URI, 'ssh':'ssh_user@invalid_host', 'ssh-password':'ssh_pwd'},
          {'uri':MYSQL_OVER_SSH_URI, 'ssh':'invalid_user@invalid_host', 'ssh-password':'ssh_pwd'}]
 for c in conns:
-    EXPECT_THROWS(lambda: shell.connect(c), "Cannot open SSH Tunnel: Failed to resolve hostname invalid_host")
+    EXPECT_THROWS(lambda: shell.connect(c), "SSH: Error setting remote host in ssh session: host 'invalid_host' is not valid")
 
 EXPECT_THROWS(lambda: shell.connect({'uri':MYSQL_OVER_SSH_URI, 'ssh':'', 'ssh-password':'ssh_pwd'}), "Invalid URI: Expected token at position 0 but no tokens left.")
 EXPECT_THROWS(lambda: shell.connect({'uri':MYSQL_OVER_SSH_URI, 'ssh':'ssh_user@host name', 'ssh-password':'ssh_pwd'}), "Invalid URI: Illegal space found at position 13")
