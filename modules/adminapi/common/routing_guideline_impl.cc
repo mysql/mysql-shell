@@ -800,17 +800,19 @@ void Routing_guideline_impl::add_default_destinations(Cluster_type type) {
                       false, true);
       break;
     case Cluster_type::REPLICATED_CLUSTER:
-      add_destination(
-          "Primary",
-          "$.server.memberRole = PRIMARY AND $.server.clusterRole = PRIMARY",
-          false, true);
+      add_destination("Primary",
+                      "$.server.memberRole = PRIMARY AND ($.server.clusterRole "
+                      "= PRIMARY OR $.server.clusterRole = UNDEFINED)",
+                      false, true);
       add_destination(
           "PrimaryClusterSecondary",
-          "$.server.memberRole = SECONDARY AND $.server.clusterRole = PRIMARY",
+          "$.server.memberRole = SECONDARY AND ($.server.clusterRole = PRIMARY "
+          "OR $.server.clusterRole = UNDEFINED)",
           false, true);
       add_destination("PrimaryClusterReadReplica",
                       "$.server.memberRole = READ_REPLICA AND "
-                      "$.server.clusterRole = PRIMARY",
+                      "($.server.clusterRole = PRIMARY OR $.server.clusterRole "
+                      "= UNDEFINED)",
                       false, true);
       break;
     case Cluster_type::ASYNC_REPLICATION:
@@ -1723,6 +1725,20 @@ void Routing_guideline_impl::upgrade_routing_guideline_to_clusterset(
         "Please review and adjust this guideline as necessary after the "
         "upgrade.",
         guideline.name.c_str()));
+  }
+
+  // Check if there any Routers bootstrapped on the Cluster to warn the user
+  // about the need to re-bootstrap, otherwise, Router's won't recognize the
+  // topology and behave as if the Cluster is standalone.
+  if (!m_owner->get_metadata_storage()
+           ->get_clusterset_routers(cluster_set_id)
+           .empty()) {
+    console->print_info();
+    console->print_warning(
+        "Detected Routers that were bootstrapped before the ClusterSet was "
+        "created. Please re-bootstrap the Routers to ensure the ClusterSet "
+        "is recognized and the configurations are updated. Otherwise, "
+        "Routers will operate as if the Clusters were standalone.");
   }
 
   // Update the document

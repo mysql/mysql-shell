@@ -39,17 +39,17 @@ Routes
 Destination Classes
 -------------------
   - Primary:
-    + Match: "$.server.memberRole = PRIMARY AND $.server.clusterRole = PRIMARY"
+    + Match: "$.server.memberRole = PRIMARY AND ($.server.clusterRole = PRIMARY OR $.server.clusterRole = UNDEFINED)"
     + Instances:
       * ${hostname}:${__mysql_sandbox_port1}
 
   - PrimaryClusterSecondary:
-    + Match: "$.server.memberRole = SECONDARY AND $.server.clusterRole = PRIMARY"
+    + Match: "$.server.memberRole = SECONDARY AND ($.server.clusterRole = PRIMARY OR $.server.clusterRole = UNDEFINED)"
     + Instances:
       * None
 
   - PrimaryClusterReadReplica:
-    + Match: "$.server.memberRole = READ_REPLICA AND $.server.clusterRole = PRIMARY"
+    + Match: "$.server.memberRole = READ_REPLICA AND ($.server.clusterRole = PRIMARY OR $.server.clusterRole = UNDEFINED)"
     + Instances:
       * None
 
@@ -182,6 +182,53 @@ EXPECT_EQ(rg_as_json, rg.asJson());
 // rg become non-default
 var default_value = session.runSql("SELECT default_guideline FROM mysql_innodb_cluster_metadata.routing_guidelines WHERE name = 'default_cluster_rg'").fetchOne()[0];
 EXPECT_FALSE(default_value);
+
+//@<> upgrading a Cluster with guidelines to ClusterSet should print a warning if there are routers bootstrapped
+
+// Re-create the Cluster
+EXPECT_NO_THROWS(function() { clusterset.dissolve();} );
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster("devCluster");} );
+
+// Add a Router
+var cluster_id = session.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
+
+var router1 = "routerhost1::system";
+
+session.runSql(
+  "UPDATE `mysql_innodb_cluster_metadata`.`clusters` SET router_options = ? WHERE cluster_id = ?",
+  [JSON.stringify(router_options_json), cluster_id]
+);
+
+session.runSql(
+  "INSERT INTO `mysql_innodb_cluster_metadata`.`routers` VALUES (?, ?, ?, ?, ?, NULL, ?, ?, NULL, NULL)",
+  [
+    1, // ID
+    "system", // Name
+    "MySQL Router", // Description
+    "routerhost1", // Hostname
+    "9.2.0", // Version
+    JSON.stringify(router_configuration_json), // Configuration
+    cluster_id, // Cluster ID
+  ]
+);
+
+// Create a default guideline
+var rg;
+EXPECT_NO_THROWS(function() { rg = cluster.createRoutingGuideline("default_cluster_rg");} );
+
+// Activate it
+EXPECT_NO_THROWS(function() {cluster.setRoutingOption("guideline", "default_cluster_rg");} );
+
+// Create a ClusterSet
+EXPECT_NO_THROWS(function() { clusterset = cluster.createClusterSet("cs");} );
+
+// Confirm the output
+EXPECT_OUTPUT_CONTAINS(`WARNING: Detected Routers that were bootstrapped before the ClusterSet was created. Please re-bootstrap the Routers to ensure the ClusterSet is recognized and the configurations are updated. Otherwise, Routers will operate as if the Clusters were standalone.`);
+
+// Confirm that the guideline was upgraded to the clusterset default
+rg = clusterset.getRoutingGuideline();
+
+COMMON_RG_TESTS(rg, "default_cluster_rg", expected_default_clusterset_guideline_destinations, expected_default_clusterset_guideline_destinations_match, expected_default_clusterset_guideline_routes, expected_default_clusterset_guideline_routes_match, expected_default_clusterset_guideline_routes_destinations, default_clusterset_guideline, expected_default_clusterset_guideline_show_output);
 
 //@<> Cleanup
 scene.destroy();
