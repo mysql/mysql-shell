@@ -146,6 +146,43 @@ EXPECT_JSON_EQ([
   "test_d2"
 ], group_fields(destinations, 0), ".expected_destinations");
 
+//@<> upgrading a Cluster to ClusterSet should not upgrade guidelines that were but are not default anymore
+
+// Re-create the Cluster
+EXPECT_NO_THROWS(function() { clusterset.dissolve();} );
+EXPECT_NO_THROWS(function() { cluster = dba.createCluster("devCluster");} );
+
+// Create 2 default guidelines
+var rg;
+EXPECT_NO_THROWS(function() { rg = cluster.createRoutingGuideline("default_cluster_rg");} );
+
+var rg2;
+EXPECT_NO_THROWS(function() { rg2 = cluster.createRoutingGuideline("default_cluster_rg2");} );
+
+// Do changes on one of the guidelines
+EXPECT_NO_THROWS(function() { rg.addDestination("test1", "$.server.memberRole = PRIMARY");} );
+EXPECT_NO_THROWS(function(){ rg.setRouteOption("rw", "enabled", false);} );
+
+var rg_as_json = rg.asJson();
+
+// Create a ClusterSet
+EXPECT_NO_THROWS(function() { clusterset = cluster.createClusterSet("cs");} );
+
+// Confirm only rg2 is upgraded
+EXPECT_OUTPUT_CONTAINS(`* Upgrading Default Routing Guideline 'default_cluster_rg2'...`);
+
+EXPECT_OUTPUT_NOT_CONTAINS(`* Upgrading Default Routing Guideline 'default_cluster_rg'...`);
+
+EXPECT_OUTPUT_CONTAINS(`The Routing Guideline 'default_cluster_rg' may be tailored for a standalone Cluster deployment and might not be suitable for use with a ClusterSet. Please review and adjust this guideline as necessary after the upgrade.`);
+
+// rg must remain unchanged
+rg = clusterset.getRoutingGuideline("default_cluster_rg");
+EXPECT_EQ(rg_as_json, rg.asJson());
+
+// rg become non-default
+var default_value = session.runSql("SELECT default_guideline FROM mysql_innodb_cluster_metadata.routing_guidelines WHERE name = 'default_cluster_rg'").fetchOne()[0];
+EXPECT_FALSE(default_value);
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port2);

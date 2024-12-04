@@ -368,7 +368,11 @@ void Routing_guideline_impl::add_destination(const std::string &name,
   } else {
     add_named_object_to_array("destinations", dest);
 
-    if (!no_save) save_guideline();
+    if (!no_save) {
+      // Unset default_guideline flag and save the changes
+      unset_as_default();
+      save_guideline();
+    }
   }
 
   current_console()->print_info(
@@ -448,7 +452,11 @@ void Routing_guideline_impl::add_route(const std::string &name,
   } else {
     add_named_object_to_array("routes", route, false, order);
 
-    if (!no_save) save_guideline();
+    if (!no_save) {
+      // Unset default_guideline flag and save the changes
+      unset_as_default();
+      save_guideline();
+    }
   }
 
   current_console()->print_info(shcore::str_format(
@@ -490,6 +498,9 @@ void Routing_guideline_impl::remove_destination(const std::string &name) {
 
   // Remove the destination
   remove_named_object("destinations", name);
+
+  // Unset default_guideline flag and save the changes
+  unset_as_default();
   save_guideline();
 
   current_console()->print_info("Destination successfully removed.");
@@ -515,6 +526,9 @@ void Routing_guideline_impl::remove_route(const std::string &name) {
 
   // Remove the route
   remove_named_object("routes", name);
+
+  // Unset default_guideline flag and save the changes
+  unset_as_default();
   save_guideline();
 
   current_console()->print_info("Route successfully removed.");
@@ -1796,7 +1810,8 @@ void Routing_guideline_impl::set_destination_option(
   // Replace it in the guideline
   add_named_object_to_array("destinations", dest, true);
 
-  // Save the changes
+  // Unset default_guideline flag and save the changes
+  unset_as_default();
   save_guideline();
 
   current_console()->print_info(shcore::str_format(
@@ -1941,7 +1956,8 @@ void Routing_guideline_impl::set_route_option(const std::string &route_name,
     m_guideline_doc->set("routes", shcore::Value(routes_array));
   }
 
-  // Save the changes
+  // Unset default_guideline flag and save the changes
+  unset_as_default();
   save_guideline();
 
   current_console()->print_info(shcore::str_format(

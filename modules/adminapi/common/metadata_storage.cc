@@ -3165,18 +3165,18 @@ void MetadataStorage::update_routing_guideline(
     execute_sqlf(
         "UPDATE mysql_innodb_cluster_metadata.routing_guidelines"
         " SET name = ?, guideline = ?, cluster_id = NULL, clusterset_id = ?,"
-        "   last_update = NOW()"
+        "   last_update = NOW(), default_guideline = ?"
         " WHERE guideline_id = ?",
         guideline.name, guideline.guideline, guideline.clusterset_id,
-        guideline.id);
+        guideline.is_default_guideline, guideline.id);
   else
     execute_sqlf(
         "UPDATE mysql_innodb_cluster_metadata.routing_guidelines"
         " SET name = ?, guideline = ?, cluster_id = ?, clusterset_id = NULL,"
-        "   last_update = NOW()"
+        "   last_update = NOW(), default_guideline = ?"
         " WHERE guideline_id = ?",
         guideline.name, guideline.guideline, guideline.cluster_id,
-        guideline.id);
+        guideline.is_default_guideline, guideline.id);
 }
 
 std::string MetadataStorage::get_routing_guideline_id(const std::string &name) {
