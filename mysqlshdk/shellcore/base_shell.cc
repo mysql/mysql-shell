@@ -376,8 +376,7 @@ void Base_shell::update_prompt_variables() {
 
 bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
                                    const std::vector<std::string> & /*args*/,
-                                   bool initializing,
-                                   bool prompt_variables_update) {
+                                   bool quiet, bool prompt_variables_update) {
   shcore::Shell_core::Mode old_mode = _shell->interactive_mode();
   bool lang_initialized = false;
 
@@ -389,7 +388,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
       case shcore::Shell_core::Mode::None:
         break;
       case shcore::Shell_core::Mode::SQL:
-        if (_shell->switch_mode(mode) && !initializing)
+        if (_shell->switch_mode(mode) && !quiet)
           println("Switching to SQL mode... Commands end with ;");
         {
           auto sql =
@@ -403,7 +402,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
         break;
       case shcore::Shell_core::Mode::JavaScript:
 #ifdef HAVE_JS
-        if (_shell->switch_mode(mode) && !initializing)
+        if (_shell->switch_mode(mode) && !quiet)
           println("Switching to JavaScript mode...");
         {
           auto js = static_cast<shcore::Shell_polyglot *>(
@@ -426,7 +425,7 @@ bool Base_shell::switch_shell_mode(shcore::Shell_core::Mode mode,
         break;
       case shcore::Shell_core::Mode::Python:
 #ifdef HAVE_PYTHON
-        if (_shell->switch_mode(mode) && !initializing)
+        if (_shell->switch_mode(mode) && !quiet)
           println("Switching to Python mode...");
         {
           auto py = static_cast<shcore::Shell_python *>(

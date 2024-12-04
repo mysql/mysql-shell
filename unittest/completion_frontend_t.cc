@@ -30,6 +30,7 @@
 #include <vector>
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlshdk/libs/utils/debug.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
@@ -421,6 +422,14 @@ class Completer_frontend : public Shell_core_test_wrapper {
                     << "Should be (dir(obj)): \n\t"
                     << shcore::str_join(expected, "\n\t") << "\n";
     }
+  }
+
+  std::vector<std::string> complete_path(const std::string &text) {
+    size_t completion_offset = text.length();
+
+    return _interactive_shell->completer()->complete(
+        _interactive_shell->shell_context()->interactive_mode(), {}, text,
+        &completion_offset);
   }
 };
 
@@ -2528,6 +2537,65 @@ TEST_F(Completer_frontend, bug_37393439) {
 TEST_F(Completer_frontend, bug_37528585) {
   execute("\\js");
   EXPECT_NO_THROW(complete("shell.unexisting."));
+}
+
+#ifdef WIN32
+#define PATHSEP "\\"
+#else
+#define PATHSEP "/"
+#endif
+
+TEST_F(Completer_frontend, cmd_source) {
+  std::string basedir = "Qtestdir";
+
+  for (const auto &tmpdir : {std::string{}, shcore::path::tmpdir()}) {
+    auto joindir0 = [&tmpdir](const std::string &path) {
+      if (tmpdir.empty()) return path;
+      return shcore::path::join_path(tmpdir, path);
+    };
+    const auto joindir = [&tmpdir, &basedir](auto &&...paths) {
+      if (tmpdir.empty()) {
+        if constexpr (sizeof...(paths) == 0) {
+          return basedir;
+        } else {
+          return shcore::path::join_path(
+              basedir, std::forward<decltype(paths)>(paths)...);
+        }
+      }
+      return shcore::path::join_path(tmpdir, basedir,
+                                     std::forward<decltype(paths)>(paths)...);
+    };
+
+    shcore::create_directory(joindir());
+    shcore::create_directory(joindir("sub-dir1"));
+    shcore::create_directory(joindir("subdir2"));
+    shcore::create_directory(joindir("sub-dir1", "subsubdir"));
+    shcore::create_file(joindir("sub-dir1", "myfile.txt"), "nothing important");
+
+    auto res = complete_path("\\source " + joindir0("Qt"));
+    EXPECT_EQ(res, strv({joindir("")}));
+
+    res = complete_path("\\source " + joindir(""));
+    EXPECT_EQ(res, strv({joindir("sub-dir1", ""), joindir("subdir2", "")}));
+
+    res = complete_path("\\source " + joindir("sub-dir1"));
+    EXPECT_EQ(res, strv({joindir("sub-dir1", "")}));
+
+    res = complete_path("\\source " + joindir("sub-dir1", ""));
+    EXPECT_EQ(res, strv({joindir("sub-dir1", "myfile.txt"),
+                         joindir("sub-dir1", "subsubdir", "")}));
+
+    res = complete_path("\\source " + joindir("sub-dir1", "m"));
+    EXPECT_EQ(res, strv({joindir("sub-dir1", "myfile.txt")}));
+
+    res = complete_path("\\source --sql " + joindir("sub-dir1", "m"));
+    EXPECT_EQ(res, strv({joindir("sub-dir1", "myfile.txt")}));
+
+    res = complete_path("\\source " + joindir("invalid"));
+    EXPECT_EQ(res, strv({}));
+
+    shcore::remove_directory(joindir(), true);
+  }
 }
 
 }  // namespace mysqlsh

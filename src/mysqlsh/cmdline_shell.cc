@@ -89,6 +89,38 @@ namespace {
 
 Command_line_shell *g_instance = nullptr;
 
+int auto_complete_start_cb(const char32_t *text, int pos) {
+  auto begins_with = [](const char32_t *txt, const char *ascii_prefix) {
+    while (*txt && *ascii_prefix) {
+      if (*txt != static_cast<char32_t>(*ascii_prefix)) return false;
+      ++txt;
+      ++ascii_prefix;
+    }
+    return *ascii_prefix == '\0';
+  };
+
+  // Perform context-sensitive tokenization for the auto-completer
+  if (begins_with(text, "\\source") || begins_with(text, "\\.")) {
+    const char32_t *p = text;
+    while (*p != ' ' && *p != '\0') ++p;  // skip \cmd
+    while (*p == ' ' && *p != '\0') ++p;  // skip spcs
+    if (begins_with(p, "--")) {
+      while (*p != ' ' && *p != '\0') ++p;  // skip --opt
+      while (*p == ' ' && *p != '\0') ++p;  // skip spcs
+    }
+    if (*p == '\0') return -1;
+    int start = p - text;
+    if (pos < start) return -1;
+
+    // a file path can contain mostly anything, so we just assume that anything
+    // after the \cmd and --option (if there is one) is the path
+    return start;
+  }
+
+  // fallback to default handling
+  return -1;
+}
+
 void auto_complete_cb(const char *text, int *start_index,
                       linenoiseCompletions *completions) {
   size_t completion_offset = *start_index;
@@ -448,6 +480,7 @@ Command_line_shell::Command_line_shell(
 
   observe_notification(SN_SHELL_OPTION_CHANGED);
 
+  linenoiseSetCompletionTokenStartCallback(auto_complete_start_cb);
   linenoiseSetCompletionCallback(auto_complete_cb);
 
   SET_SHELL_COMMAND("\\history", "CMD_HISTORY",

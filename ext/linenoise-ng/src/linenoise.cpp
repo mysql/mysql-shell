@@ -2155,6 +2155,9 @@ static int cleanupCtrl(int c) {
 // break characters that may precede items to be completed
 static const char breakChars[] = " =+-/\\*?\"'`&<>;|@{([])}";
 
+static linenoiseCompletionTokenStartCallback *completionTokenStartCallback =
+    nullptr;
+
 // maximum number of completions to display without asking
 static const size_t completionCountCutoff = 100;
 
@@ -2176,13 +2179,20 @@ int InputBuffer::completeLine(PromptBase &pi) {
   // character and
   // extract a copy to parse.  we also handle the case where tab is hit while
   // not at end-of-line.
-  int startIndex = pos;
-  while (--startIndex >= 0) {
-    if (strchr(breakChars, buf32[startIndex])) {
-      break;
-    }
+  int startIndex = -1;
+  if (completionTokenStartCallback) {
+    startIndex = completionTokenStartCallback(buf32, pos);
   }
-  ++startIndex;
+  if (startIndex < 0) {
+    startIndex = pos;
+    while (--startIndex >= 0) {
+      if (strchr(breakChars, buf32[startIndex])) {
+        break;
+      }
+    }
+    ++startIndex;
+  }
+
   int itemLength = pos - startIndex;
   Utf8String bufferContents(Utf32String(buf32, pos));
 
@@ -3821,4 +3831,9 @@ bool linonoiseTestExtendedCharacter(const int firstValue,
       return true;
   }
   return false;
+}
+
+void linenoiseSetCompletionTokenStartCallback(
+    linenoiseCompletionTokenStartCallback *cb) {
+  completionTokenStartCallback = cb;
 }

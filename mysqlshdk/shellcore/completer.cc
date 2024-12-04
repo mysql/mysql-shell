@@ -31,6 +31,9 @@
 #include <set>
 
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_file.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
@@ -52,6 +55,48 @@ Completion_list Completer::complete(IShell_core::Mode mode,
       }
     }
   }
+  return list;
+}
+
+namespace {
+
+bool has_prefix(std::string_view path, std::string_view prefix) {
+#if defined(_WIN32) || defined(__APPLE__)
+  return shcore::str_ibeginswith(path, prefix);
+#else
+  return shcore::str_beginswith(path, prefix);
+#endif
+}
+}  // namespace
+
+Completion_list Completer::complete_path(const std::string &path) {
+  Completion_list list;
+  std::string dirname = shcore::path::dirname(path);
+  std::string prefix = shcore::path::basename(path);
+
+  // basename returns dir2 for /dir1/dir2/, but we want "" in this case
+  if (!shcore::str_endswith(path, prefix)) {
+    dirname = path;
+    prefix = "";
+  }
+
+  try {
+    shcore::iterdir(dirname.empty() ? "." : dirname, [&list, &prefix, &dirname](
+                                                         const std::string &f) {
+      if (f != "." && f != "..") {
+        if (prefix.empty() || has_prefix(f, prefix)) {
+          auto p = shcore::path::join_path("." == dirname ? "" : dirname, f);
+          if (shcore::is_folder(p)) p = shcore::path::join_path(p, "");
+          list.push_back(p);
+        }
+      }
+      return true;
+    });
+  } catch (...) {
+  }
+
+  std::sort(std::begin(list), std::end(list));
+
   return list;
 }
 

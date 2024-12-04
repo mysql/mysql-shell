@@ -250,6 +250,14 @@ class Shell_command_provider : public shcore::completer::Provider {
   shcore::completer::Completion_list complete_command(const std::string &line,
                                                       size_t cmdend,
                                                       size_t *compl_offset) {
+    auto skip_option = [](std::string_view l, size_t pos) {
+      if (shcore::str_beginswith(l.substr(pos), "-")) {
+        pos = mysqlshdk::utils::span_not_spaces(l, pos);
+        return mysqlshdk::utils::span_spaces(l, pos);
+      }
+      return pos;
+    };
+
     auto cmd = line.substr(0, cmdend);
     auto arg_pos = mysqlshdk::utils::span_spaces(line, cmdend);
 
@@ -273,6 +281,12 @@ class Shell_command_provider : public shcore::completer::Provider {
                                              arg, compl_offset);
       *compl_offset += arg_pos;
       return l;
+    } else if (cmd == "\\source" || cmd == "\\.") {
+      // skip --option if any
+      arg_pos = skip_option(line, arg_pos);
+      if (arg_pos == line.size() || *compl_offset < arg_pos) return {};
+
+      return shell_->completer()->complete_path(line.substr(arg_pos));
     }
 
     return {};
@@ -345,24 +359,24 @@ REGISTER_HELP(CMD_OPTION_EXAMPLE, "\\option --persist defaultMode sql");
 REGISTER_HELP(CMD_OPTION_EXAMPLE1, "\\option --unset --persist defaultMode");
 
 REGISTER_HELP(CMD_SOURCE_BRIEF, "Loads and executes a script from a file.");
-REGISTER_HELP(CMD_SOURCE_SYNTAX, "<b>\\source</b> <path>");
-REGISTER_HELP(CMD_SOURCE_SYNTAX1, "<b>\\.</b> <path>");
+REGISTER_HELP(CMD_SOURCE_SYNTAX, "<b>\\source</b> [--sql|--py|--js] <path>");
+REGISTER_HELP(CMD_SOURCE_SYNTAX1, "<b>\\.</b> [--sql|--py|--js] <path>");
 REGISTER_HELP(
     CMD_SOURCE_DETAIL,
     "Executes a script from a file, the following languages are supported:");
 REGISTER_HELP(CMD_SOURCE_DETAIL1, "@li JavaScript");
 REGISTER_HELP(CMD_SOURCE_DETAIL2, "@li Python");
 REGISTER_HELP(CMD_SOURCE_DETAIL3, "@li SQL");
-REGISTER_HELP(
-    CMD_SOURCE_DETAIL4,
-    "The file will be loaded and executed using the active language.");
+REGISTER_HELP(CMD_SOURCE_DETAIL4,
+              "The file will be loaded and executed using the active language, "
+              "unless overriden with one of the --sql, --py or --js options.");
 #ifdef _WIN32
 REGISTER_HELP(CMD_SOURCE_EXAMPLE,
               "<b>\\source</b> C:\\Users\\MySQL\\sakila.sql");
 REGISTER_HELP(CMD_SOURCE_EXAMPLE1, "<b>\\.</b> C:\\Users\\MySQL\\sakila.sql");
 #else
 REGISTER_HELP(CMD_SOURCE_EXAMPLE, "<b>\\source</b> /home/me/sakila.sql");
-REGISTER_HELP(CMD_SOURCE_EXAMPLE1, "<b>\\.</b> /home/me/sakila.sql");
+REGISTER_HELP(CMD_SOURCE_EXAMPLE1, "<b>\\.</b> --sql /home/me/sakila.sql");
 #endif
 
 REGISTER_HELP(CMD_USE_BRIEF, "Sets the active schema.");
@@ -1868,9 +1882,27 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
   if (params.size() < 2)
     throw shcore::Exception::runtime_error("Filename not specified");
 
+  int idx = 1;
+  auto old_mode = _shell->interactive_mode();
+  auto mode = old_mode;
+
+  auto arg = shcore::str_strip(params[1]);
+  if (arg == "--js" || arg == "--py" || arg == "--sql") {
+    idx++;
+    if (params.size() < 3)
+      throw shcore::Exception::runtime_error("Filename not specified");
+
+    if (arg == "--js")
+      mode = shcore::IShell_core::Mode::JavaScript;
+    else if (arg == "--py")
+      mode = shcore::IShell_core::Mode::Python;
+    else
+      mode = shcore::IShell_core::Mode::SQL;
+  }
+
   // The parameter 0 contains the somplete command as submitted by the user
   // File name would be on parameter 1
-  file = shcore::str_strip(params[1]);
+  file = shcore::str_strip(params[idx]);
 
   // Adds support for quoted files in case there are spaces in the path
   if ((file[0] == '\'' && file[file.size() - 1] == '\'') ||
@@ -1878,7 +1910,9 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
     file = file.substr(1, file.size() - 2);
 
   if (file.empty()) {
-    print_diag("Usage: \\. <filename> | \\source <filename>\n");
+    print_diag(
+        "Usage: \\. [--sql|--js|--py] <filename> [<script-args>]"
+        " | \\source [--sql|--js|--py] <filename> [<script-args>]\n");
     return true;
   }
 
@@ -1886,8 +1920,13 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
 
   // Deletes the original command
   args.erase(args.begin());
+  if (idx > 1) args.erase(args.begin());
   args[0] = file;
 
+  shcore::Scoped_callback cb([this, old_mode, mode]() {
+    if (old_mode != mode) switch_shell_mode(old_mode, {}, true, false);
+  });
+  if (old_mode != mode) switch_shell_mode(mode, {}, true, false);
   Base_shell::process_file(file, args);
 
   return true;
