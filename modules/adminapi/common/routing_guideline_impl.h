@@ -74,6 +74,7 @@ class Routing_guideline_impl {
   const std::string &get_id() const { return m_id; }
   void set_id(const std::string &id) { m_id = id; }
   void set_as_default() { m_is_default_guideline = true; }
+  void unset_as_default() { m_is_default_guideline = false; }
   const bool &is_default() const { return m_is_default_guideline; }
 
   shcore::Dictionary_t as_json() const;
