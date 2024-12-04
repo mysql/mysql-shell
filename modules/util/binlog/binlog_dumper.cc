@@ -343,6 +343,10 @@ void Binlog_dumper::do_run() {
     return;
   }
 
+  console->print_info(
+      shcore::str_format("Will finish at binary log file: %s",
+                         m_options.end_at().file.to_string().c_str()));
+
   {
     m_progress_thread.start();
     shcore::on_leave_scope finish_progress{

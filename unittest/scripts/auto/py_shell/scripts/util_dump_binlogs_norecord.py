@@ -91,8 +91,12 @@ EXPECT_FAIL("ValueError", f"The '{default_dump_dir_absolute}' points to an exist
 wipe_dir(default_dump_dir)
 
 #@<> WL15977-FR2.1.4 - consecutive dumps in the same directory
+prev_binlog = binary_log_status(session)
+
 # server is empty, this will have an empty GTID set
 EXPECT_SUCCESS(options={"startFrom": start_from_beginning})
+EXPECT_STDOUT_CONTAINS(f"Starting from binary log file: {start_from_beginning}")
+EXPECT_STDOUT_CONTAINS(f"Will finish at binary log file: {prev_binlog.binlog.file}:{prev_binlog.binlog.position}")
 EXPECT_STDOUT_CONTAINS("GTID set dumped: \n")
 
 create_default_test_table(session)
@@ -100,6 +104,8 @@ binlog = binary_log_status(session)
 
 # whole server is dumped, the dumped GTID set is the same as gtid_executed
 EXPECT_SUCCESS()
+EXPECT_STDOUT_CONTAINS(f"Starting from binary log file: {prev_binlog.binlog.file}:{prev_binlog.binlog.position}")
+EXPECT_STDOUT_CONTAINS(f"Will finish at binary log file: {binlog.binlog.file}:{binlog.binlog.position}")
 EXPECT_STDOUT_CONTAINS(f"GTID set dumped: {binlog.executed_gtid_set}")
 
 create_default_test_table(session)
