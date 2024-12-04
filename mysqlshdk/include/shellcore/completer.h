@@ -52,6 +52,8 @@ class Completer {
   Completion_list complete(IShell_core::Mode mode, const std::string &buffer,
                            const std::string &line, size_t *compl_offset);
 
+  Completion_list complete_path(const std::string &path);
+
   void add_provider(IShell_core::Mode_mask mode_mask,
                     std::shared_ptr<Provider> provider,
                     bool before_all = false);

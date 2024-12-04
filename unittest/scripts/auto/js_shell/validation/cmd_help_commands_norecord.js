@@ -328,8 +328,8 @@ NAME
       \source - Loads and executes a script from a file.
 
 SYNTAX
-      \source <path>
-      \. <path>
+      \source [--sql|--py|--js] <path>
+      \. [--sql|--py|--js] <path>
 
 DESCRIPTION
       Executes a script from a file, the following languages are supported:
@@ -338,7 +338,8 @@ DESCRIPTION
       - Python
       - SQL
 
-      The file will be loaded and executed using the active language.
+      The file will be loaded and executed using the active language, unless
+      overriden with one of the --sql, --py or --js options.
 
 //@<OUT> SQL Command
 NAME

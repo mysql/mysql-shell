@@ -90,6 +90,12 @@ void linenoiseRemoveCustomCommand(const char *sequence);
 bool linonoiseTestExtendedCharacter(const int firstValue,
                                     const int secondValue = 0);
 
+
+typedef int(linenoiseCompletionTokenStartCallback)(const char32_t *input,
+                                                   int cursor);
+
+void linenoiseSetCompletionTokenStartCallback(
+    linenoiseCompletionTokenStartCallback *cb);
 #ifdef __cplusplus
 }
 #endif
