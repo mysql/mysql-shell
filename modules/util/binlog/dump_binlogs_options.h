@@ -175,6 +175,7 @@ class Dump_binlogs_options final : public common::Common_options {
   std::string m_gtid_set;
 
   std::string m_previous_server_uuid;
+  dump::common::Server_version m_previous_version;
   dump::common::Replication_topology m_previous_topology;
   std::string m_previous_dump;
   std::string m_previous_dump_timestamp;
