@@ -308,3 +308,10 @@ file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 usr/lib/mysqlsh/libantlr4-runtime*.so*
 ")
 endif()
+
+if(BUNDLED_POLYGLOT_DIR)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"
+usr/lib/mysqlsh/libpolyglot.so
+")
+endif()

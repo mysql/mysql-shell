@@ -150,7 +150,7 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 %global _pluginlibs %{nil}
 %endif
 
-%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs})$
+%global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs}|libpolyglot.*)$
 
 %if 0%{?rhel} && 0%{?rhel} < 7
 %filter_setup
@@ -228,6 +228,9 @@ cmake .. \
 %endif
 %if 0%{?bundled_antlr:1}
     -DBUNDLED_ANTLR_DIR="%{bundled_antlr}" \
+%endif
+%if 0%{?bundled_polyglot:1}
+    -DBUNDLED_POLYGLOT_DIR="%{bundled_polyglot}" \
 %endif
     -DHAVE_PYTHON=1 \
     -DLIBEXECDIR=`basename %{_libexecdir}`
