@@ -3599,7 +3599,7 @@ ERROR: One or more accounts with database level grants containing wildcard chara
 
       * Use the "excludeUsers" dump option to exclude problematic accounts.
 
-      * Add "unescape_wildcard_grants" to the "compatibility" option to automatically replace escaped \_ and \% wildcards in schema names with _ and % wildcard characters.
+      * Add "unescape_wildcard_grants" to the "compatibility" option to automatically replace escaped \\_ and \\% wildcards in schema names with _ and % wildcard characters.
 
       * Add "ignore_wildcard_grants" to the "compatibility" option to ignore these issues.
 

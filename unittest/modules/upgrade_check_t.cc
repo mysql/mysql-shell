@@ -3597,6 +3597,14 @@ TEST_F(MySQL_upgrade_check_test, deprecated_default_auth_check) {
         "8.0.27.");
   }
 
+  auto auth_policy = session->query("select @@authentication_policy")
+                         ->fetch_one()
+                         ->get_string(0);
+
+  shcore::Scoped_callback finally([&]() {
+    dep_def_auth_check::set_authentication_policy(session, auth_policy);
+  });
+
   {
     dep_def_auth_check::set_authentication_policy(session,
                                                   "caching_sha2_password,*,");
