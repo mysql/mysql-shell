@@ -180,8 +180,14 @@ Excluded:
   Checks for partitions by key using columns with prefix key indexes
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
+- spatialIndex
+  Checks for Spatial Indexes
+  Condition: When the source server is between (inclusive) 8.0.3-8.0.40,
+  8.1.0-8.4.3, 9.0.0-9.1.0 and the target server version is above the listed
+  versions.
+
 Included: 1
-Excluded: 39
+Excluded: 40
 
 
 #@<OUT> WL15974-TSFR_3_3_2
@@ -364,10 +370,16 @@ Included:
   Checks for partitions by key using columns with prefix key indexes
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
+- spatialIndex
+  Checks for Spatial Indexes
+  Condition: When the source server is between (inclusive) 8.0.3-8.0.40,
+  8.1.0-8.4.3, 9.0.0-9.1.0 and the target server version is above the listed
+  versions.
+
 Excluded:
   Empty.
 
-Included: 40
+Included: 41
 
 
 #@<OUT> warning about excluded checks

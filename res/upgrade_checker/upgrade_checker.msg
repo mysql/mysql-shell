@@ -669,3 +669,12 @@ Remove foreign keys referring to non unique key/partial columns of key.
 * foreignKeyReferences.solution2
 In case of multi level references which involves more than two tables change
 foreign key reference.
+
+* spatialIndex.title
+Checks for Spatial Indexes
+
+* spatialIndex.description
+MySQL {target_version} includes a fix for an issue with InnoDB spatial indexes.\n
+In order to avoid corruption, these indexes must be dropped before the upgrade
+and re-created afterwards. The following InnoDB tables currently have spatial indexes that must be dropped before the upgrade proceeds:
+

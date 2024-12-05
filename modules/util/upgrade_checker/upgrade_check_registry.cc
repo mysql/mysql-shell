@@ -301,6 +301,45 @@ bool UNUSED_VARIABLE(register_gget_partitions_with_prefix_keys_check) =
         &get_partitions_with_prefix_keys_check, Target::OBJECT_DEFINITIONS,
         "8.4.0");
 
+bool UNUSED_VARIABLE(register_get_spatial_index_check) =
+    Upgrade_check_registry::register_check(
+        std::bind(&get_spatial_index_check), Target::OBJECT_DEFINITIONS,
+        [](const Upgrade_info &info) {
+          static const std::vector<std::pair<Version, bool>> k_available_list =
+              {
+                  {Version(9, 2, 0), true},  {Version(9, 0, 0), false},
+                  {Version(8, 4, 4), true},  {Version(8, 1, 0), false},
+                  {Version(8, 0, 41), true},
+          };
+          auto check_target = [&]() {
+            for (auto &item : k_available_list) {
+              if (info.target_version >= item.first) {
+                return item.second;
+              }
+            }
+            return false;
+          };
+
+          if (Version(8, 0, 3) > info.server_version) {
+            return false;
+          }
+          if (info.server_version < Version(8, 0, 41)) {
+            return check_target();
+          }
+          if (Version(8, 1, 0) <= info.server_version &&
+              info.server_version < Version(8, 4, 4)) {
+            return check_target();
+          }
+          if (Version(9, 0, 0) <= info.server_version &&
+              info.server_version < Version(9, 2, 0)) {
+            return check_target();
+          }
+          return false;
+        },
+        "When the source server is between (inclusive) 8.0.3-8.0.40, "
+        "8.1.0-8.4.3, 9.0.0-9.1.0 and the target server version is above the "
+        "listed versions.");
+
 }  // namespace
 
 Upgrade_check_registry::Upgrade_check_vec
