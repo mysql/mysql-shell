@@ -109,6 +109,7 @@ inline constexpr std::string_view k_partitions_with_prefix_keys =
     "partitionsWithPrefixKeys";
 inline constexpr std::string_view k_foreign_key_references =
     "foreignKeyReferences";
+inline constexpr std::string_view k_spatial_index = "spatialIndex";
 
 // NOTE: Every added id should be included here
 extern const std::set<std::string_view> all;

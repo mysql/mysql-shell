@@ -1653,5 +1653,30 @@ from (select
 }
 // clang-format on
 
+std::unique_ptr<Upgrade_check> get_spatial_index_check() {
+  // We are interested in three types of indexes (innodb_indexes.type):
+  // type 1 -> auto generated clustered index
+  // type 3 -> manually created clustered index
+  // type 64 -> spatial index
+  auto check = std::make_unique<Sql_upgrade_check>(
+      ids::k_spatial_index,
+      std::vector<Check_query>{
+          {"select "
+           "substring_index(tab.name,'/', 1) TABLE_SCHEMA, "
+           "substring_index(tab.name,'/', -1) TABLE_NAME, "
+           "idx1.name INDEX_NAME "
+           "from information_schema.innodb_tables tab "
+           "inner join information_schema.innodb_indexes idx1 "
+           "inner join information_schema.innodb_indexes idx2 "
+           "on tab.table_id = idx1.table_id and idx1.table_id = idx2.table_id "
+           "where idx1.type = 64 and (idx2.type = 1 or idx2.type = 3) "
+           "group by TABLE_SCHEMA, TABLE_NAME, INDEX_NAME "
+           "having <<schema_and_table_filter>>;",
+           Upgrade_issue::Object_type::TABLE}},
+      Upgrade_issue::WARNING);
+  check->set_groups({k_dynamic_group});
+  return check;
+}
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh

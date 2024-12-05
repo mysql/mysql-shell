@@ -95,6 +95,8 @@ std::unique_ptr<Sql_upgrade_check> get_partitions_with_prefix_keys_check(
 
 std::unique_ptr<Upgrade_check> get_foreign_key_references_check();
 
+std::unique_ptr<Upgrade_check> get_spatial_index_check();
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 

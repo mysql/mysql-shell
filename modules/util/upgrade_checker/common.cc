@@ -83,7 +83,9 @@ const std::set<std::string_view> all = {
     k_invalid_privileges_check,
     k_column_definition,
     k_partitions_with_prefix_keys,
-    k_foreign_key_references};
+    k_foreign_key_references,
+    k_spatial_index,
+};
 
 }  // namespace ids
 

@@ -107,6 +107,7 @@ TEST(Upgrade_check_registry, messages) {
       {"fkToNonUniqueKey", "fkToPartialKey", "solution", "solution1",
        "solution2"}};
   additional_checks[ids::k_syntax_check] = {true, {"warning"}};
+  additional_checks[ids::k_spatial_index] = {false, {}};
 
   using Tag_token_list = std::unordered_map<std::string, Token_definitions>;
   std::unordered_map<std::string_view, Tag_token_list> additional_tokens;
@@ -505,6 +506,112 @@ TEST(Upgrade_check_registry, create_checklist) {
   // Check unavaliability impossible due to present deprecated sysvars that ware
   // never removed
   test_check_availability(ids::k_sys_vars_check, true, {{v5_7_0, vShell}});
+
+  // spatialIndex check:
+  // Should be available only from source server version 8.0.3 and
+  // before 8.0.41/8.4.4/9.2.0 Also should be available only after/equal target
+  // version 8.0.41/8.4.4/9.2.0
+  {
+    std::vector<std::pair<Version, Version>> version_checks_true;
+    std::vector<std::pair<Version, Version>> version_checks_false;
+
+    const auto patch_8_0_bug = Version(
+        8, 0, 3);  // from what patch the spatial corruption could happen
+    const auto patch_8_0_fix =
+        Version(8, 0, 41);  // what patch fix was implemented for 8 series
+    const auto patch_8_4_fix =
+        Version(8, 4, 4);  // what patch fix was implemented for 8.4 series
+    const auto patch_9_fix =
+        Version(9, 2, 0);  // what minor fix was implemented for 9 series
+
+    auto target_check = [&](const Version &version) {
+      if (version >= patch_9_fix) return true;
+      if (version >= Version(9, 0, 0)) return false;
+      if (version >= patch_8_4_fix) return true;
+      if (version >= Version(8, 1, 0)) return false;
+      if (version >= patch_8_0_fix) return true;
+      return false;
+    };
+
+    auto should_be_available = [&](const Version &source_version,
+                                   const Version &target_version) {
+      if (patch_8_0_bug > source_version) {
+        return false;
+      }
+      if (source_version < patch_8_0_fix) {
+        return target_check(target_version);
+      }
+      if (Version(8, 1, 0) <= source_version &&
+          source_version < patch_8_4_fix) {
+        return target_check(target_version);
+      }
+      if (Version(9, 0, 0) <= source_version && source_version < patch_9_fix) {
+        return target_check(target_version);
+      }
+
+      return false;
+    };
+
+    auto add_checks = [&](const Version &source_version,
+                          const Version &target_version) {
+      if (source_version > target_version) {
+        return;
+      }
+      if (should_be_available(source_version, target_version)) {
+        version_checks_true.emplace_back(source_version, target_version);
+      } else {
+        version_checks_false.emplace_back(source_version, target_version);
+      }
+    };
+
+    auto add_target_checks = [&](const Version &source_version) {
+      for (auto target_patch = 0;
+           target_patch <= k_latest_versions["8.0"].get_patch();
+           target_patch++) {
+        add_checks(source_version, Version(8, 0, target_patch));
+      }
+      for (auto target_patch = 0;
+           target_patch < k_latest_versions["8.4"].get_patch();
+           target_patch++) {
+        add_checks(source_version, Version(8, 4, target_patch));
+      }
+      for (auto target_minor = 0;
+           target_minor < k_latest_versions["9"].get_minor(); target_minor++) {
+        add_checks(source_version, Version(9, target_minor));
+      }
+    };
+
+    for (auto patch = 0; patch <= k_latest_versions["8.0"].get_patch();
+         patch++) {
+      add_target_checks(Version(8, 0, patch));
+    }
+    for (auto patch = 0; patch <= k_latest_versions["8.4"].get_patch();
+         patch++) {
+      add_target_checks(Version(8, 4, patch));
+    }
+    for (auto minor = 0; minor <= k_latest_versions["9"].get_minor(); minor++) {
+      add_target_checks(Version(9, minor));
+    }
+
+    test_check_availability(ids::k_spatial_index, true, version_checks_true);
+    test_check_availability(ids::k_spatial_index, false, version_checks_false);
+  }
+
+  // sanity checks
+  test_check_availability(ids::k_spatial_index, true,
+                          {
+                              {Version(8, 0, 11), Version(8, 0, 41)},
+                              {Version(8, 0, 23), Version(9, 3, 0)},
+                              {Version(8, 4, 1), Version(8, 4, 4)},
+                              {Version(9, 1, 0), Version(9, 3, 0)},
+                          });
+  test_check_availability(ids::k_spatial_index, false,
+                          {
+                              {Version(8, 0, 0), Version(8, 0, 41)},
+                              {Version(8, 0, 3), Version(8, 0, 39)},
+                              {Version(8, 0, 24), Version(8, 4, 2)},
+                              {Version(9, 0, 0), Version(9, 1, 0)},
+                          });
 
   // authentication_fido:
   // Introduced: 8.0.27
