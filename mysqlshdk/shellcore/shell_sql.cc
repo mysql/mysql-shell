@@ -186,7 +186,17 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
         throw;
       }
 
-      _result_processor(result, info);
+      {
+        // kill the query if interrupt is signalled when results are being
+        // printed, otherwise if result set dumper is waiting for the next
+        // result set, it will not abort on its own
+        shcore::Interrupt_handler interrupt(
+            []() { return true; },
+            [weak_session = std::weak_ptr{session->get_core_session()}]() {
+              kill_query(weak_session);
+            });
+        _result_processor(result, info);
+      }
 
       ret_val = true;
     } catch (const mysqlshdk::db::Error &exc) {
