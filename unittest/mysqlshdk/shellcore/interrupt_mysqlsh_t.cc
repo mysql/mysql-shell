@@ -31,6 +31,8 @@
 #include <cstdio>
 #endif
 
+#include <atomic>
+
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/libs/utils/profiling.h"
@@ -83,33 +85,45 @@ Process_type current_process_type() {
 class Interrupt_mysqlsh : public tests::Command_line_test {
  protected:
   static void SetUpTestCase() {
-    run_script_classic(
-        {"drop schema if exists itst;", "create schema if not exists itst;",
-         "create table itst.data "
-         "   (a int primary key auto_increment, b varchar(10))",
-         "create table itst.cdata "
-         "   (_id varchar(32) "
-         "       generated always as (doc->>'$._id') stored primary key,"
-         "    doc json"
-         "   );",
-         "create procedure itst.populate()\n"
-         "begin\n"
-         "   declare nrows int;\n"
-         "   set nrows = 50;\n"
-         "   insert into itst.data values (default, 'first');"
-         "   insert into itst.cdata (doc) values ('{\"_id\":\"0\", "
-         "                   \"b\":\"first\"}');"
-         "   while nrows > 0 do "
-         "       insert into itst.data values (default, '');"
-         "       insert into itst.cdata (doc) values (json_object("
-         "             \"_id\", concat(nrows, ''), \"b\", 'test'));"
-         "       set nrows = nrows - 1;"
-         "   end while;\n"
-         "   insert into itst.data values (default, 'last');\n"
-         "   insert into itst.cdata (doc) values ('{\"_id\":\"l1\", "
-         "                   \"b\":\"last\"}');"
-         "end",
-         "call itst.populate()"});
+    run_script_classic({
+        "drop schema if exists itst;",
+        "create schema if not exists itst;",
+        "create table itst.data "
+        "   (a int primary key auto_increment, b varchar(10))",
+        "create table itst.cdata "
+        "   (_id varchar(32) "
+        "       generated always as (doc->>'$._id') stored primary key,"
+        "    doc json"
+        "   );",
+        "create procedure itst.populate()\n"
+        "begin\n"
+        "   declare nrows int;\n"
+        "   set nrows = 50;\n"
+        "   insert into itst.data values (default, 'first');"
+        "   insert into itst.cdata (doc) values ('{\"_id\":\"0\", "
+        "                   \"b\":\"first\"}');"
+        "   while nrows > 0 do "
+        "       insert into itst.data values (default, '');"
+        "       insert into itst.cdata (doc) values (json_object("
+        "             \"_id\", concat(nrows, ''), \"b\", 'test'));"
+        "       set nrows = nrows - 1;"
+        "   end while;\n"
+        "   insert into itst.data values (default, 'last');\n"
+        "   insert into itst.cdata (doc) values ('{\"_id\":\"l1\", "
+        "                   \"b\":\"last\"}');"
+        "end",
+        "call itst.populate()",
+        "create table itst.t (a int PRIMARY KEY)",
+        "create procedure itst.insert()\n"
+        "begin\n"
+        "  DECLARE EXIT HANDLER FOR 1317\n"  // ER_QUERY_INTERRUPTED
+        "  begin\n"
+        "    select 'interrupted' as status;\n"
+        "  end;\n"
+        "  select 'inserting' as status;\n"
+        "  insert into itst.t values (0);\n"
+        "end\n",
+    });
 
     {
       std::ofstream f("test_while.py");
@@ -226,6 +240,13 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
       f.close();
     }
     {
+      std::ofstream f("test_procedure.sql");
+      f << "select 'ready' as status;\n"
+        << "call itst.insert();\n"
+        << "select if(count(*)=0,'success','failure') as status from itst.t;\n";
+      f.close();
+    }
+    {
       std::ofstream f("test_show.py");
       f << "print('ready')\n"
         << "\\show query SELECT SLEEP(10)\n";
@@ -255,6 +276,7 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
     shcore::delete_file("test_jsonimport_big.json");
 
     shcore::delete_file("test_query.sql");
+    shcore::delete_file("test_procedure.sql");
 
     shcore::delete_file("test_show.py");
     shcore::delete_file("test_watch.py");
@@ -277,6 +299,8 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
       shcore::sleep_ms(200);
 
       send_ctrlc();
+
+      m_ctrl_c_sent = true;
     });
   }
 
@@ -317,8 +341,50 @@ class Interrupt_mysqlsh : public tests::Command_line_test {
     MY_EXPECT_CMD_OUTPUT_CONTAINS("Cancelled");
   }
 
+  void test_sql_procedure(const std::string &uri) {
+    // lock the table, procedure will wait on insert
+    session->execute_sql("truncate itst.t");
+    session->execute_sql("lock tables itst.t READ");
+
+    kill_on_ready();
+
+    auto unlock_thread = mysqlsh::spawn_scoped_thread([this]() {
+      // wait for CTRL-C to be sent
+      while (!m_ctrl_c_sent) {
+        shcore::sleep_ms(100);
+      }
+
+      // wait for process to finish
+      size_t cnt = 0;
+
+      while (cnt++ < 100) {
+        shcore::sleep_ms(100);
+
+        std::lock_guard lock{_process_mutex};
+
+        if (!_process) {
+          break;  // process has terminated
+        }
+      }
+
+      // if interrupt doesn't work, process will hang indefinitely unless table
+      // is unlocked
+      mysqlsh::Mysql_thread mysql_thread;
+      session->execute_sql("unlock tables");
+    });
+
+    EXPECT_EQ(0, execute({_mysqlsh, uri.c_str(), "--interactive", "--sql", "-f",
+                          "test_procedure.sql", nullptr}));
+    // if interrupt worked, insert will abort, and table will be empty;
+    // otherwise insert will happen when tables are unlocked
+    MY_EXPECT_CMD_OUTPUT_CONTAINS("success");
+
+    unlock_thread.join();
+  }
+
   std::shared_ptr<mysqlsh::ShellBaseSession> session;
   std::thread kill_thread;
+  std::atomic_bool m_ctrl_c_sent{false};
 };
 
 #ifdef HAVE_JS
@@ -602,6 +668,8 @@ TEST_F(Interrupt_mysqlsh, sql_file_interactive) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("fail");
 }
 
+TEST_F(Interrupt_mysqlsh, sql_procedure) { test_sql_procedure(_mysql_uri); }
+
 TEST_F(Interrupt_mysqlsh, sqlx_file_batch) {
   kill_on_ready();
 
@@ -638,6 +706,8 @@ TEST_F(Interrupt_mysqlsh, sqlx_file_source) {
   // Uncomment when Bug #26417116 is fixed
   // MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("fail");
 }
+
+TEST_F(Interrupt_mysqlsh, sqlx_procedure) { test_sql_procedure(_uri); }
 
 TEST_F(Interrupt_mysqlsh, json_import) {
   const char *expect = "JSON documents import cancelled.";
