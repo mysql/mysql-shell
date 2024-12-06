@@ -4932,6 +4932,16 @@
     ]
   },
   {
+    "name": "version_tokens_session",
+    "version": "5.7.8",
+    "deprecation": "9.2.0"
+  },
+  {
+    "name": "version_tokens_session_number",
+    "version": "5.7.8",
+    "deprecation": "9.2.0"
+  },
+  {
     "name": "performance_schema_consumer_events_transactions_current",
     "initial": {
       "all": {
