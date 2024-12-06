@@ -415,22 +415,22 @@ TEST(Upgrade_check_registry, create_checklist) {
         // between bugfix and innovation
         for (auto patch = 0; patch <= k_latest_versions["8.0"].get_patch();
              patch++) {
-          version_checks.emplace_back(Version(8, 0, patch),
-                                      Version(major, minor));
+          version_checks.emplace_back(
+              std::make_pair(Version(8, 0, patch), Version(major, minor)));
         }
         // between lts and innovation
         for (auto patch = 0; patch <= k_latest_versions["8.4"].get_patch();
              patch++) {
-          version_checks.emplace_back(Version(8, 4, patch),
-                                      Version(major, minor));
+          version_checks.emplace_back(
+              std::make_pair(Version(8, 4, patch), Version(major, minor)));
         }
         // between innovation and same series lts
         for (auto lts_minor =
                  mysqlshdk::utils::get_first_lts_version(Version(major, 0))
                      .get_minor();
              lts_minor < 10; lts_minor++) {
-          version_checks.emplace_back(Version(major, minor),
-                                      Version(major, lts_minor));
+          version_checks.emplace_back(
+              std::make_pair(Version(major, minor), Version(major, lts_minor)));
         }
       }
       // series lts
@@ -446,16 +446,16 @@ TEST(Upgrade_check_registry, create_checklist) {
              mysqlshdk::utils::get_first_lts_version(Version(major + 1, 0))
                  .get_minor();
              inno_minor++) {
-          version_checks.emplace_back(Version(major, minor),
-                                      Version(major + 1, inno_minor));
+          version_checks.emplace_back(std::make_pair(
+              Version(major, minor), Version(major + 1, inno_minor)));
         }
         // between lts and next series lts
         for (auto lts_minor =
                  mysqlshdk::utils::get_first_lts_version(Version(major + 1, 0))
                      .get_minor();
              lts_minor < 10; lts_minor++) {
-          version_checks.emplace_back(Version(major, minor),
-                                      Version(major + 1, lts_minor));
+          version_checks.emplace_back(std::make_pair(
+              Version(major, minor), Version(major + 1, lts_minor)));
         }
       }
     }
@@ -469,16 +469,16 @@ TEST(Upgrade_check_registry, create_checklist) {
          patch++) {
       for (auto patch2 = patch + 1;
            patch2 <= k_latest_versions["8.0"].get_patch(); patch2++) {
-        version_checks.emplace_back(Version(8, 0, patch),
-                                    Version(8, 0, patch2));
+        version_checks.emplace_back(
+            std::make_pair(Version(8, 0, patch), Version(8, 0, patch2)));
       }
     }
     for (auto patch = 0; patch <= k_latest_versions["8.4"].get_patch();
          patch++) {
       for (auto patch2 = patch + 1;
            patch2 <= k_latest_versions["8.4"].get_patch(); patch2++) {
-        version_checks.emplace_back(Version(8, 4, patch),
-                                    Version(8, 4, patch2));
+        version_checks.emplace_back(
+            std::make_pair(Version(8, 4, patch), Version(8, 4, patch2)));
       }
     }
     // other
@@ -493,8 +493,8 @@ TEST(Upgrade_check_registry, create_checklist) {
         for (auto patch = 0; patch <= latest.get_patch(); patch++) {
           for (auto patch2 = patch + 1; patch2 <= latest.get_patch();
                patch2++) {
-            version_checks.emplace_back(Version(major, minor, patch),
-                                        Version(major, minor, patch2));
+            version_checks.emplace_back(std::make_pair(
+                Version(major, minor, patch), Version(major, minor, patch2)));
           }
         }
       }
