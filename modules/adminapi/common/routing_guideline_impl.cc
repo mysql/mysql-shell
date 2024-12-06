@@ -130,20 +130,28 @@ mysqlshdk::utils::Version check_if_cluster_supports_guideline_version(
 shcore::Value parse_destination_selector(const std::string &dest) {
   // format is strategy(destclass[, ...])
   std::regex re(
-      R"(^\s*([a-zA-Z-]+)\s*\(\s*([a-zA-Z0-9_]+(?:\s*,\s*[a-zA-Z0-9_]+)*)\s*\)\s*$)");
+      R"(^\s*([a-zA-Z-]+)\s*\(\s*(([a-zA-Z0-9_]+|'[^']*'|"[^"]*")\s*(,\s*([a-zA-Z0-9_]+|'[^']*'|"[^"]*"))*)\s*\)\s*$)");
   std::smatch m;
 
-  if (!std::regex_match(dest, m, re) || m.size() != 3) {
+  if (!std::regex_match(dest, m, re) || m.size() < 3) {
     throw std::runtime_error("Invalid syntax for destination selector: " +
                              dest);
   }
 
+  auto is_quote = [](char c) { return c == '\'' || c == '"' || c == '`'; };
+
   std::string strategy = shcore::str_lower(std::string(m[1]));
 
   auto classes = shcore::make_array();
-  for (auto s : shcore::str_split(m[2].str(), ",")) {  // Split on commas
+  // Split on commas
+  for (auto s : shcore::str_split(m[2].str(), ",")) {
     std::string trimmed =
         shcore::str_strip(s);  // trim whitespaces from each class name
+
+    if (!trimmed.empty() && is_quote(trimmed[0])) {  // Check for quotes
+      trimmed = shcore::unquote_string(trimmed, trimmed[0]);  // Unquote
+    }
+
     if (trimmed.empty()) {
       throw std::runtime_error("Invalid syntax for destination: " + dest);
     }
