@@ -37,6 +37,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/cleanup.h"
 
 namespace mysqlsh {
 
@@ -50,16 +51,22 @@ class Shell_history : public ::testing::Test {
 
  public:
   Shell_history()
-      : _options_file(
-            Shell_core_test_wrapper::get_options_file_name("history_test")),
-        m_handler(&m_capture, print_capture, print_capture, print_capture) {}
+      : m_handler(&m_capture, print_capture, print_capture, print_capture) {
+    m_config_home = shcore::path::join_path(::getenv("TMPDIR"), "history_test");
+    m_cleanup =
+        tests::Cleanup::set_env_var("MYSQLSH_USER_CONFIG_HOME", m_config_home);
+    m_options_file =
+        Shell_core_test_wrapper::get_options_file_name("test-options.json");
+  }
 
   void SetUp() override {
-    remove(_options_file.c_str());
     linenoiseHistoryFree();
 
-    shcore::delete_file(shcore::path::dirname(_options_file) + "/history.js");
-    shcore::delete_file(shcore::path::dirname(_options_file) + "/history.sql");
+    if (shcore::is_folder(m_config_home)) {
+      shcore::remove_directory(m_config_home, true);
+    }
+
+    shcore::create_directory(m_config_home);
   }
 
  protected:
@@ -69,7 +76,11 @@ class Shell_history : public ::testing::Test {
     current_console()->remove_print_handler(&m_handler);
   }
 
-  std::string _options_file;
+  tests::Cleanup m_cleanup;
+
+  std::string m_config_home;
+
+  std::string m_options_file;
 
   std::string m_capture;
 
@@ -90,7 +101,7 @@ TEST_F(Shell_history, check_history_sql_not_connected) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   EXPECT_EQ(0, linenoiseHistorySize());
 
@@ -119,7 +130,7 @@ TEST_F(Shell_history, check_password_history_linenoise) {
   char *args[] = {const_cast<char *>("ut"),
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
   shell.get_options()->set("history.autoSave", shcore::Value::False());
 
   shell._history.set_limit(100);
@@ -370,7 +381,7 @@ TEST_F(Shell_history, history_ignore_wildcard_questionmark) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
   shell.get_options()->set("history.autoSave", shcore::Value::False());
 
   // ? = match exactly one
@@ -415,7 +426,7 @@ TEST_F(Shell_history, history_set_option) {
   linenoiseHistoryFree();
 
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(0, nullptr, m_options_file));
 
   // SN_SHELL_OPTION_CHANGED
   shell.process_line(
@@ -434,7 +445,7 @@ TEST_F(Shell_history, history_ignore_pattern_js) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   shell.process_line("shell.options['history.sql.ignorePattern'] = '*SELECT*'");
   shell.process_line("// SELECT");
@@ -446,7 +457,7 @@ TEST_F(Shell_history, history_ignore_pattern_py) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   shell.process_line(
       "setattr(shell.options, 'history.sql.ignorePattern', "
@@ -472,7 +483,7 @@ TEST_F(Shell_history, history_linenoise) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
   const std::string hist_file = shell.history_file();
   shcore::delete_file(hist_file);
 
@@ -626,7 +637,7 @@ TEST_F(Shell_history, check_help_shows_history) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   {
     // Expecting the Shell mention \history in \help
@@ -644,7 +655,7 @@ TEST_F(Shell_history, history_autosave_int) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
   shcore::delete_file(shell.history_file());
 
   {
@@ -673,7 +684,7 @@ TEST_F(Shell_history, check_history_source_js) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(3, args, _options_file));
+      std::make_shared<Shell_options>(3, args, m_options_file));
   shell._history.set_limit(10);
 
   std::ofstream of;
@@ -709,7 +720,7 @@ TEST_F(Shell_history, check_history_source_js_nonl_interactive) {
                   const_cast<char *>("--interactive=full"),
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(4, args, _options_file));
+      std::make_shared<Shell_options>(4, args, m_options_file));
   shell._history.set_limit(10);
 
   std::ofstream of;
@@ -756,7 +767,7 @@ TEST_F(Shell_history, check_history_source_py) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--py"),
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(3, args, _options_file));
+      std::make_shared<Shell_options>(3, args, m_options_file));
   shell.get_options()->set("history.autoSave", shcore::Value::False());
   shell._history.set_limit(10);
 
@@ -793,7 +804,7 @@ TEST_F(Shell_history, check_history_source_py_nonl_interactive) {
                   const_cast<char *>("--interactive=full"),
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(4, args, _options_file));
+      std::make_shared<Shell_options>(4, args, m_options_file));
   shell.get_options()->set("history.autoSave", shcore::Value::False());
 
   shell._history.set_limit(10);
@@ -848,7 +859,7 @@ TEST_F(Shell_history, check_history_source_py_nonl_continuedstate_interactive) {
                   const_cast<char *>("--interactive=full"),
                   const_cast<char *>(server_uri.c_str()), nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(4, args, _options_file));
+      std::make_shared<Shell_options>(4, args, m_options_file));
   shell.get_options()->set("history.autoSave", shcore::Value::False());
 
   shell._history.set_limit(10);
@@ -884,7 +895,7 @@ TEST_F(Shell_history, check_history_overflow_del) {
     char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                     nullptr};
     mysqlsh::Command_line_shell shell(
-        std::make_shared<Shell_options>(2, args, _options_file));
+        std::make_shared<Shell_options>(2, args, m_options_file));
 
     shell._history.set_limit(3);
 
@@ -943,7 +954,7 @@ TEST_F(Shell_history, check_history_overflow_del) {
 
 TEST_F(Shell_history, history_management) {
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(0, nullptr, m_options_file));
 
   enable_capture();
 
@@ -1085,7 +1096,7 @@ TEST_F(Shell_history, history_sizes) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   enable_capture();
 
@@ -1160,7 +1171,7 @@ TEST_F(Shell_history, history_del_invisible_entry) {
   // See also TEST_F(Shell_history, history_sizes)
 
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(0, nullptr, m_options_file));
 
   enable_capture();
 
@@ -1183,7 +1194,7 @@ TEST_F(Shell_history, history_source_history) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   enable_capture();
 
@@ -1212,7 +1223,7 @@ TEST_F(Shell_history, history_del_range) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   enable_capture();
 
@@ -1264,7 +1275,7 @@ TEST_F(Shell_history, history_entry_number_reset) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   enable_capture();
 
@@ -1308,7 +1319,7 @@ TEST_F(Shell_history, history_delete_range) {
   }
 
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(0, nullptr, m_options_file));
 
   enable_capture();
   using strv = std::vector<std::string>;
@@ -1491,7 +1502,7 @@ TEST_F(Shell_history, history_numbering) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   enable_capture();
   using strv = std::vector<std::string>;
@@ -1602,7 +1613,7 @@ TEST_F(Shell_history, history_numbering) {
 
 TEST_F(Shell_history, never_filter_latest) {
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(0, nullptr, _options_file));
+      std::make_shared<Shell_options>(0, nullptr, m_options_file));
 
   shell._history.set_limit(4);
 
@@ -1642,7 +1653,7 @@ TEST_F(Shell_history, history_split_by_mode) {
     char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--sql"),
                     const_cast<char *>("--interactive"), nullptr};
     mysqlsh::Command_line_shell shell(
-        std::make_shared<Shell_options>(2, args, _options_file));
+        std::make_shared<Shell_options>(2, args, m_options_file));
 
     sql_history_file = shell.history_file();
     EXPECT_EQ(0, linenoiseHistorySize());
@@ -1675,7 +1686,7 @@ TEST_F(Shell_history, migrate_old_history) {
                   nullptr};
   {
     mysqlsh::Command_line_shell shell(
-        std::make_shared<Shell_options>(2, args, _options_file));
+        std::make_shared<Shell_options>(2, args, m_options_file));
     EXPECT_FALSE(shcore::is_file(shell.history_file()));
     shell.process_line("select 1;\n");
     history_size = linenoiseHistorySize();
@@ -1686,7 +1697,7 @@ TEST_F(Shell_history, migrate_old_history) {
   }
 
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
   shell.load_state();
   EXPECT_EQ(history_size, linenoiseHistorySize());
   EXPECT_TRUE(
@@ -1713,7 +1724,7 @@ TEST_F(Shell_history, get_entry) {
   char *args[] = {const_cast<char *>("ut"), const_cast<char *>("--js"),
                   nullptr};
   mysqlsh::Command_line_shell shell(
-      std::make_shared<Shell_options>(2, args, _options_file));
+      std::make_shared<Shell_options>(2, args, m_options_file));
 
   const auto &history = shell._history;
 
