@@ -64,6 +64,11 @@ class Version {
   int get_patch() const { return _patch.value_or(0); }
 
   /**
+   * Returns true if the patch version is present.
+   */
+  bool has_patch() const { return _patch.has_value(); }
+
+  /**
    * Returns the extra part of the version string, or an empty string if not
    * present.
    */
