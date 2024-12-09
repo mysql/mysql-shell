@@ -75,7 +75,8 @@ bool check_lock_file(const std::string &path, const char *pid_format) {
 
 std::string run_and_catch_output(const char *const *argv, bool catch_stderr,
                                  int *out_rc) {
-  shcore::Process p(argv, catch_stderr);
+  shcore::Process p(argv, catch_stderr ? shcore::Process::Stderr::To_stdout
+                                       : shcore::Process::Stderr::Share);
 
   p.start();
   std::string r = p.read_all();

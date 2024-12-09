@@ -389,6 +389,21 @@ EXPECT_STDOUT_CONTAINS("ERROR: While replaying the binary log events: The MySQL 
 #@<> BUG#37331023 - clean up
 session.run_sql("SET @@GLOBAL.super_read_only=OFF")
 
+#@<> capture stderr of the mysqlbinlog process {not __dbug_off}
+testutil.dbug_set("+d,load_binlogs_mysqlbinlog_error")
+
+EXPECT_FAIL("RuntimeError", "Loading the binary log files has failed", incremental_dump_dir)
+
+EXPECT_STDOUT_CONTAINS("""
+WARNING: The 'mysqlbinlog' process has reported:
+ERROR: Could not read entry at offset 4: Error in log format or read error 1.
+ERROR: Event too big
+""")
+
+EXPECT_STDOUT_CONTAINS("ERROR: While waiting for the 'mysqlbinlog' process to finish: process has returned an error code: 1")
+
+testutil.dbug_set("")
+
 #@<> Cleanup
 session.close()
 testutil.destroy_sandbox(__mysql_sandbox_port1)
