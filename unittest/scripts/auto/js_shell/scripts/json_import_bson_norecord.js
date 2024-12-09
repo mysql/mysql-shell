@@ -223,6 +223,10 @@ EXPECT_STDOUT_CONTAINS("ERROR: ArgumentError: Unexpected data, expected to find 
 import_doc({_id:{$oid:"5bfe3d5ff6d2f36d067c6fea"},int:{$numberInt:""}});
 EXPECT_STDOUT_CONTAINS("ERROR: ArgumentError: Unexpected data, expected to find an integer string processing extended JSON for $numberInt at offset 64");
 
+//@<> BUG#37243264 $numberInt with just +
+import_doc({_id:{$oid:"5bfe3d5ff6d2f36d067c6fea"},int:{$numberInt:"+"}});
+EXPECT_STDOUT_CONTAINS("ERROR: Unexpected data, expected to find an integer string processing extended JSON for $numberInt at offset 64");
+
 
 //@<> $numberDecimal with non string value
 import_doc({_id:{$oid:"5bfe3d5ff6d2f36d067c6fea"},decimal:{$numberDecimal:15.4}});
@@ -311,3 +315,15 @@ import_doc(document, ["--convertBsonTypes", "--convertBsonOid=false"])
 print_doc();
 delete_doc();
 EXPECT_STDOUT_CONTAINS('{"_id": "01234567890123456789", "objectId": {"$oid": "5c014aa8087579bdb2e6afef"}, "negativeInteger": -450}');
+
+//@<> BUG#37243264 $numberInt with negative integer
+import_doc({_id:{$oid:"5bfe3d5ff6d2f36d067c6fea"},int:{$numberInt:"-1234"}});
+print_doc();
+delete_doc();
+EXPECT_STDOUT_CONTAINS('{"_id": "5bfe3d5ff6d2f36d067c6fea", "int": -1234}');
+
+//@<> BUG#37243264 $numberInt with positive integer
+import_doc({_id:{$oid:"5bfe3d5ff6d2f36d067c6fea"},int:{$numberInt:"+1234"}});
+print_doc();
+delete_doc();
+EXPECT_STDOUT_CONTAINS('{"_id": "5bfe3d5ff6d2f36d067c6fea", "int": 1234}');
