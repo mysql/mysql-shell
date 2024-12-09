@@ -140,13 +140,14 @@ Member_recovery_method Add_replica_instance::validate_instance_recovery() {
         return (state != mysqlshdk::mysql::Replica_gtid_state::IRRECOVERABLE);
       };
 
+  const auto gtid_set_is_complete = m_cluster_impl->get_gtid_set_is_complete();
+
   return mysqlsh::dba::validate_instance_recovery(
       Cluster_type::GROUP_REPLICATION, Member_op_action::ADD_INSTANCE,
       *m_donor_instance, *m_target_instance, check_recoverable,
       m_options.clone_options.recovery_method.value_or(
           Member_recovery_method::AUTO),
-      m_cluster_impl->get_gtid_set_is_complete(),
-      current_shell_options()->get().wizards,
+      gtid_set_is_complete, current_shell_options()->get().wizards,
       m_cluster_impl->check_clone_availablity(*m_donor_instance,
                                               *m_target_instance));
 }
