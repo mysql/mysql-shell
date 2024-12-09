@@ -606,7 +606,9 @@ void Json_document_parser::get_bson_data(const std::vector<Bson_token> &tokens,
       // Integers must have pure decimal digits
       if (token.type == 'I' || token.type == 'i') {
         size_t digit_index = 0;
-        if ((*target)[0] == '+' || (*target)[0] == '-') digit_index++;
+        if ((*target)[value_start] == '+' || (*target)[value_start] == '-') {
+          digit_index++;
+        }
 
         for (size_t index = digit_index; index < value_size; index++) {
           if (!isdigit((*target)[value_start + index]))
@@ -717,7 +719,14 @@ void Json_document_parser::parse_bson_integer(Bson_type type) {
 
   get_bson_data({{':'}, {'I', "", &value, nullptr}, {'}'}}, context);
 
-  std::string number = value.substr(1, value.size() - 2);
+  // handle a signed integer starting with a plus, trim the plus character
+  std::size_t start = 1;
+
+  if ('+' == value[start]) {
+    ++start;
+  }
+
+  std::string number = value.substr(start, value.size() - 1 - start);
 
   m_document->append(number);
 }
