@@ -55,17 +55,24 @@ namespace shcore {
 //   wait
 class Process {
  public:
+  enum class Stderr {
+    // Child is using stderr of the parent process.
+    Share,
+    // Child's stderr is redirected to its stdout.
+    To_stdout,
+    // Create a pipe to child's stderr, read it using read_stderr().
+    Pipe,
+  };
+
   /**
    * Creates a new process and launch it.
    * Argument 'args' must have a last entry that is NULL.
-   * If redirect_stderr is true, the child's stderr is redirected to the same
-   * stream than child's stdout.
    *
    * NOTE: if the called process is cmd.exe, additional
    * quoting would be required, which is currently not supported.
    * For that reason, a logic_error will be thrown if cmd.exe is argv[0]
    */
-  explicit Process(const char *const *argv, bool redirect_stderr = true);
+  explicit Process(const char *const *argv, Stderr action = Stderr::To_stdout);
 
   ~Process() {
     if (is_alive) {
@@ -101,6 +108,26 @@ class Process {
    * Returns an shcore::Exception in case of error when reading.
    */
   int read(char *buf, size_t count);
+
+  /**
+   * Reads a single line from stderr
+   */
+  std::string read_stderr_line(bool *eof = nullptr);
+
+  /**
+   * Reads the whole stderr remaining output.
+   */
+  std::string read_stderr_all();
+
+  /**
+   * Read up to a 'count' bytes from the stderr of the child process.
+   * This method blocks until the amount of bytes is read.
+   *
+   * @param buf already allocated buffer where the read data will be stored.
+   * @param count the maximum amount of bytes to read.
+   * @return the real number of bytes read.
+   */
+  int read_stderr(char *buf, size_t count);
 
   /**
    * Writes several bytes into stdin of child process.
@@ -214,10 +241,12 @@ class Process {
   void enable_reader_thread();
 
  private:
+  using Read_f = int (Process::*)(char *, size_t);
+
   /** Closes child process */
   void close();
 
-  int do_read(char *buf, size_t count);
+  int do_read(char *buf, size_t count, bool std_out);
 
   bool is_write_allowed() const;
 
@@ -229,6 +258,10 @@ class Process {
 
   void stop_reader_threads();
 
+  std::string read_line(Read_f fun, bool *eof);
+
+  std::string read_all(Read_f fun);
+
   const char *const *argv;
   bool is_alive;
 #ifdef WIN32
@@ -236,6 +269,8 @@ class Process {
   HANDLE child_in_wr = nullptr;
   HANDLE child_out_rd = nullptr;
   HANDLE child_out_wr = nullptr;
+  HANDLE child_err_rd = nullptr;
+  HANDLE child_err_wr = nullptr;
   PROCESS_INFORMATION pi;
   STARTUPINFOW si;
   bool create_process_group = false;
@@ -244,13 +279,14 @@ class Process {
   pid_t childpid = -1;
   int fd_in[2] = {-1, -1};
   int fd_out[2] = {-1, -1};
+  int fd_err[2] = {-1, -1};
   int m_master_device = -1;
   bool m_use_pseudo_tty = false;
   std::vector<std::string> new_environment;
 #endif
   int _pstatus = 0;
   bool _wait_pending = false;
-  bool redirect_stderr;
+  Stderr m_stderr;
 
   std::string m_input_file;
 

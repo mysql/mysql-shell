@@ -54,6 +54,7 @@
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/storage/backend/in_memory/allocator.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
+#include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -952,13 +953,19 @@ void Binlog_loader::load() {
       "-",
       nullptr,
   };
-  // TODO(pawel): capture stderr of mysqlbinlog process, display it only when
-  // process returns an error code
-  shcore::Process_launcher process{k_process_args, false};
+  shcore::Process_launcher process{k_process_args,
+                                   shcore::Process::Stderr::Pipe};
 #ifdef _WIN32
   process.set_create_process_group();
 #endif
   process.start();
+
+  DBUG_EXECUTE_IF("load_binlogs_mysqlbinlog_error", {
+    // write invalid data
+    process.write(Binary_log::k_binlog_magic, Binary_log::k_binlog_magic_size);
+    std::string data(255, static_cast<char>(0xFF));
+    process.write(data.c_str(), data.length());
+  });
 
   Load_progress progress{&m_progress_thread, m_load_stats,
                          m_options.has_compressed_binlogs()};
@@ -1040,6 +1047,10 @@ void Binlog_loader::load() {
           } else {
             // process has terminated, check if there were any errors
             if (const auto rc = process->wait()) {
+              current_console()->print_warning(shcore::str_format(
+                  "The 'mysqlbinlog' process has reported:\n%s",
+                  process->read_stderr_all().c_str()));
+
               throw std::runtime_error{shcore::str_format(
                   "process has returned an error code: %d", rc)};
             }

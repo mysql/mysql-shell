@@ -28,6 +28,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <system_error>
@@ -165,21 +166,18 @@ void redirect_fd(int from, int to) {
   }
 }
 
-void redirect_input_output(int fd_in[2], int fd_out[2], bool redirect_stderr) {
-  // connect pipes to stdin, stdout and stderr
-  if (fd_out[0] >= 0) ::close(fd_out[0]);
+void redirect_input(int fd_in[2]) {
+  // connect pipes to stdin
   if (fd_in[1] >= 0) ::close(fd_in[1]);
-
-  redirect_fd(fd_out[1], STDOUT_FILENO);
-
-  if (redirect_stderr) {
-    redirect_fd(fd_out[1], STDERR_FILENO);
-  }
-
   redirect_fd(fd_in[0], STDIN_FILENO);
-
-  fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
   fcntl(fd_in[0], F_SETFD, FD_CLOEXEC);
+}
+
+void redirect_output(int fd_out[2], bool std_out) {
+  // connect pipes to stdout/stderr
+  if (fd_out[0] >= 0) ::close(fd_out[0]);
+  redirect_fd(fd_out[1], std_out ? STDOUT_FILENO : STDERR_FILENO);
+  fcntl(fd_out[1], F_SETFD, FD_CLOEXEC);
 }
 
 int open_pseudo_terminal(int *in_master, int *in_slave, char *in_name) {
@@ -246,8 +244,8 @@ int open_pseudo_terminal(int *in_master, int *in_slave, char *in_name) {
 
 namespace shcore {
 
-Process::Process(const char *const *argv_, bool redirect_stderr_)
-    : argv(argv_), is_alive(false), redirect_stderr(redirect_stderr_) {
+Process::Process(const char *const *argv_, Stderr stderr_action)
+    : argv(argv_), is_alive(false), m_stderr(stderr_action) {
 #ifdef WIN32
   if (strstr(argv[0], "cmd.exe"))
     throw std::logic_error("launching cmd.exe currently not supported");
@@ -348,9 +346,13 @@ void Process::do_start() {
   if (!SetHandleInformation(child_out_rd, HANDLE_FLAG_INHERIT, 0))
     report_error("Failed to create child_out_rd");
 
-  // force non blocking IO in Windows
-  DWORD mode = PIPE_NOWAIT;
-  // BOOL res = SetNamedPipeHandleState(child_out_rd, &mode, NULL, NULL);
+  if (Stderr::Pipe == m_stderr) {
+    if (!CreatePipe(&child_err_rd, &child_err_wr, &saAttr, 0))
+      report_error("Failed to create child_err_rd");
+
+    if (!SetHandleInformation(child_err_rd, HANDLE_FLAG_INHERIT, 0))
+      report_error("Failed to create child_err_rd");
+  }
 
   if (is_write_allowed()) {
     if (!CreatePipe(&child_in_rd, &child_in_wr, &saAttr, 0))
@@ -378,7 +380,21 @@ void Process::do_start() {
 
   ZeroMemory(&si, sizeof(STARTUPINFOW));
   si.cb = sizeof(STARTUPINFOW);
-  if (redirect_stderr) si.hStdError = child_out_wr;
+
+  switch (m_stderr) {
+    case Stderr::Share:
+      // nothing to do
+      break;
+
+    case Stderr::To_stdout:
+      si.hStdError = child_out_wr;
+      break;
+
+    case Stderr::Pipe:
+      si.hStdError = child_err_wr;
+      break;
+  }
+
   si.hStdOutput = child_out_wr;
   si.hStdInput = child_in_rd;
   si.dwFlags |= STARTF_USESTDHANDLES;
@@ -398,10 +414,8 @@ void Process::do_start() {
   }
 
   CloseHandle(child_out_wr);
+  if (child_err_wr) CloseHandle(child_err_wr);
   CloseHandle(child_in_rd);
-
-  // DWORD res1 = WaitForInputIdle(pi.hProcess, 100);
-  // res1 = WaitForSingleObject(pi.hThread, 100);
 }
 
 HANDLE Process::get_pid() { return pi.hProcess; }
@@ -460,17 +474,21 @@ void Process::close() {
   if (!CloseHandle(pi.hThread)) report_error(NULL);
 
   if (child_out_rd && !CloseHandle(child_out_rd)) report_error(NULL);
+  if (child_err_rd && !CloseHandle(child_err_rd)) report_error(NULL);
   if (child_in_wr && !CloseHandle(child_in_wr)) report_error(NULL);
 
   is_alive = false;
 }
 
-int Process::do_read(char *buf, size_t count) {
+int Process::do_read(char *buf, size_t count, bool std_out) {
   BOOL bSuccess = FALSE;
   DWORD dwBytesRead, dwCode;
   int i = 0;
+  const auto handle = std_out ? child_out_rd : child_err_rd;
 
-  while (!(bSuccess = ReadFile(child_out_rd, buf, count, &dwBytesRead, NULL))) {
+  assert(handle);
+
+  while (!(bSuccess = ReadFile(handle, buf, count, &dwBytesRead, NULL))) {
     dwCode = GetLastError();
     if (dwCode == ERROR_NO_DATA) continue;
     if (dwCode == ERROR_BROKEN_PIPE)
@@ -600,18 +618,41 @@ void Process::set_environment(const std::vector<std::string> &env) {
 void Process::do_start() {
   assert(!is_alive);
 
+  Scoped_callback_list cleanup;
+
   if (is_write_allowed()) {
     if (pipe(fd_in) < 0) {
       report_error("pipe(fd_in)");
     }
+
+    cleanup.push_back([this]() {
+      ::close(fd_in[0]);
+      ::close(fd_in[1]);
+    });
   } else {
     fd_in[0] = open(m_input_file.c_str(), O_RDONLY);
+
+    cleanup.push_back([this]() { ::close(fd_in[0]); });
   }
 
   if (pipe(fd_out) < 0) {
-    ::close(fd_in[0]);
-    ::close(fd_in[1]);
     report_error("pipe(fd_out)");
+  }
+
+  cleanup.push_back([this]() {
+    ::close(fd_out[0]);
+    ::close(fd_out[1]);
+  });
+
+  if (Stderr::Pipe == m_stderr) {
+    if (pipe(fd_err) < 0) {
+      report_error("pipe(fd_err)");
+    }
+
+    cleanup.push_back([this]() {
+      ::close(fd_err[0]);
+      ::close(fd_err[1]);
+    });
   }
 
   int slave_device = -1;
@@ -622,26 +663,21 @@ void Process::do_start() {
     // of the new process
     if (open_pseudo_terminal(&m_master_device, &slave_device,
                              slave_device_name) < 0) {
-      ::close(fd_in[0]);
-      ::close(fd_in[1]);
-      ::close(fd_out[0]);
-      ::close(fd_out[1]);
       report_error("open_pseudo_terminal()");
     }
+
+    cleanup.push_back([this, slave_device]() {
+      ::close(m_master_device);
+      ::close(slave_device);
+    });
   }
 
   childpid = fork();
   if (childpid == -1) {
-    ::close(fd_in[0]);
-    ::close(fd_in[1]);
-    ::close(fd_out[0]);
-    ::close(fd_out[1]);
-    if (m_use_pseudo_tty) {
-      ::close(m_master_device);
-      ::close(slave_device);
-    }
     report_error("fork()");
   }
+
+  cleanup.cancel();
 
   if (childpid == 0) {
 #ifdef LINUX
@@ -657,7 +693,22 @@ void Process::do_start() {
         ::close(slave_device);
       }
 
-      redirect_input_output(fd_in, fd_out, redirect_stderr);
+      redirect_input(fd_in);
+      redirect_output(fd_out, true);
+
+      switch (m_stderr) {
+        case Stderr::Share:
+          // nothing to do
+          break;
+
+        case Stderr::To_stdout:
+          redirect_fd(fd_out[1], STDERR_FILENO);
+          break;
+
+        case Stderr::Pipe:
+          redirect_output(fd_err, false);
+          break;
+      }
     } catch (const std::exception &e) {
       fprintf(stderr, "Exception while preparing the child process: %s\n",
               e.what());
@@ -682,6 +733,11 @@ void Process::do_start() {
     _exit(my_errno);
   } else {
     ::close(fd_out[1]);
+
+    if (Stderr::Pipe == m_stderr) {
+      ::close(fd_err[1]);
+    }
+
     ::close(fd_in[0]);
 
     if (m_use_pseudo_tty) {
@@ -693,6 +749,7 @@ void Process::do_start() {
 void Process::close() {
   is_alive = false;
   ::close(fd_out[0]);
+  if (fd_err[0] >= 0) ::close(fd_err[0]);
   if (fd_in[1] >= 0) ::close(fd_in[1]);
   if (m_master_device >= 0) ::close(m_master_device);
 
@@ -727,9 +784,13 @@ void Process::close() {
   wait();
 }
 
-int Process::do_read(char *buf, size_t count) {
+int Process::do_read(char *buf, size_t count, bool std_out) {
+  const auto fd = std_out ? fd_out[0] : fd_err[0];
+
+  assert(fd >= 0);
+
   do {
-    if (int n = ::read(fd_out[0], buf, count); n >= 0) return n;
+    if (int n = ::read(fd, buf, count); n >= 0) return n;
 
     if (errno == EAGAIN || errno == EINTR) continue;
     if (errno == EPIPE) return 0;
@@ -892,7 +953,7 @@ void Process::set_environment(const std::vector<std::string> &env) {
 void Process::kill() { close(); }
 
 int Process::read(char *buf, size_t count) {
-  if (!m_reader_thread) return do_read(buf, count);
+  if (!m_reader_thread) return do_read(buf, count, true);
 
   std::lock_guard lock(m_read_buffer_mutex);
   count = std::min(m_read_buffer.size(), count);
@@ -906,23 +967,45 @@ int Process::read(char *buf, size_t count) {
 }
 
 std::string Process::read_line(bool *eof) {
+  return read_line(&Process::read, eof);
+}
+
+std::string Process::read_all() { return read_all(&Process::read); }
+
+int Process::read_stderr(char *buf, size_t count) {
+  return do_read(buf, count, false);
+}
+
+std::string Process::read_stderr_line(bool *eof) {
+  return read_line(&Process::read_stderr, eof);
+}
+
+std::string Process::read_stderr_all() {
+  return read_all(&Process::read_stderr);
+}
+
+std::string Process::read_line(Read_f fun, bool *eof) {
   std::string s;
   int c = 0;
-  char buf[1];
-  while ((s.empty() || s.back() != '\n') && (c = read(buf, 1)) > 0) {
-    s.push_back(buf[0]);
+  char buffer;
+
+  while ((s.empty() || s.back() != '\n') &&
+         (c = std::invoke(fun, this, &buffer, 1)) > 0) {
+    s.push_back(buffer);
   }
-  if (c <= 0 && eof) *eof = true;
+
+  if (eof && c <= 0) *eof = true;
+
   return s;
 }
 
-std::string Process::read_all() {
+std::string Process::read_all(Read_f fun) {
   constexpr size_t k_buffer_size = 512;
   std::string s;
   char buffer[k_buffer_size];
   int c = 0;
 
-  while ((c = read(buffer, k_buffer_size)) > 0) {
+  while ((c = std::invoke(fun, this, buffer, k_buffer_size)) > 0) {
     s.append(buffer, c);
   }
 
@@ -951,7 +1034,7 @@ void Process::start_reader_threads() {
             constexpr size_t k_buffer_size = 512;
             char buffer[k_buffer_size];
             int n = 0;
-            while ((n = do_read(buffer, k_buffer_size)) > 0) {
+            while ((n = do_read(buffer, k_buffer_size, true)) > 0) {
               std::lock_guard<std::mutex> lock(m_read_buffer_mutex);
               m_read_buffer.insert(m_read_buffer.end(), buffer, buffer + n);
             }
