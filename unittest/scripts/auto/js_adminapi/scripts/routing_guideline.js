@@ -1539,6 +1539,53 @@ EXPECT_THROWS(function(){ cluster.importRoutingGuideline("invalid.json");}, "Inv
 
 testutil.rmfile(invalid_path);
 
+//@<> import_routing_guideline() - invalid version in file
+
+// save the original version
+original_version = file_json.version;
+
+// change it to test
+file_json.version = "a.b";
+
+// write to file
+var rg2_invalid_path = "rg2_invalid.json";
+testutil.createFile(rg2_invalid_path, JSON.stringify(file_json, null, 2));
+
+EXPECT_THROWS(function(){ cluster.importRoutingGuideline(rg2_invalid_path);}, "Invalid routing guideline version 'a.b'");
+
+testutil.rmfile(rg2_invalid_path);
+
+// change again, unsupported version
+file_json.version = "2.0";
+
+// write to file
+testutil.createFile(rg2_invalid_path, JSON.stringify(file_json, null, 2));
+
+EXPECT_THROWS(function(){ cluster.importRoutingGuideline(rg2_invalid_path);}, "Routing guideline version 2.0 is not supported, upgrade MySQL Shell");
+
+testutil.rmfile(rg2_invalid_path);
+
+// change again, patch version not allowed
+file_json.version = "1.0.0";
+
+testutil.createFile(rg2_invalid_path, JSON.stringify(file_json, null, 2));
+
+EXPECT_THROWS(function(){ cluster.importRoutingGuideline(rg2_invalid_path);}, "Invalid routing guideline version format '1.0.0': expected format is 'x.y'");
+
+testutil.rmfile(rg2_invalid_path);
+
+// change again, extras not allowed
+file_json.version = "1.0-foobar";
+
+testutil.createFile(rg2_invalid_path, JSON.stringify(file_json, null, 2));
+
+EXPECT_THROWS(function(){ cluster.importRoutingGuideline(rg2_invalid_path);}, "Invalid routing guideline version format '1.0-foobar': expected format is 'x.y'");
+
+testutil.rmfile(rg2_invalid_path);
+
+// restore the original version
+file_json.version = original_version;
+
 //@<> import_routing_guideline() - OK
 EXPECT_NO_THROWS(function(){ rg2 = cluster.importRoutingGuideline(rg2_path);});
 

@@ -100,31 +100,47 @@ mysqlshdk::utils::Version check_if_cluster_supports_guideline_version(
     Base_cluster_impl *owner, const mysqlshdk::utils::Version &version) {
   // check if we can use the given version considering what the
   // routers in the cluster support
-  bool has_routers = false;
-  /*auto max_version =
-      owner->get_metadata_storage()->get_max_supported_guideline_version(
-          owner->get_type(), owner->get_id(), &has_routers);
-          */
-  auto max_version = mysqlshdk::utils::Version(1, 0, 0);
-  if (has_routers) {
-    if (version > max_version) {
-      throw shcore::Exception(
-          "Routers in the " +
-              to_display_string(owner->get_type(), Display_form::THING) +
-              " must be upgraded before Routing guideline can be used",
-          SHERR_DBA_ROUTER_UNSUPPORTED_FEATURE);
-    }
-    // if cluster supports version higher than us, then cap at what we
-    // support
-    if (max_version > k_guideline_version) {
-      return k_guideline_version;
-    }
-    return max_version;
+  std::vector<Router_metadata> routers;
+  auto md = owner->get_metadata_storage();
 
+  if (owner->get_type() == Cluster_type::REPLICATED_CLUSTER) {
+    routers = md->get_clusterset_routers(owner->get_id());
   } else {
-    // if there are no routers, then anything is ok
+    routers = md->get_routers(owner->get_id());
+  }
+
+  // if there are no routers, then anything is ok
+  if (routers.empty()) {
     return k_guideline_version;
   }
+
+  // Get the highest guideline version supported
+  mysqlshdk::utils::Version max_guideline_version_supported =
+      mysqlshdk::utils::Version(0, 0);
+
+  for (const auto &router_md : routers) {
+    auto current_version = mysqlshdk::utils::Version(
+        router_md.supported_routing_guidelines_version.value_or("0.0"));
+
+    if (current_version > max_guideline_version_supported) {
+      max_guideline_version_supported = current_version;
+    }
+  }
+
+  if (version > max_guideline_version_supported) {
+    throw shcore::Exception(
+        "Routers in the " +
+            to_display_string(owner->get_type(), Display_form::THING) +
+            " must be upgraded before Routing guideline can be used",
+        SHERR_DBA_ROUTER_UNSUPPORTED_FEATURE);
+  }
+  // if cluster supports version higher than us, then cap at what we
+  // support
+  if (max_guideline_version_supported > k_guideline_version) {
+    return k_guideline_version;
+  }
+
+  return max_guideline_version_supported;
 }
 
 shcore::Value parse_destination_selector(const std::string &dest) {
@@ -1630,6 +1646,15 @@ void Routing_guideline_impl::parse(const shcore::Dictionary_t &json,
     } catch (...) {
       throw shcore::Exception(
           shcore::str_format("Invalid routing guideline version '%s'",
+                             guideline->at("version").descr().c_str()),
+          SHERR_DBA_ROUTING_GUIDELINE_INVALID_VERSION);
+    }
+
+    // Check if the version includes patch
+    if (version.has_patch() || !version.get_extra().empty()) {
+      throw shcore::Exception(
+          shcore::str_format("Invalid routing guideline version format '%s': "
+                             "expected format is 'x.y'.",
                              guideline->at("version").descr().c_str()),
           SHERR_DBA_ROUTING_GUIDELINE_INVALID_VERSION);
     }
