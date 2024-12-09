@@ -255,10 +255,9 @@ TEST_LOAD(expect_bulk_loaded = 1, cleanup = False)
 prepare_test_table("(f1 INT PRIMARY KEY, f2 INT, INDEX f2i (f2))")
 DUMP()
 
-#@<> WL15432-TSFR_1_2_8 - table with secondary index is not bulk loaded {bulk_load_supported}
-TEST_LOAD(expect_bulk_loaded = 0)
-EXPECT_SHELL_LOG_CONTAINS(f"Table `{test_schema}`.`{test_table}` is not compatible with BULK LOAD: MySQL Error 4132 (HY000): Table '{test_schema}/{test_table}' has indexes other than primary key.")
-EXPECT_SHELL_LOG_CONTAINS(f"Table `{test_schema}`.`{test_table}` will not use BULK LOAD: not compatible")
+#@<> WL15432-TSFR_1_2_8 - table with secondary index is bulk loaded {bulk_load_supported}
+# support for secondary indexes was added by WL#16266
+TEST_LOAD(expect_bulk_loaded = 1)
 
 #@<> WL15432-TSFR_1_2_9 - table with secondary index is bulk loaded when 'deferTableIndexes' = 'all' is given {bulk_load_supported}
 TEST_LOAD(expect_bulk_loaded = 1, options = { "deferTableIndexes": "all" })
