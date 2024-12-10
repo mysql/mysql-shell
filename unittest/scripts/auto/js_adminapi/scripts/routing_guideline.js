@@ -1313,6 +1313,45 @@ EXPECT_EQ(rgid_router_options, rgid);
 router_options = cluster.routerOptions();
 EXPECT_EQ("newrg", router_options["routers"][router1]["configuration"]["routing_rules"]["guideline"]);
 
+//@<> routerOptions(extended:2) should not include guideline for Routers that do not support it
+
+// Make routerhost2::system NOT support RGs again
+session.runSql("DELETE from mysql_innodb_cluster_metadata.routers where router_id=2");
+session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (2, 'system', 'mysqlrouter', 'routerhost2', '8.1.0', '2024-02-14 11:22:33', '{\"bootstrapTargetType\": \"cluster\", \"ROEndpoint\": \"mysqlro.sock\", \"RWEndpoint\": \"mysql.sock\", \"ROXEndpoint\": \"mysqlxro.sock\", \"RWXEndpoint\": \"mysqlx.sock\"}', ?, NULL, NULL)", [cluster_id]);
+
+router_options = cluster.routerOptions();
+EXPECT_EQ("newrg", router_options["routers"][router1]["configuration"]["routing_rules"]["guideline"]);
+EXPECT_EQ(undefined, router_options["routers"][router2]["configuration"]["routing_rules"])
+
+router_options = cluster.routerOptions({extended:1});
+EXPECT_EQ("newrg", router_options["routers"][router1]["configuration"]["routing_rules"]["guideline"]);
+EXPECT_EQ(undefined, router_options["routers"][router2]["configuration"]["routing_rules"])
+
+router_options = cluster.routerOptions({extended:2});
+EXPECT_EQ("newrg", router_options["routers"][router1]["configuration"]["routing_rules"]["guideline"]);
+EXPECT_EQ(undefined, router_options["routers"][router2]["configuration"]["routing_rules"]["guideline"])
+
+// Make routerhost2::system support RGs again
+session.runSql("DELETE from mysql_innodb_cluster_metadata.routers where router_id=2");
+session.runSql(
+  `
+  INSERT INTO \`mysql_innodb_cluster_metadata\`.\`routers\`
+  VALUES (
+    2,
+    'system',
+    'MySQL Router',
+    'routerhost2',
+    '8.4.0',
+    '2024-02-14 11:22:33',
+    ?,
+    ?,
+    NULL,
+    NULL
+  )
+  `,
+  [JSON.stringify(router_config), cluster_id]
+);
+
 //@<> removeRoutingGuideline() - Guideline in use by a Router (should fail)
 EXPECT_THROWS(function(){ cluster.removeRoutingGuideline("newrg");}, "Routing Guideline is in use and cannot be deleted");
 EXPECT_OUTPUT_CONTAINS("ERROR: Routing Guideline 'newrg' is currently being used by Router 'routerhost1::system'");
