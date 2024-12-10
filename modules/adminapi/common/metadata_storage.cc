@@ -336,114 +336,171 @@ std::string get_topology_mode_query(const Version &md_version) {
 
 constexpr std::string_view k_select_router_options =
     R"*(SELECT
-CONCAT(CONVERT(r.address using utf8mb4), '::', r.router_name) AS router_label,
-JSON_MERGE_PATCH(
-  COALESCE(r.attributes->>'$.Configuration', '{}'),
-  COALESCE( ( SELECT cs.router_options->>'$.ConfigurationChanges' FROM mysql_innodb_cluster_metadata.clustersets cs where (cs.clusterset_id = r.clusterset_id) ), '{}' ),
-  COALESCE( ( SELECT c.router_options->>'$.ConfigurationChanges' FROM mysql_innodb_cluster_metadata.clusters c where (c.cluster_id = r.cluster_id) ), '{}' ),
-  COALESCE( r.attributes->>'$.ConfigurationChanges', '{}' ),
-  JSON_OBJECT(
-    "routing_rules",
-    (
-      WITH ro AS (
-        SELECT JSON_MERGE_PATCH(
-          COALESCE((SELECT cs.router_options FROM mysql_innodb_cluster_metadata.clustersets cs where cs.clusterset_id = r.clusterset_id), '{}'),
-          COALESCE((SELECT c.router_options FROM mysql_innodb_cluster_metadata.clusters c where c.cluster_id = r.cluster_id), '{}'),
-            COALESCE(r.options, '{}')
-        ) AS merged_options
-      )
-      SELECT JSON_MERGE_PATCH("{}",
-        JSON_OBJECT(
-          "tags", JSON_EXTRACT(ro.merged_options, "$.tags"),
-          "target_cluster",
-              IF(JSON_EXTRACT(ro.merged_options, "$.target_cluster")='primary', 'primary', (SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters cl WHERE cl.attributes->>'$.group_replication_group_name' = ro.merged_options->>'$.target_cluster' limit 1)),
-          "use_replica_primary_as_rw", JSON_EXTRACT(ro.merged_options, "$.use_replica_primary_as_rw"),
-          "stats_updates_frequency", JSON_EXTRACT(ro.merged_options, "$.stats_updates_frequency"),
-          "read_only_targets", JSON_EXTRACT(ro.merged_options, "$.read_only_targets"),
-          "unreachable_quorum_allowed_traffic", JSON_EXTRACT(ro.merged_options, "$.unreachable_quorum_allowed_traffic"),
-          "invalidated_cluster_policy", JSON_EXTRACT(ro.merged_options, "$.invalidated_cluster_policy"),
-          "guideline",
-              IF(JSON_EXTRACT(ro.merged_options, "$.guideline") IS NOT NULL, (
-                  SELECT name
-                  FROM mysql_innodb_cluster_metadata.routing_guidelines
-                  WHERE guideline_id = JSON_EXTRACT(ro.merged_options, "$.guideline")
-                  LIMIT 1
-                ),
-                NULL
-              )
-        )
-      )
-      FROM ro
-    )
-  )
-) AS router_configuration
-FROM mysql_innodb_cluster_metadata.routers r)*";
-
-constexpr std::string_view k_select_router_versions =
-    R"*(SELECT versions.version
-  FROM mysql_innodb_cluster_metadata.!,
-  JSON_TABLE(
-    JSON_KEYS(
-      JSON_EXTRACT(router_options, '$.Configuration')
-    ),
-    '$[*]' COLUMNS (version VARCHAR(9) PATH '$'))
-  AS versions
-  )*";
-
-constexpr std::string_view k_select_default_router_options =
-    R"*(SELECT
+  CONCAT(CONVERT(r.address USING utf8mb4), '::', r.router_name) AS router_label,
   JSON_MERGE_PATCH(
-    IFNULL(
-    JSON_EXTRACT(
-      JSON_EXTRACT(
-        JSON_EXTRACT(c.router_options, '$.Configuration'),
-        ?),
-    '$.Defaults'), '{}'),
+    COALESCE(r.attributes->>'$.Configuration', '{}'),
+    COALESCE(
+      (SELECT cs.router_options->>'$.ConfigurationChanges'
+       FROM mysql_innodb_cluster_metadata.clustersets cs
+       WHERE cs.clusterset_id = r.clusterset_id), '{}'),
+    COALESCE(
+      (SELECT c.router_options->>'$.ConfigurationChanges'
+       FROM mysql_innodb_cluster_metadata.clusters c
+       WHERE c.cluster_id = r.cluster_id), '{}'),
+    COALESCE(r.attributes->>'$.ConfigurationChanges', '{}'),
     JSON_OBJECT(
       "routing_rules",
       (
-        SELECT
-          JSON_MERGE_PATCH(
-            '{}',
-            JSON_OBJECT(
-              "tags",
-              JSON_EXTRACT(c.router_options, "$.tags"),
-              "target_cluster",
-              IF(JSON_EXTRACT(c.router_options, "$.target_cluster")='primary', 'primary', (SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters cl WHERE cl.attributes->>'$.group_replication_group_name' = c.router_options->>'$.target_cluster' limit 1)),
-              "use_replica_primary_as_rw",
-              JSON_EXTRACT(c.router_options, "$.use_replica_primary_as_rw"),
-              "stats_updates_frequency",
-              JSON_EXTRACT(c.router_options, "$.stats_updates_frequency"),
-              "read_only_targets",
-              JSON_EXTRACT(c.router_options, "$.read_only_targets"),
-              "unreachable_quorum_allowed_traffic",
-              JSON_EXTRACT(c.router_options, "$.unreachable_quorum_allowed_traffic"),
-              "invalidated_cluster_policy",
-              JSON_EXTRACT(c.router_options, "$.invalidated_cluster_policy"),
-              "guideline",
-              IF(JSON_EXTRACT(c.router_options, "$.guideline") IS NOT NULL, (
-                  SELECT name
-                  FROM mysql_innodb_cluster_metadata.routing_guidelines
-                  WHERE guideline_id = JSON_EXTRACT(c.router_options, "$.guideline")
-                  LIMIT 1
-                ),
-                NULL
+        WITH ro AS (
+          SELECT JSON_MERGE_PATCH(
+            COALESCE(
+              (SELECT cs.router_options
+               FROM mysql_innodb_cluster_metadata.clustersets cs
+               WHERE cs.clusterset_id = r.clusterset_id), '{}'),
+            COALESCE(
+              (SELECT c.router_options
+               FROM mysql_innodb_cluster_metadata.clusters c
+               WHERE c.cluster_id = r.cluster_id), '{}'),
+            COALESCE(r.options, '{}')
+          ) AS merged_options
+        )
+        SELECT JSON_MERGE_PATCH(
+          "{}",
+          JSON_OBJECT(
+            "tags", JSON_EXTRACT(ro.merged_options, "$.tags"),
+            "target_cluster",
+            IF(
+              JSON_EXTRACT(ro.merged_options, "$.target_cluster") = 'primary',
+              'primary',
+              (
+                SELECT cluster_name
+                FROM mysql_innodb_cluster_metadata.clusters cl
+                WHERE cl.attributes->>'$.group_replication_group_name' =
+                      ro.merged_options->>'$.target_cluster'
+                LIMIT 1
               )
+            ),
+            "use_replica_primary_as_rw", JSON_EXTRACT(ro.merged_options, "$.use_replica_primary_as_rw"),
+            "stats_updates_frequency", JSON_EXTRACT(ro.merged_options, "$.stats_updates_frequency"),
+            "read_only_targets", JSON_EXTRACT(ro.merged_options, "$.read_only_targets"),
+            "unreachable_quorum_allowed_traffic", JSON_EXTRACT(ro.merged_options, "$.unreachable_quorum_allowed_traffic"),
+            "invalidated_cluster_policy", JSON_EXTRACT(ro.merged_options, "$.invalidated_cluster_policy"),
+            "guideline",
+            IF(
+              JSON_EXTRACT(r.attributes, "$.SupportedRoutingGuidelinesVersion") IS NOT NULL
+              AND JSON_EXTRACT(ro.merged_options, "$.guideline") IS NOT NULL,
+              (
+                SELECT name
+                FROM mysql_innodb_cluster_metadata.routing_guidelines
+                WHERE guideline_id = JSON_EXTRACT(ro.merged_options, "$.guideline")
+                LIMIT 1
+              ),
+              NULL
             )
-          ) AS routing_rules
+          )
+        )
+        FROM ro
       )
     )
-  ))*";
+  ) AS router_configuration
+FROM mysql_innodb_cluster_metadata.routers r
+)*";
+
+constexpr std::string_view k_select_router_versions =
+    R"*(SELECT
+          versions.version
+        FROM
+          mysql_innodb_cluster_metadata.!,
+          JSON_TABLE(
+            JSON_KEYS(
+              JSON_EXTRACT(router_options, '$.Configuration')
+            ),
+            '$[*]' COLUMNS (
+              version VARCHAR(9) PATH '$'
+            )
+          ) AS versions
+      )*";
+
+constexpr std::string_view k_select_default_router_options =
+    R"*(SELECT
+          JSON_MERGE_PATCH(
+            IFNULL(
+              JSON_EXTRACT(
+                JSON_EXTRACT(
+                  JSON_EXTRACT(c.router_options, '$.Configuration'),
+                  ?
+                ),
+                '$.Defaults'
+              ),
+              '{}'
+            ),
+            JSON_OBJECT(
+              "routing_rules",
+              (
+                SELECT
+                  JSON_MERGE_PATCH(
+                    '{}',
+                    JSON_OBJECT(
+                      "tags",
+                      JSON_EXTRACT(c.router_options, "$.tags"),
+                      "target_cluster",
+                      IF(
+                        JSON_EXTRACT(c.router_options, "$.target_cluster") = 'primary',
+                        'primary',
+                        (
+                          SELECT
+                            cluster_name
+                          FROM
+                            mysql_innodb_cluster_metadata.clusters cl
+                          WHERE
+                            cl.attributes->>'$.group_replication_group_name' = c.router_options->>'$.target_cluster'
+                          LIMIT 1
+                        )
+                      ),
+                      "use_replica_primary_as_rw",
+                      JSON_EXTRACT(c.router_options, "$.use_replica_primary_as_rw"),
+                      "stats_updates_frequency",
+                      JSON_EXTRACT(c.router_options, "$.stats_updates_frequency"),
+                      "read_only_targets",
+                      JSON_EXTRACT(c.router_options, "$.read_only_targets"),
+                      "unreachable_quorum_allowed_traffic",
+                      JSON_EXTRACT(c.router_options, "$.unreachable_quorum_allowed_traffic"),
+                      "invalidated_cluster_policy",
+                      JSON_EXTRACT(c.router_options, "$.invalidated_cluster_policy"),
+                      "guideline",
+                      IF(
+                        JSON_EXTRACT(c.router_options, "$.guideline") IS NOT NULL,
+                        (
+                          SELECT
+                            name
+                          FROM
+                            mysql_innodb_cluster_metadata.routing_guidelines
+                          WHERE
+                            guideline_id = JSON_EXTRACT(c.router_options, "$.guideline")
+                          LIMIT 1
+                        ),
+                        NULL
+                      )
+                    )
+                  ) AS routing_rules
+              )
+            )
+          )
+      )*";
 
 constexpr std::string_view
     k_select_default_router_configuration_changes_schema =
-        R"*(SELECT JSON_EXTRACT(
+        R"*(SELECT
+          JSON_EXTRACT(
             JSON_EXTRACT(
-                JSON_EXTRACT(
-                    JSON_EXTRACT(router_options, '$.Configuration'),
-                    ?),
-                '$.ConfigurationChangesSchema'),
-            '$.properties')
+              JSON_EXTRACT(
+                JSON_EXTRACT(router_options, '$.Configuration'),
+                ?
+              ),
+              '$.ConfigurationChangesSchema'
+            ),
+            '$.properties'
+          )
       )*";
 
 }  // namespace
