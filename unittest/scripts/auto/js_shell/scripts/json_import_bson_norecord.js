@@ -225,7 +225,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: ArgumentError: Unexpected data, expected to find 
 
 //@<> BUG#37243264 $numberInt with just +
 import_doc({_id:{$oid:"5bfe3d5ff6d2f36d067c6fea"},int:{$numberInt:"+"}});
-EXPECT_STDOUT_CONTAINS("ERROR: Unexpected data, expected to find an integer string processing extended JSON for $numberInt at offset 64");
+EXPECT_STDOUT_CONTAINS("ERROR: ArgumentError: Unexpected data, expected to find an integer string processing extended JSON for $numberInt at offset 64");
 
 
 //@<> $numberDecimal with non string value
