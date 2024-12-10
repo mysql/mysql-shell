@@ -1689,7 +1689,11 @@ bool Python_context::load_plugin(const Plugin_definition &plugin) {
   plugin_dir = shcore::path::dirname(plugin_dir);
 
   try {
+#ifdef _WIN32
+    file = _wfopen(utf8_to_wide(file_name).c_str(), L"r");
+#else   // !_WIN32
     file = fopen(file_name.c_str(), "r");
+#endif  // !_WIN32
     if (nullptr == file) {
       throw std::runtime_error(shcore::str_format(
           "Failed opening the file: %s", errno_to_string(errno).c_str()));

@@ -1890,4 +1890,41 @@ shell.registerGlobal('gl', gl);
   delete_user_plugin("bug31693096");
 }
 
+TEST_F(Mysqlsh_plugin_test, bug37105233) {
+  const std::string utf8_name = "zażółć gęślą jaźń";
+
+  write_user_plugin(utf8_name + "-js", R"(function sample() {
+  println('Object defined in JS');
+}
+var obj = shell.createExtensionObject();
+shell.addExtensionObjectMember(obj, "testFunction", sample);
+shell.registerGlobal('jsObject', obj);
+)",
+                    ".js");
+
+  write_user_plugin(utf8_name + "-py", R"(def describe():
+  print('Object defined in PY')
+
+obj = shell.create_extension_object()
+shell.add_extension_object_member(obj, "selfDescribe", describe);
+shell.register_global('pyObject', obj);
+)",
+                    ".py");
+
+  add_py_test("\\py", "Switching to Python mode...");
+  add_py_test("pyObject.self_describe()", "Object defined in PY");
+
+  add_js_test("\\js", "Switching to JavaScript mode...");
+  add_js_test("jsObject.testFunction()", "Object defined in JS");
+
+  // run the test
+  run();
+
+  // check the output
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
+
+  delete_user_plugin(utf8_name + "-js");
+  delete_user_plugin(utf8_name + "-py");
+}
+
 }  // namespace tests
