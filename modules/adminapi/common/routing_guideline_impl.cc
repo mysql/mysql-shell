@@ -1675,6 +1675,17 @@ void Routing_guideline_impl::parse(const shcore::Dictionary_t &json,
   // validate
   try {
     (void)Guideline_classifier(shcore::Value(guideline).json());
+
+    // Validate names across routes and destinations
+    for (const auto &dest : *guideline->get_array("destinations")) {
+      dba::validate_name(dest.as_map()->get_string("name"),
+                         Validation_context::ROUTING_GUIDELINE_DESTINATION);
+    }
+
+    for (const auto &route : *guideline->get_array("routes")) {
+      dba::validate_name(route.as_map()->get_string("name"),
+                         Validation_context::ROUTING_GUIDELINE_ROUTE);
+    }
   } catch (...) {
     throw std::runtime_error("Invalid guideline document: " +
                              format_active_exception());
@@ -2075,6 +2086,10 @@ void Routing_guideline_impl::export_to_file(const std::string &file_path) {
   if (!shcore::create_file(file_path, shcore::Value(as_json()).json(true))) {
     throw std::runtime_error("Failed to open " + file_path + " for writing.");
   }
+
+  current_console()->print_info(shcore::str_format(
+      "Routing Guideline '%s' successfully exported to '%s'.", m_name.c_str(),
+      file_path.c_str()));
 }
 
 }  // namespace mysqlsh::dba

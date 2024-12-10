@@ -120,6 +120,68 @@ const invalid_guideline =
 
 EXPECT_THROWS(function(){ cluster.createRoutingGuideline("fromjson", invalid_guideline);}, "Invalid guideline document: Errors while parsing routing guidelines document:\n- destinations[0].match: type error, = operator, the type of left operand does not match right, expected ROLE but got STRING in '$.server.memberRole = INVALID'\n- destinations[0]: 'match' field not defined\n- routes: field is expected to be a non empty array\n- no destination classes defined by the document\n- no routes defined by the document");
 
+const invalid_guideline_invalid_names =
+{
+    "destinations": [
+        {
+            "match": "$.server.memberRole = READ_REPLICA",
+            "name": "ReadR eplica"
+        }
+    ],
+    "name": "foo",
+    "routes": [
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
+                {
+                    "classes": [
+                        "ReadR eplica"
+                    ],
+                    "priority": 0,
+                    "strategy": "round-robin"
+                }
+            ],
+            "enabled": true,
+            "match": "$.session.targetPort = $.router.port.rw",
+            "name": "read replica"
+        }
+    ],
+    "version": "1.0"
+}
+
+EXPECT_THROWS(function(){ cluster.createRoutingGuideline("fromjson", invalid_guideline_invalid_names);}, "Invalid guideline document: ArgumentError: Destination name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (ReadR eplica)");
+
+const invalid_guideline_invalid_names_more =
+{
+    "destinations": [
+        {
+            "match": "$.server.memberRole = READ_REPLICA",
+            "name": "ReadReplica"
+        }
+    ],
+    "name": "foo",
+    "routes": [
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
+                {
+                    "classes": [
+                        "ReadReplica"
+                    ],
+                    "priority": 0,
+                    "strategy": "round-robin"
+                }
+            ],
+            "enabled": true,
+            "match": "$.session.targetPort = $.router.port.rw",
+            "name": "read replica"
+        }
+    ],
+    "version": "1.0"
+}
+
+EXPECT_THROWS(function(){ cluster.createRoutingGuideline("fromjson", invalid_guideline_invalid_names_more);}, "Invalid guideline document: ArgumentError: Route name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (read replica)");
+
 //@<> createRoutingGuideline() - using the 'json' option + valid json
 EXPECT_NO_THROWS(function() { rg_from_json = cluster.createRoutingGuideline("fromjson", default_cluster_guideline);} );
 
@@ -1585,6 +1647,15 @@ testutil.rmfile(rg2_invalid_path);
 
 // restore the original version
 file_json.version = original_version;
+
+//@<> import_routing_guideline() - invalid json (naming)
+var rg2_invalid_naming = "rg2_invalid.json";
+
+testutil.createFile(rg2_invalid_naming, JSON.stringify(invalid_guideline_invalid_names, null, 2));
+
+EXPECT_THROWS(function(){ rg2 = cluster.importRoutingGuideline(rg2_invalid_naming);}, "Invalid guideline document: ArgumentError: Destination name may only contain alphanumeric characters, '_', '-', or '.' and may not start with a number (ReadR eplica)");
+
+testutil.rmfile(rg2_invalid_naming);
 
 //@<> import_routing_guideline() - OK
 EXPECT_NO_THROWS(function(){ rg2 = cluster.importRoutingGuideline(rg2_path);});

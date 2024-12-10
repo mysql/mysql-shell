@@ -234,7 +234,7 @@ cluster.list_routers();
 
 Example output:
 ```
-cluster.list_routers()cluster.list_routers()
+cluster.list_routers()
 {
     "clusterName": "devCluster",
     "routers": {
