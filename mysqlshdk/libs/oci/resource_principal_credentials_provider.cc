@@ -365,7 +365,7 @@ class Resource_principal_federation : public Resource_principal_with_rpt {
       id = *env;
     } else {
       // fetch ID from IMDS
-      id = Instance_metadata_retriever{2}.instance_id();
+      id = Instance_metadata_retriever{}.instance_id();
     }
 
     return shcore::str_replace(path_template, "{id}", id);
