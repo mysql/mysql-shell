@@ -286,7 +286,8 @@ REGISTER_HELP(
     "If TYPE is omitted, automatic protocol detection is done, unless the "
     "protocol is given in the URI.");
 REGISTER_HELP(CMD_CONNECT_DETAIL5,
-              "URI and SSHURI format is: [user[:password]@]hostname[:port]");
+              "URI format is: [user[:password]@]hostname[:port] and SSHURI "
+              "format is: [user@]hostname[:port]");
 REGISTER_HELP(CMD_CONNECT_EXAMPLE, "<b>\\connect --mx</b> root@localhost");
 REGISTER_HELP(
     CMD_CONNECT_EXAMPLE_DESC,

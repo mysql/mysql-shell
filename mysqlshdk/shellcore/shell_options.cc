@@ -306,7 +306,7 @@ Shell_options::Shell_options(
   add_startup_options(true)
     (cmdline("--ssh=<value>"), "Make SSH tunnel connection using"
         "Uniform Resource Identifier. "
-        "Format: [user[:pass]@]host[:port]")
+        "Format: [user@]host[:port]")
     (&storage.ssh.identity_file, "", cmdline("--ssh-identity-file=<file>"),
         "File from which the private key for public key authentication is "
         "read.",

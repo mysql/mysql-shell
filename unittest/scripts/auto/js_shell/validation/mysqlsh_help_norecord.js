@@ -29,7 +29,7 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    arguments of the processed file.
   --ssh=<value>                    Make SSH tunnel connection usingUniform
                                    Resource Identifier. Format:
-                                   [user[:pass]@]host[:port]
+                                   [user@]host[:port]
   --ssh-identity-file=<file>       File from which the private key for public
                                    key authentication is read.
   --ssh-config-file=<file>         Specify a custom path for SSH configuration.
