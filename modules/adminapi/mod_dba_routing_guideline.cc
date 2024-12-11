@@ -419,6 +419,7 @@ Router.
 @li $.router.tags: A key-value object containing user-defined tags stored in
 the topology's metadata for that Router instance.
 @li $.router.routeName: Name of the Routing plugin used by the Router.
+@li $.router.name: Name of the Router.
 
 <b>Examples</b>
 
@@ -516,6 +517,7 @@ Router.
 @li $.router.tags: A key-value object containing user-defined tags stored in
 the topology's metadata for that Router instance.
 @li $.router.routeName: Name of the Routing plugin used by the Router.
+@li $.router.name: Name of the Router.
 
 The '$.session.connectAttrs' variable refers to attributes sent by the client
 during the connection handshake. These attributes are not simple scalars but
