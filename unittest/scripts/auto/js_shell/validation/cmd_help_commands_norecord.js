@@ -27,7 +27,8 @@ DESCRIPTION
       If TYPE is omitted, automatic protocol detection is done, unless the
       protocol is given in the URI.
 
-      URI and SSHURI format is: [user[:password]@]hostname[:port]
+      URI format is: [user[:password]@]hostname[:port] and SSHURI format is:
+      [user@]hostname[:port]
 
 EXAMPLE
       \connect --mx root@localhost
