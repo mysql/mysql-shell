@@ -457,7 +457,7 @@ set(CMAKE_MODULE_PATH
 
 ### Configuring package year
 IF(NOT PACKAGE_YEAR)
-  SET(PACKAGE_YEAR "2024")
+  SET(PACKAGE_YEAR "2025")
 ENDIF()
 add_definitions(-DPACKAGE_YEAR="${PACKAGE_YEAR}")
 
