@@ -471,7 +471,7 @@ add_definitions(-DIS_BIG_ENDIAN=${IS_BIG_ENDIAN})
 
 ### Configuring package year
 IF(NOT PACKAGE_YEAR)
-  SET(PACKAGE_YEAR "2024")
+  SET(PACKAGE_YEAR "2025")
 ENDIF()
 add_definitions(-DPACKAGE_YEAR="${PACKAGE_YEAR}")
 
