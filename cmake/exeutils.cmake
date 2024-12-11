@@ -89,6 +89,13 @@ function(add_shell_executable)
                 "${ANTLR4_LIB_FILENAME}" "@loader_path/../${INSTALL_LIBDIR}/${ANTLR4_LIB_FILENAME}"
                 $<TARGET_FILE:${ARGV0}>)
     endif()
+    if(BUNDLED_POLYGLOT_DIR)
+      add_custom_command(TARGET "${ARGV0}" POST_BUILD
+        COMMAND install_name_tool -change
+                "${POLYGLOT_LIBRARY_NAME}" "@loader_path/../${INSTALL_LIBDIR}/${POLYGLOT_LIBRARY_NAME}"
+                $<TARGET_FILE:${ARGV0}>
+      )
+    endif()
   elseif(NOT WIN32)
   if(BUNDLED_OPENSSL OR BUNDLED_SHARED_PYTHON OR BUNDLED_SSH_DIR OR BUNDLED_KRB5_DIR OR BUNDLED_ANTLR_DIR OR BUNDLED_SASL_DIR)
     # newer versions of linker enable new dtags by default, causing -Wl,-rpath to create RUNPATH
