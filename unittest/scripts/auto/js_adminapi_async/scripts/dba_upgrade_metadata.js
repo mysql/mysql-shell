@@ -39,6 +39,24 @@ shell.connect(__sandbox_uri2)
 dba.upgradeMetadata()
 EXPECT_OUTPUT_CONTAINS(`NOTE: Installed metadata at '${hostname}:${__mysql_sandbox_port1}' is up to date (version 2.2.0).`);
 
+// Dissolve
+rset.dissolve({force: 1});
+
+ports=[__mysql_sandbox_port1]
+metadata_2_1_0_file = "metadata_2_1_0.sql";
+primary_port = __mysql_sandbox_port1
+
+//@<> INCLUDE metadata_schema_utils.inc
+//@<> INCLUDE _prepare_metadata_2_1_0_replicaset.js
+
+//@<> Upgrading a ReplicaSet metadata to 2.2.0 must set the correct instance_type {VER(>=8.1.0)}
+shell.connect(__sandbox_uri1)
+dba.upgradeMetadata()
+
+var instance_type = session.runSql("SELECT instance_type from mysql_innodb_cluster_metadata.instances where instance_id = 1").fetchOne()[0];
+
+EXPECT_EQ("async-member", instance_type);
+
 //@<> Cleanup
 session.close();
 testutil.destroySandbox(__mysql_sandbox_port1)
