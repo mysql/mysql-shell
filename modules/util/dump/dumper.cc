@@ -1691,7 +1691,8 @@ class Dumper::Table_worker final {
 
     if (!m_json_path) {
       for (const auto path : {
-               "/inputs/0/estimated_rows",  // JSON format ver. 2
+               "/query_plan/inputs/0/estimated_rows",  // v2 + BUG#35239659
+               "/inputs/0/estimated_rows",             // JSON format ver. 2
                "/query_block/table/rows_examined_per_scan",   // 5.7+ (ver. 1)
                "/query_block/ordering_operation/table/rows",  // 5.6
                "/query_block/nested_loop/0/table/rows",       // MariaDB
