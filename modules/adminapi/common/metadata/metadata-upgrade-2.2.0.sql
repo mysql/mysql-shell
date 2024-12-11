@@ -67,6 +67,13 @@ ADD
 AFTER
   `description`;
 
+-- Populate the new column with the right data: instance is either part of a Cluster or a ReplicaSet
+UPDATE `mysql_innodb_cluster_metadata`.`instances` AS i
+JOIN `mysql_innodb_cluster_metadata`.`clusters` AS c
+  ON i.cluster_id = c.cluster_id
+SET i.instance_type =
+  IF(c.cluster_type = 'gr', 'group-member', 'async-member');
+
 ALTER TABLE
   `mysql_innodb_cluster_metadata`.`routers`
 MODIFY `address` VARCHAR(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL;
