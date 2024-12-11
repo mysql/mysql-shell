@@ -96,6 +96,12 @@ std::vector<std::string> filter_backtrace(const std::string &backtrace,
   std::vector<std::string> lines;
   std::istringstream stream(backtrace);
   for (std::string line; std::getline(stream, line);) {
+#ifdef _WIN32
+    if (!line.empty() && '\r' == line.back()) {
+      line.pop_back();
+    }
+#endif  // _WIN32
+
     lines.push_back(std::move(line));
   }
 
