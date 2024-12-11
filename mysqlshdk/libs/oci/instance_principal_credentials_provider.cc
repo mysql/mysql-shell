@@ -54,18 +54,8 @@ Instance_principal_credentials_provider::
     Instance_principal_credentials_provider()
     : Oci_credentials_provider("instance_principal") {
   try {
-    try {
-      m_instance_metadata = std::make_unique<Instance_metadata_retriever>(2);
-      m_instance_metadata->refresh();
-    } catch (const rest::Response_error &error) {
-      if (rest::Response::Status_code::NOT_FOUND == error.status_code()) {
-        // IMDS server is there, but we got 404, try to use version 1
-        m_instance_metadata = std::make_unique<Instance_metadata_retriever>(1);
-        m_instance_metadata->refresh();
-      } else {
-        throw;
-      }
-    }
+    m_instance_metadata = std::make_unique<Instance_metadata_retriever>();
+    m_instance_metadata->refresh();
   } catch (const std::exception &e) {
     log_error("Failed to fetch instance metadata: %s", e.what());
     throw std::runtime_error(

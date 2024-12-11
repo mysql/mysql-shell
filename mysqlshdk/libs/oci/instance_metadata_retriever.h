@@ -44,11 +44,9 @@ namespace oci {
 class Instance_metadata_retriever final {
  public:
   /**
-   * Creates the retriever, performs initial refresh.
-   *
-   * @param version IMDS version - either 1 or 2
+   * Creates the retriever.
    */
-  explicit Instance_metadata_retriever(uint8_t version);
+  Instance_metadata_retriever();
 
   Instance_metadata_retriever(const Instance_metadata_retriever &) = delete;
   Instance_metadata_retriever(Instance_metadata_retriever &&) = delete;

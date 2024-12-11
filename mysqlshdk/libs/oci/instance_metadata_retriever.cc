@@ -43,20 +43,10 @@ namespace {
 using shcore::ssl::Private_key;
 using shcore::ssl::X509_certificate;
 
-std::string instance_metadata_uri(uint8_t version) {
-  assert(version == 1 || version == 2);
-
-  std::string uri = "http://169.254.169.254/opc/v";
-
-  uri += '0' + version;
-
-  return uri;
-}
-
 }  // namespace
 
-Instance_metadata_retriever::Instance_metadata_retriever(uint8_t version) {
-  auto uri = instance_metadata_uri(version);
+Instance_metadata_retriever::Instance_metadata_retriever() {
+  std::string uri = "http://169.254.169.254/opc/v2";
 
   log_info("Instance metadata URI: %s", uri.c_str());
 
