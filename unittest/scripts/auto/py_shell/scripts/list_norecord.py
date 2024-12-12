@@ -693,8 +693,8 @@ EXPECT_EQ(object.__setattr__, shlist.__setattr__)
 SETUP("__setitem__", range(11))
 
 ## exceptions
-# can only assign an iterable, Python 3.13+ reports must assign iterable to extended slice instead
-if sys.hexversion < 0x030d0000:
+# can only assign an iterable, Python 3.12.5+ reports must assign iterable to extended slice instead
+if sys.hexversion < 0x030c0500:
     TEST(slice(2, 7), 7)
 # must assign iterable to extended slice
 TEST(slice(2, 7, 2), 7)
