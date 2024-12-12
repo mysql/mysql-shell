@@ -53,6 +53,7 @@ class Storage_options {
     S3,
     Azure,
     Memory,
+    Unknown,
   };
 
   explicit Storage_options(bool reads_files);

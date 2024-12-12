@@ -105,6 +105,8 @@ void Storage_options::on_unpacked_options() {
 
 void Storage_options::set_storage_config(mysqlshdk::storage::Config_ptr storage,
                                          Storage_type type) {
+  assert(Storage_type::Unknown != type);
+
   m_storage = std::move(storage);
   m_storage_type = type;
 }
@@ -202,6 +204,8 @@ mysqlshdk::storage::Config_ptr Storage_options::config_for(
       *type = Storage_type::Http;
     } else if (mysqlshdk::storage::utils::scheme_matches(scheme, "file")) {
       *type = Storage_type::Local;
+    } else {
+      *type = Storage_type::Unknown;
     }
 
     return {};
