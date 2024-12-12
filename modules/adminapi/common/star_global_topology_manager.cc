@@ -74,12 +74,6 @@ bool check_replication_working(const mysqlshdk::mysql::IInstance &instance,
               "Replication applier error in " + instance.descr() + ": " +
               mysqlshdk::mysql::to_string(applier.last_error));
       }
-
-      // connection errors can be fixed by resetting the channel, but not
-      // applier errors
-      throw shcore::Exception(
-          "Replication applier error in " + instance.descr(),
-          SHERR_DBA_REPLICATION_APPLIER_ERROR);
     }
   }
   return repl_ok;

@@ -256,17 +256,20 @@ session2.runSql("SET global super_read_only=1");
 
 session.runSql("CREATE SCHEMA testdb");
 
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}`);
+EXPECT_THROWS(function () { rs.removeInstance(__sandbox2); }, `Replication is not active in target instance`);
 
 EXPECT_STDOUT_CONTAINS(`ERROR: Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}:`);
+EXPECT_STDOUT_CONTAINS(`ERROR: Instance cannot be safely removed while in this state`);
+EXPECT_STDOUT_CONTAINS(`Use the 'force' option to remove this instance anyway. The instance may be left in an inconsistent state after removed.`);
 
 //@<> error in replication channel - force
-// FIXME: The use of the force option is not working, still failing.
-EXPECT_THROWS(function () { rs.removeInstance(__sandbox2, {force:true}); }, `Replication applier error in ${hostname_ip}:${__mysql_sandbox_port2}`);
+EXPECT_NO_THROWS(function() { rs.removeInstance(__sandbox2, {force: true}); });
+
+EXPECT_STDOUT_CONTAINS(`The instance '${hostname_ip}:${__mysql_sandbox_port2}' was removed from the replicaset.`);
 
 // rebuild
 reset_instance(session2);
-EXPECT_THROWS(function () { rs.addInstance(__sandbox2); }, `${hostname_ip}:${__mysql_sandbox_port2} is already a member of this replicaset.`);
+EXPECT_NO_THROWS(function() { rs.addInstance(__sandbox2); });
 
 //@<> remove with repl already stopped - no force (should fail)
 session2.runSql("STOP " + get_replica_keyword());
