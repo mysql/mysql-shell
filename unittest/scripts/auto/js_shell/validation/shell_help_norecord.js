@@ -1259,6 +1259,10 @@ EXCEPTIONS
       - if storing the credential fails.
 
 //@<OUT> BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, before session
+Information about the data used to create sessions.
+
+Connection Data
+
 The connection data may be specified in the following formats:
 
 - A URI string
@@ -1312,6 +1316,7 @@ The following options are valid for use either in a URI or in a dictionary:
 - authentication-openid-connect-client-id-token-file: Allows defining the file
   path to an OpenId Connect authorization token file when using OpenId Connect
   authentication.
+- client-interactive: Enable/disable interactive mode for the session.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -1536,6 +1541,10 @@ If host is a literal IPv6 address with zone ID, the '%' character separating
 address from the zone ID needs to be URL encoded.
 
 //@<OUT> BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, after session
+Information about the data used to create sessions.
+
+Connection Data
+
 The connection data may be specified in the following formats:
 
 - A URI string
@@ -1589,6 +1598,7 @@ The following options are valid for use either in a URI or in a dictionary:
 - authentication-openid-connect-client-id-token-file: Allows defining the file
   path to an OpenId Connect authorization token file when using OpenId Connect
   authentication.
+- client-interactive: Enable/disable interactive mode for the session.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -1948,6 +1958,7 @@ The following options are valid for use either in a URI or in a dictionary:
 - authentication-openid-connect-client-id-token-file: Allows defining the file
   path to an OpenId Connect authorization token file when using OpenId Connect
   authentication.
+- client-interactive: Enable/disable interactive mode for the session.
 
 When these options are defined in a URI, their values must be URL encoded.
 
