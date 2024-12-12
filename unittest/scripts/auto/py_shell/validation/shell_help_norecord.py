@@ -379,13 +379,14 @@ DESCRIPTION
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
       - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos 
+      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
+        the kerberos client mode (SSPI, GSSAPI) when using kerberos
         authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI 
+      - oci-config-file: Allows defining the OCI configuration file for OCI
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
+      - client-interactive: Enable/disable interactive mode for the session.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -499,13 +500,14 @@ DESCRIPTION
         at the PERFORMANCE_SCHEMA connection attributes tables.
       - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
       - net-buffer-length: The buffer size for TCP/IP and socket communication.
-      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining 
-        the kerberos client mode (SSPI, GSSAPI) when using kerberos 
+      - plugin-authentication-kerberos-client-mode: (Windows) Allows defining
+        the kerberos client mode (SSPI, GSSAPI) when using kerberos
         authentication.
-      - oci-config-file: Allows defining the OCI configuration file for OCI 
+      - oci-config-file: Allows defining the OCI configuration file for OCI
         authentication.
       - authentication-oci-client-config-profile: Allows defining the OCI
         profile used from the configuration for client side OCI authentication.
+      - client-interactive: Enable/disable interactive mode for the session.
 
       When these options are defined in a URI, their values must be URL
       encoded.
@@ -1388,12 +1390,13 @@ The following options are valid for use either in a URI or in a dictionary:
   PERFORMANCE_SCHEMA connection attributes tables.
 - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
-- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the 
+- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
-- oci-config-file: Allows defining the OCI configuration file for OCI 
+- oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
   used from the configuration for client side OCI authentication.
+- client-interactive: Enable/disable interactive mode for the session.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -1662,12 +1665,13 @@ The following options are valid for use either in a URI or in a dictionary:
   PERFORMANCE_SCHEMA connection attributes tables.
 - local-infile: Enable/disable LOAD DATA LOCAL INFILE.
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
-- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the 
+- plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
-- oci-config-file: Allows defining the OCI configuration file for OCI 
+- oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
   used from the configuration for client side OCI authentication.
+- client-interactive: Enable/disable interactive mode for the session.
 
 When these options are defined in a URI, their values must be URL encoded.
 

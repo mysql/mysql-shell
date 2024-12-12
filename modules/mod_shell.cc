@@ -576,6 +576,7 @@ client mode (SSPI, GSSAPI) when using kerberos authentication.
 @li oci-config-file: Allows defining the OCI configuration file for OCI authentication.
 @li authentication-oci-client-config-profile: Allows defining the OCI profile used from 
 the configuration for client side OCI authentication.
+@li client-interactive: Enable/disable interactive mode for the session.
 
 When these options are defined in a URI, their values must be URL encoded.
 
