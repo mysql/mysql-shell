@@ -1,5 +1,5 @@
 diff --git a/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java b/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java
-index 1ed21c307..7006dbd44 100644
+index 1ed21c307..496663aec 100644
 --- a/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java
 +++ b/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java
 @@ -28,23 +28,60 @@ import static org.graalvm.polyglot.nativeapi.types.PolyglotNativeAPITypes.Polygl
@@ -2616,3 +2616,16 @@ index 1ed21c307..7006dbd44 100644
      @CEntryPoint(name = "poly_context_builder_timezone", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Sets timezone for a <code>poly_context_builder</code>.",
                      "",
+diff --git a/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPIEntryPoints.java b/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPIEntryPoints.java
+index a227d9c9e..58a723a15 100644
+--- a/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPIEntryPoints.java
++++ b/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPIEntryPoints.java
+@@ -104,7 +104,7 @@ public final class PolyglotNativeAPIEntryPoints {
+                     "the thread is detached."})
+     @CEntryPointOptions(prologue = NoPrologue.class, epilogue = NoEpilogue.class, nameTransformation = UnchangedNameTransformation.class)
+     public static @CTypedef(name = "poly_status") int polyCreateIsolate(@CConst PolyglotIsolateParameters params, PolyglotIsolatePointer isolate, PolyglotIsolateThreadPointer thread) {
+-        return createIsolate(params, isolate, thread) == 0 ? Poly.ok() : Poly.generic_failure();
++        return createIsolate(params, isolate, thread);
+     }
+
+     @Uninterruptible(reason = UNINTERRUPTIBLE_REASON)

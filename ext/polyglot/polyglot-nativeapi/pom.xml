@@ -22,12 +22,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.graalvm.polyglot</groupId>
-            <artifactId>polyglot</artifactId>
-            <version>${graalvm.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>org.graalvm.nativeimage</groupId>
             <artifactId>svm</artifactId>
             <version>${graalvm.version}</version>
