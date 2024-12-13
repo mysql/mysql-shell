@@ -183,7 +183,7 @@ shcore::Dictionary_t channel_status(
           rstatus->set(
               "replicationLag",
               channel_info->repl_lag_from_original.empty()
-                  ? shcore::Value::Null()
+                  ? shcore::Value("applier_queue_applied")
                   : shcore::Value(channel_info->repl_lag_from_original));
         } else {
           rstatus->set("replicationLagFromOriginalSource",

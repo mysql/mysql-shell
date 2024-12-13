@@ -84,7 +84,7 @@
 //@# do stuff in the old primary to simulate split-brain
 |                    "receiverStatus": "ON", |
 |                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event", |
-|                    "replicationLag": null|
+|                    "replicationLag": "applier_queue_applied"|
 |                }, |
 |                "status": "ONLINE"|
 |            }|
@@ -128,7 +128,7 @@
 |                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ON", |
 |                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event", |
-|                    "replicationLag": null|
+|                    "replicationLag": "applier_queue_applied"|
 |                }, |
 |                "status": "ONLINE"|
 |            }|
@@ -247,7 +247,7 @@
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": null,
                     "replicationSslMode": "REQUIRED"
                 },
@@ -298,7 +298,7 @@
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": null,
                     "replicationSslMode": "REQUIRED"
                 },
@@ -358,7 +358,7 @@
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -373,7 +373,7 @@
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
