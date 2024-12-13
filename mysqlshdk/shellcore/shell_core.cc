@@ -178,8 +178,14 @@ bool Shell_core::switch_mode(Mode mode) {
   m_help.set_mode(mode);
 
   if (_mode != mode) {
+    Mode backup_mode = _mode;
     _mode = mode;
-    init_mode(_mode);
+    try {
+      init_mode(_mode);
+    } catch (...) {
+      _mode = backup_mode;
+      throw;
+    }
     return true;
   }
   return false;
