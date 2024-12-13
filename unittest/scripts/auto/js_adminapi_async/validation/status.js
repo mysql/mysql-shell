@@ -31,7 +31,7 @@
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -78,7 +78,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "receiverTimeSinceLastMessage": "[[*]]",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED",
                     "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
@@ -134,7 +134,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "receiverTimeSinceLastMessage": "[[*]]",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED",
                     "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
@@ -174,7 +174,7 @@
                     },
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -228,7 +228,7 @@
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
                     "receiverTimeSinceLastMessage": "[[*]]",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED",
                     "source": "<<<hostname_ip>>>:<<<__mysql_sandbox_port1>>>"
@@ -266,7 +266,7 @@
                     "applierWorkerThreads": 3,
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -321,7 +321,7 @@
                     "applierWorkerThreads": 4,
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -360,7 +360,7 @@
                     "applierWorkerThreads": 4,
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -398,7 +398,7 @@
                     "applierThreadState": "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates",
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -525,7 +525,7 @@
                     "applierWorkerThreads": 4,
                     "receiverStatus": "ON",
                     "receiverThreadState": "[[*]]",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": null,
                     "replicationSslMode": "DISABLED"
                 },
@@ -541,7 +541,7 @@
                     "applierWorkerThreads": 4,
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -576,7 +576,7 @@
                     "applierThreadState": <<<(__version_num<80023)?'"Slave has read all relay log; waiting for more updates",':'"Waiting for an event from Coordinator",\n                    "applierWorkerThreads": 4,'>>>
                     "receiverStatus": "ON",
                     "receiverThreadState": "[[*]]",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": null,
                     "replicationSslMode": "DISABLED"
                 },
@@ -591,7 +591,7 @@
                     "applierThreadState": "<<<__replica_keyword_capital>>> has read all relay log; waiting for more updates",
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },

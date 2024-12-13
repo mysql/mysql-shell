@@ -437,7 +437,7 @@ Use rs.addInstance() to add more asynchronously replicated instances to this rep
 |                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ON",|
 |                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",|
-|                    "replicationLag": null|
+|                    "replicationLag": "applier_queue_applied"|
 |                },|
 |                "status": "ONLINE"|
 |            },|
@@ -451,7 +451,7 @@ Use rs.addInstance() to add more asynchronously replicated instances to this rep
 |                    <<<(__version_num<80023)?'"applierWorkerThreads": 4':''>>>|
 |                    "receiverStatus": "ON",|
 |                    "receiverThreadState": "Waiting for <<<__source_keyword>>> to send event",|
-|                    "replicationLag": null|
+|                    "replicationLag": "applier_queue_applied"|
 |                },|
 |                "status": "ONLINE"|
 |            }|
