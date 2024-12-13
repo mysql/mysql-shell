@@ -25,6 +25,7 @@
 
 #include "mysqlshdk/scripting/polyglot/languages/polyglot_common_context.h"
 
+#include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/scripting/polyglot/native_wrappers/polyglot_collectable.h"
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_error.h"
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_scope.h"
@@ -34,8 +35,10 @@ namespace shcore {
 namespace polyglot {
 
 void Polyglot_common_context::initialize() {
-  if (poly_ok != poly_create_isolate(NULL, &m_isolate, &m_thread)) {
-    throw Polyglot_generic_error("Error creating polyglot isolate");
+  if (const auto rc = poly_create_isolate(NULL, &m_isolate, &m_thread);
+      poly_ok != rc) {
+    throw Polyglot_generic_error(
+        shcore::str_format("Error creating polyglot isolate: %d", rc));
   }
 
   m_garbage_collector.start(gc_config(), m_isolate);
