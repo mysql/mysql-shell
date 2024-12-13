@@ -465,10 +465,10 @@ void Routing_guideline_impl::add_route(const std::string &name,
   }
 
   auto route = shcore::make_dict(
-      "name", shcore::Value(name), "match", shcore::Value(match_expr),
-      "destinations", shcore::Value(parsed_destinations), "enabled",
-      shcore::Value(enabled), "connectionSharingAllowed",
-      shcore::Value(connection_sharing_allowed));
+      "name", shcore::Value(name), "match",
+      shcore::Value(auto_escape_tags(match_expr)), "destinations",
+      shcore::Value(parsed_destinations), "enabled", shcore::Value(enabled),
+      "connectionSharingAllowed", shcore::Value(connection_sharing_allowed));
 
   routing_guidelines::Routing_guidelines_engine::validate_one_route(
       shcore::Value(route).json());
@@ -1864,8 +1864,9 @@ void Routing_guideline_impl::set_destination_option(
   }
 
   // Validate the value
-  auto dest = shcore::make_dict("name", shcore::Value(destination_name),
-                                "match", shcore::Value(value));
+  auto dest =
+      shcore::make_dict("name", shcore::Value(destination_name), "match",
+                        shcore::Value(auto_escape_tags(value.as_string())));
 
   routing_guidelines::Routing_guidelines_engine::validate_one_destination(
       shcore::Value(dest).json());
@@ -1987,6 +1988,11 @@ void Routing_guideline_impl::set_route_option(const std::string &route_name,
 
   // Validate and update route property with the new value
   if (option != k_routing_guideline_set_route_option_order) {
+    // Auto-escape key-value types for the match expression
+    if (option == k_routing_guideline_set_option_match) {
+      parsed_value = shcore::Value(auto_escape_tags(parsed_value.as_string()));
+    }
+
     route_map->set(option, parsed_value);
 
     routing_guidelines::Routing_guidelines_engine::validate_one_route(

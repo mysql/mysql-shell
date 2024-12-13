@@ -802,7 +802,7 @@ expected_rg_asjson =
                 }
             ],
             "enabled": true,
-            "match": "$.router.tags.key = 'value'",
+            "match": "$.router.tags.key = '\"value\"'",
             "name": "routetags"
         }
     ],
@@ -1434,13 +1434,22 @@ EXPECT_THROWS(function () { rg2.setDestinationOption("test1", "match", "$.server
 //@<> setDestinationOption - OK
 EXPECT_NO_THROWS(function(){ rg2.setDestinationOption("test1", "match", "$.server.memberRole = PRIMARY");} );
 
+// Key-value types must be auto-escaped, for example:
+//   - "$.router.tags.key = 'value\" must be stored as
+//   "$.router.tags.key = '\"value\"'"
+
+//@<> setDestinationOption - key-value types must be escaped
+EXPECT_NO_THROWS(function(){ rg2.setDestinationOption("tags", "match", "$.server.tags.foo = 'baz'");} );
+
+EXPECT_EQ("$.server.tags.foo = '\"baz\"'", rg2.asJson()["destinations"][5]["match"]);
+
 expected_destinations_match_changed = [
   "$.server.memberRole = PRIMARY",
   "$.server.memberRole = SECONDARY",
   "$.server.memberRole = READ_REPLICA",
   "$.server.memberRole = PRIMARY",
   "$.server.memberRole = SECONDARY",
-  "$.server.tags.foo = 'bar'"
+  "$.server.tags.foo = 'baz'"
 ];
 
 var destinations;
@@ -1546,6 +1555,15 @@ var routes;
 EXPECT_NO_THROWS(function() { routes = rg2.routes().fetchAll(); });
 
 EXPECT_JSON_EQ(expected_routes_destinations_changed, group_fields(routes, 4), ".expected_destinations_match");
+
+// Key-value types must be auto-escaped, for example:
+//   - "$.router.tags.key = 'value\" must be stored as
+//   "$.router.tags.key = '\"value\"'"
+
+//@<> setRouteOption - key-value types must be escaped
+EXPECT_NO_THROWS(function(){ rg2.setRouteOption("routetags", "match", "$.router.tags.key = 'foobar'");} );
+
+EXPECT_EQ("$.router.tags.key = '\"foobar\"'", rg2.asJson().routes[3]["match"])
 
 //@<> copy() - bad args
 STDCHECK_ARGTYPES(rg2.copy, 1, ["test"]);
@@ -1729,7 +1747,7 @@ Routes
       * ${hostname}:${__mysql_sandbox_port1} (Primary)
 
   - routetags
-    + Match: "$.router.tags.key = 'value'"
+    + Match: "$.router.tags.key = 'foobar'"
     + Destinations:
       * None (ReadReplica)
 
@@ -1773,7 +1791,7 @@ Destination Classes
       * None
 
   - tags:
-    + Match: "$.server.tags.foo = 'bar'"
+    + Match: "$.server.tags.foo = 'baz'"
     + Instances:
       * None
 
