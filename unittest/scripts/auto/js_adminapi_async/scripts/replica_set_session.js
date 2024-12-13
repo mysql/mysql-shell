@@ -62,7 +62,7 @@ Switching to JavaScript mode...
                     "applierThreadState": "Slave has read all relay log; waiting for more updates",
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for master to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },
@@ -101,7 +101,7 @@ Switching to JavaScript mode...
                     "applierWorkerThreads": 4,
                     "receiverStatus": "ON",
                     "receiverThreadState": "Waiting for ${__source_keyword} to send event",
-                    "replicationLag": null,
+                    "replicationLag": "applier_queue_applied",
                     "replicationSsl": "TLS_[[*]]",
                     "replicationSslMode": "REQUIRED"
                 },

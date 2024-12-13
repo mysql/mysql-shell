@@ -48,7 +48,7 @@ function check_default_status(extended, rr_status, current_source, replication_s
       EXPECT_EQ(4, rr_status["applierWorkerThreads"]);
       EXPECT_EQ("ON", rr_status["receiverStatus"]);
       EXPECT_EQ("Waiting for source to send event", rr_status["receiverThreadState"]);
-      EXPECT_EQ(null, rr_status["replicationLag"]);
+      EXPECT_EQ("applier_queue_applied", rr_status["replicationLag"]);
     }
 
     if (extended >= 2) {
