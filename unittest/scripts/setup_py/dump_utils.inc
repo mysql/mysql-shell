@@ -667,7 +667,7 @@ class Http_test_server:
     def __init__(self, handler):
         self.__handler = handler
         self.__port = self.__server = self.__thread = None
-    def start(self):
+    def start(self, no_proxy=False):
         while True:
             self.__port = random.randint(50000, 60000)
             try:
@@ -679,12 +679,14 @@ class Http_test_server:
                     raise
         self.__thread = threading.Thread(target = self.__server.serve_forever)
         self.__thread.start()
-        self.__stack = set_env_var("no_proxy", "*")
+        if no_proxy:
+            self.__stack = set_env_var("no_proxy", "*")
     def stop(self):
         self.__server.shutdown()
         self.__server.server_close()
         self.__thread.join()
-        self.__stack.close()
+        if hasattr(self, "__stack"):
+            self.__stack.close()
     def url(self):
         return f"http://127.0.0.1:{self.__port}"
 

@@ -1408,7 +1408,7 @@ class Http_file_server(BaseHTTPRequestHandler):
 
 # prepare the HTTP server
 http_file_server = Http_test_server(Http_file_server)
-http_file_server.start()
+http_file_server.start(no_proxy=True)
 
 #@<> export to an HTTP URL - plaintext file
 EXPECT_EXPORT_IMPORT(http_file_server.url() + "/export.txt")
