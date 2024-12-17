@@ -192,6 +192,9 @@ class Import_table_options : public Import_table_option_pack {
   }
 
  private:
+  using Common_options::on_set_url;
+  using Common_options::set_url;
+
   size_t calc_thread_size();
 
   void on_validate() const override;

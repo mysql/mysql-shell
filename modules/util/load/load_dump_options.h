@@ -193,8 +193,6 @@ class Load_dump_options : public common::Common_options {
 
   bool is_mds() const { return m_is_mds; }
 
-  void set_url(const std::string &url);
-
   bool show_metadata() const { return m_show_metadata; }
 
   void set_show_metadata(bool show) { m_show_metadata = show; }
@@ -243,6 +241,9 @@ class Load_dump_options : public common::Common_options {
   using Common_options::set_show_progress;
 
  private:
+  void on_set_url(const std::string &url, Storage_type storage,
+                  const mysqlshdk::storage::Config_ptr &config) override;
+
   void on_unpacked_options();
 
   void on_set_session(
@@ -262,7 +263,6 @@ class Load_dump_options : public common::Common_options {
 
   void configure_bulk_load();
 
-  std::string m_url;
   uint64_t m_threads_count = 4;
   std::optional<uint64_t> m_background_threads_count;
 

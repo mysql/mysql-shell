@@ -1830,7 +1830,7 @@ void Util::export_table(
 
   mysqlsh::dump::Export_table_options opts = *options;
   opts.set_table(table);
-  opts.set_output_url(file);
+  opts.set_url(file);
   opts.set_session(session);
   opts.validate_and_configure();
 
@@ -1932,7 +1932,7 @@ void Util::dump_tables(
   mysqlsh::dump::Dump_tables_options opts = *options;
   opts.set_schema(schema);
   opts.set_tables(tables);
-  opts.set_output_url(directory);
+  opts.set_url(directory);
   opts.set_session(session);
   opts.validate_and_configure();
 
@@ -2002,7 +2002,7 @@ void Util::dump_schemas(
 
   mysqlsh::dump::Dump_schemas_options opts = *options;
   opts.set_schemas(schemas);
-  opts.set_output_url(directory);
+  opts.set_url(directory);
   opts.set_session(session);
   opts.validate_and_configure();
 
@@ -2092,7 +2092,7 @@ void Util::dump_instance(
   using mysqlsh::dump::Dump_instance;
 
   mysqlsh::dump::Dump_instance_options opts = *options;
-  opts.set_output_url(directory);
+  opts.set_url(directory);
   opts.set_session(session);
   opts.validate_and_configure();
 

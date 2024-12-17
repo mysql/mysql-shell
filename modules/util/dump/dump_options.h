@@ -72,8 +72,6 @@ class Dump_options : public mysqlsh::common::Common_options {
   static const mysqlshdk::utils::Version &current_version();
 
   // setters
-  void set_output_url(const std::string &url);
-
   void set_compression(mysqlshdk::storage::Compression compression) {
     m_compression = compression;
   }
@@ -85,7 +83,7 @@ class Dump_options : public mysqlsh::common::Common_options {
   void dont_rename_data_files() { m_rename_data_files = false; }
 
   // getters
-  const std::string &output_url() const { return m_output_url; }
+  const std::string &output_url() const noexcept { return url(); }
 
   const shcore::Dictionary_t &original_options() const { return m_options; }
 
@@ -174,9 +172,7 @@ class Dump_options : public mysqlsh::common::Common_options {
   virtual bool checksum() const = 0;
 
  protected:
-  explicit Dump_options(const char *name);
-
-  virtual void on_set_output_url(const std::string &url);
+  explicit Dump_options(const char *name, bool url_is_directory = true);
 
   void on_validate() const override;
 
@@ -231,7 +227,6 @@ class Dump_options : public mysqlsh::common::Common_options {
   void validate_partitions() const;
 
   // input arguments
-  std::string m_output_url;
   shcore::Dictionary_t m_options;
 
   // not configurable

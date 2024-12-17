@@ -70,7 +70,7 @@ void copy(const mysqlshdk::db::Connection_options &connection_options,
 
   copy_options->dump_options()->set_storage_config(
       storage, common::Storage_options::Storage_type::Memory);
-  copy_options->dump_options()->set_output_url(output->full_path().real());
+  copy_options->dump_options()->set_url(output->full_path().real());
 
   const auto version = mysqlshdk::utils::Version(
       load_session->query("SELECT @@version")->fetch_one()->get_string(0));

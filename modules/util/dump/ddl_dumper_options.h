@@ -91,7 +91,8 @@ class Ddl_dumper_options : public Dump_options {
   void on_unpacked_options();
 
  private:
-  void on_set_output_url(const std::string &url) override;
+  void on_set_url(const std::string &url, Storage_type storage,
+                  const mysqlshdk::storage::Config_ptr &config) override;
 
   void set_bytes_per_chunk(const std::string &value);
   void set_ocimds(bool value);

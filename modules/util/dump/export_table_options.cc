@@ -37,7 +37,7 @@ namespace mysqlsh {
 namespace dump {
 
 Export_table_options::Export_table_options()
-    : Dump_options("util.exportTable") {
+    : Dump_options("util.exportTable", false) {
   disable_index_files();
   dont_rename_data_files();
   // calling this in the constructor sets the default value

@@ -56,8 +56,6 @@ class Load_binlogs_options final : public common::Common_options {
 
   static const shcore::Option_pack_def<Load_binlogs_options> &options();
 
-  void set_url(const std::string &url);
-
   std::string full_path() const noexcept {
     return m_dump->full_path().masked();
   }
@@ -83,6 +81,9 @@ class Load_binlogs_options final : public common::Common_options {
   bool dry_run() const noexcept { return m_dry_run; }
 
  private:
+  void on_set_url(const std::string &url, Storage_type storage,
+                  const mysqlshdk::storage::Config_ptr &config) override;
+
   // options handling
   void set_stop_before(const std::string &stop_before);
   void set_stop_after(const std::string &stop_after);
@@ -99,9 +100,6 @@ class Load_binlogs_options final : public common::Common_options {
   // initialize dump information
   void on_configure() override;
   void gather_binlogs();
-
-  // input URL
-  std::string m_url;
 
   // options
   // WL15977-FR3.2.1.2

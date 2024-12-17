@@ -33,6 +33,7 @@
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -62,6 +63,29 @@ Common_options::Common_options(Config config)
 void Common_options::on_log_options(const std::string &msg) const {
   log_info("%s() options: %s", m_config.name,
            mysqlshdk::oci::mask_any_par(msg).c_str());
+}
+
+void Common_options::set_url(const std::string &url) {
+  Storage_type storage;
+  const auto config = storage_config(url, &storage);
+
+  auto final_url = url;
+
+  if (m_config.url_is_directory &&
+      Storage_options::Storage_type::Oci_par == storage) {
+    // automatically append the slash to convert the URL to a prefix PAR
+    final_url.append(1, '/');
+    storage = Storage_options::Storage_type::Oci_prefix_par;
+  }
+
+  on_set_url(final_url, storage, config);
+
+  m_url = std::move(final_url);
+}
+
+void Common_options::on_set_url(const std::string &url, Storage_type,
+                                const mysqlshdk::storage::Config_ptr &) {
+  throw_on_url_and_storage_conflict(url);
 }
 
 void Common_options::set_session(
@@ -123,6 +147,17 @@ std::string Common_options::canonical_address() const {
 void Common_options::validate_and_configure() {
   on_validate();
   on_configure();
+}
+
+void Common_options::throw_on_url_and_storage_conflict(
+    const std::string &url) const {
+  if (const auto options = storage_options();
+      options && !mysqlshdk::storage::utils::get_scheme(url).empty()) {
+    // file is an URL with a scheme, but we got options for a remote storage
+    throw std::invalid_argument{
+        shcore::str_format("The option '%s' can not be used when %s",
+                           options->get_main_option(), m_config.action)};
+  }
 }
 
 }  // namespace common

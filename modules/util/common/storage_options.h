@@ -136,9 +136,6 @@ class Storage_options {
   void set_storage_config(mysqlshdk::storage::Config_ptr storage,
                           Storage_type type);
 
-  void throw_on_url_and_storage_conflict(const std::string &url,
-                                         const char *context) const;
-
   const mysqlshdk::oci::Oci_bucket_options &oci_options() const noexcept {
     return m_oci_options;
   }
@@ -151,11 +148,11 @@ class Storage_options {
     return m_azure_options;
   }
 
- private:
-  void on_unpacked_options();
-
   const mysqlshdk::storage::backend::object_storage::Object_storage_options *
   storage_options() const noexcept;
+
+ private:
+  void on_unpacked_options();
 
   mysqlshdk::storage::Config_ptr config_for(const std::string &url,
                                             Storage_type *type) const;

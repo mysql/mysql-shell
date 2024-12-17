@@ -82,6 +82,7 @@ prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 
 good_pars = {
     "prefix": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), f'prefix/', "ListObjects"),
+    "prefix-without-slash": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), f'no-slash', "ListObjects"),
     "bucket": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), None, "ListObjects"),
 }
 
@@ -94,7 +95,7 @@ for par_type, par in good_pars.items():
     for name, callback in dump_util_cb.items():
         for  option_name, options in conflicting_options.items():
             print(f"--> Testing util.dump_{name} using {par_type} PAR with option {option_name}")
-            EXPECT_THROWS(lambda: callback(par, options), f"The option '{option_name}' can not be used when using a URL as the target output")
+            EXPECT_THROWS(lambda: callback(par, options), f"The option '{option_name}' can not be used when dumping to a URL")
 
 
 #@<> Testing PARs with bad attributions
@@ -108,7 +109,6 @@ bad_pars = {
     "prefix-read-write": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), f'prefix/', "Deny"),
     "prefix-read-list": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectRead", "all-read-par", today_plus_days(1, RFC3339), f'prefix/', "ListObjects"),
     "mistmatched-prefix": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), f'prefix/', "ListObjects").replace("prefix", "other"),
-    "object-par": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "ObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), f'target-object', "ListObjects"),
     "http-par":  create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), f'prefix/', "ListObjects").replace("https", "http"),
     "random-par": create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "all-read-par", today_plus_days(1, RFC3339), f'prefix/', "ListObjects")
 }
@@ -139,7 +139,6 @@ bad_par_errors = {
     "prefix-read-write": no_access_error,
     "prefix-read-list": no_write_prefix_error,
     "mistmatched-prefix": prefix_mistmatch_error,
-    "object-par": "The given URL is not a prefix PAR.",
     "http-par": "Directory handling for http protocol is not supported.",
     "random-par": random_par_error
 }
@@ -160,6 +159,8 @@ for par_type, par in good_pars.items():
     for name, callback in dump_util_cb.items():
         print(f"--> Testing util.dump_{name} using {par_type} PAR with existing files in target location")
         error_par = anonymize_par(par, False)
+        if "/" != error_par[-1]:
+            error_par += "/"
         EXPECT_THROWS(lambda: callback(par, None), f"Cannot proceed with the dump, OCI prefix PAR={error_par} already contains files with the specified prefix")
 
 

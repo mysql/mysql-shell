@@ -50,8 +50,9 @@
 namespace mysqlsh {
 namespace dump {
 
-Dump_options::Dump_options(const char *name)
-    : Common_options(Common_options::Config{name, false, false}) {}
+Dump_options::Dump_options(const char *name, bool url_is_directory)
+    : Common_options(Common_options::Config{name, "dumping to a URL", false,
+                                            false, url_is_directory}) {}
 
 const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
   static const auto opts =
@@ -70,16 +71,6 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
 const mysqlshdk::utils::Version &Dump_options::current_version() {
   static const auto k_current_version = mysqlshdk::utils::Version(MYSH_VERSION);
   return k_current_version;
-}
-
-void Dump_options::set_output_url(const std::string &url) {
-  on_set_output_url(url);
-
-  m_output_url = url;
-}
-
-void Dump_options::on_set_output_url(const std::string &url) {
-  throw_on_url_and_storage_conflict(url, "using a URL as the target output");
 }
 
 void Dump_options::on_start_unpack(const shcore::Dictionary_t &options) {

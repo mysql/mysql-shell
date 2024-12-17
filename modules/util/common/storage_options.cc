@@ -239,16 +239,5 @@ std::unique_ptr<mysqlshdk::storage::IFile> Storage_options::make_file_impl(
   return f;
 }
 
-void Storage_options::throw_on_url_and_storage_conflict(
-    const std::string &url, const char *context) const {
-  if (const auto options = storage_options();
-      options && !mysqlshdk::storage::utils::get_scheme(url).empty()) {
-    // file is an URL with a scheme, but we got options for a remote storage
-    throw std::invalid_argument{
-        shcore::str_format("The option '%s' can not be used when %s",
-                           options->get_main_option(), context)};
-  }
-}
-
 }  // namespace common
 }  // namespace mysqlsh

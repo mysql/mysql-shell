@@ -147,7 +147,8 @@ const shcore::Option_pack_def<Import_table_option_pack>
 }
 
 Import_table_option_pack::Import_table_option_pack()
-    : Common_options(Common_options::Config{"util.importTable", true, true}) {}
+    : Common_options(Common_options::Config{
+          "util.importTable", "importing from a URL", true, true, false}) {}
 
 void Import_table_option_pack::set_filenames(
     const std::vector<std::string> &filenames) {
@@ -164,7 +165,7 @@ void Import_table_option_pack::set_filenames(
   }
 
   for (const auto &file : m_filelist_from_user) {
-    throw_on_url_and_storage_conflict(file, "importing from a URL");
+    throw_on_url_and_storage_conflict(file);
   }
 
   m_is_multifile = check_if_multifile();

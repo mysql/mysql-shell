@@ -227,16 +227,30 @@ EXPECT_STDOUT_CONTAINS(f"1 tables in 1 schemas were loaded")
 #@<> BUG#34599319 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
-#@<> BUG#33155373
-# prefix is not terminated with a slash, this is likely to be a common error
-invalid_par = "https://objectstorage.region.oraclecloud.com/p/secret/n/namespace/b/bucket/o/prefix"
+#@<> automatically convert a file PAR to a prefix PAR
+tested_schema = "test-schema"
+tested_table = "test-table"
 
-for sample_par in [ invalid_par, convert_par(invalid_par) ]:
+# read-write PAR
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+generic_par = create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectReadWrite", "read-write-par", today_plus_days(1, RFC3339), "no-slash", "ListObjects")
+
+# prepare the dump
+shell.connect(__sandbox_uri1)
+create_test_table(session, tested_schema, tested_table, "(id INT PRIMARY KEY)")
+
+PREPARE_PAR_IS_SECRET_TEST()
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], generic_par, {"showProgress": False}), "dump to a generic PAR")
+EXPECT_PAR_IS_SECRET()
+
+# load the dump
+shell.connect(__sandbox_uri2)
+
+for sample_par in [ generic_par, convert_par(generic_par) ]:
     PREPARE_PAR_IS_SECRET_TEST()
-    EXPECT_THROWS(lambda: util.load_dump(sample_par, {"progressFile": ""}), "Invalid PAR, expected: https://<namespace>.objectstorage.<region>.oci.customer-oci.com/p/<secret>/n/<namespace>/b/<bucket>/o/[<prefix>/]")
+    EXPECT_NO_THROWS(lambda: util.load_dump(sample_par, {"progressFile": "", "showProgress": False}), "load from a generic PAR")
     EXPECT_PAR_IS_SECRET()
-    EXPECT_STDOUT_CONTAINS("WARNING: The given URL is not a prefix PAR.")
-    EXPECT_STDOUT_CONTAINS("Loading DDL and Data from OCI general PAR=/p/<secret>/n/namespace/b/bucket/o/prefix, prefix=''")
+    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

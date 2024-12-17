@@ -41,7 +41,7 @@ shell.connect(__sandbox_uri1)
 sample_bucket_par = "https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/"
 sample_prefix_par = "https://objectstorage.us-ashburn-1.oraclecloud.com/p/secret-token-string/n/namespace/b/bucket/o/prefix/"
 
-conflict_message = "The option 'osBucketName' can not be used when using a URL as the target output"
+conflict_message = "The option 'osBucketName' can not be used when dumping to a URL"
 
 for sample_par in [ sample_bucket_par, convert_par(sample_bucket_par), sample_prefix_par, convert_par(sample_prefix_par) ]:
     EXPECT_THROWS(lambda: util.dump_instance(sample_par, {"osBucketName":OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile":oci_config_file}), conflict_message)

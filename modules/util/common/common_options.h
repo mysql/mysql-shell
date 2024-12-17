@@ -43,8 +43,10 @@ class Common_options : public Storage_options {
  public:
   struct Config {
     const char *name;
+    const char *action;
     bool reads_files;
     bool uses_local_infile;
+    bool url_is_directory;
   };
 
   Common_options(const Common_options &other) = default;
@@ -56,6 +58,8 @@ class Common_options : public Storage_options {
   ~Common_options() override = default;
 
   static const shcore::Option_pack_def<Common_options> &options();
+
+  void set_url(const std::string &url);
 
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
@@ -72,6 +76,9 @@ class Common_options : public Storage_options {
  protected:
   explicit Common_options(Config config);
 
+  virtual void on_set_url(const std::string &url, Storage_type storage,
+                          const mysqlshdk::storage::Config_ptr &config);
+
   virtual void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
@@ -79,16 +86,22 @@ class Common_options : public Storage_options {
 
   virtual void on_configure() {}
 
+  const std::string &url() const noexcept { return m_url; }
+
   const std::shared_ptr<mysqlshdk::db::ISession> &session() const noexcept {
     return m_session;
   }
 
   void set_show_progress(bool show) { m_show_progress = show; }
 
+  void throw_on_url_and_storage_conflict(const std::string &url) const;
+
  private:
   void on_log_options(const std::string &msg) const;
 
   Config m_config;
+
+  std::string m_url;
 
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   mysqlshdk::db::Connection_options m_connection_options;

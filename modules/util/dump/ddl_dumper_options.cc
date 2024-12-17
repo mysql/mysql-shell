@@ -189,17 +189,17 @@ void Ddl_dumper_options::set_threads(uint64_t threads) {
   m_worker_threads = threads;
 }
 
-void Ddl_dumper_options::on_set_output_url(const std::string &url) {
-  Dump_options::on_set_output_url(url);
-
-  Storage_options::Storage_type storage;
-  storage_config(url, &storage);
+void Ddl_dumper_options::on_set_url(
+    const std::string &url, Storage_type storage,
+    const mysqlshdk::storage::Config_ptr &config) {
+  Dump_options::on_set_url(url, storage, config);
 
   if (Storage_options::Storage_type::Oci_prefix_par == storage) {
     // For dumps with PAR prefix, doubles the number of worker threads
     m_worker_threads = m_threads * 2;
-  } else if (Storage_options::Storage_type::Oci_par == storage) {
-    throw std::invalid_argument{"The given URL is not a prefix PAR."};
+  } else if (Storage_options::Storage_type::Oci_par == storage ||
+             Storage_options::Storage_type::Http == storage) {
+    current_console()->print_warning("The given URL is not a prefix PAR.");
   }
 }
 

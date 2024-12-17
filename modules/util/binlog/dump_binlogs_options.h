@@ -63,8 +63,6 @@ class Dump_binlogs_options final : public common::Common_options {
     return m_options;
   }
 
-  void set_url(const std::string &url);
-
   std::unique_ptr<mysqlshdk::storage::IDirectory> output() const;
 
   const std::string &previous_dump() const noexcept { return m_previous_dump; }
@@ -151,9 +149,6 @@ class Dump_binlogs_options final : public common::Common_options {
 
   // original options
   shcore::Dictionary_t m_options;
-
-  // output URL
-  std::string m_url;
 
   // options
   std::string m_since;

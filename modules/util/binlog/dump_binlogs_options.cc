@@ -156,8 +156,8 @@ bool verify_dump_instance_options(const shcore::json::Value &options) {
 }  // namespace
 
 Dump_binlogs_options::Dump_binlogs_options()
-    : Common_options(Common_options::Config{"util.dumpBinlogs", false, false}) {
-}
+    : Common_options(Common_options::Config{
+          "util.dumpBinlogs", "dumping to a URL", false, false, true}) {}
 
 const shcore::Option_pack_def<Dump_binlogs_options>
     &Dump_binlogs_options::options() {
@@ -177,15 +177,9 @@ const shcore::Option_pack_def<Dump_binlogs_options>
   return opts;
 }
 
-void Dump_binlogs_options::set_url(const std::string &url) {
-  throw_on_url_and_storage_conflict(url, "using a URL as the target output");
-
-  m_url = url;
-}
-
 std::unique_ptr<mysqlshdk::storage::IDirectory> Dump_binlogs_options::output()
     const {
-  return make_directory(m_url);
+  return make_directory(url());
 }
 
 void Dump_binlogs_options::on_start_unpack(

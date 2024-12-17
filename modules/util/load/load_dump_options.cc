@@ -72,7 +72,8 @@ std::string bulk_load_s3_prefix(
 }  // namespace
 
 Load_dump_options::Load_dump_options()
-    : Common_options(Common_options::Config{"util.loadDump", true, true}) {}
+    : Common_options(Common_options::Config{
+          "util.loadDump", "loading from a URL", true, true, true}) {}
 
 const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
   static const auto opts =
@@ -259,11 +260,10 @@ void Load_dump_options::on_set_session(
       instance.get_sysvar_int("lower_case_table_names", 0);
 }
 
-void Load_dump_options::set_url(const std::string &url) {
-  throw_on_url_and_storage_conflict(url, "loading from a URL");
-
-  Storage_options::Storage_type storage;
-  const auto config = storage_config(url, &storage);
+void Load_dump_options::on_set_url(
+    const std::string &url, Storage_type storage,
+    const mysqlshdk::storage::Config_ptr &config) {
+  Common_options::on_set_url(url, storage, config);
 
   switch (storage) {
     case Storage_options::Storage_type::Local:
@@ -303,8 +303,6 @@ void Load_dump_options::set_url(const std::string &url) {
       m_bulk_load_info.fs = Bulk_load_fs::UNSUPPORTED;
       break;
   }
-
-  m_url = url;
 }
 
 void Load_dump_options::on_configure() {
@@ -327,10 +325,10 @@ std::string Load_dump_options::target_import_info(
 
   std::string where;
 
-  if (const auto storage = storage_config(m_url); storage && storage->valid()) {
-    where = storage->describe(m_url);
+  if (const auto storage = storage_config(url()); storage && storage->valid()) {
+    where = storage->describe(url());
   } else {
-    where = "'" + m_url + "'";
+    where = "'" + url() + "'";
   }
 
   // this is validated earlier on
@@ -448,7 +446,7 @@ void Load_dump_options::on_unpacked_options() {
 
 std::unique_ptr<mysqlshdk::storage::IDirectory>
 Load_dump_options::create_dump_handle() const {
-  return make_directory(m_url);
+  return make_directory(url());
 }
 
 std::unique_ptr<mysqlshdk::storage::IFile>
@@ -567,7 +565,7 @@ void Load_dump_options::configure_bulk_load() {
         if (!path->empty()) {
           // path is not empty, only files in that directory can be loaded
           if (!shcore::str_beginswith(
-                  make_directory(m_url)->full_path().real(),
+                  make_directory(url())->full_path().real(),
                   make_directory(*path)->full_path().real())) {
             log_info(
                 "BULK LOAD: local FS and dump is not a subdirectory of "

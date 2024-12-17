@@ -92,7 +92,8 @@ std::string validate_gtid(const std::string &gtid, const char *option) {
 }  // namespace
 
 Load_binlogs_options::Load_binlogs_options()
-    : Common_options(Common_options::Config{"util.loadBinlogs", true, false}) {}
+    : Common_options(Common_options::Config{
+          "util.loadBinlogs", "loading from a URL", true, false, true}) {}
 
 const shcore::Option_pack_def<Load_binlogs_options>
     &Load_binlogs_options::options() {
@@ -109,8 +110,10 @@ const shcore::Option_pack_def<Load_binlogs_options>
   return opts;
 }
 
-void Load_binlogs_options::set_url(const std::string &url) {
-  throw_on_url_and_storage_conflict(url, "loading from a URL");
+void Load_binlogs_options::on_set_url(
+    const std::string &url, Storage_type storage,
+    const mysqlshdk::storage::Config_ptr &config) {
+  Common_options::on_set_url(url, storage, config);
 
   {
     const auto dump = make_directory(url);
@@ -132,8 +135,6 @@ void Load_binlogs_options::set_url(const std::string &url) {
           dump->full_path().masked().c_str())};
     }
   }
-
-  m_url = url;
 }
 
 void Load_binlogs_options::set_stop_before(const std::string &stop_before) {
@@ -249,7 +250,7 @@ void Load_binlogs_options::on_set_session(
 void Load_binlogs_options::on_configure() {
   Common_options::on_configure();
 
-  read_dump(make_directory(m_url));
+  read_dump(make_directory(url()));
   gather_binlogs();
 }
 
