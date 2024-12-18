@@ -813,6 +813,7 @@ IF (BUNDLED_POLYGLOT_DIR)
   FIND_LIBRARY(POLYGLOT_LIBRARY
     NAMES
       polyglot
+      libpolyglot
     HINTS
       "${BUNDLED_POLYGLOT_DIR}"
     NO_DEFAULT_PATH)
