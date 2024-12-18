@@ -139,8 +139,9 @@ void Threaded_file::open(Mode m) {
       const auto on_exception = [this]() {
         bool expected = false;
 
-        if (m_has_exception.compare_exchange_strong(expected, true)) {
+        if (m_worker_exception_is_set.compare_exchange_strong(expected, true)) {
           m_worker_exception = std::current_exception();
+          m_has_exception = true;
         }
 
         {
@@ -283,6 +284,7 @@ void Threaded_file::close_impl() {
 
   m_has_exception = false;
   m_worker_exception = nullptr;
+  m_worker_exception_is_set = false;
 
   for (const auto &block : m_blocks) {
     m_config.allocator->free(block.data.memory);

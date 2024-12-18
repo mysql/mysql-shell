@@ -183,6 +183,7 @@ class Threaded_file final : public IFile {
   std::unique_ptr<shcore::Synchronized_queue<Block *>> m_tasks;
   std::atomic_bool m_has_exception = false;
   std::exception_ptr m_worker_exception;
+  std::atomic_bool m_worker_exception_is_set = false;
 
   std::mutex m_mutex;
   std::condition_variable m_cv;
