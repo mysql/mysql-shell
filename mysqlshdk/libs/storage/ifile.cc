@@ -59,7 +59,7 @@ std::unique_ptr<IFile> make_file(const std::string &filepath,
     return std::make_unique<backend::File>(filepath, file_options);
   } else if (utils::scheme_matches(scheme, "http") ||
              utils::scheme_matches(scheme, "https")) {
-    return std::make_unique<backend::Http_object>(filepath);
+    return std::make_unique<backend::Http_object>(filepath, true);
   }
 
   throw std::invalid_argument("File handling for " + scheme +
