@@ -27,7 +27,7 @@
 #define MYSQLSHDK_SCRIPTING_POLYGLOT_NATIVE_WRAPPERS_POLYGLOT_NATIVE_WRAPPER_
 
 #include <cassert>
-#include <concepts>
+
 #include <memory>
 #include <type_traits>
 
