@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/storage/backend/http.h"
 
 #include <algorithm>
+#include <unordered_map>
 
 #include "mysqlshdk/libs/db/uri_encoder.h"
 #include "mysqlshdk/libs/rest/error_codes.h"
@@ -120,11 +121,11 @@ std::string get_uri_path(const Masked_string &uri) {
   return get_uri_path(uri.real());
 }
 
-void throw_if_error(const rest::String_response &response,
-                    const Masked_string &uri) {
-  if (const auto error = response.get_error(); error.has_value()) {
-    throw rest::to_exception(*error,
-                             "Could not access '" + uri.masked() + "': ");
+inline void throw_on_error(const std::optional<rest::Response_error> &error,
+                           const std::string &context,
+                           const Masked_string &uri) {
+  if (error.has_value()) {
+    throw rest::to_exception(*error, context + " '" + uri.masked() + "': ");
   }
 }
 
@@ -283,6 +284,9 @@ ssize_t Http_object::read(void *buffer, size_t length) {
     throw std::runtime_error("Range request " + std::to_string(first) + "-" +
                              std::to_string(last) + " is out of bounds.");
   }
+
+  throw_if_error(response.get_error(), "Failed to read object");
+
   return 0;
 }
 
@@ -315,10 +319,7 @@ void Http_object::remove() {
 void Http_object::throw_if_error(
     const std::optional<rest::Response_error> &error,
     const std::string &context) const {
-  if (error.has_value()) {
-    throw rest::to_exception(*error,
-                             context + " '" + full_path().masked() + "': ");
-  }
+  throw_on_error(error, context, full_path());
 }
 
 std::optional<rest::Response_error> Http_object::fetch_file_size() const {
@@ -371,7 +372,7 @@ std::unordered_set<IDirectory::File_info> Http_directory::get_file_list(
     auto request = Http_request(get_list_url(), m_use_retry);
     auto response = rest->get(&request);
 
-    throw_if_error(response, m_url);
+    throw_on_error(response.get_error(), "Could not access", m_url);
 
     try {
       auto list = parse_file_list(response.buffer.raw(), pattern);
