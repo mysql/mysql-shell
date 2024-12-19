@@ -1075,6 +1075,8 @@ function group_fields(arr, field) {
 }
 
 function COMMON_RG_TESTS(rg, rg_name, expected_destinations, expected_destinations_match, expected_routes, expected_routes_match, expected_routes_destinations, expected_json, expected_check_output) {
+    WIPE_OUTPUT();
+
     // rg.name()
     var name;
     EXPECT_NO_THROWS(function() { name = rg.getName(); });

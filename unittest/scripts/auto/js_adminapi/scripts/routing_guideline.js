@@ -471,18 +471,12 @@ STDCHECK_ARGTYPES(rg2.addDestination, 2, ["test"], ["true"], [{}]);
 rg2.addDestination("test1", "$.server.memberRole = PRIMARY")
 rg2.addDestination("test2", "$.server.memberRole = SECONDARY")
 
-// Key-value types must be auto-escaped, for example:
-//   - "$.router.tags.key = 'value\" must be stored as
-//   "$.router.tags.key = '\"value\"'"
-rg2.addDestination("tags", "$.server.tags.foo = 'bar'")
-
-expected_destinations = ["Primary", "Secondary", "ReadReplica", "test1", "test2", "tags"];
+expected_destinations = ["Primary", "Secondary", "ReadReplica", "test1", "test2"];
 expected_destinations_match = ["$.server.memberRole = PRIMARY",
                                      "$.server.memberRole = SECONDARY",
                                      "$.server.memberRole = READ_REPLICA",
                                      "$.server.memberRole = PRIMARY",
-                                     "$.server.memberRole = SECONDARY",
-                                     "$.server.tags.foo = 'bar'"];
+                                     "$.server.memberRole = SECONDARY"];
 
 expected_routes = ["rw", "ro"];
 expected_routes_match = ["$.session.targetPort = $.router.port.rw",
@@ -512,10 +506,6 @@ expected_rg_asjson =
         {
             "match": "$.server.memberRole = SECONDARY",
             "name": "test2"
-        },
-        {
-            "match": "$.server.tags.foo = '\"bar\"'",
-            "name": "tags"
         }
     ],
     "name": "rg2",
@@ -561,7 +551,7 @@ expected_rg_asjson =
     "version": "1.0"
 }
 
-expected_check_output = `
+expected_show_output = `
 Routing Guideline: 'rg2'
 Cluster: 'cluster'
 
@@ -605,17 +595,12 @@ Destination Classes
     + Instances:
       * None
 
-  - tags:
-    + Match: "$.server.tags.foo = 'bar'"
-    + Instances:
-      * None
-
 Unreferenced servers
 --------------------
   - None
 `;
 
-COMMON_RG_TESTS(rg2, "rg2", expected_destinations, expected_destinations_match, expected_routes, expected_routes_match, expected_routes_destinations, expected_rg_asjson, expected_check_output);
+COMMON_RG_TESTS(rg2, "rg2", expected_destinations, expected_destinations_match, expected_routes, expected_routes_match, expected_routes_destinations, expected_rg_asjson, expected_show_output);
 
 //@<> addDestination - dryRun
 var dests = rg2.asJson()["destinations"];
@@ -647,7 +632,7 @@ EXPECT_THROWS(function () { rg2.addDestination("test", "$.badvar = 123") }, "mat
 EXPECT_THROWS(function () { rg2.addDestination("test", "$.session.sourceIP = '10.1.1.1'") }, "match: session.sourceIP may not be used in 'destinations' context")
 
 //@<> no new destinations should've been added
-EXPECT_EQ(json_defaults["destinations"].length + 3, rg2.asJson()["destinations"].length);
+EXPECT_EQ(json_defaults["destinations"].length + 2, rg2.asJson()["destinations"].length);
 
 //@<> addRoute - std bad arg type and count variations
 STDCHECK_ARGTYPES(rg2.addRoute, 3, ["test"], ["true"], [["first-available(test1)"]], [{}]);
@@ -656,33 +641,25 @@ STDCHECK_ARGTYPES(rg2.addRoute, 3, ["test"], ["true"], [["first-available(test1)
 rg2.addRoute("test1", "$.session.targetPort in (6446, 6448)", ["first-available(Primary)"])
 rg2.addRoute("test2", "$.session.targetPort in (6447, 6449)", ["round-robin(test1,test2)", "round-robin(Primary)"])
 
-// Key-value types must be auto-escaped, for example:
-//   - "$.router.tags.key = 'value\" must be stored as
-//   "$.router.tags.key = '\"value\"'"
-rg2.addRoute("routetags", "$.router.tags.key = 'value'", ["round-robin(ReadReplica)"])
-
-expected_destinations = ["Primary", "Secondary", "ReadReplica", "test1", "test2", "tags"];
+expected_destinations = ["Primary", "Secondary", "ReadReplica", "test1", "test2"];
 expected_destinations_match = ["$.server.memberRole = PRIMARY",
                                      "$.server.memberRole = SECONDARY",
                                      "$.server.memberRole = READ_REPLICA",
                                      "$.server.memberRole = PRIMARY",
-                                     "$.server.memberRole = SECONDARY",
-                                     "$.server.tags.foo = 'bar'"];
+                                     "$.server.memberRole = SECONDARY"];
 
-expected_routes = ["rw", "ro", "test1", "test2", "routetags"];
+expected_routes = ["rw", "ro", "test1", "test2"];
 expected_routes_match = [
   "$.session.targetPort = $.router.port.rw",
   "$.session.targetPort = $.router.port.ro",
   "$.session.targetPort in (6446, 6448)",
-  "$.session.targetPort in (6447, 6449)",
-  "$.router.tags.key = 'value'"
+  "$.session.targetPort in (6447, 6449)"
 ];
 expected_routes_destinations = [
   "round-robin(Primary)",
   "round-robin(Secondary), round-robin(Primary)",
   "first-available(Primary)",
-  "round-robin(test1, test2), round-robin(Primary)",
-  "round-robin(ReadReplica)"
+  "round-robin(test1, test2), round-robin(Primary)"
 ];
 
 expected_rg_asjson =
@@ -707,10 +684,6 @@ expected_rg_asjson =
         {
             "match": "$.server.memberRole = SECONDARY",
             "name": "test2"
-        },
-        {
-            "match": "$.server.tags.foo = '\"bar\"'",
-            "name": "tags"
         }
     ],
     "name": "rg2",
@@ -789,63 +762,73 @@ expected_rg_asjson =
             "enabled": true,
             "match": "$.session.targetPort in (6447, 6449)",
             "name": "test2"
-        },
-        {
-            "connectionSharingAllowed": true,
-            "destinations": [
-                {
-                    "classes": [
-                        "ReadReplica"
-                    ],
-                    "priority": 0,
-                    "strategy": "round-robin"
-                }
-            ],
-            "enabled": true,
-            "match": "$.router.tags.key = '\"value\"'",
-            "name": "routetags"
         }
     ],
     "version": "1.0"
 }
 
-expected_check_output = `
+expected_show_output = `
 Routing Guideline: 'rg2'
 Cluster: 'cluster'
 
-Destination classes:
+Routes
+------
+  - rw
+    + Match: "$.session.targetPort = $.router.port.rw"
+    + Destinations:
+      * ${hostname}:${__mysql_sandbox_port1} (Primary)
 
-  Primary:
-    Matching servers:
-      - ${hostname}:${__mysql_sandbox_port1}
-    Routed from:
-      - ro
-      - rw
-      - test1
-      - test2
+  - ro
+    + Match: "$.session.targetPort = $.router.port.ro"
+    + Destinations:
+      * None (Secondary)
+      * ${hostname}:${__mysql_sandbox_port1} (Primary)
 
-  Secondary:
-    Matching servers: []
-    Routed from:
-      - ro
+  - test1
+    + Match: "$.session.targetPort in (6446, 6448)"
+    + Destinations:
+      * ${hostname}:${__mysql_sandbox_port1} (Primary)
 
-  ReadReplica:
-    Matching servers: []
-    Routed from: []
+  - test2
+    + Match: "$.session.targetPort in (6447, 6449)"
+    + Destinations:
+      * ${hostname}:${__mysql_sandbox_port1} (test1)
+      * None (test2)
+      * ${hostname}:${__mysql_sandbox_port1} (Primary)
 
-  test1:
-    Matching servers:
-      - ${hostname}:${__mysql_sandbox_port1}
-    Routed from:
-      - test2
+Destination Classes
+-------------------
+  - Primary:
+    + Match: "$.server.memberRole = PRIMARY"
+    + Instances:
+      * ${hostname}:${__mysql_sandbox_port1}
 
-  test2:
-    Matching servers: []
-    Routed from:
-      - test2
+  - Secondary:
+    + Match: "$.server.memberRole = SECONDARY"
+    + Instances:
+      * None
+
+  - ReadReplica:
+    + Match: "$.server.memberRole = READ_REPLICA"
+    + Instances:
+      * None
+
+  - test1:
+    + Match: "$.server.memberRole = PRIMARY"
+    + Instances:
+      * ${hostname}:${__mysql_sandbox_port1}
+
+  - test2:
+    + Match: "$.server.memberRole = SECONDARY"
+    + Instances:
+      * None
+
+Unreferenced servers
+--------------------
+  - None
 `;
 
-COMMON_RG_TESTS(rg2, "rg2", expected_destinations, expected_destinations_match, expected_routes, expected_routes_match, expected_routes_destinations, expected_rg_asjson, expected_check_output);
+COMMON_RG_TESTS(rg2, "rg2", expected_destinations, expected_destinations_match, expected_routes, expected_routes_match, expected_routes_destinations, expected_rg_asjson, expected_show_output);
 
 //@<> addRoute - bad name
 EXPECT_THROWS(function () { rg2.addRoute("test1", "true", ["first-available(test1)"]) }, "Route 'test1' already exists in the Routing Guideline")
@@ -881,21 +864,21 @@ EXPECT_THROWS(function () { rg2.addRoute("test", "true", ["round-robin(test1),in
 EXPECT_THROWS(function () { rg2.addRoute("test", "true", ["round-robin(baddest)"]) }, "Invalid destination 'baddest' referenced in route")
 
 //@<> no new routes should've been added
-EXPECT_EQ(json_defaults["routes"].length + 3, rg2.asJson()["routes"].length);
+EXPECT_EQ(json_defaults["routes"].length + 2, rg2.asJson()["routes"].length);
 
 //@<> addRoute - enabled
 rg2.addRoute("backup2", "$.session.user = 'backup'", ["round-robin(Secondary)", "round-robin(Primary)"], { "enabled": false });
 
-EXPECT_EQ("backup2", rg2.asJson()["routes"][5]["name"])
-EXPECT_EQ(false, rg2.asJson()["routes"][5]["enabled"])
+EXPECT_EQ("backup2", rg2.asJson()["routes"][4]["name"])
+EXPECT_EQ(false, rg2.asJson()["routes"][4]["enabled"])
 
 //@<> addRoute - connection_sharing_allowed
-EXPECT_EQ(true, rg2.asJson()["routes"][5]["connectionSharingAllowed"])
+EXPECT_EQ(true, rg2.asJson()["routes"][4]["connectionSharingAllowed"])
 
 rg2.addRoute("backup4", "$.session.user = 'backup'", ["round-robin(Secondary)", "round-robin(Primary)"], { "connectionSharingAllowed": false });
 
-EXPECT_EQ("backup4", rg2.asJson()["routes"][6]["name"])
-EXPECT_EQ(false, rg2.asJson()["routes"][6]["connectionSharingAllowed"])
+EXPECT_EQ("backup4", rg2.asJson()["routes"][5]["name"])
+EXPECT_EQ(false, rg2.asJson()["routes"][5]["connectionSharingAllowed"])
 
 //@<> addRoute - dryRun
 before = rg2.asJson();
@@ -942,7 +925,6 @@ EXPECT_JSON_EQ([
   "ReadReplica",
   "test1",
   "test2",
-  "tags",
   "foo"
 ], group_fields(rg2.destinations().fetchAll(), 0));
 
@@ -953,8 +935,7 @@ EXPECT_JSON_EQ([
   "Secondary",
   "ReadReplica",
   "test1",
-  "test2",
-  "tags"
+  "test2"
 ], group_fields(rg2.destinations().fetchAll(), 0));
 
 //@<> removeRoute() - bad args
@@ -970,7 +951,6 @@ EXPECT_JSON_EQ([
   "rw",
   "ro",
   "test1",
-  "routetags",
   "backup2",
   "backup4"
 ], group_fields(rg2.routes().fetchAll(), 0));
@@ -1434,22 +1414,12 @@ EXPECT_THROWS(function () { rg2.setDestinationOption("test1", "match", "$.server
 //@<> setDestinationOption - OK
 EXPECT_NO_THROWS(function(){ rg2.setDestinationOption("test1", "match", "$.server.memberRole = PRIMARY");} );
 
-// Key-value types must be auto-escaped, for example:
-//   - "$.router.tags.key = 'value\" must be stored as
-//   "$.router.tags.key = '\"value\"'"
-
-//@<> setDestinationOption - key-value types must be escaped
-EXPECT_NO_THROWS(function(){ rg2.setDestinationOption("tags", "match", "$.server.tags.foo = 'baz'");} );
-
-EXPECT_EQ("$.server.tags.foo = '\"baz\"'", rg2.asJson()["destinations"][5]["match"]);
-
 expected_destinations_match_changed = [
   "$.server.memberRole = PRIMARY",
   "$.server.memberRole = SECONDARY",
   "$.server.memberRole = READ_REPLICA",
   "$.server.memberRole = PRIMARY",
-  "$.server.memberRole = SECONDARY",
-  "$.server.tags.foo = 'baz'"
+  "$.server.memberRole = SECONDARY"
 ];
 
 var destinations;
@@ -1485,7 +1455,6 @@ expected_routes_match_changed = [
   "$.session.targetPort = $.router.port.rw",
   "$.router.hostname = 'test'",
   "$.session.targetPort in (6446, 6448)",
-  "$.router.tags.key = 'value'",
   "$.session.user = 'backup'",
   "$.session.user = 'backup'"];
 
@@ -1493,7 +1462,6 @@ expected_routes_new = [
   "rw",
   "ro",
   "test1",
-  "routetags",
   "backup2",
   "backup4"
 ];
@@ -1506,11 +1474,11 @@ EXPECT_JSON_EQ(expected_routes_new, group_fields(routes, 0), ".expected_routes")
 EXPECT_JSON_EQ(expected_routes_match_changed, group_fields(routes, 3), ".expected_routes_match");
 
 //@<> setRouteOption - OK - enabled
-EXPECT_JSON_EQ([1, 1, 1, 1, 0, 1], group_fields(rg2.routes().fetchAll(), 1))
+EXPECT_JSON_EQ([1, 1, 1, 0, 1], group_fields(rg2.routes().fetchAll(), 1))
 
 EXPECT_NO_THROWS(function(){ rg2.setRouteOption("rw", "enabled", false);} );
 
-EXPECT_JSON_EQ([0, 1, 1, 1, 0, 1], group_fields(rg2.routes().fetchAll(), 1))
+EXPECT_JSON_EQ([0, 1, 1, 0, 1], group_fields(rg2.routes().fetchAll(), 1))
 
 //@<> setRouteOption - OK - destinations
 EXPECT_NO_THROWS(function(){ rg2.setRouteOption("ro", "destinations", ["round-robin(ReadReplica)", "round-robin(Primary)"]);} );
@@ -1519,7 +1487,6 @@ expected_routes_destinations_changed = [
     "round-robin(Primary)",
     "round-robin(ReadReplica), round-robin(Primary)",
     "first-available(Primary)",
-    "round-robin(ReadReplica)",
     "round-robin(Secondary), round-robin(Primary)",
     "round-robin(Secondary), round-robin(Primary)"
 ];
@@ -1544,7 +1511,6 @@ EXPECT_JSON_EQ([
   "round-robin(Primary)",
   "round-robin(Secondary, Primary)",
   "first-available(Primary)",
-  "round-robin(ReadReplica)",
   "round-robin(Secondary), round-robin(Primary)",
   "round-robin(Secondary), round-robin(Primary)"
 ], group_fields(rg2.routes().fetchAll(), 4));
@@ -1555,15 +1521,6 @@ var routes;
 EXPECT_NO_THROWS(function() { routes = rg2.routes().fetchAll(); });
 
 EXPECT_JSON_EQ(expected_routes_destinations_changed, group_fields(routes, 4), ".expected_destinations_match");
-
-// Key-value types must be auto-escaped, for example:
-//   - "$.router.tags.key = 'value\" must be stored as
-//   "$.router.tags.key = '\"value\"'"
-
-//@<> setRouteOption - key-value types must be escaped
-EXPECT_NO_THROWS(function(){ rg2.setRouteOption("routetags", "match", "$.router.tags.key = 'foobar'");} );
-
-EXPECT_EQ("$.router.tags.key = '\"foobar\"'", rg2.asJson().routes[3]["match"])
 
 //@<> copy() - bad args
 STDCHECK_ARGTYPES(rg2.copy, 1, ["test"]);
@@ -1746,11 +1703,6 @@ Routes
     + Destinations:
       * ${hostname}:${__mysql_sandbox_port1} (Primary)
 
-  - routetags
-    + Match: "$.router.tags.key = 'foobar'"
-    + Destinations:
-      * None (ReadReplica)
-
   - backup2
     + Match: "$.session.user = 'backup'"
     + Destinations:
@@ -1787,11 +1739,6 @@ Destination Classes
 
   - test2:
     + Match: "$.server.memberRole = SECONDARY"
-    + Instances:
-      * None
-
-  - tags:
-    + Match: "$.server.tags.foo = 'baz'"
     + Instances:
       * None
 

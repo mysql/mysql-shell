@@ -429,15 +429,15 @@ This document defines destinations based on server geolocation and compliance, a
 guideline = {
     "destinations": [
         {
-            "match": "$.server.address IN (\"us-east-1.example.com\", \"us-west-2.example.com\")",
+            "match": "$.server.address IN ('us-east-1.example.com', 'us-west-2.example.com')",
             "name": "US_Regions"
         },
         {
-            "match": "$.server.address IN (\"eu-central-1.example.com\", \"eu-west-1.example.com\")",
+            "match": "$.server.address IN ('eu-central-1.example.com', 'eu-west-1.example.com')",
             "name": "EU_Regions"
         },
         {
-            "match": "$.server.tags.compliance = \"GDPR\"",
+            "match": "$.server.tags.compliance = 'GDPR'",
             "name": "GDPR_Compliant"
         }
     ],
@@ -471,7 +471,7 @@ guideline = {
                 }
             ],
             "enabled": true,
-            "match": "$.session.connectAttrs.region = \"EU\"",
+            "match": "$.session.connectAttrs.region = 'EU'",
             "name": "compliance_based"
         }
     ],
@@ -497,7 +497,7 @@ Once the guideline has been created, you can modify destinations or routes using
 rg = replicaset.get_routing_guideline("Geo_Based_Guideline");
 
 // Modify the match expression for the 'EU_Regions' destination
-rg.set_destination_option("EU_Regions", "matchExpr", "$.server.address IN (\"eu-west-1.example.com\", \"eu-south-1.example.com\")");
+rg.set_destination_option("EU_Regions", "matchExpr", "$.server.address IN ('eu-west-1.example.com', 'eu-south-1.example.com')");
 
 // Disable the 'compliance_based' route temporarily
 rg.set_route_option("compliance_based", "enabled", False);
@@ -761,15 +761,15 @@ Custom tag-based and performance-based routing enables traffic routing based on 
 {
     "destinations": [
         {
-            "match": "$.server.tags.performance = \"high\"",
+            "match": "$.server.tags.performance = 'high'",
             "name": "High_Performance"
         },
         {
-            "match": "$.server.tags.performance = \"low\"",
+            "match": "$.server.tags.performance = 'low'",
             "name": "Low_Performance"
         },
         {
-            "match": "$.server.tags.type = \"compliance\"",
+            "match": "$.server.tags.type = 'compliance'",
             "name": "Compliance_Tag"
         }
     ],
@@ -788,7 +788,7 @@ Custom tag-based and performance-based routing enables traffic routing based on 
                 }
             ],
             "enabled": true,
-            "match": "$.session.connectAttrs.app = \"critical\"",
+            "match": "$.session.connectAttrs.app = 'critical'",
             "name": "app_critical_traffic"
         },
         {
@@ -803,7 +803,7 @@ Custom tag-based and performance-based routing enables traffic routing based on 
                 }
             ],
             "enabled": true,
-            "match": "$.session.user in (\"admin\", \"finance\")",
+            "match": "$.session.user in ('admin', 'finance')",
             "name": "admin_finance_traffic"
         }
     ],
@@ -830,87 +830,87 @@ In environments with distinct stages such as testing, staging, and production, r
 
 ```
 {
+    "destinations": [
+        {
+            "match": "$.server.tags.environment = 'production'",
+            "name": "Production_Servers"
+        },
+        {
+            "match": "$.server.tags.environment = 'staging'",
+            "name": "Staging_Servers"
+        },
+        {
+            "match": "$.server.tags.environment = 'testing'",
+            "name": "Testing_Servers"
+        }
+    ],
+    "name": "Testing_Stage_Session_Guideline",
+    "routes": [
+        {
+            "connectionSharingAllowed": true,
             "destinations": [
                 {
-                    "match": "$.server.tags.environment = \"production\"",
-                    "name": "Production_Servers"
-                },
-                {
-                    "match": "$.server.tags.environment = \"staging\"",
-                    "name": "Staging_Servers"
-                },
-                {
-                    "match": "$.server.tags.environment = \"testing\"",
-                    "name": "Testing_Servers"
+                    "classes": [
+                        "Testing_Servers"
+                    ],
+                    "strategy": "first-available",
+                    "priority": 0
                 }
             ],
-            "name": "Testing_Stage_Session_Guideline",
-            "routes": [
+            "enabled": true,
+            "match": "$.session.randomValue < 0.1",
+            "name": "testing_traffic"
+        },
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
                 {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Testing_Servers"
-                            ],
-                            "strategy": "first-available",
-                            "priority": 0
-                        }
+                    "classes": [
+                        "Staging_Servers"
                     ],
-                    "enabled": true,
-                    "match": "$.session.randomValue < 0.1",
-                    "name": "testing_traffic"
-                },
-                {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Staging_Servers"
-                            ],
-                            "strategy": "first-available",
-                            "priority": 0
-                        }
-                    ],
-                    "enabled": true,
-                    "match": "$.session.randomValue >= 0.1 AND $.session.randomValue < 0.3",
-                    "name": "staging_traffic"
-                },
-                {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Production_Servers"
-                            ],
-                            "strategy": "first-available",
-                            "priority": 0
-                        }
-                    ],
-                    "enabled": true,
-                    "match": "$.session.randomValue >= 0.3",
-                    "name": "production_traffic"
-                },
-                {
-                    "connectionSharingAllowed": false,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Production_Servers",
-                                "Staging_Servers",
-                                "Testing_Servers"
-                            ],
-                            "strategy": "round-robin",
-                            "priority": 0
-                        }
-                    ],
-                    "enabled": true,
-                    "match": "$.session.user = 'persistent_user'",
-                    "name": "session_affinity"
+                    "strategy": "first-available",
+                    "priority": 0
                 }
             ],
-            "version": "1.0"
+            "enabled": true,
+            "match": "$.session.randomValue >= 0.1 AND $.session.randomValue < 0.3",
+            "name": "staging_traffic"
+        },
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
+                {
+                    "classes": [
+                        "Production_Servers"
+                    ],
+                    "strategy": "first-available",
+                    "priority": 0
+                }
+            ],
+            "enabled": true,
+            "match": "$.session.randomValue >= 0.3",
+            "name": "production_traffic"
+        },
+        {
+            "connectionSharingAllowed": false,
+            "destinations": [
+                {
+                    "classes": [
+                        "Production_Servers",
+                        "Staging_Servers",
+                        "Testing_Servers"
+                    ],
+                    "strategy": "round-robin",
+                    "priority": 0
+                }
+            ],
+            "enabled": true,
+            "match": "$.session.user = 'persistent_user'",
+            "name": "session_affinity"
         }
+    ],
+    "version": "1.0"
+}
 ```
 
 ### Summary
@@ -935,108 +935,108 @@ Client characteristics routing allows traffic to be directed based on specific a
 
 ```
 {
+    "destinations": [
+        {
+            "match": "$.server.tags.backup = 'true'",
+            "name": "Backup_Servers"
+        },
+        {
+            "match": "$.server.tags.os = 'Linux'",
+            "name": "Linux_Servers"
+        },
+        {
+            "match": "$.server.tags.platform = 'x86_64'",
+            "name": "x86_64_Servers"
+        },
+        {
+            "match": "$.server.tags.license = 'Commercial'",
+            "name": "Commercial_Servers"
+        },
+        {
+            "match": "$.server.tags.test = 'true'",
+            "name": "Testing_Servers"
+        }
+    ],
+    "name": "Comprehensive_ConnectAttrs_Routing",
+    "routes": [
+        {
+            "connectionSharingAllowed": true,
             "destinations": [
                 {
-                    "match": "$.server.tags.backup = true",
-                    "name": "Backup_Servers"
-                },
-                {
-                    "match": "$.server.tags.os = \"Linux\"",
-                    "name": "Linux_Clients"
-                },
-                {
-                    "match": "$.server.tags.platform = \"x86_64\"",
-                    "name": "x86_64_Servers"
-                },
-                {
-                    "match": "$.server.tags.license = \"Commercial\"",
-                    "name": "Commercial_Servers"
-                },
-                {
-                    "match": "$.server.tags.test = true",
-                    "name": "Testing_Servers"
+                    "classes": [
+                        "Linux_Servers"
+                    ],
+                    "strategy": "round-robin",
+                    "priority": 0
                 }
             ],
-            "name": "Comprehensive_ConnectAttrs_Routing",
-            "routes": [
+            "enabled": true,
+            "match": "$.session.connectAttrs._os = 'Linux'",
+            "name": "linux_traffic"
+        },
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
                 {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Linux_Servers"
-                            ],
-                            "strategy": "round-robin",
-                            "priority": 0
-                        }
+                    "classes": [
+                        "x86_64_Servers"
                     ],
-                    "enabled": true,
-                    "match": "$.session.connectAttrs._os = \"Linux\"",
-                    "name": "linux_traffic"
-                },
-                {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "x86_64_Servers"
-                            ],
-                            "strategy": "first-available",
-                            "priority": 0
-                        }
-                    ],
-                    "enabled": true,
-                    "match": "$.session.connectAttrs._platform = \"x86_64\"",
-                    "name": "x86_64_traffic"
-                },
-                {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Backup_servers"
-                            ],
-                            "strategy": "round-robin",
-                            "priority": 0
-                        }
-                    ],
-                    "enabled": true,
-                    "match": "$.session.connectAttrs.program_name = \"mysqldump\"",
-                    "name": "backup_traffic"
-                },
-                {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Commercial_Servers"
-                            ],
-                            "strategy": "round-robin",
-                            "priority": 0
-                        }
-                    ],
-                    "enabled": true,
-                    "match": "$.session.schema = \"audit\"",
-                    "name": "commercial_traffic"
-                },
-                {
-                    "connectionSharingAllowed": true,
-                    "destinations": [
-                        {
-                            "classes": [
-                                "Testing_Servers"
-                            ],
-                            "strategy": "first-available",
-                            "priority": 0
-                        }
-                    ],
-                    "enabled": true,
-                    "match": "$.session.user = \"test_user\"",
-                    "name": "testing_traffic"
+                    "strategy": "first-available",
+                    "priority": 0
                 }
             ],
-            "version": "1.0"
+            "enabled": true,
+            "match": "$.session.connectAttrs._platform = 'x86_64'",
+            "name": "x86_64_traffic"
+        },
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
+                {
+                    "classes": [
+                        "Backup_Servers"
+                    ],
+                    "strategy": "round-robin",
+                    "priority": 0
+                }
+            ],
+            "enabled": true,
+            "match": "$.session.connectAttrs.program_name = 'mysqldump'",
+            "name": "backup_traffic"
+        },
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
+                {
+                    "classes": [
+                        "Commercial_Servers"
+                    ],
+                    "strategy": "round-robin",
+                    "priority": 0
+                }
+            ],
+            "enabled": true,
+            "match": "$.session.schema = 'audit'",
+            "name": "commercial_traffic"
+        },
+        {
+            "connectionSharingAllowed": true,
+            "destinations": [
+                {
+                    "classes": [
+                        "Testing_Servers"
+                    ],
+                    "strategy": "first-available",
+                    "priority": 0
+                }
+            ],
+            "enabled": true,
+            "match": "$.session.user = 'test_user'",
+            "name": "testing_traffic"
         }
+    ],
+    "version": "1.0"
+}
 ```
 
 ### Summary
