@@ -141,11 +141,14 @@ class Routing_guideline_impl {
   classify_topology(const std::string &router = "") const;
   void ensure_unique_or_reuse(
       const std::shared_ptr<Base_cluster_impl> &base_topology, bool force);
+  std::string auto_escape_tags(const std::string &expression) const;
+  std::string unescape_tags(const std::string &expression) const;
 
  private:
   std::string m_id;
   std::shared_ptr<Base_cluster_impl> m_owner;
   std::string m_name;
+  mysqlshdk::utils::Version m_version;
   bool m_is_default_guideline = false;
 
   shcore::Dictionary_t m_guideline_doc;
