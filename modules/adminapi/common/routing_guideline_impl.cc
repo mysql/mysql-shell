@@ -72,13 +72,13 @@ namespace mysqlsh::dba {
 //
 
 // the current (and max.) guideline version we support
-static const mysqlshdk::utils::Version k_guideline_version("1.0");
+static const mysqlshdk::utils::Version k_guideline_version("1.1");
 
 // the min guideline version we support (should be 1.0 forever)
 static const mysqlshdk::utils::Version k_min_guideline_version("1.0");
 
 // version to assume if we encounter a guideline without a version field
-static const mysqlshdk::utils::Version k_default_guideline_version("1.0");
+static const mysqlshdk::utils::Version k_default_guideline_version("1.1");
 
 namespace {
 void check_if_shell_supports_guideline_version(
@@ -384,7 +384,7 @@ void Routing_guideline_impl::add_destination(const std::string &name,
   }
 
   auto dest = shcore::make_dict("name", shcore::Value(name), "match",
-                                shcore::Value(match));
+                                shcore::Value(auto_escape_tags(match)));
 
   // Validate it using the Routing Guidelines engine
   routing_guidelines::Routing_guidelines_engine::validate_one_destination(
@@ -465,10 +465,10 @@ void Routing_guideline_impl::add_route(const std::string &name,
   }
 
   auto route = shcore::make_dict(
-      "name", shcore::Value(name), "match", shcore::Value(match_expr),
-      "destinations", shcore::Value(parsed_destinations), "enabled",
-      shcore::Value(enabled), "connectionSharingAllowed",
-      shcore::Value(connection_sharing_allowed));
+      "name", shcore::Value(name), "match",
+      shcore::Value(auto_escape_tags(match_expr)), "destinations",
+      shcore::Value(parsed_destinations), "enabled", shcore::Value(enabled),
+      "connectionSharingAllowed", shcore::Value(connection_sharing_allowed));
 
   routing_guidelines::Routing_guidelines_engine::validate_one_route(
       shcore::Value(route).json());
@@ -724,8 +724,8 @@ void Routing_guideline_impl::show(
     std::string match_expr = route_map->get_string("match");
 
     console->print_info(shcore::str_format("  - %s", route_name.c_str()));
-    console->print_info(
-        shcore::str_format("    + Match: \"%s\"", match_expr.c_str()));
+    console->print_info(shcore::str_format("    + Match: \"%s\"",
+                                           unescape_tags(match_expr).c_str()));
 
     // Only resolve endpoints if the 'router' option is provided
     if (options->router.has_value()) {
@@ -774,8 +774,8 @@ void Routing_guideline_impl::show(
 
     // Print the class name and match expression
     console->print_info(shcore::str_format("  - %s:", name.c_str()));
-    console->print_info(
-        shcore::str_format("    + Match: \"%s\"", match_expr.c_str()));
+    console->print_info(shcore::str_format("    + Match: \"%s\"",
+                                           unescape_tags(match_expr).c_str()));
 
     // Print the Instances subsection
     console->print_info("    + Instances:");
@@ -1341,6 +1341,39 @@ std::string Routing_guideline_impl::serialize_value(
   }
 }
 
+std::string Routing_guideline_impl::auto_escape_tags(
+    const std::string &expression) const {
+  // Auto-escape key-value types for the match expression, if version is 1.0.
+  // Otherwise, keep the value unchanged
+  if (m_version > k_min_guideline_version) {
+    return expression;
+  }
+
+  // regex to match $.router.tags.* or $.server.tags.* with a value
+  std::regex tag_regex(
+      R"((\$\.(router|server)\.tags\.[a-zA-Z0-9_]+\s*=\s*)'([^']+)')");
+
+  // Replace the string
+  std::string result = std::regex_replace(expression, tag_regex, R"($1'"$3"')");
+
+  return result;
+}
+
+std::string Routing_guideline_impl::unescape_tags(
+    const std::string &expression) const {
+  // Unescape only if version is 1.0.
+  if (m_version > k_min_guideline_version) {
+    return expression;
+  }
+
+  // Regex to match escaped double quotes within tag values
+  std::regex unescape_regex(
+      R"((\$\.(router|server)\.tags\.\w+\s*=\s*)'\"([^\"]+)\"')");
+
+  // Replace the string by removing the extra quotes
+  return std::regex_replace(expression, unescape_regex, R"($1'$3')");
+}
+
 void Routing_guideline_impl::ensure_unique_or_reuse(
     const std::shared_ptr<Base_cluster_impl> &base_topology, bool force) {
   std::string guideline_name = get_name();
@@ -1364,11 +1397,12 @@ Routing_guideline_impl::Routing_guideline_impl(
     const std::shared_ptr<Base_cluster_impl> &owner, const std::string &name)
     : m_owner(owner),
       m_name(name),
-      m_guideline_doc(shcore::make_dict(
-          "version", shcore::Value(k_default_guideline_version.get_full()),
-          "name", shcore::Value(m_name), "destinations",
-          shcore::Value(shcore::make_array()), "routes",
-          shcore::Value(shcore::make_array()))) {}
+      m_version(k_default_guideline_version),
+      m_guideline_doc(
+          shcore::make_dict("version", shcore::Value(m_version.get_full()),
+                            "name", shcore::Value(m_name), "destinations",
+                            shcore::Value(shcore::make_array()), "routes",
+                            shcore::Value(shcore::make_array()))) {}
 
 std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::create(
     const std::shared_ptr<Base_cluster_impl> &owner, const std::string &name,
@@ -1560,7 +1594,7 @@ Routing_guideline_impl::get_destinations() const {
       auto &row = result->add_row();
 
       row.set_field(0, r.as_map()->get_string("name"));
-      row.set_field(1, r.as_map()->get_string("match"));
+      row.set_field(1, unescape_tags(r.as_map()->get_string("match")));
     }
   }
 
@@ -1591,7 +1625,7 @@ std::unique_ptr<mysqlshdk::db::IResult> Routing_guideline_impl::get_routes()
       row.set_row_values(
           r.as_map()->get_string("name"), r.as_map()->get_int("enabled"),
           r.as_map()->get_int("connectionSharingAllowed"),
-          r.as_map()->get_string("match"),
+          unescape_tags(r.as_map()->get_string("match")),
           format_route_destinations(r.as_map()->get_array("destinations")),
           order);
 
@@ -1616,11 +1650,9 @@ void Routing_guideline_impl::parse(const shcore::Dictionary_t &json,
 
   dba::validate_name(m_name, Validation_context::ROUTING_GUIDELINE);
 
-  mysqlshdk::utils::Version version;
-
   if (guideline->has_key("version")) {
     try {
-      version = mysqlshdk::utils::Version(guideline->get_string("version"));
+      m_version = mysqlshdk::utils::Version(guideline->get_string("version"));
     } catch (...) {
       throw shcore::Exception(
           shcore::str_format("Invalid routing guideline version '%s'",
@@ -1629,7 +1661,7 @@ void Routing_guideline_impl::parse(const shcore::Dictionary_t &json,
     }
 
     // Check if the version includes patch
-    if (version.has_patch() || !version.get_extra().empty()) {
+    if (m_version.has_patch() || !m_version.get_extra().empty()) {
       throw shcore::Exception(
           shcore::str_format("Invalid routing guideline version format '%s': "
                              "expected format is 'x.y'.",
@@ -1637,15 +1669,15 @@ void Routing_guideline_impl::parse(const shcore::Dictionary_t &json,
           SHERR_DBA_ROUTING_GUIDELINE_INVALID_VERSION);
     }
   } else {
-    version = k_default_guideline_version;
-    guideline->set("version", shcore::Value(version.get_full()));
+    m_version = k_default_guideline_version;
+    guideline->set("version", shcore::Value(m_version.get_full()));
   }
 
   // check if we can handle this version
-  check_if_shell_supports_guideline_version(version);
+  check_if_shell_supports_guideline_version(m_version);
 
   auto max_version =
-      check_if_cluster_supports_guideline_version(m_owner.get(), version);
+      check_if_cluster_supports_guideline_version(m_owner.get(), m_version);
 
   // NOTE: cluster supports higher version, so upgrade here if/when new
   // version is added
@@ -1862,8 +1894,9 @@ void Routing_guideline_impl::set_destination_option(
   }
 
   // Validate the value
-  auto dest = shcore::make_dict("name", shcore::Value(destination_name),
-                                "match", shcore::Value(value.as_string()));
+  auto dest =
+      shcore::make_dict("name", shcore::Value(destination_name), "match",
+                        shcore::Value(auto_escape_tags(value.as_string())));
 
   routing_guidelines::Routing_guidelines_engine::validate_one_destination(
       shcore::Value(dest).json());
@@ -1985,6 +2018,11 @@ void Routing_guideline_impl::set_route_option(const std::string &route_name,
 
   // Validate and update route property with the new value
   if (option != k_routing_guideline_set_route_option_order) {
+    // Auto-escape key-value types for the match expression, if version 1.0
+    if (option == k_routing_guideline_set_option_match) {
+      parsed_value = shcore::Value(auto_escape_tags(parsed_value.as_string()));
+    }
+
     route_map->set(option, parsed_value);
 
     routing_guidelines::Routing_guidelines_engine::validate_one_route(

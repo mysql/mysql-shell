@@ -54,7 +54,7 @@ const default_cluster_guideline =
             "name": "ro"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 
 const expected_default_cluster_guideline_destinations = ["Primary", "Secondary", "ReadReplica"];
@@ -121,7 +121,7 @@ const cluster_guideline_ro_targets_read_replicas =
             "name": "ro"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 
 const expected_cluster_guideline_ro_targets_read_replicas_routes_destinations = ["round-robin(Primary)", "round-robin(ReadReplica), round-robin(Primary)"];
@@ -183,7 +183,7 @@ const cluster_guideline_ro_targets_all =
             "name": "ro"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 
 const expected_cluster_guideline_ro_targets_all_routes_destinations = ["round-robin(Primary)", "round-robin(Secondary, ReadReplica), round-robin(Primary)"];
@@ -244,7 +244,7 @@ const default_clusterset_guideline =
             "name": "ro"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 
 const expected_default_clusterset_guideline_destinations = ["Primary", "PrimaryClusterSecondary", "PrimaryClusterReadReplica"];
@@ -1063,7 +1063,7 @@ const router_configuration_json =
   },
   "RWSplitEndpoint": "6450",
   "bootstrapTargetType": "cluster",
-  "SupportedRoutingGuidelinesVersion": "1.0"
+  "SupportedRoutingGuidelinesVersion": "1.1"
 };
 
 function group_fields(arr, field) {
@@ -1074,7 +1074,7 @@ function group_fields(arr, field) {
     return l;
 }
 
-function COMMON_RG_TESTS(rg, rg_name, expected_destinations, expected_destinations_match, expected_routes, expected_routes_match, expected_routes_destinations, expected_json, expected_check_output) {
+function COMMON_RG_TESTS(rg, rg_name, expected_destinations, expected_destinations_match, expected_routes, expected_routes_match, expected_routes_destinations, expected_json, expected_show_output) {
     WIPE_OUTPUT();
 
     // rg.name()
@@ -1112,5 +1112,5 @@ function COMMON_RG_TESTS(rg, rg_name, expected_destinations, expected_destinatio
     // rg.show()
     EXPECT_NO_THROWS(function() { rg.show(); });
 
-    EXPECT_OUTPUT_CONTAINS_MULTILINE(expected_check_output);
+    EXPECT_OUTPUT_CONTAINS_MULTILINE(expected_show_output);
 }
