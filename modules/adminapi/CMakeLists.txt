@@ -32,10 +32,12 @@ IF(MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
         ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/include/
         ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src
         ${MYSQL_SOURCE_DIR}/router/src/harness/include
+        ${MYSQL_SOURCE_DIR}/router/src/router/include/
         ${MYSQL_BUILD_DIR}/router
         ${MYSQL_BUILD_DIR}/router/src/routing_guidelines/include
         ${MYSQL_BUILD_DIR}/router/src/routing_guidelines/src
         ${MYSQL_BUILD_DIR}/router/include
+        ${MYSQL_BUILD_DIR}/router/src/router/include
     )
 
     # Set routing guidelines sources
@@ -45,6 +47,8 @@ IF(MYSQL_SOURCE_DIR AND MYSQL_BUILD_DIR)
         ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src/routing_guidelines.cc
         ${MYSQL_SOURCE_DIR}/router/src/routing_guidelines/src/utils.cc
         ${MYSQL_SOURCE_DIR}/router/src/harness/src/utilities.cc
+        ${MYSQL_SOURCE_DIR}/router/src/harness/src/string_utils.cc
+        ${MYSQL_SOURCE_DIR}/router/src/router/src/routing_guidelines_version.cc
         ${MYSQL_BUILD_DIR}/router/src/routing_guidelines/src/parser.cc
     )
 ENDIF()
@@ -144,7 +148,7 @@ file(GLOB adminapi_module_SOURCES
 )
 
 IF (HAVE_MYSQL_SOURCE_AND_BUILD_DIRS)
-    add_convenience_library(adminapi_modules ${adminapi_module_SOURCES} ${routing_guidelines_SOURCES} COMPILE_DEFINITIONS ROUTING_GUIDELINES_STATIC_DEFINE=1 HARNESS_STATIC_DEFINE=1 RAPIDJSON_HAS_STDSTRING=1)
+    add_convenience_library(adminapi_modules ${adminapi_module_SOURCES} ${routing_guidelines_SOURCES} COMPILE_DEFINITIONS  ROUTER_UTILS_STATIC_DEFINE=1 ROUTING_GUIDELINES_STATIC_DEFINE=1 HARNESS_STATIC_DEFINE=1 RAPIDJSON_HAS_STDSTRING=1)
 ELSE()
     add_convenience_library(adminapi_modules ${adminapi_module_SOURCES})
 ENDIF()
