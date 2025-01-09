@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -150,7 +150,11 @@
 #define SHERR_LOAD_CHECKSUM_VERIFICATION_FAILED_MSG \
   "Checksum verification failed"
 
-#define SHERR_LOAD_LAST 53031
+#define SHERR_LOAD_LIBRARY_DDL_UNSUPPORTED_SERVER_VERSION 53032
+#define SHERR_LOAD_LIBRARY_DDL_UNSUPPORTED_SERVER_VERSION_MSG \
+  "The dump contains library DDL which requires server 9.2.0 or newer."
+
+#define SHERR_LOAD_LAST 53032
 
 #define SHERR_LOAD_MAX 53999
 

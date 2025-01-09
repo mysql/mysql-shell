@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2804,10 +2804,11 @@ TEST_F(Compatibility_test, parse_grant_statement) {
 
   EXPECT("GRANT ALTER ROUTINE ON FUNCTION s.f TO u@h", true,
          {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}, "u@h"});
-  EXPECT("GRANT ALTER rOUTINE ON s.f TO u@h", true,
-         {true, Level::ROUTINE, "s", "f", {"ALTER ROUTINE"}, "u@h"});
   EXPECT("REVOKE EXECUTE ON PROCEDURE s.r FROM u@h", true,
          {false, Level::ROUTINE, "s", "r", {"EXECUTE"}, "u@h"});
+
+  EXPECT("GRANT ALTER rOUTINE ON library s.l TO u@h", true,
+         {true, Level::LIBRARY, "s", "l", {"ALTER ROUTINE"}, "u@h"});
 
   EXPECT("GRANT PROXY ON r TO u@h", false, {});
   EXPECT("GRANT PROXY ON ''@'' TO u@h", false, {});

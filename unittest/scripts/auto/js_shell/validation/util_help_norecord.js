@@ -184,6 +184,12 @@ DESCRIPTION
         be excluded from the copy in the format of schema.routine.
       - includeRoutines: list of strings (default: empty) - List of routines to
         be included in the copy in the format of schema.routine.
+      - libraries: bool (default: true) - Include library objects for each
+        copied schema.
+      - excludeLibraries: list of strings (default: empty) - List of library
+        objects to be excluded from the copy in the format of schema.library.
+      - includeLibraries: list of strings (default: empty) - List of library
+        objects to be included in the copy in the format of schema.library.
       - users: bool (default: true) - Include users, roles and grants in the
         copy.
       - excludeUsers: list of strings (default not set) - Skip copying the
@@ -340,6 +346,12 @@ DESCRIPTION
         be excluded from the copy in the format of schema.routine.
       - includeRoutines: list of strings (default: empty) - List of routines to
         be included in the copy in the format of schema.routine.
+      - libraries: bool (default: true) - Include library objects for each
+        copied schema.
+      - excludeLibraries: list of strings (default: empty) - List of library
+        objects to be excluded from the copy in the format of schema.library.
+      - includeLibraries: list of strings (default: empty) - List of library
+        objects to be included in the copy in the format of schema.library.
       - triggers: bool (default: true) - Include triggers for each copied
         table.
       - excludeTriggers: list of strings (default: empty) - List of triggers to
@@ -754,6 +766,12 @@ DESCRIPTION
         be excluded from the dump in the format of schema.routine.
       - includeRoutines: list of strings (default: empty) - List of routines to
         be included in the dump in the format of schema.routine.
+      - libraries: bool (default: true) - Include library objects for each
+        dumped schema.
+      - excludeLibraries: list of strings (default: empty) - List of library
+        objects to be excluded from the dump in the format of schema.library.
+      - includeLibraries: list of strings (default: empty) - List of library
+        objects to be included in the dump in the format of schema.library.
       - users: bool (default: true) - Include users, roles and grants in the
         dump file.
       - excludeUsers: array of strings (default not set) - Skip dumping the
@@ -1171,6 +1189,12 @@ DESCRIPTION
         be excluded from the dump in the format of schema.routine.
       - includeRoutines: list of strings (default: empty) - List of routines to
         be included in the dump in the format of schema.routine.
+      - libraries: bool (default: true) - Include library objects for each
+        dumped schema.
+      - excludeLibraries: list of strings (default: empty) - List of library
+        objects to be excluded from the dump in the format of schema.library.
+      - includeLibraries: list of strings (default: empty) - List of library
+        objects to be included in the dump in the format of schema.library.
       - triggers: bool (default: true) - Include triggers for each dumped
         table.
       - excludeTriggers: list of strings (default: empty) - List of triggers to
@@ -2502,6 +2526,9 @@ DESCRIPTION
       - excludeEvents: array of strings (default not set) - Skip loading
         specified events from the dump. Strings are in format schema.event,
         quoted using backtick characters when required.
+      - excludeLibraries: array of strings (default not set) - Skip loading
+        specified library objects from the dump. Strings are in format
+        schema.library, quoted using backtick characters when required.
       - excludeRoutines: array of strings (default not set) - Skip loading
         specified routines from the dump. Strings are in format schema.routine,
         quoted using backtick characters when required.
@@ -2536,6 +2563,10 @@ DESCRIPTION
         specified events from the dump. Strings are in format schema.event,
         quoted using backtick characters when required. By default, all events
         are included.
+      - includeLibraries: array of strings (default not set) - Loads only the
+        specified library objects from the dump. Strings are in format
+        schema.library, quoted using backtick characters when required. By
+        default, all library objects are included.
       - includeRoutines: array of strings (default not set) - Loads only the
         specified routines from the dump. Strings are in format schema.routine,
         quoted using backtick characters when required. By default, all

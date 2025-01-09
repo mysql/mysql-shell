@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include "modules/util/dump/capability.h"
 
 #include <stdexcept>
+#include <string>
 
 namespace mysqlsh {
 namespace dump {
@@ -35,7 +36,8 @@ namespace {
 
 using mysqlshdk::utils::Version;
 
-const std::string k_partition_awareness_capability = "partition_awareness";
+constexpr auto k_partition_awareness_capability = "partition_awareness";
+constexpr auto k_multifile_schema_ddl_capability = "multifile_schema_ddl";
 
 }  // namespace
 
@@ -43,6 +45,9 @@ std::string id(Capability capability) {
   switch (capability) {
     case Capability::PARTITION_AWARENESS:
       return k_partition_awareness_capability;
+
+    case Capability::MULTIFILE_SCHEMA_DDL:
+      return k_multifile_schema_ddl_capability;
   }
 
   throw std::logic_error("Should not happen");
@@ -53,25 +58,37 @@ std::string description(Capability capability) {
     case Capability::PARTITION_AWARENESS:
       return "Partition awareness - dumper treats each partition as a separate "
              "table, improving both dump and load times.";
+
+    case Capability::MULTIFILE_SCHEMA_DDL:
+      return "Multifile schema DDL - schema DDL is split into multiple files, "
+             "containing DDL for schema itself, events, routines and "
+             "libraries.";
   }
 
   throw std::logic_error("Should not happen");
 }
 
 Version version_required(Capability capability) {
+  // this is Shell's version
+
   switch (capability) {
     case Capability::PARTITION_AWARENESS:
       return Version(8, 0, 27);
+
+    case Capability::MULTIFILE_SCHEMA_DDL:
+      return Version(9, 3, 0);
   }
 
   throw std::logic_error("Should not happen");
 }
 
-bool is_supported(const std::string &id) {
+std::optional<Capability> to_capability(const std::string &id) {
   if (k_partition_awareness_capability == id) {
-    return true;
+    return Capability::PARTITION_AWARENESS;
+  } else if (k_multifile_schema_ddl_capability == id) {
+    return Capability::MULTIFILE_SCHEMA_DDL;
   } else {
-    return false;
+    return std::nullopt;
   }
 }
 

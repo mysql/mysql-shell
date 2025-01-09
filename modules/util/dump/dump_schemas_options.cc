@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +50,9 @@ const shcore::Option_pack_def<Dump_schemas_options>
           .optional("routines", &Dump_schemas_options::m_dump_routines)
           .include(&Dump_schemas_options::m_filtering_options,
                    &Filtering_options::routines)
+          .optional("libraries", &Dump_schemas_options::m_dump_libraries)
+          .include(&Dump_schemas_options::m_filtering_options,
+                   &Filtering_options::libraries)
           .on_done(&Dump_schemas_options::on_unpacked_options);
 
   return opts;
@@ -70,6 +73,7 @@ void Dump_schemas_options::on_unpacked_options() {
   m_filter_conflicts |= filters().tables().error_on_conflicts();
   m_filter_conflicts |= filters().events().error_on_conflicts();
   m_filter_conflicts |= filters().routines().error_on_conflicts();
+  m_filter_conflicts |= filters().libraries().error_on_conflicts();
 }
 
 void Dump_schemas_options::set_schemas(

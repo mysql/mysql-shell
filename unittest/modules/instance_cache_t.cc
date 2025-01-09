@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/indexes.h"
 
 namespace mysqlsh {
@@ -3270,9 +3271,14 @@ TEST_F(Instance_cache_test, filter_routines) {
         ASSERT_TRUE(cache.schemas.end() != it)
             << "cache does not contain schema `" << schema << "`";
 
-        std::unordered_set<std::string> routines = it->second.functions;
-        routines.insert(it->second.procedures.begin(),
-                        it->second.procedures.end());
+        std::unordered_set<std::string> routines;
+
+        for (const auto &r : {&it->second.functions, &it->second.procedures}) {
+          for (const auto &pair : *r) {
+            routines.emplace(pair.first);
+          }
+        }
+
         EXPECT_EQ(expected, routines);
       };
 
@@ -3499,6 +3505,266 @@ TEST_F(Instance_cache_test, filter_routines) {
     EXPECT_ROUTINES(cache, "first", {"one"});
     EXPECT_ROUTINES(cache, "second", {});
     EXPECT_ROUTINES(cache, "third", {"two"});
+  }
+}
+TEST_F(Instance_cache_test, filter_libraries) {
+  if (!compatibility::supports_library_ddl(_target_server_version)) {
+    SKIP_TEST("This test requires MySQL server 9.2.0");
+  }
+
+  {
+    // setup
+    m_session->execute("CREATE SCHEMA first;");
+    m_session->execute(
+        "CREATE LIBRARY first.one LANGUAGE JAVASCRIPT AS $$ $$;");
+    m_session->execute(
+        "CREATE LIBRARY first.two LANGUAGE JAVASCRIPT AS $$ $$;");
+    m_session->execute("CREATE SCHEMA second;");
+    m_session->execute(
+        "CREATE LIBRARY second.one LANGUAGE JAVASCRIPT AS $$ $$;");
+    m_session->execute(
+        "CREATE LIBRARY second.two LANGUAGE JAVASCRIPT AS $$ $$;");
+    m_session->execute("CREATE SCHEMA third;");
+    m_session->execute(
+        "CREATE LIBRARY third.one LANGUAGE JAVASCRIPT AS $$ $$;");
+    m_session->execute(
+        "CREATE LIBRARY third.two LANGUAGE JAVASCRIPT AS $$ $$;");
+  }
+
+  const auto EXPECT_LIBRARIES =
+      [](const Instance_cache &cache, const std::string &schema,
+         const std::unordered_set<std::string> &expected) {
+        SCOPED_TRACE("schema: " + schema);
+
+        const auto it = cache.schemas.find(schema);
+        ASSERT_TRUE(cache.schemas.end() != it)
+            << "cache does not contain schema `" << schema << "`";
+        EXPECT_EQ(expected, it->second.libraries);
+      };
+
+  {
+    SCOPED_TRACE("all filters are empty");
+
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "second", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude library from non-existing schema");
+
+    Filtering_options filters;
+    filters.libraries().exclude("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "second", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude non-existing library");
+
+    Filtering_options filters;
+    filters.libraries().exclude("third", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "second", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing library");
+
+    Filtering_options filters;
+    filters.libraries().exclude("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "second", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "third", {"one"});
+  }
+
+  {
+    SCOPED_TRACE(
+        "exclude existing, non-existing library and a library in non-existing "
+        "schema");
+
+    Filtering_options filters;
+    filters.libraries().exclude("third", std::array{"two", "four"});
+    filters.libraries().exclude("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "second", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "third", {"one"});
+  }
+
+  {
+    SCOPED_TRACE("exclude all libraries from the same schema");
+
+    Filtering_options filters;
+    filters.libraries().exclude("third", std::array{"one", "two", "three"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "second", {"one", "two"});
+    EXPECT_LIBRARIES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("exclude existing libraries from different schemas");
+
+    Filtering_options filters;
+    filters.libraries().exclude("first", "one");
+    filters.libraries().exclude("second", "two");
+    filters.libraries().exclude("third", "one");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"two"});
+    EXPECT_LIBRARIES(cache, "second", {"one"});
+    EXPECT_LIBRARIES(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include library from non-existing schema");
+
+    Filtering_options filters;
+    filters.libraries().include("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include non-existing library");
+
+    Filtering_options filters;
+    filters.libraries().include("third", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include existing library");
+
+    Filtering_options filters;
+    filters.libraries().include("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing and non-existing libraries");
+
+    Filtering_options filters;
+    filters.libraries().include("third", std::array{"two", "four"});
+    filters.libraries().include("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {"two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing libraries from the same schema");
+
+    Filtering_options filters;
+    filters.libraries().include("third", std::array{"one", "two"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {"one", "two"});
+  }
+
+  {
+    SCOPED_TRACE("include existing libraries from different schemas");
+
+    Filtering_options filters;
+    filters.libraries().include("first", "one");
+    filters.libraries().include("second", "two");
+    filters.libraries().include("third", "three");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one"});
+    EXPECT_LIBRARIES(cache, "second", {"two"});
+    EXPECT_LIBRARIES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing library");
+
+    Filtering_options filters;
+    filters.libraries().include("third", "two");
+    filters.libraries().exclude("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE("include and exclude the same existing library + some more");
+
+    Filtering_options filters;
+    filters.libraries().include("third", "two");
+    filters.libraries().exclude("second", "two");
+    filters.libraries().exclude("third", "two");
+    filters.libraries().exclude("fourth", "four");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {});
+  }
+
+  {
+    SCOPED_TRACE(
+        "include and exclude existing libraries from different schemas");
+
+    Filtering_options filters;
+    filters.libraries().include("first", "one");
+    filters.libraries().include("second", "two");
+    filters.libraries().include("third", "two");
+    filters.libraries().exclude("first", "two");
+    filters.libraries().exclude("second", "two");
+    filters.libraries().exclude("third", "one");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    EXPECT_LIBRARIES(cache, "first", {"one"});
+    EXPECT_LIBRARIES(cache, "second", {});
+    EXPECT_LIBRARIES(cache, "third", {"two"});
   }
 }
 
@@ -4032,6 +4298,9 @@ TEST_F(Instance_cache_test, filter_triggers) {
 }
 
 TEST_F(Instance_cache_test, stats) {
+  const auto k_libraries_supported =
+      compatibility::supports_library_ddl(_target_server_version);
+
   {
     // setup
     // schemas
@@ -4083,6 +4352,24 @@ TEST_F(Instance_cache_test, stats) {
     m_session->execute(
         "CREATE FUNCTION third.one() RETURNS INT DETERMINISTIC RETURN 1;");
     m_session->execute("CREATE PROCEDURE third.two() DETERMINISTIC BEGIN END;");
+
+    // libraries
+    if (k_libraries_supported) {
+      m_session->execute(
+          "CREATE LIBRARY first.one LANGUAGE JAVASCRIPT AS $$ $$;");
+      m_session->execute(
+          "CREATE LIBRARY first.two LANGUAGE JAVASCRIPT AS $$ $$;");
+
+      m_session->execute(
+          "CREATE LIBRARY second.one LANGUAGE JAVASCRIPT AS $$ $$;");
+      m_session->execute(
+          "CREATE LIBRARY second.two LANGUAGE JAVASCRIPT AS $$ $$;");
+
+      m_session->execute(
+          "CREATE LIBRARY third.one LANGUAGE JAVASCRIPT AS $$ $$;");
+      m_session->execute(
+          "CREATE LIBRARY third.two LANGUAGE JAVASCRIPT AS $$ $$;");
+    }
 
     // triggers
     m_session->execute(
@@ -4161,6 +4448,7 @@ TEST_F(Instance_cache_test, stats) {
     EXPECT_EQ(expected.views, actual.views);
     EXPECT_EQ(expected.events, actual.events);
     EXPECT_EQ(expected.routines, actual.routines);
+    EXPECT_EQ(expected.libraries, actual.libraries);
     EXPECT_EQ(expected.triggers, actual.triggers);
     EXPECT_EQ(expected.users, actual.users);
   };
@@ -4184,6 +4472,7 @@ TEST_F(Instance_cache_test, stats) {
 
     expected_total.events = total_count("events");
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = 0;
 
@@ -4200,6 +4489,24 @@ TEST_F(Instance_cache_test, stats) {
 
     expected_total.events = 0;
     expected_total.routines = total_count("routines");
+    expected_total.libraries = 0;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS(expected_total, cache.filtered);
+  }
+
+  if (k_libraries_supported) {
+    SCOPED_TRACE("no filters - schemas, tables and libraries");
+
+    Filtering_options filters;
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.libraries = total_count("libraries");
     expected_total.triggers = 0;
     expected_total.users = 0;
 
@@ -4216,6 +4523,7 @@ TEST_F(Instance_cache_test, stats) {
 
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = total_count("triggers");
     expected_total.users = 0;
 
@@ -4232,6 +4540,7 @@ TEST_F(Instance_cache_test, stats) {
 
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = total_users;
 
@@ -4250,6 +4559,7 @@ TEST_F(Instance_cache_test, stats) {
 
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = total_users;
 
@@ -4271,6 +4581,7 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = 0;
 
@@ -4291,6 +4602,7 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = 0;
 
@@ -4310,6 +4622,7 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 6;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = 0;
 
@@ -4331,6 +4644,7 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 6;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = 0;
 
@@ -4350,6 +4664,7 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 6;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = 0;
 
@@ -4371,11 +4686,54 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 6;
+    expected_total.libraries = 0;
     expected_total.triggers = 0;
     expected_total.users = 0;
 
     EXPECT_STATS(expected_total, cache.total);
     EXPECT_STATS({3, 6, 3, 0, 2}, cache.filtered);
+  }
+
+  if (k_libraries_supported) {
+    SCOPED_TRACE("filter schemas + all libraries");
+
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.libraries = 6;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 0, 0, 6}, cache.filtered);
+  }
+
+  if (k_libraries_supported) {
+    SCOPED_TRACE("filter schemas + filtered libraries");
+
+    Filtering_options filters;
+    filters.schemas().include(std::array{"first", "second", "third"});
+    filters.libraries().include("first", "one");
+    filters.libraries().include("third", "two");
+    const auto cache =
+        Instance_cache_builder(m_session, filters).libraries().build();
+
+    expected_total.tables = 6;
+    expected_total.views = 3;
+    expected_total.events = 0;
+    expected_total.routines = 0;
+    expected_total.libraries = 6;
+    expected_total.triggers = 0;
+    expected_total.users = 0;
+
+    EXPECT_STATS(expected_total, cache.total);
+    EXPECT_STATS({3, 6, 3, 0, 0, 2}, cache.filtered);
   }
 
   {
@@ -4390,11 +4748,12 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 12;
     expected_total.users = 0;
 
     EXPECT_STATS(expected_total, cache.total);
-    EXPECT_STATS({3, 6, 3, 0, 0, 12}, cache.filtered);
+    EXPECT_STATS({3, 6, 3, 0, 0, 0, 12}, cache.filtered);
   }
 
   {
@@ -4412,11 +4771,12 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 12;
     expected_total.users = 0;
 
     EXPECT_STATS(expected_total, cache.total);
-    EXPECT_STATS({3, 6, 3, 0, 0, 4}, cache.filtered);
+    EXPECT_STATS({3, 6, 3, 0, 0, 0, 4}, cache.filtered);
   }
 
   {
@@ -4433,11 +4793,12 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 4;
     expected_total.users = 0;
 
     EXPECT_STATS(expected_total, cache.total);
-    EXPECT_STATS({3, 2, 1, 0, 0, 4}, cache.filtered);
+    EXPECT_STATS({3, 2, 1, 0, 0, 0, 4}, cache.filtered);
   }
 
   {
@@ -4456,11 +4817,12 @@ TEST_F(Instance_cache_test, stats) {
     expected_total.views = 3;
     expected_total.events = 0;
     expected_total.routines = 0;
+    expected_total.libraries = 0;
     expected_total.triggers = 4;
     expected_total.users = 0;
 
     EXPECT_STATS(expected_total, cache.total);
-    EXPECT_STATS({3, 2, 1, 0, 0, 2}, cache.filtered);
+    EXPECT_STATS({3, 2, 1, 0, 0, 0, 2}, cache.filtered);
   }
 }
 

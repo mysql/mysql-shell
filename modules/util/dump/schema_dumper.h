@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,6 +58,7 @@ class Schema_dumper {
       FIXED_BY_CREATE_INVISIBLE_PKS,
       FIXED_BY_IGNORE_MISSING_PKS,
       FIXED,
+      NOTE,
       WARNING_DEPRECATED_DEFINERS,
       WARNING_ESCAPED_WILDCARDS,
       WARNING_INVALID_VIEW_REFERENCE,
@@ -133,12 +134,16 @@ class Schema_dumper {
   std::vector<Issue> dump_routines_ddl(IFile *file, const std::string &db);
   std::vector<std::string> get_routines(const std::string &db,
                                         const std::string &type);
+  std::vector<Instance_cache::Routine::Library_reference>
+  get_routine_dependencies(const std::string &db, const std::string &routine,
+                           const std::string_view type);
 
-  std::vector<Issue> dump_grants(IFile *file, const Filtering_options &filters);
-  std::vector<shcore::Account> get_users(
-      const Filtering_options::User_filters &filters);
-  std::vector<shcore::Account> get_roles(
-      const Filtering_options::User_filters &filters);
+  std::vector<Issue> dump_libraries_ddl(IFile *file, const std::string &db);
+  std::vector<std::string> get_libraries(const std::string &db);
+
+  std::vector<Issue> dump_grants(IFile *file);
+  std::vector<shcore::Account> get_users();
+  std::vector<shcore::Account> get_roles();
 
   std::vector<Instance_cache::Histogram> get_histograms(
       const std::string &db_name, const std::string &table_name);
@@ -151,6 +156,7 @@ class Schema_dumper {
                      const std::string &table_name = "");
 
   void use_cache(const Instance_cache *cache) { m_cache = cache; }
+  void use_filters(const Filtering_options *filters) { m_filters = filters; }
 
   bool partial_revokes() const;
 
@@ -163,6 +169,7 @@ class Schema_dumper {
   bool opt_drop_view = false;
   bool opt_drop_event = true;
   bool opt_drop_routine = true;
+  bool opt_drop_library = true;
   bool opt_drop_trigger = true;
   bool opt_reexecutable = true;
   bool opt_create_options = true;
@@ -234,6 +241,7 @@ class Schema_dumper {
   std::string m_dump_info;
 
   const Instance_cache *m_cache = nullptr;
+  const Filtering_options *m_filters = nullptr;
 
   mutable std::optional<bool> m_partial_revokes;
 
@@ -282,6 +290,9 @@ class Schema_dumper {
 
   std::vector<Issue> dump_routines_for_db(IFile *sql_file,
                                           const std::string &db);
+
+  std::vector<Issue> dump_libraries_for_db(IFile *sql_file,
+                                           const std::string &db);
 
   bool is_charset_supported(const std::string &cs);
 
@@ -356,9 +367,9 @@ class Schema_dumper {
                                     const std::string &grantee,
                                     std::string *out_schema);
 
-  std::vector<shcore::Account> fetch_users(
-      const std::string &select, const std::string &where,
-      const Filtering_options::User_filters &filters, bool log_error = true);
+  std::vector<shcore::Account> fetch_users(const std::string &select,
+                                           const std::string &where,
+                                           bool log_error = true);
 
   Version_dependent_check set_any_definer_check() const;
 
@@ -369,6 +380,14 @@ class Schema_dumper {
   void check_view_for_table_references(const std::string &db,
                                        const std::string &name,
                                        std::vector<Issue> *issues) const;
+
+  void check_routine_for_dependencies(const std::string &db,
+                                      const std::string &name,
+                                      const std::string_view type,
+                                      std::vector<Issue> *issues) const;
+
+  bool is_library_included(const std::string &schema,
+                           const std::string &library) const;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Schema_dumper_test, check_object_for_definer);

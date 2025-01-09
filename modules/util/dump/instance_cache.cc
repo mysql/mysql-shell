@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -149,10 +149,10 @@ Instance_cache_builder &Instance_cache_builder::users() {
   Profiler profiler{"fetching users"};
 
   Schema_dumper sd{m_session};
+  sd.use_filters(&m_filters);
 
-  const auto &users = m_filters.users();
-  m_cache.users = sd.get_users(users);
-  m_cache.roles = sd.get_roles(users);
+  m_cache.users = sd.get_users();
+  m_cache.roles = sd.get_roles();
 
   m_cache.filtered.users = m_cache.users.size();
   m_cache.total.users = count("user_privileges", {}, "DISTINCT grantee");
@@ -208,13 +208,89 @@ Instance_cache_builder &Instance_cache_builder::routines() {
                        ? schema->procedures
                        : schema->functions;  // ROUTINE_TYPE
 
-    target.emplace(row->get_string(1));  // ROUTINE_NAME
+    target.emplace(row->get_string(1),
+                   Instance_cache::Routine{});  // ROUTINE_NAME
 
     ++m_cache.filtered.routines;
   });
 
   // the total number of routines within the filtered schemas
   m_cache.total.routines = count(info);
+
+  if (compatibility::supports_library_ddl(m_cache.server.version.number)) {
+    // the routine_libraries view has ROUTINE_SCHEMA, ROUTINE_NAME and
+    // ROUTINE_TYPE columns, so these do not need to be changed, routine filter
+    // is valid as well
+    info.extra_columns.emplace_back(
+        "IFNULL(l.library_schema, rl.library_schema)");  // NOT NULL
+    info.extra_columns.emplace_back(
+        "IFNULL(l.library_name, rl.library_name)");  // NOT NULL
+    info.extra_columns.emplace_back(
+        "l.library_schema IS NOT NULL");  // NOT NULL
+
+    // we left join the routine_libraries and libraries views to get the correct
+    // casing of the library name and detect missing libraries
+    info.table_name =
+        "routine_libraries AS rl "
+        "LEFT JOIN information_schema.libraries AS l "
+        "ON rl.library_schema=l.library_schema "
+        "AND rl.library_name=l.library_name";
+
+    auto has_library_ddl = m_cache.has_library_ddl;
+
+    iterate_schemas(
+        info, [&procedure, &has_library_ddl](const std::string &,
+                                             Instance_cache::Schema *schema,
+                                             const mysqlshdk::db::IRow *row) {
+          auto &target = row->get_string(2) == procedure
+                             ? schema->procedures
+                             : schema->functions;  // ROUTINE_TYPE
+
+          auto &routine = target.at(row->get_string(1));  // ROUTINE_NAME
+          routine.library_references.emplace_back(
+              row->get_string(3),     // LIBRARY_SCHEMA
+              row->get_string(4),     // LIBRARY_NAME
+              1 == row->get_int(5));  // EXISTS
+
+          has_library_ddl = true;
+        });
+
+    m_cache.has_library_ddl = has_library_ddl;
+  }
+
+  return *this;
+}
+
+Instance_cache_builder &Instance_cache_builder::libraries() {
+  if (!compatibility::supports_library_ddl(m_cache.server.version.number)) {
+    return *this;
+  }
+
+  Profiler profiler{"fetching libraries"};
+
+  Iterate_schema info;
+  info.schema_column = "LIBRARY_SCHEMA";  // NOT NULL
+  info.extra_columns = {
+      "LIBRARY_NAME",  // NOT NULL
+  };
+  info.table_name = "libraries";
+  // library names are case insensitive
+  info.where = m_query_helper.library_filter(info);
+
+  iterate_schemas(
+      info, [this](const std::string &, Instance_cache::Schema *schema,
+                   const mysqlshdk::db::IRow *row) {
+        schema->libraries.emplace(row->get_string(1));  // LIBRARY_NAME
+
+        ++m_cache.filtered.libraries;
+      });
+
+  // the total number of libraries within the filtered schemas
+  m_cache.total.libraries = count(info);
+
+  if (m_cache.filtered.libraries) {
+    m_cache.has_library_ddl = true;
+  }
 
   return *this;
 }

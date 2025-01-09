@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -172,6 +172,7 @@ struct Query_helper {
 
   std::string event_filter(const Iterate_schema &info) const;
   std::string routine_filter(const Iterate_schema &info) const;
+  std::string library_filter(const Iterate_schema &info) const;
 
   std::string build_query(const Iterate_schema &info,
                           const std::string &filter) const;

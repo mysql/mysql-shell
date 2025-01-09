@@ -32,6 +32,9 @@ test_table_trigger = "sample_trigger"
 test_schema_procedure = "sample_procedure"
 test_schema_function = "sample_function"
 test_schema_event = "sample_event"
+test_schema_library = "sample_library"
+test_schema_library_procedure = "sample_library_procedure"
+test_schema_library_function = "sample_library_function"
 test_view = "sample_view"
 test_role = "sample_role"
 test_user_no_pwd = get_test_user_account("sample_user_no_pwd")
@@ -519,6 +522,33 @@ session.run_sql("CREATE FUNCTION !.!(a INT) RETURNS CHAR(12) DETERMINISTIC RETUR
 session.run_sql("CREATE VIEW !.! AS SELECT !.!(`tdata`) FROM !.!;", [ test_schema, test_view, test_schema, test_schema_function, test_schema, test_table_no_index ])
 
 session.run_sql("CREATE EVENT !.! ON SCHEDULE EVERY 1 HOUR STARTS CURRENT_TIMESTAMP + INTERVAL 1 WEEK DO DELETE FROM !.!;", [ test_schema, test_schema_event, test_schema, test_table_no_index ])
+
+if instance_supports_libraries:
+    # make sure that the MLE component is disabled, tests will enable it when needed
+    # WL16731-TSFR_1_1_2 - tests are executed with MLE component disabled
+    disable_mle(session)
+    session.run_sql("""
+        CREATE LIBRARY !.! LANGUAGE JAVASCRIPT
+        AS $$
+            export function squared(n) {
+                return n * n;
+            }
+        $$
+        """, [ test_schema, test_schema_library ])
+    session.run_sql("""
+        CREATE FUNCTION !.!(n INTEGER) RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT
+        USING (!.! AS mylib)
+        AS $$
+            return mylib.squared(n);
+        $$
+        """, [ test_schema, test_schema_library_function, test_schema, test_schema_library ])
+    session.run_sql(f"""
+        CREATE PROCEDURE !.!(n INTEGER) LANGUAGE JAVASCRIPT
+        USING (!.!)
+        AS $$
+            {test_schema_library}.squared(n);
+        $$
+        """, [ test_schema, test_schema_library_procedure, test_schema, test_schema_library ])
 
 # BUG#31820571 - events which contain string `;;` cause dump to freeze
 session.run_sql("CREATE DEFINER=`root`@`localhost` EVENT !.! ON SCHEDULE AT '2020-08-28 10:53:50' ON COMPLETION PRESERVE ENABLE COMMENT '/* ;; */' DO begin end;", [ test_schema, "bug31820571" ])
@@ -1095,38 +1125,129 @@ TEST_BOOL_OPTION("skipConsistencyChecks")
 TEST_BOOL_OPTION("events")
 
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "events": False, "ddlOnly": True, "showProgress": False })
-EXPECT_FILE_CONTAINS("CREATE DATABASE /*!32312 IF NOT EXISTS*/ `{0}`".format(test_schema), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
-EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DATABASE /*!32312 IF NOT EXISTS*/ `{0}`".format(test_schema), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Schema)))
 
-EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 routines, 1 trigger\.'))
+if instance_supports_libraries:
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Events))))
+else:
+    EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Events)))
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 1 library, 4 routines, 1 trigger\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 routines, 1 trigger\.'))
 
 #@<> WL13807-FR4.3.1 - If the `events` option is not given, a default value of `true` must be used instead.
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
-EXPECT_FILE_CONTAINS("CREATE DEFINER=`root`@`localhost` EVENT IF NOT EXISTS `bug31820571`", os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Events)))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`root`@`localhost` EVENT IF NOT EXISTS `bug31820571`", os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Events)))
 
 #@<> BUG#33396153 - dumpInstance() + events
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeEvents": [ f"`{test_schema}`.`{test_schema_event}`" ], "dryRun": True, "showProgress": False })
-EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 1 out of 2 events, 2 routines, 1 trigger\.'))
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 1 out of 2 events, 1 library, 4 routines, 1 trigger\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 1 out of 2 events, 2 routines, 1 trigger\.'))
 
 #@<> WL13807-FR4.4 - The `options` dictionary may contain a `routines` key with a Boolean value, which specifies whether to include functions and stored procedures in the DDL file of each schema. User-defined functions must not be included.
 TEST_BOOL_OPTION("routines")
 
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "routines": False, "ddlOnly": True, "showProgress": False })
-EXPECT_FILE_CONTAINS("CREATE DATABASE /*!32312 IF NOT EXISTS*/ `{0}`".format(test_schema), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
-EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
-EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DATABASE /*!32312 IF NOT EXISTS*/ `{0}`".format(test_schema), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Schema)))
 
-EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 trigger\.'))
+if instance_supports_libraries:
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines))))
+else:
+    EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
+    EXPECT_FILE_NOT_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 library, 1 trigger\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 trigger\.'))
 
 #@<> WL13807-FR4.4.1 - If the `routines` option is not given, a default value of `true` must be used instead.
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "ddlOnly": True, "showProgress": False })
-EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
-EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
 
 #@<> BUG#33396153 - dumpInstance() + routines
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeRoutines": [ f"`{test_schema}`.`{test_schema_procedure}`" ], "dryRun": True, "showProgress": False })
-EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 out of 2 routines, 1 trigger\.'))
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 library, 3 out of 4 routines, 1 trigger\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 out of 2 routines, 1 trigger\.'))
+
+#@<> WL16731-G1 - `libraries` - invalid values
+TEST_BOOL_OPTION("libraries")
+
+#@<> WL16731-G2 - `libraries` - disabled
+EXPECT_SUCCESS([test_schema], test_output_absolute, { "libraries": False, "ddlOnly": True, "showProgress": False })
+
+if instance_supports_libraries:
+    # WL16731-TSFR_1_7_1 - note about routine using an excluded library is printed
+    EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Function", test_schema, test_schema_library_function, test_schema, test_schema_library).note())
+    EXPECT_FILE_CONTAINS(f"CREATE DEFINER=`{__user}`@`{__host}` FUNCTION `{test_schema_library_function}`", os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
+    EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", test_schema, test_schema_library_procedure, test_schema, test_schema_library).note())
+    EXPECT_FILE_CONTAINS(f"CREATE DEFINER=`{__user}`@`{__host}` PROCEDURE `{test_schema_library_procedure}`", os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
+
+EXPECT_FILE_CONTAINS("CREATE DATABASE /*!32312 IF NOT EXISTS*/ `{0}`".format(test_schema), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Schema)))
+
+EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Libraries))))
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 4 routines, 1 trigger\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 2 routines, 1 trigger\.'))
+
+#@<> WL16731-G3 - `libraries` - default value
+EXPECT_SUCCESS([test_schema], test_output_absolute, { "targetVersion": "9.1.0", "ddlOnly": True, "showProgress": False })
+
+if instance_supports_libraries:
+    EXPECT_FILE_CONTAINS(f"CREATE LIBRARY `{test_schema_library}`", os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Libraries)))
+    # WL16731-TSFR_1_1_2_1 - target version does not support libraries, warning is printed
+    EXPECT_STDOUT_CONTAINS(warn_target_version_does_not_support_libraries("9.1.0"))
+else:
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Libraries))))
+    # WL16731-TSFR_1_1_2_1 - target version does not support libraries, but there are no libraries, warning is not printed
+    EXPECT_STDOUT_NOT_CONTAINS(warn_target_version_does_not_support_libraries("9.1.0"))
+
+#@<> WL16731-G2 - `libraries` - filtering
+# WL16731-TSFR_1_1_1 - test is executed regardless of server version
+EXPECT_SUCCESS([test_schema], test_output_absolute, { "targetVersion": "9.2.0", "libraries": True, "excludeLibraries": [ f"`{test_schema}`.`{test_schema_library}`" ], "dryRun": True, "showProgress": False })
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 0 out of 1 library, 4 routines, 1 trigger\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 2 routines, 1 trigger\.'))
+
+# WL16731-TSFR_1_1_2_2 - target version supports libraries, warning is not printed
+EXPECT_STDOUT_NOT_CONTAINS(warn_target_version_does_not_support_libraries("9.2.0"))
+
+#@<> WL16731-TSFR_1_7_1_2 - `libraries` - routine uses a library which does not exist {instance_supports_libraries}
+# constants
+tested_schema = "wl16731"
+tested_library = "my_library"
+tested_function = "my_function"
+tested_procedure = "my_procedure"
+
+# setup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE LIBRARY !.! LANGUAGE JAVASCRIPT AS $$ $$", [tested_schema, tested_library])
+session.run_sql("CREATE FUNCTION !.!() RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_function, tested_schema, tested_library])
+session.run_sql("CREATE PROCEDURE !.!() LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_procedure, tested_schema, tested_library])
+session.run_sql("DROP LIBRARY !.!", [tested_schema, tested_library])
+
+# test
+EXPECT_SUCCESS([tested_schema], test_output_absolute, { "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(routine_references_missing_library("Function", tested_schema, tested_function, tested_schema, tested_library).warning())
+EXPECT_STDOUT_CONTAINS(routine_references_missing_library("Procedure", tested_schema, tested_procedure, tested_schema, tested_library).warning())
+
+# cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
 #@<> WL13807-FR4.5 - The `options` dictionary may contain a `triggers` key with a Boolean value, which specifies whether to include triggers in the DDL file of each table.
 # WL13807-TSFR4_15
@@ -1137,7 +1258,10 @@ TEST_BOOL_OPTION("triggers")
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "triggers": False, "ddlOnly": True, "showProgress": False })
 EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basename(test_schema, test_table_no_index) + ".triggers.sql")))
 
-EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 2 routines\.'))
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 library, 4 routines\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 2 routines\.'))
 
 #@<> WL13807-FR4.5.1 - If the `triggers` option is not given, a default value of `true` must be used instead.
 # WL13807-TSFR4_13
@@ -1146,7 +1270,11 @@ EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_table_basen
 
 #@<> BUG#33396153 - dumpInstance() + triggers
 EXPECT_SUCCESS([test_schema], test_output_absolute, { "excludeTriggers": [ f"`{test_schema}`.`{test_table_no_index}`" ], "dryRun": True, "showProgress": False })
-EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 2 routines, 0 out of 1 trigger\.'))
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 1 library, 4 routines, 0 out of 1 trigger\.'))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r'1 out of \d+ schemas will be dumped and within them 4 tables, 1 view, 2 events, 2 routines, 0 out of 1 trigger\.'))
 
 #@<> WL13807-FR4.6 - The `options` dictionary may contain a `tzUtc` key with a Boolean value, which specifies whether to set the time zone to UTC and include a `SET TIME_ZONE='+00:00'` statement in the DDL files and to execute this statement before the data dump is started. This allows dumping TIMESTAMP data when a server has data in different time zones or data is being moved between servers with different time zones.
 # WL13807-TSFR4_18
@@ -1416,32 +1544,32 @@ TEST_ARRAY_OF_STRINGS_OPTION("excludeSchemas")
 
 # WL13807-TSFR5_2
 EXPECT_SUCCESS(None, test_output_absolute, { "excludeSchemas": exclude_all_but_types_schema, "ddlOnly": True, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(types_schema) + ".sql")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(types_schema, Schema_ddl.Schema))))
 
 for schema in exclude_all_but_types_schema:
-    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema) + ".sql")))
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(schema, Schema_ddl.Schema))))
 
 #@<> excludeSchemas + excludeTables
 EXPECT_SUCCESS(None, test_output_absolute, { "excludeSchemas": exclude_all_but_types_schema, "excludeTables": [ "`{0}`.`{1}`".format(test_schema, test_table_non_unique), "`{0}`.`dummy`".format(test_schema), "`@`.dummy" ], "ddlOnly": True, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(types_schema) + ".sql")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(types_schema, Schema_ddl.Schema))))
 
 for schema in exclude_all_but_types_schema:
-    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema) + ".sql")))
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(schema, Schema_ddl.Schema))))
 
 #@<> WL13807-FR5.1.1 - If the specified schema does not exist, it is discarded from the list.
 # WL13807-TSFR5_3
 EXPECT_SUCCESS(None, test_output_absolute, { "excludeSchemas": exclude_all_but_types_schema + [ "dummy" ], "ddlOnly": True, "showProgress": False })
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(types_schema) + ".sql")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(types_schema, Schema_ddl.Schema))))
 
 for schema in exclude_all_but_types_schema:
-    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema) + ".sql")))
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(schema, Schema_ddl.Schema))))
 
 #@<> WL13807-FR5.1.2 - If the `excludeSchemas` option is not given, a default value of an empty list must be used instead.
 # WL13807-TSFR5_1
 EXPECT_SUCCESS(None, test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
 for schema in all_schemas:
-    EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema) + ".sql")), schema)
+    EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(schema, Schema_ddl.Schema))), schema)
 
 # WL13807-FR5.1.3 - The following schemas must be always excluded:
 # * information_schema
@@ -1451,7 +1579,7 @@ for schema in all_schemas:
 # * sys
 # WL13807-TSFR5_7
 for schema in ["information_schema", "mysql", "ndbinfo", "performance_schema", "sys"]:
-    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema) + ".sql")))
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(schema, Schema_ddl.Schema))))
 
 #@<> WL13807-FR6 - The data dumps for the following tables must be excluded from any dumps that include their respective schemas. DDL must still be generated:
 # * `mysql.apply_status`
@@ -1467,8 +1595,8 @@ EXPECT_SUCCESS([types_schema, test_schema], test_output_absolute, { "ddlOnly": T
 #@<> WL13807-FR9 - For each schema dumped, a DDL file with the base name as specified in FR8 and `.sql` extension must be created in the output directory.
 # * The schema DDL file must contain all objects being dumped, including routines and events if enabled by options.
 # WL13807-TSFR9_1
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(types_schema) + ".sql")))
-EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql")))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(types_schema, Schema_ddl.Schema))))
+EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Schema))))
 
 #@<> WL13807-FR10 - For each table dumped, a DDL file must be created with a base name as specified in FR7.1, and `.sql` extension.
 # * The table DDL file must contain all objects being dumped.
@@ -1551,7 +1679,7 @@ all_sql_files = []
 # order is important
 all_sql_files.append("@.sql")
 all_sql_files.append("@.users.sql")
-all_sql_files.append(encode_schema_basename(test_schema) + ".sql")
+all_sql_files.append(schema_ddl_file(test_schema, Schema_ddl.Schema))
 
 for table in [test_table_primary, test_table_unique, test_table_non_unique, test_table_no_index]:
     all_sql_files.append(encode_table_basename(test_schema, table) + ".sql")
@@ -2078,10 +2206,15 @@ root_session = mysql.get_session(uri)
 # user has all the required privileges, this should succeed
 EXPECT_SUCCESS(all_schemas, test_output_absolute, { "showProgress": False })
 # check if events are here
-EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` EVENT IF NOT EXISTS `{2}`".format(__user, __host, test_schema_event), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Events)))
 # check if routines are here
-EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
-EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, encode_schema_basename(test_schema) + ".sql"))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` PROCEDURE `{2}`".format(__user, __host, test_schema_procedure), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
+EXPECT_FILE_CONTAINS("CREATE DEFINER=`{0}`@`{1}` FUNCTION `{2}`".format(__user, __host, test_schema_function), os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Routines)))
+if instance_supports_libraries:
+    # check if libraries are here
+    EXPECT_FILE_CONTAINS(f"CREATE LIBRARY `{test_schema_library}`", os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Libraries)))
+else:
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(test_schema, Schema_ddl.Libraries))))
 # check is users are here
 EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, "@.users.sql")))
 # check if triggers are here
@@ -2539,6 +2672,24 @@ EXPECT_STDOUT_CONTAINS("""
         be excluded from the dump in the format of schema.routine.
 """)
 
+# WL16731-G1 - help entries - libraries
+EXPECT_STDOUT_CONTAINS("""
+      - libraries: bool (default: true) - Include library objects for each
+        dumped schema.
+""")
+
+# WL16731-TSFR_1_2_1 - help entries - includeLibraries
+EXPECT_STDOUT_CONTAINS("""
+      - includeLibraries: list of strings (default: empty) - List of library
+        objects to be included in the dump in the format of schema.library.
+""")
+
+# WL16731-TSFR_1_3_1 - help entries - excludeLibraries
+EXPECT_STDOUT_CONTAINS("""
+      - excludeLibraries: list of strings (default: empty) - List of library
+        objects to be excluded from the dump in the format of schema.library.
+""")
+
 # WL14244-TSFR_5_1
 EXPECT_STDOUT_CONTAINS("""
       - includeEvents: list of strings (default: empty) - List of events to be
@@ -2585,6 +2736,39 @@ def dump_and_load(options):
     session.run_sql("CREATE EVENT existing_schema_2.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
     session.run_sql("CREATE PROCEDURE existing_schema_2.existing_routine() DETERMINISTIC BEGIN END")
     session.run_sql("CREATE TRIGGER existing_schema_2.existing_trigger AFTER DELETE ON existing_schema_2.existing_table FOR EACH ROW BEGIN END")
+    session.run_sql("CREATE SCHEMA existing_schema_3")
+    session.run_sql("CREATE SCHEMA existing_schema_4")
+    if instance_supports_libraries:
+        session.run_sql("""
+CREATE LIBRARY existing_schema_3.existing_library LANGUAGE JAVASCRIPT
+AS $$
+    export function squared(n) {
+        return n * n;
+    }
+$$
+            """)
+        session.run_sql("""
+CREATE FUNCTION existing_schema_3.existing_library_routine(n INTEGER) RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT
+USING (existing_schema_3.existing_library)
+AS $$
+    return existing_library.squared(n);
+$$
+            """)
+        session.run_sql("""
+CREATE LIBRARY existing_schema_4.existing_library LANGUAGE JAVASCRIPT
+AS $$
+    export function pow(n, m) {
+        return Math.pow(n, m);
+    }
+$$
+            """)
+        session.run_sql(f"""
+CREATE PROCEDURE existing_schema_4.existing_library_routine(n INTEGER) LANGUAGE JAVASCRIPT
+USING (existing_schema_3.existing_library AS l_1, existing_schema_4.existing_library AS l_2)
+AS $$
+    l_1.squared(n) + l_2.pow(n, 2);
+$$
+            """)
     # we're only interested in DDL, progress is not important
     options["ddlOnly"] = True
     options["showProgress"] = False
@@ -2604,11 +2788,16 @@ def entries(snapshot, keys = []):
     return sorted(list(entry.keys()))
 
 #@<> WL14244-TSFR_1_2
-EXPECT_EQ(["existing_schema_1", "existing_schema_2"], entries(dump_and_load({})))
-EXPECT_EQ(["existing_schema_1", "existing_schema_2"], entries(dump_and_load({ "includeSchemas": [] })))
+EXPECT_EQ(["existing_schema_1", "existing_schema_2", "existing_schema_3", "existing_schema_4"], entries(dump_and_load({})))
+EXPECT_EQ(["existing_schema_1", "existing_schema_2", "existing_schema_3", "existing_schema_4"], entries(dump_and_load({ "includeSchemas": [] })))
 
 #@<> WL14244-TSFR_1_3
 EXPECT_EQ(["existing_schema_2"], entries(dump_and_load({ "includeSchemas": [ "existing_schema_2", "non_existing_schema" ] })))
+
+#@<> WL16731-TSFR_1_7_2 - schema is filtered out, note about routine using an excluded library is printed {instance_supports_libraries}
+EXPECT_EQ(["existing_schema_4"], entries(dump_and_load({ "includeSchemas": [ "existing_schema_4" ] })))
+
+EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", "existing_schema_4", "existing_library_routine", "existing_schema_3", "existing_library").note())
 
 #@<> WL14244-TSFR_1_4
 # BUG#33502098
@@ -2662,6 +2851,17 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "procedures"]))
 
+#@<> WL16731-TSFR_1_7_1 - dumping without libraries + includeRoutines, note about routine using an excluded library is printed {instance_supports_libraries}
+snapshot = dump_and_load({ "includeRoutines": ['existing_schema_4.existing_library_routine'], "libraries": False })
+EXPECT_EQ([], entries(snapshot, ["existing_schema_3", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_3", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_4", "functions"]))
+# routine is dumped, but it's skipped by the loader, as it has a missing dependency
+EXPECT_EQ([], entries(snapshot, ["existing_schema_4", "procedures"]))
+
+EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", "existing_schema_4", "existing_library_routine", "existing_schema_3", "existing_library").note())
+EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", "existing_schema_4", "existing_library_routine", "existing_schema_4", "existing_library").note())
+
 #@<> WL14244 - excludeRoutines - invalid values
 EXPECT_FAIL("ValueError", "Argument #2: The routine to be excluded must be in the following form: schema.routine, with optional backtick quotes, wrong value: 'routine'.", test_output_absolute, { "excludeRoutines": [ "routine" ] })
 EXPECT_FAIL("ValueError", "Argument #2: Failed to parse routine to be excluded 'schema.@': Invalid character in identifier", test_output_absolute, { "excludeRoutines": [ "schema.@" ] })
@@ -2685,6 +2885,84 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "functions"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
 EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+#@<> WL16731-TSFR_1_7_1 - dumping without libraries + excludeRoutines, note about routine using an excluded library is printed {instance_supports_libraries}
+snapshot = dump_and_load({ "excludeRoutines": ['existing_schema_4.existing_library_routine'], "libraries": False })
+# routine is dumped, but it's skipped by the loader, as it has a missing dependency
+EXPECT_EQ([], entries(snapshot, ["existing_schema_3", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_3", "procedures"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_4", "functions"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_4", "procedures"]))
+
+EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Function", "existing_schema_3", "existing_library_routine", "existing_schema_3", "existing_library").note())
+
+#@<> WL16731-TSFR_1_2_1 - includeLibraries - invalid values
+TEST_ARRAY_OF_STRINGS_OPTION("includeLibraries")
+# WL16731-TSFR_1_4_2 - invalid format of includeLibraries entries
+EXPECT_FAIL("ValueError", "Argument #2: The library to be included must be in the following form: schema.library, with optional backtick quotes, wrong value: 'library'.", test_output_absolute, { "includeLibraries": [ "library" ] })
+EXPECT_FAIL("ValueError", "Argument #2: Failed to parse library to be included 'schema.@': Invalid character in identifier", test_output_absolute, { "includeLibraries": [ "schema.@" ] })
+
+#@<> WL16731-G4 - includeLibraries - full dump
+# WL16731-TSFR_1_2_1_2 - includeLibraries not set / set to an empty array
+expected_libraries = []
+if instance_supports_libraries:
+    expected_libraries.append("existing_library")
+
+snapshot = dump_and_load({})
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+snapshot = dump_and_load({ "includeLibraries": [] })
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+metadata_file = os.path.join(test_output_absolute, "@.json")
+
+# WL16731-TSFR_1_9_1 - test the capability
+if instance_supports_libraries:
+    EXPECT_CAPABILITIES(metadata_file, [ multifile_schema_ddl_capability ])
+else:
+    EXPECT_NO_CAPABILITIES(metadata_file, [ multifile_schema_ddl_capability ])
+
+#@<> WL16731-TSFR_1_4_1 - includeLibraries - filtered dump
+# WL16731-G4, WL16731-TSFR_1_5_1 - non-existing objects
+snapshot = dump_and_load({ "includeLibraries": ['existing_schema_3.existing_library', 'existing_schema_3.non_existing_library', 'non_existing_schema.library'] })
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_4", "libraries"]))
+
+if instance_supports_libraries:
+    # WL16731-TSFR_1_7_1 - note about routine using an excluded library is printed
+    EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", "existing_schema_4", "existing_library_routine", "existing_schema_4", "existing_library").note())
+    EXPECT_FILE_CONTAINS(f"CREATE DEFINER=`{__user}`@`{__host}` PROCEDURE `existing_library_routine`", os.path.join(test_output_absolute, schema_ddl_file("existing_schema_4", Schema_ddl.Routines)))
+
+#@<> WL16731-TSFR_1_3_1 - excludeLibraries - invalid values
+TEST_ARRAY_OF_STRINGS_OPTION("excludeLibraries")
+# WL16731-TSFR_1_4_2 - invalid format of excludeLibraries entries
+EXPECT_FAIL("ValueError", "Argument #2: The library to be excluded must be in the following form: schema.library, with optional backtick quotes, wrong value: 'library'.", test_output_absolute, { "excludeLibraries": [ "library" ] })
+EXPECT_FAIL("ValueError", "Argument #2: Failed to parse library to be excluded 'schema.@': Invalid character in identifier", test_output_absolute, { "excludeLibraries": [ "schema.@" ] })
+
+#@<> WL16731-TSFR_1_3_1 - excludeLibraries - full dump
+# WL16731-TSFR_1_3_1_1 - excludeLibraries not set / set to an empty array
+snapshot = dump_and_load({})
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+snapshot = dump_and_load({ "excludeLibraries": [] })
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+#@<> WL16731-TSFR_1_4_1 - excludeLibraries - filtered dump
+# WL16731-TSFR_1_3_1, WL16731-TSFR_1_5_1 - non-existing objects
+snapshot = dump_and_load({ "excludeLibraries": ['existing_schema_3.existing_library', 'existing_schema_3.non_existing_library', 'non_existing_schema.library'] })
+EXPECT_EQ([], entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+if instance_supports_libraries:
+    # WL16731-TSFR_1_7_1 - note about routine using an excluded library is printed
+    EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Function", "existing_schema_3", "existing_library_routine", "existing_schema_3", "existing_library").note())
+    EXPECT_FILE_CONTAINS(f"CREATE DEFINER=`{__user}`@`{__host}` FUNCTION `existing_library_routine`", os.path.join(test_output_absolute, schema_ddl_file("existing_schema_3", Schema_ddl.Routines)))
+    EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", "existing_schema_4", "existing_library_routine", "existing_schema_3", "existing_library").note())
+    EXPECT_FILE_CONTAINS(f"CREATE DEFINER=`{__user}`@`{__host}` PROCEDURE `existing_library_routine`", os.path.join(test_output_absolute, schema_ddl_file("existing_schema_4", Schema_ddl.Routines)))
 
 #@<> WL14244 - includeEvents - invalid values
 EXPECT_FAIL("ValueError", "Argument #2: The event to be included must be in the following form: schema.event, with optional backtick quotes, wrong value: 'event'.", test_output_absolute, { "includeEvents": [ "event" ] })
@@ -2761,6 +3039,8 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "tables", "existing_table"
 #@<> WL14244 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS existing_schema_1")
 session.run_sql("DROP SCHEMA IF EXISTS existing_schema_2")
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_3")
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_4")
 
 #@<> includeX + excludeX conflicts - helpers
 def dump_with_conflicts(options, throws = True):
@@ -3067,6 +3347,93 @@ EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `a`
 
 dump_with_conflicts({ "includeSchemas": [ "b" ], "excludeRoutines": [ "a.r" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `a`.`r` which refers to a schema which was not included in the dump.")
+
+#@<> WL16731 - includeLibraries + excludeLibraries conflicts
+# no conflicts
+dump_with_conflicts({ "includeLibraries": [], "excludeLibraries": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeLibraries": [], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "b.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "excludeSchemas": [ "b" ], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "excludeSchemas": [], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeSchemas": [], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeSchemas": [ "a" ], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "excludeSchemas": [ "a" ], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "excludeSchemas": [ "b" ], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "excludeSchemas": [], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeSchemas": [], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+dump_with_conflicts({ "includeSchemas": [ "a" ], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+# WL16731-TSFR_1_6_1 - conflicts
+dump_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+
+dump_with_conflicts({ "includeLibraries": [ "a.l", "b.l" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`l`")
+
+dump_with_conflicts({ "includeLibraries": [ "a.l", "a.l1" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`l1`")
+
+dump_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l", "b.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`l`")
+
+dump_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l", "a.l1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`l1`")
+
+dump_with_conflicts({ "excludeSchemas": [ "a" ], "includeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `a`.`l` which refers to an excluded schema.")
+
+dump_with_conflicts({ "includeSchemas": [ "b" ], "includeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `a`.`l` which refers to a schema which was not included in the dump.")
+
+dump_with_conflicts({ "includeSchemas": [ "b" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `a`.`l` which refers to a schema which was not included in the dump.")
 
 #@<> includeTriggers + excludeTriggers conflicts
 # no conflicts
@@ -3717,13 +4084,13 @@ for schema_name in schema_names:
 EXPECT_SUCCESS(None, test_output_absolute, { "ddlOnly": True, "showProgress": False })
 
 for schema_name in schema_names:
-    EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema_name) + ".sql")))
+    EXPECT_TRUE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(schema_name, Schema_ddl.Schema))))
 
 #@<> BUG#35550282 - option is set, schema is not dumped
 EXPECT_SUCCESS(None, test_output_absolute, { "ocimds": True, "compatibility": ["ignore_missing_pks"], "users": False, "ddlOnly": True, "showProgress": False })
 
 for schema_name in schema_names:
-    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, encode_schema_basename(schema_name) + ".sql")))
+    EXPECT_FALSE(os.path.isfile(os.path.join(test_output_absolute, schema_ddl_file(schema_name, Schema_ddl.Schema))))
 
 #@<> BUG#35550282 - cleanup
 for schema_name in schema_names:

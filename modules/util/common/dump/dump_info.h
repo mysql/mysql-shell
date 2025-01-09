@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,6 +57,7 @@ struct Dump_info {
   bool consistent = false;
   bool mds_compatibility = false;
   std::optional<mysqlshdk::utils::Version> target_version;
+  bool has_library_ddl = false;
   Server_info source;
   std::vector<std::string> compatibility_options;
   std::vector<Capability_info> capabilities;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,11 @@
 
 #include <algorithm>
 #include <atomic>
+#include <functional>
+#include <memory>
 #include <numeric>
+#include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "modules/util/common/dump/constants.h"
@@ -210,6 +214,21 @@ std::string Dump_reader::users_script() const {
   return m_contents.users_sql ? *m_contents.users_sql : "";
 }
 
+const Dump_reader::Schema_info *Dump_reader::next_schema() {
+  // find the first schema that is ready
+  for (auto &it : m_contents.schemas) {
+    auto &s = it.second;
+
+    if (!s->schema_sql_done && s->ready()) {
+      s->schema_sql_done = true;
+
+      return s.get();
+    }
+  }
+
+  return nullptr;
+}
+
 bool Dump_reader::next_schema_and_tables(
     std::string *out_schema, std::list<Name_and_file> *out_tables,
     std::list<Name_and_file> *out_view_placeholders) {
@@ -301,16 +320,11 @@ bool Dump_reader::schema_objects(std::string_view schema,
                                  std::list<Object_info *> *out_triggers,
                                  std::list<Object_info *> *out_functions,
                                  std::list<Object_info *> *out_procedures,
+                                 std::list<Object_info *> *out_libraries,
                                  std::list<Object_info *> *out_events) {
-  auto schema_it = m_contents.schemas.find(
-#if __cpp_lib_generic_unordered_lookup
-      schema
-#else
-      std::string(schema)
-#endif
-  );
-  if (schema_it == m_contents.schemas.end()) return false;
-  const auto &schema_info = schema_it->second;
+  const auto schema_info = find_schema(schema, nullptr);
+
+  if (!schema_info) return false;
 
   {
     const auto clear_out = [](auto *out) {
@@ -323,6 +337,7 @@ bool Dump_reader::schema_objects(std::string_view schema,
     clear_out(out_triggers);
     clear_out(out_functions);
     clear_out(out_procedures);
+    clear_out(out_libraries);
     clear_out(out_events);
   }
 
@@ -345,6 +360,7 @@ bool Dump_reader::schema_objects(std::string_view schema,
   add_objects(&schema_info->views, out_views);
   add_objects(&schema_info->functions, out_functions);
   add_objects(&schema_info->procedures, out_procedures);
+  add_objects(&schema_info->libraries, out_libraries);
   add_objects(&schema_info->events, out_events);
 
   return true;
@@ -409,17 +425,37 @@ bool Dump_reader::has_primary_key(const std::string &schema,
               ->primary_index.empty();
 }
 
-std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
+std::string Dump_reader::fetch_schema_script(
+    const std::string &schema,
+    std::string (Schema_info::*method)() const) const {
   std::string script;
 
   const auto &s = m_contents.schemas.at(schema);
 
   if (s->has_sql) {
     // Get the base script for the schema
-    script = fetch_file(m_dir->file(s->script_name()));
+    script = fetch_file(m_dir->file(std::invoke(method, *s)));
   }
 
   return script;
+}
+
+std::string Dump_reader::fetch_schema_script(const std::string &schema) const {
+  return fetch_schema_script(schema, &Schema_info::script_name);
+}
+
+std::string Dump_reader::fetch_events_script(const std::string &schema) const {
+  return fetch_schema_script(schema, &Schema_info::events_script_name);
+}
+
+std::string Dump_reader::fetch_libraries_script(
+    const std::string &schema) const {
+  return fetch_schema_script(schema, &Schema_info::libraries_script_name);
+}
+
+std::string Dump_reader::fetch_routines_script(
+    const std::string &schema) const {
+  return fetch_schema_script(schema, &Schema_info::routines_script_name);
 }
 
 // Proportional chunk scheduling
@@ -771,41 +807,29 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
 }
 
 uint64_t Dump_reader::add_deferred_statements(
-    const std::string &schema, const std::string &table,
+    std::string_view schema, std::string_view table,
     compatibility::Deferred_statements &&stmts) {
-  const auto s = m_contents.schemas.find(schema);
-
-  if (s == m_contents.schemas.end()) {
-    throw std::logic_error("Unable to find schema " + schema +
-                           " for adding index");
-  }
-
-  const auto t = s->second->tables.find(table);
-
-  if (t == s->second->tables.end()) {
-    throw std::logic_error("Unable to find table " + table + " in schema " +
-                           schema + " for adding index");
-  }
+  const auto t = find_table(schema, table, "index will be added");
 
   // if indexes are not going to be recreated, we're marking them as already
   // created
-  t->second->indexes_scheduled = t->second->indexes_created =
+  t->indexes_scheduled = t->indexes_created =
       !m_options.load_deferred_indexes() || stmts.index_info.empty();
-  t->second->indexes = std::move(stmts.index_info);
+  t->indexes = std::move(stmts.index_info);
 
   const auto table_name = schema_object_key(schema, table);
+  const auto s = find_schema(schema, "index will be added");
 
   for (const auto &fk : stmts.foreign_keys) {
-    s->second->foreign_key_queries.emplace_back("ALTER TABLE " + table_name +
-                                                " ADD " + fk);
+    s->foreign_key_queries.emplace_back("ALTER TABLE " + table_name + " ADD " +
+                                        fk);
   }
 
   if (!stmts.secondary_engine.empty()) {
-    s->second->queries_on_schema_end.emplace_back(
-        std::move(stmts.secondary_engine));
+    s->queries_on_schema_end.emplace_back(std::move(stmts.secondary_engine));
   }
 
-  return t->second->indexes.size();
+  return t->indexes.size();
 }
 
 void Dump_reader::replace_target_schema(const std::string &schema) {
@@ -821,6 +845,16 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
   const auto info = m_contents.schemas.begin()->second;
   m_contents.schemas.clear();
   m_contents.schemas.emplace(schema, info);
+
+  for (auto routines : {&info->functions, &info->procedures}) {
+    for (auto &r : *routines) {
+      for (auto &dep : r.dependencies) {
+        if (dep.schema == info->name) {
+          dep.schema = schema;
+        }
+      }
+    }
+  }
 
   m_schema_override = {schema, info->name};
   info->name = schema;
@@ -1212,6 +1246,21 @@ std::string Dump_reader::Schema_info::script_name() const {
   return dump::common::get_schema_filename(basename);
 }
 
+std::string Dump_reader::Schema_info::events_script_name() const {
+  assert(multifile_sql);
+  return dump::common::get_schema_filename(basename, "events.sql");
+}
+
+std::string Dump_reader::Schema_info::libraries_script_name() const {
+  assert(multifile_sql);
+  return dump::common::get_schema_filename(basename, "libraries.sql");
+}
+
+std::string Dump_reader::Schema_info::routines_script_name() const {
+  assert(multifile_sql);
+  return dump::common::get_schema_filename(basename, "routines.sql");
+}
+
 std::string Dump_reader::Schema_info::metadata_name() const {
   // schema.json
   return dump::common::get_schema_filename(basename, "json");
@@ -1233,6 +1282,8 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
   has_sql = md->get_bool("includesDdl", true);
   has_view_sql = md->get_bool("includesViewsDdl", has_sql);
   has_data = md->get_bool("includesData", true);
+
+  multifile_sql = md->get_bool("multifileDdl", false);
 
   shcore::Dictionary_t basenames = md->get_map("basenames");
 
@@ -1285,28 +1336,49 @@ void Dump_reader::Schema_info::update_metadata(const std::string &data,
     log_debug("%s has %zi views", name.c_str(), views.size());
   }
 
-  if (const auto function_list = md->get_array("functions")) {
-    for (const auto &f : *function_list) {
-      auto function_name = f.as_string();
+  for (const std::string routine_type : {"function", "procedure"}) {
+    if (const auto routine_list = md->get_array(routine_type + "s")) {
+      const auto routine_deps = md->get_map(routine_type + "Dependencies");
+      auto &target = "function" == routine_type ? functions : procedures;
 
-      if (reader->include_routine(name, function_name)) {
-        functions.emplace_back(Object_info{this, std::move(function_name)});
+      for (const auto &r : *routine_list) {
+        auto routine_name = r.as_string();
+
+        if (reader->include_routine(name, routine_name)) {
+          Routine_info info;
+          info.parent = this;
+          info.name = std::move(routine_name);
+
+          if (const auto deps = routine_deps
+                                    ? routine_deps->get_array(info.name)
+                                    : shcore::Array_t{}) {
+            for (const auto &dep : *deps) {
+              const auto lib = dep.as_map();
+
+              info.dependencies.emplace_back(Routine_info::Dependency{
+                  lib->get_string("schema"), lib->get_string("library")});
+            }
+          }
+
+          target.emplace_back(std::move(info));
+        }
       }
-    }
 
-    log_debug("%s has %zi functions", name.c_str(), functions.size());
+      log_debug("%s has %zi %ss", name.c_str(), target.size(),
+                routine_type.c_str());
+    }
   }
 
-  if (const auto procedure_list = md->get_array("procedures")) {
-    for (const auto &p : *procedure_list) {
-      auto procedure_name = p.as_string();
+  if (const auto library_list = md->get_array("libraries")) {
+    for (const auto &l : *library_list) {
+      auto library_name = l.as_string();
 
-      if (reader->include_routine(name, procedure_name)) {
-        procedures.emplace_back(Object_info{this, std::move(procedure_name)});
+      if (reader->include_library(name, library_name)) {
+        libraries.emplace_back(Object_info{this, std::move(library_name)});
       }
     }
 
-    log_debug("%s has %zi procedures", name.c_str(), procedures.size());
+    log_debug("%s has %zi libraries", name.c_str(), libraries.size());
   }
 
   if (const auto event_list = md->get_array("events")) {
@@ -1367,10 +1439,16 @@ void Dump_reader::Schema_info::rescan(mysqlshdk::storage::IDirectory *dir,
     }
   }
 
-  // check for the sql file for the schema
+  // check for the sql file(s) for the schema
   if (!sql_seen) {
-    if (files.find(script_name()) != files.end()) {
-      sql_seen = true;
+    if (files.contains(script_name())) {
+      if (!multifile_sql ||
+          ((events.empty() || files.contains(events_script_name())) &&
+           (libraries.empty() || files.contains(libraries_script_name())) &&
+           ((functions.empty() && procedures.empty()) ||
+            files.contains(routines_script_name())))) {
+        sql_seen = true;
+      }
     }
   }
 }
@@ -1690,6 +1768,12 @@ bool Dump_reader::include_routine(const std::string &schema,
                                                     routine);
 }
 
+bool Dump_reader::include_library(const std::string &schema,
+                                  const std::string &library) const {
+  return m_options.filters().libraries().is_included(override_schema(schema),
+                                                     library);
+}
+
 bool Dump_reader::include_trigger(const std::string &schema,
                                   const std::string &table,
                                   const std::string &trigger) const {
@@ -1736,9 +1820,8 @@ void Dump_reader::on_checksum_end(std::string_view schema,
         ->checksums_verified;
 }
 
-const Dump_reader::Table_info *Dump_reader::find_table(
-    std::string_view schema, std::string_view table,
-    const char *context) const {
+const Dump_reader::Schema_info *Dump_reader::find_schema(
+    std::string_view schema, const char *context) const {
   const auto s = m_contents.schemas.find(
 #if __cpp_lib_generic_unordered_lookup
       schema
@@ -1748,12 +1831,34 @@ const Dump_reader::Table_info *Dump_reader::find_table(
   );
 
   if (s == m_contents.schemas.end()) {
-    throw std::logic_error(
-        shcore::str_format("Unable to find schema %s whose %s",
-                           std::string{schema}.c_str(), context));
+    if (context) {
+      throw std::logic_error(
+          shcore::str_format("Unable to find schema %s whose %s",
+                             std::string{schema}.c_str(), context));
+    } else {
+      return nullptr;
+    }
   }
 
-  const auto t = s->second->tables.find(
+  return s->second.get();
+}
+
+Dump_reader::Schema_info *Dump_reader::find_schema(std::string_view schema,
+                                                   const char *context) {
+  return const_cast<Schema_info *>(
+      const_cast<const Dump_reader *>(this)->find_schema(schema, context));
+}
+
+const Dump_reader::Table_info *Dump_reader::find_table(
+    std::string_view schema, std::string_view table,
+    const char *context) const {
+  const auto s = find_schema(schema, context);
+
+  if (!s) {
+    return nullptr;
+  }
+
+  const auto t = s->tables.find(
 #if __cpp_lib_generic_unordered_lookup
       table
 #else
@@ -1761,10 +1866,14 @@ const Dump_reader::Table_info *Dump_reader::find_table(
 #endif
   );
 
-  if (t == s->second->tables.end()) {
-    throw std::logic_error(shcore::str_format(
-        "Unable to find table %s in schema %s whose %s",
-        std::string{table}.c_str(), std::string{schema}.c_str(), context));
+  if (t == s->tables.end()) {
+    if (context) {
+      throw std::logic_error(shcore::str_format(
+          "Unable to find table %s in schema %s whose %s",
+          std::string{table}.c_str(), std::string{schema}.c_str(), context));
+    } else {
+      return nullptr;
+    }
   }
 
   return t->second.get();
@@ -1783,17 +1892,24 @@ const Dump_reader::Table_data_info *Dump_reader::find_partition(
     const char *context) const {
   const auto t = find_table(schema, table, context);
 
+  if (!t) {
+    return nullptr;
+  }
+
   for (auto &tdi : t->data_info) {
     if (tdi.partition == partition) {
       return &tdi;
     }
   }
 
-  throw std::logic_error(shcore::str_format(
-      "Unable to find partition %s of table %s in "
-      "schema %s whose %s",
-      std::string{partition}.c_str(), std::string{table}.c_str(),
-      std::string{schema}.c_str(), context));
+  if (context) {
+    throw std::logic_error(shcore::str_format(
+        "Unable to find partition %s of table %s in schema %s whose %s",
+        std::string{partition}.c_str(), std::string{table}.c_str(),
+        std::string{schema}.c_str(), context));
+  } else {
+    return nullptr;
+  }
 }
 
 Dump_reader::Table_data_info *Dump_reader::find_partition(
@@ -1806,29 +1922,7 @@ Dump_reader::Table_data_info *Dump_reader::find_partition(
 
 const Dump_reader::View_info *Dump_reader::find_view(
     std::string_view schema, std::string_view view, const char *context) const {
-  const auto s = m_contents.schemas.find(
-#if __cpp_lib_generic_unordered_lookup
-      schema
-#else
-      std::string(schema)
-#endif
-  );
-
-  if (s == m_contents.schemas.end()) {
-    throw std::logic_error(
-        shcore::str_format("Unable to find schema %s whose %s",
-                           std::string{schema}.c_str(), context));
-  }
-
-  for (const auto &v : s->second->views) {
-    if (v.name == view) {
-      return &v;
-    }
-  }
-
-  throw std::logic_error(shcore::str_format(
-      "Unable to find view %s in schema %s whose %s", std::string{view}.c_str(),
-      std::string{schema}.c_str(), context));
+  return find_schema_object(schema, view, &Schema_info::views, "view", context);
 }
 
 Dump_reader::View_info *Dump_reader::find_view(std::string_view schema,
@@ -1836,6 +1930,43 @@ Dump_reader::View_info *Dump_reader::find_view(std::string_view schema,
                                                const char *context) {
   return const_cast<View_info *>(
       const_cast<const Dump_reader *>(this)->find_view(schema, view, context));
+}
+
+template <typename T>
+const T *Dump_reader::find_schema_object(std::string_view schema,
+                                         std::string_view object,
+                                         std::vector<T> Schema_info::*member,
+                                         const char *type,
+                                         const char *context) const {
+  const auto s = find_schema(schema, context);
+
+  if (!s) {
+    return nullptr;
+  }
+
+  for (const auto &m : (*s).*member) {
+    if (m.name == object) {
+      return &m;
+    }
+  }
+
+  if (context) {
+    throw std::logic_error(shcore::str_format(
+        "Unable to find %s %s in schema %s whose %s", type,
+        std::string{object}.c_str(), std::string{schema}.c_str(), context));
+  } else {
+    return nullptr;
+  }
+}
+
+template <typename T>
+T *Dump_reader::find_schema_object(std::string_view schema,
+                                   std::string_view object,
+                                   std::vector<T> Schema_info::*member,
+                                   const char *type, const char *context) {
+  return const_cast<T *>(
+      const_cast<const Dump_reader *>(this)->find_schema_object(
+          schema, object, member, type, context));
 }
 
 bool Dump_reader::table_exists(
@@ -1944,6 +2075,92 @@ uint64_t Dump_reader::data_size_in_file(const std::string &filename) const {
   } catch (const std::exception &) {
     // index file is not present when doing a copy
     return 0;
+  }
+}
+
+bool Dump_reader::has_library_ddl() const noexcept {
+  return m_contents.dump.has_library_ddl;
+}
+
+void Dump_reader::exclude_routines_with_missing_dependencies(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  if (!m_contents.dump.has_library_ddl) {
+    return;
+  }
+
+  // schema -> library -> exists
+  std::unordered_map<std::string, std::unordered_map<std::string, bool>>
+      libraries;
+  const auto library_exists = [this, &libraries,
+                               &session](const Routine_info::Dependency &dep) {
+    // check in cache first
+    if (const auto schema = libraries.find(dep.schema);
+        libraries.end() != schema) {
+      if (const auto library = schema->second.find(dep.library);
+          schema->second.end() != library) {
+        return library->second;
+      }
+    }
+
+    bool exists = false;
+
+    if (find_schema_object(dep.schema, dep.library, &Schema_info::libraries,
+                           "library", nullptr)) {
+      // library is included in the dump and will be created at some point
+      exists = true;
+    } else {
+      // run a query to check if library exists
+      exists = session
+                   ->queryf(
+                       "SELECT 1 FROM information_schema.libraries WHERE "
+                       "library_schema=? AND library_name=?",
+                       dep.schema, dep.library)
+                   ->fetch_one();
+    }
+
+    // cache the value
+    libraries[dep.schema][dep.library] = exists;
+
+    return exists;
+  };
+  const auto exclude_routine = [this](const std::string &schema,
+                                      const std::string &routine) {
+    const_cast<Load_dump_options &>(m_options).filters().routines().exclude(
+        schema, routine);
+  };
+  const auto console = current_console();
+
+  for (auto &schema : m_contents.schemas) {
+    for (auto routines :
+         {&schema.second->functions, &schema.second->procedures}) {
+      const auto type =
+          routines == &schema.second->functions ? "function" : "procedure";
+
+      for (auto routine = routines->begin(); routines->end() != routine;) {
+        bool include = true;
+
+        for (const auto &dependency : routine->dependencies) {
+          if (!library_exists(dependency)) {
+            include = false;
+            console->print_note(shcore::str_format(
+                "The %s %s uses library %s which does not exist.", type,
+                schema_object_key(schema.first, routine->name).c_str(),
+                schema_object_key(dependency.schema, dependency.library)
+                    .c_str()));
+          }
+        }
+
+        if (include) {
+          ++routine;
+        } else {
+          console->print_note(shcore::str_format(
+              "Skipping the %s %s due to missing dependencies.", type,
+              schema_object_key(schema.first, routine->name).c_str()));
+          exclude_routine(schema.first, routine->name);
+          routine = routines->erase(routine);
+        }
+      }
+    }
   }
 }
 

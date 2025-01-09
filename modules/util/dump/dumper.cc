@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -161,6 +161,8 @@ issues::Status_set show_issues(
         status.set(issues::Status::FIXED_IGNORE_PKS);
       }
 
+      console->print_note(issue.description);
+    } else if (issue.status == Schema_dumper::Issue::Status::NOTE) {
       console->print_note(issue.description);
     } else if (issue.status <= Schema_dumper::Issue::Status::WARNING) {
       status.set(issues::Status::WARNING);
@@ -704,12 +706,6 @@ class Dumper::Table_worker final {
 
   ~Table_worker() = default;
 
-  void release_session() {
-    if (m_session) {
-      m_dumper->session_pool().push(std::move(m_session));
-    }
-  }
-
   void run() {
     std::string context;
 
@@ -762,12 +758,84 @@ class Dumper::Table_worker final {
     }
   }
 
+  inline void write_schema_metadata(const Schema_info &schema) const {
+    log_info("%sWriting metadata for schema %s", m_log_id.c_str(),
+             schema.quoted_name.c_str());
+    write_schema_metadata_impl(schema);
+  }
+
+  inline void write_table_metadata(const Table_task &table) const {
+    log_info("%sWriting metadata for table %s", m_log_id.c_str(),
+             table.quoted_name.c_str());
+    write_table_metadata_impl(table);
+  }
+
+  inline void dump_schema_ddl(const Schema_info &schema) const {
+    log_info("%sWriting DDL for schema %s", m_log_id.c_str(),
+             schema.quoted_name.c_str());
+    dump_schema_ddl_impl(schema);
+  }
+
+  inline void dump_table_ddl(const Schema_info &schema,
+                             const Table_info &table) const {
+    log_info("%sWriting DDL for table %s", m_log_id.c_str(),
+             table.quoted_name.c_str());
+    dump_table_ddl_impl(schema, table);
+  }
+
+  inline void dump_view_ddl(const Schema_info &schema,
+                            const View_info &view) const {
+    log_info("%sWriting DDL for view %s", m_log_id.c_str(),
+             view.quoted_name.c_str());
+    dump_view_ddl_impl(schema, view);
+  }
+
+  inline void create_table_data_tasks(const Table_task &table) const {
+    log_debug("%sCreating data tasks for table %s", m_log_id.c_str(),
+              table.quoted_name.c_str());
+
+    ++m_dumper->m_num_threads_chunking;
+    create_table_data_tasks_impl(table);
+    --m_dumper->m_num_threads_chunking;
+  }
+
+  inline void dump_table_data(const Table_data_task &table) {
+    log_debug(
+        "%sDumping %s (%s) using boundary: %s, filter: %s", m_log_id.c_str(),
+        table.task_name.c_str(), table.id.c_str(),
+        table.boundary.length() ? table.boundary.c_str() : "NONE",
+        table.extra_filter.length() ? table.extra_filter.c_str() : "NONE");
+
+    ++m_dumper->m_num_threads_dumping;
+    dump_table_data_impl(table);
+    --m_dumper->m_num_threads_dumping;
+  }
+
+  inline void checksum_table_data(const Checksum_task &task) const {
+    log_debug("%sComputing checksum of %s (%s)", m_log_id.c_str(),
+              task.name.c_str(), task.id.c_str());
+
+    ++m_dumper->m_num_threads_checksumming;
+    checksum_table_data_impl(task);
+    --m_dumper->m_num_threads_checksumming;
+  }
+
  private:
-  friend class Dumper;
+  inline const std::shared_ptr<mysqlshdk::db::ISession> &session()
+      const noexcept {
+    assert(m_session);
+    return m_session;
+  }
+
+  void release_session() {
+    if (m_session) {
+      m_dumper->session_pool().push(std::move(m_session));
+    }
+  }
 
   inline std::shared_ptr<mysqlshdk::db::IResult> query(
       const std::string &sql) const {
-    return Dumper::query(m_session, sql);
+    return Dumper::query(session(), sql);
   }
 
   std::string prepare_query(
@@ -816,13 +884,7 @@ class Dumper::Table_worker final {
     return query;
   }
 
-  void dump_table_data(const Table_data_task &table) {
-    log_debug(
-        "%sDumping %s (%s) using boundary: %s, filter: %s", m_log_id.c_str(),
-        table.task_name.c_str(), table.id.c_str(),
-        table.boundary.length() ? table.boundary.c_str() : "NONE",
-        table.extra_filter.length() ? table.extra_filter.c_str() : "NONE");
-
+  void dump_table_data_impl(const Table_data_task &table) {
     mysqlshdk::utils::Duration duration;
     duration.start();
 
@@ -887,7 +949,7 @@ class Dumper::Table_worker final {
 
   Table_data_task create_table_data_task(const Table_task &table,
                                          const std::string &filename,
-                                         int64_t chunk = -1) {
+                                         int64_t chunk = -1) const {
     Table_data_task data_task;
 
     data_task.task_name = table.task_name;
@@ -907,7 +969,7 @@ class Dumper::Table_worker final {
     return data_task;
   }
 
-  void create_and_push_whole_table_data_task(const Table_task &table) {
+  void create_and_push_whole_table_data_task(const Table_task &table) const {
     Table_data_task data_task = create_table_data_task(
         table, m_dumper->get_table_data_filename(table.basename));
 
@@ -917,7 +979,7 @@ class Dumper::Table_worker final {
   }
 
   void create_and_push_whole_table_data_in_chunks_task(
-      const Table_task &table) {
+      const Table_task &table) const {
     Table_data_task data_task = create_table_data_task(table, {});
 
     data_task.id = "whole table split in chunks";
@@ -930,7 +992,8 @@ class Dumper::Table_worker final {
   void create_and_push_table_data_chunk_task(const Table_task &table,
                                              const std::string &boundary,
                                              const std::string &id,
-                                             std::size_t idx, bool last_chunk) {
+                                             std::size_t idx,
+                                             bool last_chunk) const {
     Table_data_task data_task = create_table_data_task(
         table,
         m_dumper->get_table_data_filename(table.basename, idx, last_chunk),
@@ -959,7 +1022,7 @@ class Dumper::Table_worker final {
     m_dumper->push_table_data_task(std::move(data_task));
   }
 
-  void checksum_table_data(const Checksum_task &task) {
+  void checksum_table_data_impl(const Checksum_task &task) const {
     log_debug("%sComputing checksum of %s (%s)", m_log_id.c_str(),
               task.name.c_str(), task.id.c_str());
 
@@ -967,36 +1030,30 @@ class Dumper::Table_worker final {
 
     if (Dry_run::DISABLED == m_dumper->m_options.dry_run_mode()) {
       task.checksum->compute(
-          m_session,
+          session(),
           m_dumper->get_query_comment(task.name, task.id, "checksumming"));
     }
 
     m_dumper->checksum_task_finished();
   }
 
-  void write_schema_metadata(const Schema_info &schema) const {
-    log_info("%sWriting metadata for schema %s", m_log_id.c_str(),
-             schema.quoted_name.c_str());
-
-    m_dumper->write_schema_metadata(schema);
+  void write_schema_metadata_impl(const Schema_info &schema) const {
+    m_dumper->write_schema_metadata(schema, session());
 
     ++m_dumper->m_schema_metadata_written;
 
-    m_dumper->validate_dump_consistency(m_session);
+    m_dumper->validate_dump_consistency(session());
   }
 
-  void write_table_metadata(const Table_task &table) {
-    log_info("%sWriting metadata for table %s", m_log_id.c_str(),
-             table.quoted_name.c_str());
-
-    m_dumper->write_table_metadata(table, m_session);
+  void write_table_metadata_impl(const Table_task &table) const {
+    m_dumper->write_table_metadata(table, session());
 
     ++m_dumper->m_table_metadata_written;
 
-    m_dumper->validate_dump_consistency(m_session);
+    m_dumper->validate_dump_consistency(session());
   }
 
-  void create_table_data_tasks(const Table_task &table) {
+  void create_table_data_tasks_impl(const Table_task &table) const {
     auto ranges = create_ranged_tasks(table);
 
     if (0 == ranges) {
@@ -1199,7 +1256,8 @@ class Dumper::Table_worker final {
 
   template <typename T>
   T adaptive_step(const T &from, const T &step, const T &max,
-                  const Chunking_info &info, const std::string &chunk_id) {
+                  const Chunking_info &info,
+                  const std::string &chunk_id) const {
     static constexpr int k_chunker_retries = 10;
     static constexpr int k_chunker_iterations = 20;
 
@@ -1294,7 +1352,7 @@ class Dumper::Table_worker final {
 
   template <typename T>
   std::size_t chunk_integer_column(const Chunking_info &info, const T &min,
-                                   const T &max) {
+                                   const T &max) const {
     std::size_t ranges_count = 0;
 
     // if rows_per_chunk <= 1 it may mean that the rows are bigger than chunk
@@ -1366,7 +1424,7 @@ class Dumper::Table_worker final {
   }
 
   std::size_t chunk_integer_column(const Chunking_info &info, const Row &begin,
-                                   const Row &end) {
+                                   const Row &end) const {
     log_info("%sChunking %s using integer algorithm", m_log_id.c_str(),
              info.table->task_name.c_str());
 
@@ -1391,7 +1449,7 @@ class Dumper::Table_worker final {
   }
 
   std::size_t chunk_non_integer_column(const Chunking_info &info,
-                                       const Row &begin, const Row &end) {
+                                       const Row &begin, const Row &end) const {
     log_info("%sChunking %s using non-integer algorithm", m_log_id.c_str(),
              info.table->task_name.c_str());
 
@@ -1443,7 +1501,7 @@ class Dumper::Table_worker final {
     return ranges_count;
   }
 
-  std::size_t chunk_column(const Chunking_info &info) {
+  std::size_t chunk_column(const Chunking_info &info) const {
     if (!info.table->index.info) {
       log_info(
           "%sTable %s does not have a valid index, number of chunks is "
@@ -1507,7 +1565,7 @@ class Dumper::Table_worker final {
     }
   }
 
-  std::size_t create_ranged_tasks(const Table_task &table) {
+  std::size_t create_ranged_tasks(const Table_task &table) const {
     if (!m_dumper->m_options.split()) {
       return 0;
     }
@@ -1610,26 +1668,44 @@ class Dumper::Table_worker final {
     }
   }
 
-  void dump_schema_ddl(const Schema_info &schema) const {
-    log_info("%sWriting DDL for schema %s", m_log_id.c_str(),
-             schema.quoted_name.c_str());
+  void dump_schema_ddl_impl(const Schema_info &schema) const {
+    const auto dumper = m_dumper->schema_dumper(session());
 
-    const auto dumper = m_dumper->schema_dumper(m_session);
+    if (m_dumper->m_capability_set.is_set(Capability::MULTIFILE_SCHEMA_DDL)) {
+      m_dumper->write_ddl(*m_dumper->dump_schema(dumper.get(), schema.name),
+                          common::get_schema_filename(schema.basename));
 
-    m_dumper->write_ddl(*m_dumper->dump_schema(dumper.get(), schema.name),
-                        common::get_schema_filename(schema.basename));
+      if (m_dumper->m_options.dump_events()) {
+        m_dumper->write_ddl(
+            *m_dumper->dump_events(dumper.get(), schema.name),
+            common::get_schema_filename(schema.basename, "events.sql"));
+      }
+
+      if (m_dumper->m_options.dump_libraries()) {
+        m_dumper->write_ddl(
+            *m_dumper->dump_libraries(dumper.get(), schema.name),
+            common::get_schema_filename(schema.basename, "libraries.sql"));
+      }
+
+      if (m_dumper->m_options.dump_routines()) {
+        m_dumper->write_ddl(
+            *m_dumper->dump_routines(dumper.get(), schema.name),
+            common::get_schema_filename(schema.basename, "routines.sql"));
+      }
+    } else {
+      m_dumper->write_ddl(
+          *m_dumper->dump_complete_schema(dumper.get(), schema.name),
+          common::get_schema_filename(schema.basename));
+    }
 
     ++m_dumper->m_ddl_written;
 
-    m_dumper->validate_dump_consistency(m_session);
+    m_dumper->validate_dump_consistency(session());
   }
 
-  void dump_table_ddl(const Schema_info &schema,
-                      const Table_info &table) const {
-    log_info("%sWriting DDL for table %s", m_log_id.c_str(),
-             table.quoted_name.c_str());
-
-    const auto dumper = m_dumper->schema_dumper(m_session);
+  void dump_table_ddl_impl(const Schema_info &schema,
+                           const Table_info &table) const {
+    const auto dumper = m_dumper->schema_dumper(session());
 
     m_dumper->write_ddl(
         *m_dumper->dump_table(dumper.get(), schema.name, table.name),
@@ -1644,14 +1720,12 @@ class Dumper::Table_worker final {
 
     ++m_dumper->m_ddl_written;
 
-    m_dumper->validate_dump_consistency(m_session);
+    m_dumper->validate_dump_consistency(session());
   }
 
-  void dump_view_ddl(const Schema_info &schema, const View_info &view) const {
-    log_info("%sWriting DDL for view %s", m_log_id.c_str(),
-             view.quoted_name.c_str());
-
-    const auto dumper = m_dumper->schema_dumper(m_session);
+  void dump_view_ddl_impl(const Schema_info &schema,
+                          const View_info &view) const {
+    const auto dumper = m_dumper->schema_dumper(session());
 
     // DDL file with the temporary table
     m_dumper->write_ddl(
@@ -1665,7 +1739,7 @@ class Dumper::Table_worker final {
 
     ++m_dumper->m_ddl_written;
 
-    m_dumper->validate_dump_consistency(m_session);
+    m_dumper->validate_dump_consistency(session());
   }
 
   std::string get_query_comment(const Table_task &table,
@@ -1673,7 +1747,7 @@ class Dumper::Table_worker final {
     return m_dumper->get_query_comment(table.task_name, id, "chunking");
   }
 
-  uint64_t row_count_from_explain(const std::string &explain) {
+  uint64_t row_count_from_explain(const std::string &explain) const {
     const auto error = [&explain](const std::string &msg) {
       log_error("JSON output of malformed EXPLAIN statement:\n%s",
                 explain.c_str());
@@ -1738,7 +1812,7 @@ class Dumper::Table_worker final {
   Exception_strategy m_strategy;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   // JSON path in an output of EXPLAIN statement to the row count
-  const char *m_json_path = nullptr;
+  mutable const char *m_json_path = nullptr;
 };
 
 // template specialization of a static method must be defined outside of a class
@@ -1947,7 +2021,7 @@ void Dumper::interruption_notification() {
 
 void Dumper::abort() {
   emergency_shutdown();
-  mysqlshdk::db::kill_query(session());
+  mysqlshdk::db::kill_query(m_session);
 }
 
 void Dumper::do_run() {
@@ -2133,7 +2207,11 @@ void Dumper::do_run() {
 #endif  // !NDEBUG
 }
 
-const std::shared_ptr<mysqlshdk::db::ISession> &Dumper::session() const {
+const std::shared_ptr<mysqlshdk::db::ISession> &Dumper::session()
+    const noexcept {
+  assert(m_session);
+  // ensure that the main session is only used from the main thread
+  assert(std::this_thread::get_id() == m_main_thread);
   return m_session;
 }
 
@@ -2142,6 +2220,7 @@ std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
   auto dumper = std::make_unique<Schema_dumper>(session);
 
   dumper->use_cache(&m_cache);
+  dumper->use_filters(&m_options.filters());
 
   dumper->opt_comments = true;
   dumper->opt_drop_database = false;
@@ -2149,7 +2228,9 @@ std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
   dumper->opt_drop_view = true;
   dumper->opt_drop_event = true;
   dumper->opt_drop_routine = true;
+  dumper->opt_drop_library = true;
   dumper->opt_drop_trigger = true;
+  dumper->opt_databases = true;
   dumper->opt_reexecutable = true;
   dumper->opt_tz_utc = m_options.use_timezone_utc();
   dumper->opt_mysqlaas = m_options.mds_compatibility();
@@ -2184,15 +2265,18 @@ void Dumper::on_init_thread_session(
 }
 
 void Dumper::open_session() {
+#ifndef NDEBUG
+  m_main_thread = std::this_thread::get_id();
+#endif  // !NDEBUG
   m_session = establish_session(m_options.connection_options(), false);
-  on_init_thread_session(m_session);
+  on_init_thread_session(session());
 
   fetch_server_information();
 
   log_server_version();
 
   if (m_checksum) {
-    m_checksum->configure(m_session);
+    m_checksum->configure(session());
   }
 }
 
@@ -2631,6 +2715,10 @@ void Dumper::initialize_instance_cache() {
       builder.events();
     }
 
+    if (m_options.dump_libraries()) {
+      builder.libraries();
+    }
+
     if (m_options.dump_routines()) {
       builder.routines();
     }
@@ -2699,6 +2787,14 @@ void Dumper::create_schema_tasks() {
   if (has_partitions) {
     m_used_capabilities.emplace(Capability::PARTITION_AWARENESS);
   }
+
+  if (m_cache.has_library_ddl) {
+    m_used_capabilities.emplace(Capability::MULTIFILE_SCHEMA_DDL);
+  }
+
+  for (const auto capability : m_used_capabilities) {
+    m_capability_set.set(capability);
+  }
 }
 
 void Dumper::validate_mds() const {
@@ -2752,7 +2848,10 @@ void Dumper::validate_mds() const {
 
     if (m_options.dump_ddl()) {
       for (const auto &schema : m_schema_infos) {
-        issues(dump_schema(dumper.get(), schema.name));
+        // we're dumping whole schema DDL to a single file, it doesn't matter if
+        // dump is using a single-file or multi-file schema, the contents is the
+        // same
+        issues(dump_complete_schema(dumper.get(), schema.name));
         ++objects_checked;
       }
 
@@ -3142,7 +3241,7 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_ddl(
   return memory;
 }
 
-std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_schema(
+std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_complete_schema(
     Schema_dumper *dumper, const std::string &schema) const {
   return dump_ddl(dumper, [&schema, this](Memory_dumper *m) {
     m->dump(&Schema_dumper::write_comment, schema, std::string{});
@@ -3152,9 +3251,45 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_schema(
       m->dump(&Schema_dumper::dump_events_ddl, schema);
     }
 
+    if (m_options.dump_libraries()) {
+      m->dump(&Schema_dumper::dump_libraries_ddl, schema);
+    }
+
     if (m_options.dump_routines()) {
       m->dump(&Schema_dumper::dump_routines_ddl, schema);
     }
+  });
+}
+
+std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_schema(
+    Schema_dumper *dumper, const std::string &schema) const {
+  return dump_ddl(dumper, [&schema](Memory_dumper *m) {
+    m->dump(&Schema_dumper::write_comment, schema, std::string{});
+    m->dump(&Schema_dumper::dump_schema_ddl, schema);
+  });
+}
+
+std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_events(
+    Schema_dumper *dumper, const std::string &schema) const {
+  return dump_ddl(dumper, [&schema](Memory_dumper *m) {
+    m->dump(&Schema_dumper::write_comment, schema, std::string{});
+    m->dump(&Schema_dumper::dump_events_ddl, schema);
+  });
+}
+
+std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_libraries(
+    Schema_dumper *dumper, const std::string &schema) const {
+  return dump_ddl(dumper, [&schema](Memory_dumper *m) {
+    m->dump(&Schema_dumper::write_comment, schema, std::string{});
+    m->dump(&Schema_dumper::dump_libraries_ddl, schema);
+  });
+}
+
+std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_routines(
+    Schema_dumper *dumper, const std::string &schema) const {
+  return dump_ddl(dumper, [&schema](Memory_dumper *m) {
+    m->dump(&Schema_dumper::write_comment, schema, std::string{});
+    m->dump(&Schema_dumper::dump_routines_ddl, schema);
   });
 }
 
@@ -3196,9 +3331,9 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_view(
 
 std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_users(
     Schema_dumper *dumper) const {
-  return dump_ddl(dumper, [this](Memory_dumper *m) {
+  return dump_ddl(dumper, [](Memory_dumper *m) {
     m->dump(&Schema_dumper::write_comment, std::string{}, std::string{});
-    m->dump(&Schema_dumper::dump_grants, m_options.filters());
+    m->dump(&Schema_dumper::dump_grants);
   });
 }
 
@@ -3462,11 +3597,7 @@ void Dumper::push_table_data_task(Table_data_task &&task) {
 
   m_worker_tasks.push({std::move(info),
                        [task = std::move(t)](Table_worker *worker) {
-                         ++worker->m_dumper->m_num_threads_dumping;
-
                          worker->dump_table_data(*task);
-
-                         --worker->m_dumper->m_num_threads_dumping;
                        }},
                       shcore::Queue_priority::LOW);
 }
@@ -3477,11 +3608,7 @@ void Dumper::push_table_chunking_task(Table_task &&task) {
   std::string info = "chunking " + task.task_name;
   m_worker_tasks.push({std::move(info),
                        [task = std::move(task)](Table_worker *worker) {
-                         ++worker->m_dumper->m_num_threads_chunking;
-
                          worker->create_table_data_tasks(task);
-
-                         --worker->m_dumper->m_num_threads_chunking;
                        }},
                       shcore::Queue_priority::MEDIUM);
 }
@@ -3530,11 +3657,7 @@ void Dumper::push_checksum_task(Checksum_task &&task) {
 
   m_worker_tasks.push({std::move(info),
                        [task = std::move(task)](Table_worker *worker) {
-                         ++worker->m_dumper->m_num_threads_checksumming;
-
                          worker->checksum_table_data(task);
-
-                         --worker->m_dumper->m_num_threads_checksumming;
                        }},
                       shcore::Queue_priority::LOWEST);
 }
@@ -3635,7 +3758,7 @@ void Dumper::write_dump_started_metadata() const {
     json.append("users");
     json.start_array();
 
-    for (const auto &user : dumper->get_users(m_options.filters().users())) {
+    for (const auto &user : dumper->get_users()) {
       json.append(shcore::make_account(user));
     }
 
@@ -3657,6 +3780,7 @@ void Dumper::write_dump_started_metadata() const {
   }
 
   json.append("targetVersion", m_options.target_version().get_full());
+  json.append("hasLibraryDdl", m_cache.has_library_ddl);
 
   {
     // source server
@@ -3789,7 +3913,9 @@ void Dumper::write_checksum_metadata() const {
   m_checksum->serialize(make_file(common::k_checksums_metadata_file));
 }
 
-void Dumper::write_schema_metadata(const Schema_info &schema) const {
+void Dumper::write_schema_metadata(
+    const Schema_info &schema,
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   if (m_options.is_export_only()) {
     return;
   }
@@ -3806,6 +3932,9 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
   doc.AddMember(StringRef("includesDdl"), m_options.dump_ddl(), a);
   doc.AddMember(StringRef("includesViewsDdl"), m_options.dump_ddl(), a);
   doc.AddMember(StringRef("includesData"), m_options.dump_data(), a);
+
+  doc.AddMember(StringRef("multifileDdl"),
+                m_capability_set.is_set(Capability::MULTIFILE_SCHEMA_DDL), a);
 
   {
     // list of tables
@@ -3830,7 +3959,7 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
   }
 
   if (m_options.dump_ddl()) {
-    const auto dumper = schema_dumper(session());
+    const auto dumper = schema_dumper(session);
 
     if (m_options.dump_events()) {
       // list of events
@@ -3844,27 +3973,53 @@ void Dumper::write_schema_metadata(const Schema_info &schema) const {
     }
 
     if (m_options.dump_routines()) {
-      // list of functions
-      Value functions{Type::kArrayType};
+      for (const auto type : {"FUNCTION", "PROCEDURE"}) {
+        // list of routines
+        Value routines{Type::kArrayType};
+        // list of routine dependencies
+        Value routine_dependencies{Type::kObjectType};
 
-      for (const auto &function :
-           dumper->get_routines(schema.name, "FUNCTION")) {
-        functions.PushBack({function.c_str(), a}, a);
+        for (const auto &routine : dumper->get_routines(schema.name, type)) {
+          routines.PushBack({routine.c_str(), a}, a);
+
+          {
+            Value libraries{Type::kArrayType};
+
+            for (const auto &dependency :
+                 dumper->get_routine_dependencies(schema.name, routine, type)) {
+              Value library{Type::kObjectType};
+
+              library.AddMember(StringRef("schema"),
+                                {dependency.schema.c_str(), a}, a);
+              library.AddMember(StringRef("library"),
+                                {dependency.library.c_str(), a}, a);
+
+              libraries.PushBack(std::move(library), a);
+            }
+
+            if (libraries.Size()) {
+              routine_dependencies.AddMember({routine.c_str(), a},
+                                             std::move(libraries), a);
+            }
+          }
+        }
+
+        doc.AddMember({(shcore::str_lower(type) + "s").c_str(), a},
+                      std::move(routines), a);
+        doc.AddMember({(shcore::str_lower(type) + "Dependencies").c_str(), a},
+                      std::move(routine_dependencies), a);
       }
-
-      doc.AddMember(StringRef("functions"), std::move(functions), a);
     }
 
-    if (m_options.dump_routines()) {
-      // list of stored procedures
-      Value procedures{Type::kArrayType};
+    if (m_options.dump_libraries()) {
+      // list of libraries
+      Value libraries{Type::kArrayType};
 
-      for (const auto &procedure :
-           dumper->get_routines(schema.name, "PROCEDURE")) {
-        procedures.PushBack({procedure.c_str(), a}, a);
+      for (const auto &library : dumper->get_libraries(schema.name)) {
+        libraries.PushBack({library.c_str(), a}, a);
       }
 
-      doc.AddMember(StringRef("procedures"), std::move(procedures), a);
+      doc.AddMember(StringRef("libraries"), std::move(libraries), a);
     }
   }
 
@@ -4039,7 +4194,7 @@ void Dumper::summarize() const {
 
   if (!m_options.consistent_dump() && m_options.threads() > 1) {
     const auto &prev_gtid_executed = m_cache.server.binlog.gtid_executed;
-    const auto gtid_executed = this->gtid_executed();
+    const auto gtid_executed = this->gtid_executed(session());
 
     if (gtid_executed != prev_gtid_executed) {
       console->print_warning(
@@ -4047,6 +4202,14 @@ void Dumper::summarize() const {
           "the dump, from: '" +
           prev_gtid_executed + "' to: '" + gtid_executed + "'.");
     }
+  }
+
+  if (m_cache.has_library_ddl &&
+      !compatibility::supports_library_ddl(m_options.target_version())) {
+    console->print_warning(shcore::str_format(
+        "The dump contains library DDL, however the 'targetVersion' option is "
+        "set to %s, where this feature is not supported.",
+        m_options.target_version().get_base().c_str()));
   }
 
   if (m_options.dump_data()) {
@@ -4416,6 +4579,7 @@ void Dumper::print_object_stats() const {
 
   if (m_options.dump_ddl()) {
     FORMAT_OBJECT_STATS(events);
+    FORMAT_OBJECT_STATS(libraries);
     FORMAT_OBJECT_STATS(routines);
     FORMAT_OBJECT_STATS(triggers);
   }
@@ -4457,17 +4621,34 @@ void Dumper::print_object_stats() const {
 }
 
 std::string Dumper::format_object_stats(uint64_t value, uint64_t total,
-                                        const std::string &object) {
+                                        std::string_view objects) {
   std::string format;
 
   if (value != total) {
-    format += std::to_string(value) + " out of ";
+    format += std::to_string(value);
+    format += " out of ";
   }
 
-  format += std::to_string(total) + " " + object;
+  format += std::to_string(total);
+  format += ' ';
 
-  if (1 == total && 's' == format.back()) {
-    format.pop_back();
+  bool append_objects = true;
+
+  if (1 == total) {
+    if (objects.ends_with("ies")) {
+      objects.remove_suffix(3);
+
+      format += objects;
+      format += 'y';
+
+      append_objects = false;
+    } else if ('s' == objects.back()) {
+      objects.remove_suffix(1);
+    }
+  }
+
+  if (append_objects) {
+    format += objects;
   }
 
   return format;
@@ -4503,7 +4684,7 @@ void Dumper::validate_dump_consistency(
 
   if (m_gtid_enabled) {
     const auto &prev_gtid_executed = m_cache.server.binlog.gtid_executed;
-    const auto gtid_executed = this->gtid_executed();
+    const auto gtid_executed = this->gtid_executed(session);
     consistent = gtid_executed == prev_gtid_executed;
 
     if (!consistent) {
@@ -4524,12 +4705,12 @@ void Dumper::validate_dump_consistency(
                           instance);
 
         consistent = check_if_transactions_are_ddl_safe(
-            instance, m_cache.server.binlog.file, binlog().file, set);
+            instance, m_cache.server.binlog.file, binlog(session).file, set);
       }
     }
   } else {
     // gtid_mode is not enabled, check binlog
-    const auto binlog = this->binlog().file;
+    const auto binlog = this->binlog(session).file;
     consistent = m_cache.server.binlog.file == binlog;
 
     if (!consistent) {
@@ -4707,9 +4888,10 @@ void Dumper::handle_invalid_view_references(issues::Status_set status,
       "in the MySQL HeatWave Service) will fail unless they are fixed.");
 }
 
-std::string Dumper::gtid_executed() const {
+std::string Dumper::gtid_executed(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   try {
-    const auto result = query("SELECT @@GLOBAL.GTID_EXECUTED");
+    const auto result = query(session, "SELECT @@GLOBAL.GTID_EXECUTED");
 
     if (const auto row = result->fetch_one()) {
       return row->get_string(0);
@@ -4722,8 +4904,9 @@ std::string Dumper::gtid_executed() const {
   return {};
 }
 
-common::Binlog Dumper::binlog() const {
-  return common::binlog(session(), m_server_version, true);
+common::Binlog Dumper::binlog(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
+  return common::binlog(session, m_server_version, true);
 }
 
 }  // namespace dump

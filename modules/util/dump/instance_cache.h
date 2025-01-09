@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -127,6 +127,16 @@ struct Instance_cache {
     std::set<mysqlshdk::parser::Table_reference> table_references;
   };
 
+  struct Routine {
+    struct Library_reference {
+      std::string schema;
+      std::string library;
+      bool exists;
+    };
+
+    std::vector<Library_reference> library_references;
+  };
+
   struct Schema {
     std::string collation;
     std::unordered_map<std::string, Table> tables;
@@ -134,8 +144,9 @@ struct Instance_cache {
     std::unordered_map<std::string, View> views;
     std::unordered_map<std::string, View *> views_lowercase;
     std::unordered_set<std::string> events;
-    std::unordered_set<std::string> functions;
-    std::unordered_set<std::string> procedures;
+    std::unordered_map<std::string, Routine> functions;
+    std::unordered_map<std::string, Routine> procedures;
+    std::unordered_set<std::string> libraries;
   };
 
   struct Stats {
@@ -144,11 +155,13 @@ struct Instance_cache {
     uint64_t views = 0;
     uint64_t events = 0;
     uint64_t routines = 0;
+    uint64_t libraries = 0;
     uint64_t triggers = 0;
     uint64_t users = 0;
   };
 
   bool has_ndbinfo = false;
+  bool has_library_ddl = false;
   std::string user;
   std::string hostname;
   common::Server_info server;
@@ -191,6 +204,8 @@ class Instance_cache_builder final {
   Instance_cache_builder &events();
 
   Instance_cache_builder &routines();
+
+  Instance_cache_builder &libraries();
 
   Instance_cache_builder &triggers();
 

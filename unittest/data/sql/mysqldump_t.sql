@@ -91,7 +91,7 @@ update t1 set a = 4 where a=3;
 
 # Events
 
-create event ee1 on schedule at '2035-12-31 20:01:23' do set @a=5;    	 	
+create event ee1 on schedule at '2035-12-31 20:01:23' do set @a=5;
 create event ee2 on schedule at '2029-12-31 21:01:23' do set @a=5;
 # --exec $MYSQL_DUMP --events second > $MYSQLTEST_VARDIR/tmp/bug16853-2.sql
 
@@ -123,8 +123,22 @@ DELIMITER ;
 
 set sql_mode='ansi';
 create procedure `a'b` () select 1; # to fix syntax highlighting :')
-set sql_mode='';
+set sql_mode=default;
 
 # Dump the DB and ROUTINES
 # --exec $MYSQL_DUMP --skip-comments --routines --databases test
 
+# Libraries
+
+/*!90200 CREATE LIBRARY lib1 LANGUAGE JAVASCRIPT AS $$ $$ */;
+
+set sql_mode='ansi';
+/*!90200 CREATE LIBRARY `a'b`
+    LANGUAGE JAVASCRIPT
+AS  $$
+      export function f(n) {
+        return n;
+      }
+    $$
+*/;
+set sql_mode=default;

@@ -238,6 +238,7 @@ session.run_sql("CREATE SCHEMA !", [tested_schema])
 for option in [
     {"events": False},
     {"routines": False},
+    {"libraries": False},
     {"users": False},
     {"triggers": False},
     {"where": {"s.t": "a > 0"}},
@@ -248,6 +249,7 @@ for option in [
     {"includeTables": ["s.t"]},
     {"includeEvents": ["s.t"]},
     {"includeRoutines": ["s.t"]},
+    {"includeLibraries": ["s.t"]},
     {"includeUsers": ["u@h"]},
     {"excludeUsers": ["u@h"]},
     {"includeTriggers": ["s.t"]},
@@ -255,6 +257,7 @@ for option in [
     {"excludeTables": ["s.t"]},
     {"excludeEvents": ["s.t"]},
     {"excludeRoutines": ["s.t"]},
+    {"excludeLibraries": ["s.t"]},
     {"excludeTriggers": ["s.t.t"]},
 ]:
     print("--> option:", option)
@@ -266,6 +269,7 @@ for option in [
 for option in [
     {"events": True},
     {"routines": True},
+    {"libraries": True},
     {"users": True},
     {"triggers": True},
     {"where": {}},
@@ -276,6 +280,7 @@ for option in [
     {"includeTables": []},
     {"includeEvents": []},
     {"includeRoutines": []},
+    {"includeLibraries": []},
     {"includeUsers": []},
     {"excludeUsers": []},
     {"includeTriggers": []},
@@ -284,6 +289,7 @@ for option in [
             "excludeTables",
             "excludeEvents",
             "excludeRoutines",
+            "excludeLibraries",
             "excludeTriggers",
         ], [
             "INFORMATION_SCHEMA",

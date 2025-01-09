@@ -16,6 +16,33 @@ def setup_copy_tests(arg_no, src_options = {}):
     session.run_sql("CREATE EVENT sakila.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
     testutil.deploy_sandbox(__mysql_sandbox_port2, "root", { "local_infile": 1 })
     globals()["tgt_session"] = mysql.get_session(__sandbox_uri2)
+    if instance_supports_libraries:
+        # make sure that the MLE component is disabled, tests will enable it when needed
+        # WL16731-TSFR_1_1_2 - tests are executed with MLE component disabled
+        disable_mle(src_session)
+        disable_mle(tgt_session)
+        src_session.run_sql("""
+            CREATE LIBRARY sakila.existing_library LANGUAGE JAVASCRIPT
+            AS $$
+                export function squared(n) {
+                    return n * n;
+                }
+            $$
+            """)
+        src_session.run_sql("""
+            CREATE FUNCTION sakila.existing_library_function(n INTEGER) RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT
+            USING (sakila.existing_library AS mylib)
+            AS $$
+                return mylib.squared(n);
+            $$
+            """)
+        src_session.run_sql("""
+            CREATE PROCEDURE sakila.existing_library_procedure(n INTEGER) LANGUAGE JAVASCRIPT
+            USING (sakila.existing_library)
+            AS $$
+                existing_library.squared(n);
+            $$
+            """)
 
 def cleanup_copy_tests():
     testutil.destroy_sandbox(__mysql_sandbox_port1)

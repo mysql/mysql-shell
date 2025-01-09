@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,10 +33,10 @@ const shcore::Option_pack_def<Copy_tables_options>
   static const auto opts =
       shcore::Option_pack_def<Copy_tables_options>()
           .include<Copy_options<dump::Dump_tables_options>>()
-          .ignore({"excludeEvents", "excludeRoutines", "excludeSchemas",
-                   "excludeTables", "excludeUsers", "includeEvents",
-                   "includeRoutines", "includeSchemas", "includeTables",
-                   "includeUsers"});
+          .ignore({"excludeEvents", "excludeLibraries", "excludeRoutines",
+                   "excludeSchemas", "excludeTables", "excludeUsers",
+                   "includeEvents", "includeLibraries", "includeRoutines",
+                   "includeSchemas", "includeTables", "includeUsers"});
 
   return opts;
 }

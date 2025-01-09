@@ -1186,6 +1186,9 @@ that would be performed, without actually doing so.
 @li <b>excludeEvents</b>: array of strings (default not set) - Skip loading
 specified events from the dump. Strings are in format <b>schema</b>.<b>event</b>,
 quoted using backtick characters when required.
+@li <b>excludeLibraries</b>: array of strings (default not set) - Skip loading
+specified library objects from the dump. Strings are in format
+<b>schema</b>.<b>library</b>, quoted using backtick characters when required.
 @li <b>excludeRoutines</b>: array of strings (default not set) - Skip loading
 specified routines from the dump. Strings are in format <b>schema</b>.<b>routine</b>,
 quoted using backtick characters when required.
@@ -1220,6 +1223,10 @@ it will be loaded.
 specified events from the dump. Strings are in format <b>schema</b>.<b>event</b>,
 quoted using backtick characters when required. By default, all events are
 included.
+@li <b>includeLibraries</b>: array of strings (default not set) - Loads only the
+specified library objects from the dump. Strings are in format
+<b>schema</b>.<b>library</b>, quoted using backtick characters when required.
+By default, all library objects are included.
 @li <b>includeRoutines</b>: array of strings (default not set) - Loads only the
 specified routines from the dump. Strings are in format <b>schema</b>.<b>routine</b>,
 quoted using backtick characters when required. By default, all routines are
@@ -1641,6 +1648,15 @@ procedures for each dumped schema.
 to be excluded from the dump in the format of <b>schema</b>.<b>routine</b>.
 @li <b>includeRoutines</b>: list of strings (default: empty) - List of routines
 to be included in the dump in the format of <b>schema</b>.<b>routine</b>.
+
+@li <b>libraries</b>: bool (default: true) - Include library objects for each
+dumped schema.
+@li <b>excludeLibraries</b>: list of strings (default: empty) - List of
+library objects to be excluded from the dump in the format of
+<b>schema</b>.<b>library</b>.
+@li <b>includeLibraries</b>: list of strings (default: empty) - List of
+library objects to be included in the dump in the format of
+<b>schema</b>.<b>library</b>.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SESSION_DETAILS, R"*(
@@ -2140,6 +2156,15 @@ procedures for each copied schema.
 to be excluded from the copy in the format of <b>schema</b>.<b>routine</b>.
 @li <b>includeRoutines</b>: list of strings (default: empty) - List of routines
 to be included in the copy in the format of <b>schema</b>.<b>routine</b>.
+
+@li <b>libraries</b>: bool (default: true) - Include library objects for each
+copied schema.
+@li <b>excludeLibraries</b>: list of strings (default: empty) - List of
+library objects to be excluded from the copy in the format of
+<b>schema</b>.<b>library</b>.
+@li <b>includeLibraries</b>: list of strings (default: empty) - List of
+library objects to be included in the copy in the format of
+<b>schema</b>.<b>library</b>.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_COPY_COMMON_OPTIONS, R"*(

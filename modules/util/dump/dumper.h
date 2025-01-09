@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -144,7 +144,7 @@ class Dumper {
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
   static std::string format_object_stats(uint64_t value, uint64_t total,
-                                         const std::string &object);
+                                         std::string_view objects);
 
   bool dump_users() const;
 
@@ -227,7 +227,7 @@ class Dumper {
                                     const std::string &table,
                                     const Instance_cache::Table *cache) = 0;
 
-  const std::shared_ptr<mysqlshdk::db::ISession> &session() const;
+  const std::shared_ptr<mysqlshdk::db::ISession> &session() const noexcept;
 
   void do_run();
 
@@ -304,8 +304,26 @@ class Dumper {
       Schema_dumper *dumper,
       const std::function<void(Memory_dumper *)> &func) const;
 
+  /**
+   * Dumps schema, events, routines and libraries to a single file.
+   */
+  std::unique_ptr<Memory_dumper> dump_complete_schema(
+      Schema_dumper *dumper, const std::string &schema) const;
+
+  /**
+   * Dumps just the schema DDL.
+   */
   std::unique_ptr<Memory_dumper> dump_schema(Schema_dumper *dumper,
                                              const std::string &schema) const;
+
+  std::unique_ptr<Memory_dumper> dump_events(Schema_dumper *dumper,
+                                             const std::string &schema) const;
+
+  std::unique_ptr<Memory_dumper> dump_libraries(
+      Schema_dumper *dumper, const std::string &schema) const;
+
+  std::unique_ptr<Memory_dumper> dump_routines(Schema_dumper *dumper,
+                                               const std::string &schema) const;
 
   std::unique_ptr<Memory_dumper> dump_table(Schema_dumper *dumper,
                                             const std::string &schema,
@@ -368,7 +386,9 @@ class Dumper {
 
   void write_checksum_metadata() const;
 
-  void write_schema_metadata(const Schema_info &schema) const;
+  void write_schema_metadata(
+      const Schema_info &schema,
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
   void write_table_metadata(
       const Table_task &table,
@@ -444,12 +464,17 @@ class Dumper {
   void handle_invalid_view_references(issues::Status_set status,
                                       bool as_error) const;
 
-  std::string gtid_executed() const;
+  std::string gtid_executed(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
-  common::Binlog binlog() const;
+  common::Binlog binlog(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
+#ifndef NDEBUG
+  std::thread::id m_main_thread;
+#endif  // !NDEBUG
   std::vector<std::shared_ptr<mysqlshdk::db::ISession>> m_lock_sessions;
   common::Server_version m_server_version;
   bool m_binlog_enabled = false;
@@ -476,6 +501,7 @@ class Dumper {
   // whether FLUSH TABLES WITH READ LOCK was used
   bool m_ftwrl_used = false;
   std::unordered_set<Capability> m_used_capabilities;
+  Capability_set m_capability_set;
   bool m_has_invalid_view_references = false;
 
   // counters

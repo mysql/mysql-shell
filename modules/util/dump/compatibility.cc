@@ -1814,7 +1814,7 @@ bool parse_grant_statement(const std::string &statement,
     throw std::runtime_error("Expected GRANT or REVOKE statement");
   }
 
-  bool object_is_routine = false;
+  Privilege_level_info::Level object_level = Privilege_level_info::Level::TABLE;
   bool is_role = false;
   std::vector<std::string> privileges;
 
@@ -1870,11 +1870,6 @@ bool parse_grant_statement(const std::string &statement,
           if (!privilege_done && !all_privileges_done) {
             privilege += ' ';
             privilege += token;
-          } else {
-            if (shcore::str_caseeq(privilege, "EXECUTE") ||
-                shcore::str_caseeq(privilege, "ALTER ROUTINE")) {
-              object_is_routine = true;
-            }
           }
         }
 
@@ -1903,11 +1898,15 @@ bool parse_grant_statement(const std::string &statement,
     auto priv_level = it.next_token();
 
     if (shcore::str_caseeq(priv_level, "TABLE")) {
-      object_is_routine = false;
+      object_level = Privilege_level_info::Level::TABLE;
       // priv_level follows
       priv_level = it.next_token();
     } else if (shcore::str_caseeq(priv_level, "FUNCTION", "PROCEDURE")) {
-      object_is_routine = true;
+      object_level = Privilege_level_info::Level::ROUTINE;
+      // priv_level follows
+      priv_level = it.next_token();
+    } else if (shcore::str_caseeq(priv_level, "LIBRARY")) {
+      object_level = Privilege_level_info::Level::LIBRARY;
       // priv_level follows
       priv_level = it.next_token();
     }
@@ -1920,8 +1919,7 @@ bool parse_grant_statement(const std::string &statement,
     } else if ("*" == result.object) {
       result.level = Privilege_level_info::Level::SCHEMA;
     } else {
-      result.level = object_is_routine ? Privilege_level_info::Level::ROUTINE
-                                       : Privilege_level_info::Level::TABLE;
+      result.level = object_level;
     }
 
     // TO
@@ -1967,7 +1965,11 @@ std::string to_grant_statement(const Privilege_level_info &info) {
 }
 
 bool supports_set_any_definer_privilege(const mysqlshdk::utils::Version &v) {
-  return v >= mysqlshdk::utils::Version(8, 2, 0);
+  return v.numeric() >= 80200;
+}
+
+bool supports_library_ddl(const mysqlshdk::utils::Version &v) {
+  return v.numeric() >= 90200;
 }
 
 bool replace_keyword(std::string_view stmt, std::string_view from,

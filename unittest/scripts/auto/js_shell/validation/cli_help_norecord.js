@@ -322,6 +322,10 @@ OPTIONS
             List of events to be excluded from the copy in the format of
             schema.event. Default: empty.
 
+--excludeLibraries=<str list>
+            List of library objects to be excluded from the copy in the format
+            of schema.library. Default: empty.
+
 --excludeRoutines=<str list>
             List of routines to be excluded from the copy in the format of
             schema.routine. Default: empty.
@@ -365,6 +369,10 @@ OPTIONS
             List of events to be included in the copy in the format of
             schema.event. Default: empty.
 
+--includeLibraries=<str list>
+            List of library objects to be included in the copy in the format of
+            schema.library. Default: empty.
+
 --includeRoutines=<str list>
             List of routines to be included in the copy in the format of
             schema.routine. Default: empty.
@@ -386,6 +394,9 @@ OPTIONS
             'user_name'[@'host']. If the host is not specified, all the
             accounts with the given user name are included. By default, all
             users are included. Default: not set.
+
+--libraries=<bool>
+            Include library objects for each copied schema. Default: true.
 
 --loadIndexes=<bool>
             Use together with deferTableIndexes to control whether secondary
@@ -535,6 +546,10 @@ OPTIONS
             List of events to be excluded from the copy in the format of
             schema.event. Default: empty.
 
+--excludeLibraries=<str list>
+            List of library objects to be excluded from the copy in the format
+            of schema.library. Default: empty.
+
 --excludeRoutines=<str list>
             List of routines to be excluded from the copy in the format of
             schema.routine. Default: empty.
@@ -570,6 +585,10 @@ OPTIONS
             List of events to be included in the copy in the format of
             schema.event. Default: empty.
 
+--includeLibraries=<str list>
+            List of library objects to be included in the copy in the format of
+            schema.library. Default: empty.
+
 --includeRoutines=<str list>
             List of routines to be included in the copy in the format of
             schema.routine. Default: empty.
@@ -582,6 +601,9 @@ OPTIONS
             List of triggers to be included in the copy in the format of
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
+
+--libraries=<bool>
+            Include library objects for each copied schema. Default: true.
 
 --loadIndexes=<bool>
             Use together with deferTableIndexes to control whether secondary
@@ -1006,6 +1028,10 @@ OPTIONS
             List of events to be excluded from the dump in the format of
             schema.event. Default: empty.
 
+--excludeLibraries=<str list>
+            List of library objects to be excluded from the dump in the format
+            of schema.library. Default: empty.
+
 --excludeRoutines=<str list>
             List of routines to be excluded from the dump in the format of
             schema.routine. Default: empty.
@@ -1049,6 +1075,10 @@ OPTIONS
             List of events to be included in the dump in the format of
             schema.event. Default: empty.
 
+--includeLibraries=<str list>
+            List of library objects to be included in the dump in the format of
+            schema.library. Default: empty.
+
 --includeRoutines=<str list>
             List of routines to be included in the dump in the format of
             schema.routine. Default: empty.
@@ -1070,6 +1100,9 @@ OPTIONS
             'user_name'[@'host']. If the host is not specified, all the
             accounts with the given user name are included. By default, all
             users are included. Default: not set.
+
+--libraries=<bool>
+            Include library objects for each dumped schema. Default: true.
 
 --linesTerminatedBy=<str>
             This option has the same meaning as the corresponding clause for
@@ -1259,6 +1292,10 @@ OPTIONS
             List of events to be excluded from the dump in the format of
             schema.event. Default: empty.
 
+--excludeLibraries=<str list>
+            List of library objects to be excluded from the dump in the format
+            of schema.library. Default: empty.
+
 --excludeRoutines=<str list>
             List of routines to be excluded from the dump in the format of
             schema.routine. Default: empty.
@@ -1294,6 +1331,10 @@ OPTIONS
             List of events to be included in the dump in the format of
             schema.event. Default: empty.
 
+--includeLibraries=<str list>
+            List of library objects to be included in the dump in the format of
+            schema.library. Default: empty.
+
 --includeRoutines=<str list>
             List of routines to be included in the dump in the format of
             schema.routine. Default: empty.
@@ -1306,6 +1347,9 @@ OPTIONS
             List of triggers to be included in the dump in the format of
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
+
+--libraries=<bool>
+            Include library objects for each dumped schema. Default: true.
 
 --linesTerminatedBy=<str>
             This option has the same meaning as the corresponding clause for
@@ -2167,6 +2211,11 @@ OPTIONS
             schema.event, quoted using backtick characters when required.
             Default: not set.
 
+--excludeLibraries=<str list>
+            Skip loading specified library objects from the dump. Strings are
+            in format schema.library, quoted using backtick characters when
+            required. Default: not set.
+
 --excludeRoutines=<str list>
             Skip loading specified routines from the dump. Strings are in
             format schema.routine, quoted using backtick characters when
@@ -2217,6 +2266,12 @@ OPTIONS
             Loads only the specified events from the dump. Strings are in
             format schema.event, quoted using backtick characters when
             required. By default, all events are included. Default: not set.
+
+--includeLibraries=<str list>
+            Loads only the specified library objects from the dump. Strings are
+            in format schema.library, quoted using backtick characters when
+            required. By default, all library objects are included. Default:
+            not set.
 
 --includeRoutines=<str list>
             Loads only the specified routines from the dump. Strings are in

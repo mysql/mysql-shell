@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2000, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -331,12 +331,13 @@ std::string fix_identifier_with_newline(const std::string &object_name) {
 
 class Object_guard_msg {
  public:
-  Object_guard_msg(IFile *file, const std::string &object_type,
+  Object_guard_msg(IFile *file, std::string_view object_type,
                    const std::string &db, const std::string &obj_name)
       : m_file(file),
-        m_msg(fix_identifier_with_newline(shcore::str_lower(object_type) + " " +
-                                          shcore::quote_identifier(db) + "." +
-                                          obj_name)) {
+        m_msg(fix_identifier_with_newline(
+            shcore::str_lower(object_type) + " " +
+            shcore::quote_identifier(db) +
+            (obj_name.empty() ? "" : "." + obj_name))) {
     fputs("-- begin " + m_msg + "\n", m_file);
   }
   ~Object_guard_msg() { fputs("-- end " + m_msg + "\n\n", m_file); }
@@ -933,6 +934,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
           switch_sql_mode(sql_file, ";", row->get_string(1).c_str());
 
           check_object_for_definer(db, routine_type, routine, &body, &res);
+          check_routine_for_dependencies(db, routine, routine_type, &res);
 
           fprintf(sql_file,
                   "DELIMITER ;;\n"
@@ -959,6 +961,82 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
   switch_character_set_results(opt_character_set_results.c_str());
 
   return res;
+}
+
+std::vector<Schema_dumper::Issue> Schema_dumper::dump_libraries_for_db(
+    IFile *sql_file, const std::string &db) {
+  print_comment(sql_file, false,
+                "\n--\n-- Dumping libraries for database '%s'\n--\n\n",
+                fix_identifier_with_newline(db).c_str());
+
+  const auto libraries = get_libraries(db);
+
+  if (libraries.empty()) {
+    return {};
+  }
+
+  const auto db_name = shcore::quote_identifier(db);
+  std::string query;
+  query.reserve(QUERY_LENGTH);
+
+  switch_character_set_results("binary");
+
+  for (const auto &library : libraries) {
+    const auto library_name = shcore::quote_identifier(library);
+
+    log_debug("retrieving CREATE LIBRARY for %s", library_name.c_str());
+
+    query = "SHOW CREATE LIBRARY ";
+    query.append(db_name);
+    query.append(1, '.');
+    query.append(library_name);
+
+    const auto library_res = query_log_and_throw(query);
+
+    while (const auto row = library_res->fetch_one()) {
+      const auto body_is_null = row->is_null(2);
+      const auto body = body_is_null ? "" : row->get_string(2);
+
+      log_debug("length of body for %s row[2] '%s' is %zu",
+                library_name.c_str(), !body_is_null ? body.c_str() : "(null)",
+                body.length());
+
+      if (body_is_null) {
+        print_comment(sql_file, true, "\n-- insufficient privileges to %s\n",
+                      query.c_str());
+
+        const auto &user = m_mysql->get_connection_options().get_user();
+        print_comment(
+            sql_file, true,
+            "-- does %s have permissions on INFORMATION_SCHEMA.LIBRARIES?\n\n",
+            fix_identifier_with_newline(user).c_str());
+
+        THROW_ERROR(SHERR_DUMP_SD_INSUFFICIENT_PRIVILEGES, user.c_str(),
+                    query.c_str());
+      } else if (body.length() > 0) {
+        Object_guard_msg guard{sql_file, "library", db, library_name};
+
+        if (opt_drop_library || opt_reexecutable) {
+          fprintf(sql_file, "DROP LIBRARY IF EXISTS %s;\n",
+                  library_name.c_str());
+        }
+
+        switch_sql_mode(sql_file, ";", row->get_string(1).c_str());
+
+        fprintf(sql_file,
+                "DELIMITER ;;\n"
+                "%s ;;\n"
+                "DELIMITER ;\n",
+                body.c_str());
+
+        restore_sql_mode(sql_file, ";");
+      }
+    }
+  }
+
+  switch_character_set_results(opt_character_set_results.c_str());
+
+  return {};
 }
 
 bool Schema_dumper::is_charset_supported(const std::string &charset) {
@@ -1083,7 +1161,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
 
 namespace {
 std::string get_object_err_prefix(const std::string &db,
-                                  const std::string &object,
+                                  const std::string_view object,
                                   const std::string &name) {
   return static_cast<char>(std::toupper(object[0])) +
          shcore::str_lower(object.substr(1)) + " " + quote(db, name) + " ";
@@ -2514,28 +2592,17 @@ void Schema_dumper::dump_tablespaces_ddl_for_tables(
 
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
     IFile *file, const std::string &db) {
+  log_debug("Dumping database %s", db.c_str());
+
   try {
     std::vector<Issue> res;
-    auto qdatabase = shcore::quote_identifier(db);
-
-    print_comment(file, false, "\n--\n-- Current Database: %s\n--\n",
-                  fix_identifier_with_newline(db).c_str());
 
     if (!opt_create_db) {
-      char qbuf[256];
+      const auto qdatabase = shcore::quote_identifier(db);
+      const auto result =
+          m_mysql->query("SHOW CREATE DATABASE IF NOT EXISTS " + qdatabase);
 
-      int qlen =
-          snprintf(qbuf, sizeof(qbuf), "SHOW CREATE DATABASE IF NOT EXISTS %s",
-                   qdatabase.c_str());
-
-      auto result = m_mysql->querys(qbuf, qlen);
-
-      if (opt_drop_database)
-        fprintf(file, "\n/*!40000 DROP DATABASE IF EXISTS %s*/;\n",
-                qdatabase.c_str());
-
-      auto row = result->fetch_one();
-      if (row && !row->is_null(1)) {
+      if (const auto row = result->fetch_one(); row && !row->is_null(1)) {
         auto createdb = row->get_string(1);
 
         if (opt_mysqlaas) {
@@ -2547,12 +2614,21 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
                 Issue::Status::FIXED);
         }
 
-        fprintf(file, "\n%s;\n", createdb.c_str());
+        print_comment(file, false, "\n--\n-- Dumping database '%s'\n--\n\n",
+                      fix_identifier_with_newline(db).c_str());
+
+        Object_guard_msg guard(file, "database", db, {});
+
+        if (opt_drop_database)
+          fprintf(file, "/*!40000 DROP DATABASE IF EXISTS %s*/;\n",
+                  qdatabase.c_str());
+
+        fprintf(file, "%s;\n", createdb.c_str());
       } else {
         throw std::runtime_error("No create database statement");
       }
     }
-    fprintf(file, "\nUSE %s;\n", qdatabase.c_str());
+
     return res;
   } catch (const std::exception &e) {
     THROW_ERROR(SHERR_DUMP_SD_SCHEMA_DDL_ERROR, db.c_str(), e.what());
@@ -2580,7 +2656,7 @@ void Schema_dumper::dump_temporary_view_ddl(IFile *file, const std::string &db,
   try {
     char ignore_flag;
     std::string table_type;
-    log_debug("Dumping view %s temporary ddll from database %s", view.c_str(),
+    log_debug("Dumping view %s (temporary DDL) from database %s", view.c_str(),
               db.c_str());
     init_dumping(file, db, nullptr);
     get_table_structure(file, view, db, &table_type, &ignore_flag);
@@ -2619,6 +2695,9 @@ int Schema_dumper::count_triggers_for_table(const std::string &db,
 std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table_ddl(
     IFile *file, const std::string &db, const std::string &table) {
   try {
+    log_debug("Dumping triggers for table %s from database %s", table.c_str(),
+              db.c_str());
+    init_dumping(file, db, nullptr);
     return dump_triggers_for_table(file, table, db);
   } catch (const std::exception &e) {
     THROW_ERROR(SHERR_DUMP_SD_TRIGGER_DDL_ERROR, db.c_str(), table.c_str(),
@@ -2651,6 +2730,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_ddl(
     IFile *file, const std::string &db) {
   try {
     log_debug("Dumping events for database %s", db.c_str());
+    init_dumping(file, db, nullptr);
     return dump_events_for_db(file, db);
   } catch (const std::exception &e) {
     THROW_ERROR(SHERR_DUMP_SD_EVENT_DDL_ERROR, db.c_str(), e.what());
@@ -2679,6 +2759,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_ddl(
     IFile *file, const std::string &db) {
   try {
     log_debug("Dumping routines for database %s", db.c_str());
+    init_dumping(file, db, nullptr);
     return dump_routines_for_db(file, db);
   } catch (const std::exception &e) {
     THROW_ERROR(SHERR_DUMP_SD_ROUTINE_DDL_ERROR, db.c_str(), e.what());
@@ -2695,7 +2776,7 @@ std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
         "PROCEDURE" == type ? schema.procedures : schema.functions;
 
     for (const auto &routine : routines) {
-      routine_list.emplace_back(routine);
+      routine_list.emplace_back(routine.first);
     }
   } else {
     use(db);
@@ -2712,6 +2793,77 @@ std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
   }
 
   return routine_list;
+}
+
+std::vector<Instance_cache::Routine::Library_reference>
+Schema_dumper::get_routine_dependencies(const std::string &db,
+                                        const std::string &routine,
+                                        const std::string_view type) {
+  std::vector<Instance_cache::Routine::Library_reference> dependency_list;
+
+  if (m_cache) {
+    const auto &schema = m_cache->schemas.at(db);
+    const auto &routines =
+        "PROCEDURE" == type ? schema.procedures : schema.functions;
+
+    dependency_list = routines.at(routine).library_references;
+  } else if (compatibility::supports_library_ddl(
+                 m_mysql->get_server_version())) {
+    const auto dependency_list_res = query_log_and_throw(shcore::sqlformat(
+        "SELECT"
+        " IFNULL(l.library_schema, rl.library_schema),"
+        " IFNULL(l.library_name, rl.library_name),"
+        " l.library_schema IS NOT NULL "
+        "FROM information_schema.routine_libraries AS rl"
+        " LEFT JOIN information_schema.libraries AS l"
+        " ON rl.library_schema=l.library_schema"
+        " AND rl.library_name=l.library_name "
+        "WHERE ROUTINE_SCHEMA=? AND ROUTINE_NAME=? AND ROUTINE_TYPE=?",
+        db, routine, type));
+
+    while (const auto dependency_list_row = dependency_list_res->fetch_one()) {
+      dependency_list.emplace_back(dependency_list_row->get_string(0),
+                                   dependency_list_row->get_string(1),
+                                   1 == dependency_list_row->get_int(2));
+    }
+  }
+
+  return dependency_list;
+}
+
+std::vector<Schema_dumper::Issue> Schema_dumper::dump_libraries_ddl(
+    IFile *file, const std::string &db) {
+  try {
+    log_debug("Dumping libraries for database %s", db.c_str());
+    init_dumping(file, db, nullptr);
+    return dump_libraries_for_db(file, db);
+  } catch (const std::exception &e) {
+    THROW_ERROR(SHERR_DUMP_SD_LIBRARY_DDL_ERROR, db.c_str(), e.what());
+  }
+}
+
+std::vector<std::string> Schema_dumper::get_libraries(const std::string &db) {
+  std::vector<std::string> library_list;
+
+  if (m_cache) {
+    const auto &schema = m_cache->schemas.at(db);
+
+    for (const auto &library : schema.libraries) {
+      library_list.emplace_back(library);
+    }
+  } else if (compatibility::supports_library_ddl(
+                 m_mysql->get_server_version())) {
+    const auto library_list_res = query_log_and_throw(shcore::sqlformat(
+        "SELECT LIBRARY_NAME FROM INFORMATION_SCHEMA.LIBRARIES WHERE "
+        "LIBRARY_SCHEMA=? ORDER BY LIBRARY_NAME",
+        db));
+
+    while (const auto library_list_row = library_list_res->fetch_one()) {
+      library_list.emplace_back(library_list_row->get_string(0));
+    }
+  }
+
+  return library_list;
 }
 
 namespace {
@@ -2780,8 +2932,9 @@ std::string Schema_dumper::expand_all_privileges(const std::string &stmt,
   return stmt;
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
-    IFile *file, const Filtering_options &filters) {
+std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
+  const auto &filters = m_filters ? *m_filters : Filtering_options{};
+
   std::vector<Issue> problems;
   std::map<std::string, std::string> default_roles;
 
@@ -2789,7 +2942,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
 
-  const auto roles = get_roles(filters.users());
+  const auto roles = get_roles();
   const auto is_role = [&roles](const shcore::Account &a) {
     return roles.end() != std::find(roles.begin(), roles.end(), a);
   };
@@ -2865,7 +3018,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
 
   std::vector<std::string> users;
 
-  for (const auto &u : get_users(filters.users())) {
+  for (const auto &u : get_users()) {
     const auto user = shcore::make_account(u);
 
     if (u.user.find('\'') != std::string::npos) {
@@ -3174,6 +3327,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
                   filters.routines().is_included_ci(priv.schema, priv.object);
               break;
 
+            case Level::LIBRARY:
+              // NOTE: there's no check for missing libraries, as once the
+              // library is dropped, the grants are dropped as well, and it's
+              // not possible to grant a privilege on non-existent library
+              included_object = is_library_included(priv.schema, priv.object);
+              break;
+
             case Level::ROLE:
               for (const auto &role : priv.privileges) {
                 if (!filters.users().is_included(role)) {
@@ -3239,8 +3399,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(
   return problems;
 }
 
-std::vector<shcore::Account> Schema_dumper::get_users(
-    const Filtering_options::User_filters &filters) {
+std::vector<shcore::Account> Schema_dumper::get_users() {
   if (m_cache) {
     return m_cache->users;
   }
@@ -3250,8 +3409,7 @@ std::vector<shcore::Account> Schema_dumper::get_users(
     // access to this table, in such case fall back to
     // information_schema.user_privileges, though on servers < 8.0.17, the
     // grantee column is too short and the host name can be truncated
-    return fetch_users("SELECT DISTINCT user, host from mysql.user", "",
-                       filters, false);
+    return fetch_users("SELECT DISTINCT user, host from mysql.user", "", false);
   } catch (const mysqlshdk::db::Error &e) {
     if (m_mysql->get_server_version() < Version(8, 0, 17)) {
       log_warning(
@@ -3269,12 +3427,11 @@ std::vector<shcore::Account> Schema_dumper::get_users(
         " LOCATE('@', REVERSE(grantee))-3) AS host "
         "FROM information_schema.user_privileges) AS user";
 
-    return fetch_users(users_query, "", filters);
+    return fetch_users(users_query, "");
   }
 }
 
-std::vector<shcore::Account> Schema_dumper::get_roles(
-    const Filtering_options::User_filters &filters) {
+std::vector<shcore::Account> Schema_dumper::get_roles() {
   if (m_cache) {
     return m_cache->roles;
   }
@@ -3299,8 +3456,7 @@ std::vector<shcore::Account> Schema_dumper::get_roles(
 
   return fetch_users("SELECT DISTINCT user, host FROM mysql.user",
                      "authentication_string='' AND account_locked='Y' AND "
-                     "password_expired='Y'",
-                     filters);
+                     "password_expired='Y'");
 }
 
 std::vector<Schema_dumper::User_statements>
@@ -3438,8 +3594,7 @@ Schema_dumper::preprocess_users_script(
 }
 
 std::vector<shcore::Account> Schema_dumper::fetch_users(
-    const std::string &select, const std::string &where,
-    const Filtering_options::User_filters &filters, bool log_error) {
+    const std::string &select, const std::string &where, bool log_error) {
   std::string where_filter = where;
 
   if (!where_filter.empty()) {
@@ -3463,6 +3618,8 @@ std::vector<shcore::Account> Schema_dumper::fetch_users(
 
       return result;
     };
+    const auto &filters =
+        m_filters ? m_filters->users() : Filtering_options::User_filters{};
     const auto include = filter(filters.included());
     const auto exclude = filter(filters.excluded());
 
@@ -3629,6 +3786,67 @@ void Schema_dumper::check_view_for_table_references(
                            Issue::Status::WARNING);
     }
   }
+}
+
+void Schema_dumper::check_routine_for_dependencies(
+    const std::string &db, const std::string &name, const std::string_view type,
+    std::vector<Issue> *issues) const {
+  if (!m_cache || !m_filters) {
+    return;
+  }
+
+  const auto &schema = m_cache->schemas.at(db);
+  const auto &routine =
+      ("PROCEDURE" == type ? schema.procedures : schema.functions).at(name);
+  const auto msg = [&db, &name, &type](
+                       const Instance_cache::Routine::Library_reference &dep,
+                       const char *reason) {
+    return get_object_err_prefix(db, type, name) + "references library " +
+           quote(dep.schema, dep.library) + " which " + reason;
+  };
+
+  for (const auto &dependency : routine.library_references) {
+    if (!dependency.exists) {
+      issues->emplace_back(msg(dependency, "does not exist"),
+                           Issue::Status::WARNING);
+    } else if (!is_library_included(dependency.schema, dependency.library)) {
+      issues->emplace_back(msg(dependency, "is not included in the dump"),
+                           Issue::Status::NOTE);
+    }
+  }
+}
+
+bool Schema_dumper::is_library_included(const std::string &schema,
+                                        const std::string &library) const {
+  // if there are no filters, we assume that library is included
+  if (m_filters && !m_filters->libraries().is_included_ci(schema, library)) {
+    return false;
+  }
+
+  // if there's no cache, we assume that library is being dumped
+  if (m_cache) {
+    if (const auto s = m_cache->schemas.find(schema);
+        m_cache->schemas.end() != s) {
+      const auto &libraries = s->second.libraries;
+
+      if (!libraries.contains(library)) {
+        // case-sensitive match failed, try case-insensitive one
+        if (libraries.end() ==
+            std::find_if(libraries.begin(), libraries.end(),
+                         [library_ci = shcore::utf8_lower(library)](
+                             const std::string &l) {
+                           return library_ci == shcore::utf8_lower(l);
+                         })) {
+          return false;
+        }
+      }
+    } else {
+      // schema is not included
+      return false;
+    }
+  }
+
+  return true;
 }
 
 }  // namespace dump

@@ -52,7 +52,17 @@ TEST_ARRAY_OF_STRINGS_OPTION("includeSchemas")
 
 #@<> WL15298 - test includeSchemas option
 EXPECT_SUCCESS(__sandbox_uri2, { "includeSchemas": [ "sakila" ] })
-EXPECT_STDOUT_MATCHES(re.compile(r"1 out of \d schemas will be dumped and within them 16 tables, 7 views, 1 event, 6 routines, 6 triggers"))
+
+if instance_supports_libraries:
+    # WL16731-G3 - default value of the libraries option
+    # WL16731-TSFR_1_2_1_2 - default value of the includeLibraries option
+    # WL16731-TSFR_1_3_1_1 - default value of the excludeLibraries option
+    EXPECT_STDOUT_MATCHES(re.compile(r"1 out of \d schemas will be dumped and within them 16 tables, 7 views, 1 event, 1 library, 8 routines, 6 triggers"))
+    # WL16731-TSFR_1_1_2_2 - target version supports libraries, warning is not printed
+    EXPECT_STDOUT_NOT_CONTAINS(warn_target_version_does_not_support_libraries(__version))
+else:
+    EXPECT_STDOUT_MATCHES(re.compile(r"1 out of \d schemas will be dumped and within them 16 tables, 7 views, 1 event, 6 routines, 6 triggers"))
+
 EXPECT_STDOUT_CONTAINS("16 tables in 1 schemas were loaded")
 
 #@<> WL15298_TSFR_1_2_1_5
@@ -438,7 +448,14 @@ EXPECT_STDOUT_CONTAINS("Building indexes")
 TEST_STRING_OPTION("schema")
 
 #@<> WL15298_TSFR_4_5_29
-EXPECT_SUCCESS(__sandbox_uri2, { "includeSchemas": [ "sakila" ], "schema": "sakila-new" })
+# WL16731 - we need to explicitly exclude the routines which are using a library, as we rewrite just some basic SQL statements, and not the `USING` clause of such routines
+EXPECT_SUCCESS(__sandbox_uri2, { "includeSchemas": [ "sakila" ], "schema": "sakila-new", "excludeRoutines": ["sakila.existing_library_function", "sakila.existing_library_procedure"] })
+
+if instance_supports_libraries:
+    # WL16731 - with routines present, copy fails
+    wipeout_server(tgt_session)
+    EXPECT_FAIL("Error: Shell Error (53005)", "Error loading dump", __sandbox_uri2, { "includeSchemas": [ "sakila" ], "schema": "sakila-new", "users": False })
+    EXPECT_STDOUT_CONTAINS("While executing DDL for routines of schema `sakila-new`: LIBRARY existing_library does not exist")
 
 #@<> WL15298_TSFR_4_5_30
 TEST_ARRAY_OF_STRINGS_OPTION("sessionInitSql")
@@ -553,6 +570,152 @@ EXPECT_SUCCESS(__sandbox_uri2, { "includeRoutines": [ "`sakila`.`rewards_report`
 
 #@<> WL15298 - test invalid values of includeRoutines option
 TEST_ARRAY_OF_STRINGS_OPTION("includeRoutines")
+
+#@<> WL16731 - help text
+# WL16731-G1
+# WL16731-TSFR_1_2_1
+# WL16731-TSFR_1_3_1
+help_text = """
+      - libraries: bool (default: true) - Include library objects for each
+        copied schema.
+      - excludeLibraries: list of strings (default: empty) - List of library
+        objects to be excluded from the copy in the format of schema.library.
+      - includeLibraries: list of strings (default: empty) - List of library
+        objects to be included in the copy in the format of schema.library.
+"""
+EXPECT_TRUE(help_text in util.help("copy_instance"))
+
+#@<> WL16731 - enable libraries option
+# WL16731-G2
+# WL16731-TSFR_1_1_1 - test is executed regardless of server version
+EXPECT_SUCCESS(__sandbox_uri2, { "libraries": True })
+
+#@<> WL16731 - disable libraries option
+# WL16731-G2
+EXPECT_SUCCESS(__sandbox_uri2, { "libraries": False })
+
+if instance_supports_libraries:
+    # WL16731-TSFR_1_7_1
+    EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Function", "sakila", "existing_library_function", "sakila", "existing_library").note(True))
+    EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", "sakila", "existing_library_procedure", "sakila", "existing_library").note(True))
+
+#@<> WL16731 - test invalid values of libraries option
+# WL16731-G1
+TEST_BOOL_OPTION("libraries")
+
+#@<> WL16731 - test excludeLibraries option with an empty array
+# WL16731-TSFR_1_3_1
+# WL16731-TSFR_1_3_1_1
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeLibraries": [] })
+
+#@<> WL16731 - test excludeLibraries option with existing and non-existing libraries
+# WL16731-TSFR_1_3_1
+# WL16731-TSFR_1_4_1
+# WL16731-TSFR_1_5_1
+EXPECT_SUCCESS(__sandbox_uri2, { "excludeLibraries": [ "`sakila`.`existing_library`", "`sakila`.`wrong`", "wrong.wrong" ] })
+
+#@<> WL16731 - test invalid values of excludeLibraries option
+# WL16731-TSFR_1_3_1
+TEST_ARRAY_OF_STRINGS_OPTION("excludeLibraries")
+
+#@<> WL16731-TSFR_1_4_2 - invalid format of excludeLibraries entries
+EXPECT_FAIL("ValueError", "Argument #2: The library to be excluded must be in the following form: schema.library, with optional backtick quotes, wrong value: 'library'.", __sandbox_uri2, { "excludeLibraries": [ "library" ] })
+EXPECT_FAIL("ValueError", "Argument #2: Failed to parse library to be excluded 'schema.@': Invalid character in identifier", __sandbox_uri2, { "excludeLibraries": [ "schema.@" ] })
+
+#@<> WL16731 - test includeLibraries option
+# WL16731-G4
+# WL16731-TSFR_1_2_1_2
+EXPECT_SUCCESS(__sandbox_uri2, { "includeLibraries": [] })
+
+#@<> WL16731 - test includeLibraries option with existing and non-existing libraries
+# WL16731-G4
+# WL16731-TSFR_1_4_1
+# WL16731-TSFR_1_5_1
+EXPECT_SUCCESS(__sandbox_uri2, { "includeLibraries": [ "`sakila`.`existing_library`", "`sakila`.`wrong`", "wrong.wrong" ] })
+
+#@<> WL16731 - test invalid values of includeLibraries option
+# WL16731-TSFR_1_2_1
+TEST_ARRAY_OF_STRINGS_OPTION("includeLibraries")
+
+#@<> WL16731-TSFR_1_4_2 - invalid format of includeLibraries entries
+EXPECT_FAIL("ValueError", "Argument #2: The library to be included must be in the following form: schema.library, with optional backtick quotes, wrong value: 'library'.", __sandbox_uri2, { "includeLibraries": [ "library" ] })
+EXPECT_FAIL("ValueError", "Argument #2: Failed to parse library to be included 'schema.@': Invalid character in identifier", __sandbox_uri2, { "includeLibraries": [ "schema.@" ] })
+
+#@<> WL16731-TSFR_1_6_1 - conflicting filtering options
+EXPECT_FAIL("ValueError", "Argument #2: Conflicting filtering options", __sandbox_uri2, { "includeLibraries": [ "`sakila`.`existing_library`" ], "excludeLibraries": [ "sakila.existing_library" ] })
+EXPECT_STDOUT_CONTAINS("Both includeLibraries and excludeLibraries options contain a library `sakila`.`existing_library`.")
+
+#@<> WL16731-TSFR_1_7_2 - `libraries` - routine uses a library which is not included {instance_supports_libraries}
+# constants
+tested_schema = "wl16731"
+tested_function = "my_function"
+tested_procedure = "my_procedure"
+
+tested_library_schema = "wl16731-lib"
+tested_library = "my_library"
+
+# setup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_library_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_library_schema])
+session.run_sql("CREATE LIBRARY !.! LANGUAGE JAVASCRIPT AS $$ $$", [tested_library_schema, tested_library])
+session.run_sql("CREATE FUNCTION !.!() RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_function, tested_library_schema, tested_library])
+session.run_sql("CREATE PROCEDURE !.!() LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_procedure, tested_library_schema, tested_library])
+
+# test
+EXPECT_SUCCESS(__sandbox_uri2, { "includeSchemas": [tested_schema], "showProgress": False })
+
+# SRC
+EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Function", tested_schema, tested_function, tested_library_schema, tested_library).note(True))
+EXPECT_STDOUT_CONTAINS(routine_references_excluded_library("Procedure", tested_schema, tested_procedure, tested_library_schema, tested_library).note(True))
+
+# TGT
+# WL16731-TSFR_2_6_1 - warn about unavailable MLE component
+EXPECT_STDOUT_CONTAINS("WARNING: TGT: The dump contains library DDL, but the Multilingual Engine (MLE) component is not installed on the target instance. Routines which use these libraries will fail to execute, unless this component is installed.")
+
+# routines are not loaded
+EXPECT_STDOUT_CONTAINS(routine_uses_missing_library("function", tested_schema, tested_function, tested_library_schema, tested_library))
+EXPECT_STDOUT_CONTAINS(routine_uses_missing_library("procedure", tested_schema, tested_procedure, tested_library_schema, tested_library))
+
+EXPECT_STDOUT_CONTAINS(routine_skipped_due_to_missing_deps("function", tested_schema, tested_function))
+EXPECT_STDOUT_CONTAINS(routine_skipped_due_to_missing_deps("procedure", tested_schema, tested_procedure))
+
+# cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_library_schema])
+
+#@<> WL16731-TSFR_1_7_1_2 - `libraries` - routine uses a library which does not exist {instance_supports_libraries}
+# constants
+tested_schema = "wl16731"
+tested_library = "my_library"
+tested_function = "my_function"
+tested_procedure = "my_procedure"
+
+# setup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE LIBRARY !.! LANGUAGE JAVASCRIPT AS $$ $$", [tested_schema, tested_library])
+session.run_sql("CREATE FUNCTION !.!() RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_function, tested_schema, tested_library])
+session.run_sql("CREATE PROCEDURE !.!() LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_procedure, tested_schema, tested_library])
+session.run_sql("DROP LIBRARY !.!", [tested_schema, tested_library])
+
+# test
+EXPECT_SUCCESS(__sandbox_uri2, { "includeSchemas": [tested_schema], "showProgress": False })
+
+# SRC
+EXPECT_STDOUT_CONTAINS(routine_references_missing_library("Function", tested_schema, tested_function, tested_schema, tested_library).warning(True))
+EXPECT_STDOUT_CONTAINS(routine_references_missing_library("Procedure", tested_schema, tested_procedure, tested_schema, tested_library).warning(True))
+
+# TGT
+EXPECT_STDOUT_CONTAINS(routine_uses_missing_library("function", tested_schema, tested_function, tested_schema, tested_library))
+EXPECT_STDOUT_CONTAINS(routine_uses_missing_library("procedure", tested_schema, tested_procedure, tested_schema, tested_library))
+
+EXPECT_STDOUT_CONTAINS(routine_skipped_due_to_missing_deps("function", tested_schema, tested_function))
+EXPECT_STDOUT_CONTAINS(routine_skipped_due_to_missing_deps("procedure", tested_schema, tested_procedure))
+
+# cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
 #@<> WL15298 - unknown options
 for param in [
@@ -869,6 +1032,8 @@ def create_objects(s, schema):
     s.run_sql("CREATE FUNCTION !.f() RETURNS INT DETERMINISTIC RETURN 1", [ schema ])
     s.run_sql("CREATE PROCEDURE !.p() BEGIN END", [ schema ])
     s.run_sql("CREATE EVENT !.e ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR DO BEGIN END", [ schema ])
+    if instance_supports_libraries:
+        s.run_sql("CREATE LIBRARY !.l LANGUAGE JAVASCRIPT AS $$ $$", [ schema ])
 
 def alter_objects(s, schema):
     s.run_sql(f"ALTER USER {test_user} IDENTIFIED BY 'password1@'")
@@ -879,6 +1044,8 @@ def alter_objects(s, schema):
     s.run_sql("ALTER FUNCTION !.f COMMENT 'modified'", [ schema ])
     s.run_sql("ALTER PROCEDURE !.p COMMENT 'modified'", [ schema ])
     s.run_sql("ALTER EVENT !.e COMMENT 'modified'", [ schema ])
+    # TODO(pawel): uncomment this once this feature is available
+    # s.run_sql("/*!90300 ALTER LIBRARY !.l COMMENT 'modified' */", [ schema ])
 
 create_objects(src_session, test_schema)
 
@@ -900,17 +1067,18 @@ alter_objects(tgt_session, test_schema)
 WIPE_OUTPUT()
 EXPECT_NO_THROWS(lambda: util.copy_instance(__sandbox_uri2, { "dropExistingObjects": True, "includeSchemas": [ test_schema ], "includeUsers": [ test_user ], "showProgress": False }), "Copy should not throw")
 
-EXPECT_STDOUT_CONTAINS(f"""
-TGT: Checking for pre-existing objects...
-NOTE: TGT: Account '{test_user}'@'%' already exists, dropping...
-NOTE: TGT: Schema `{test_schema}` already contains a table named `t`, dropping...
-NOTE: TGT: Schema `{test_schema}` already contains a view named `v`, dropping...
-NOTE: TGT: Schema `{test_schema}` already contains a trigger named `tt`, dropping...
-NOTE: TGT: Schema `{test_schema}` already contains a function named `f`, dropping...
-NOTE: TGT: Schema `{test_schema}` already contains a procedure named `p`, dropping...
-NOTE: TGT: Schema `{test_schema}` already contains an event named `e`, dropping...
-NOTE: TGT: One or more objects in the dump already exist in the destination database but will be dropped because the 'dropExistingObjects' option was enabled.
-""")
+EXPECT_STDOUT_CONTAINS("TGT: Checking for pre-existing objects...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Account '{test_user}'@'%' already exists, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Schema `{test_schema}` already contains a table named `t`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Schema `{test_schema}` already contains a view named `v`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Schema `{test_schema}` already contains a trigger named `tt`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Schema `{test_schema}` already contains a function named `f`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Schema `{test_schema}` already contains a procedure named `p`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Schema `{test_schema}` already contains an event named `e`, dropping...")
+EXPECT_STDOUT_CONTAINS("NOTE: TGT: One or more objects in the dump already exist in the destination database but will be dropped because the 'dropExistingObjects' option was enabled.")
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_CONTAINS(f"NOTE: TGT: Schema `{test_schema}` already contains a library named `l`, dropping...")
 
 EXPECT_JSON_EQ(schemas, snapshot_schemas(tgt_session), "Verifying schemas")
 EXPECT_JSON_EQ(accounts, snapshot_accounts(tgt_session), "Verifying accounts")

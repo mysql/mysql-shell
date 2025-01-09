@@ -1,4 +1,5 @@
 from contextlib import ExitStack
+from enum import Enum
 from http.server import HTTPServer
 import json
 import os
@@ -95,6 +96,15 @@ def snapshot_procedures(session, schema):
 def snapshot_functions(session, schema):
     return snapshot_routines(session, schema, "FUNCTION")
 
+def snapshot_libraries(session, schema):
+    libraries = {}
+    if instance_supports_libraries:
+        for row in session.run_sql("SELECT LIBRARY_NAME FROM information_schema.libraries WHERE LIBRARY_SCHEMA = ?", [schema]).fetch_all():
+            name = row[0]
+            libraries[name] = {}
+            libraries[name]["ddl"] = session.run_sql("SHOW CREATE LIBRARY !.!", [schema, name]).fetch_one()[2]
+    return libraries
+
 def snapshot_events(session, schema):
     events = {}
     for row in session.run_sql("SHOW EVENTS IN !", [schema]).fetch_all():
@@ -109,6 +119,7 @@ def snapshot_schema(session, schema):
     obj["views"] = snapshot_views(session, schema)
     obj["procedures"] = snapshot_procedures(session, schema)
     obj["functions"] = snapshot_functions(session, schema)
+    obj["libraries"] = snapshot_libraries(session, schema)
     obj["events"] = snapshot_events(session, schema)
     return obj
 
@@ -269,10 +280,11 @@ else:
         return long_path_prefix + os.path.abspath(path)
 
 class Compatibility_issue:
-    def __init__(self, error, fixed, warning=None):
+    def __init__(self, error, fixed, warning=None, note=None):
         self.__error_msg = "ERROR: SRC: " + error if error else ""
         self.__warning_msg = "WARNING: SRC: " + warning if warning else ""
         self.__fixed_msg = "NOTE: SRC: " + fixed if fixed else ""
+        self.__note_msg = "NOTE: SRC: " + note if note else ""
     def error(self, copy_op=False):
         if self.__error_msg:
             return self.__remove_src(self.__error_msg, copy_op)
@@ -294,6 +306,13 @@ class Compatibility_issue:
             raise Exception("No fixed message")
     def fixed_no_prefix(self):
         return self.fixed()[6:]
+    def note(self, copy_op=False):
+        if self.__note_msg:
+            return self.__remove_src(self.__note_msg, copy_op)
+        else:
+            raise Exception("No note message")
+    def note_no_prefix(self):
+        return self.note()[6:]
     def __remove_src(self, msg, copy_op):
         return msg if copy_op else msg.replace("SRC: ", "")
 
@@ -425,8 +444,26 @@ def view_references_invalid_table(schema, view, ref_schema, ref_table):
     warning = f"View `{schema}`.`{view}` references table/view `{ref_schema}`.`{ref_table}` which was not found using case-sensitive search"
     return Compatibility_issue(warning, None, warning)
 
+def routine_references_excluded_library(label, schema, routine, library_schema, library_name):
+    note = f"{label} `{schema}`.`{routine}` references library `{library_schema}`.`{library_name}` which is not included in the dump"
+    return Compatibility_issue(None, None, None, note)
+
+def routine_references_missing_library(label, schema, routine, library_schema, library_name):
+    warning = f"{label} `{schema}`.`{routine}` references library `{library_schema}`.`{library_name}` which does not exist"
+    return Compatibility_issue(None, None, warning)
+
 def supports_set_any_definer_privilege(ver):
     return testutil.version_check(ver, ">=", "8.2.0")
+
+def warn_target_version_does_not_support_libraries(ver):
+    return f"The dump contains library DDL, however the 'targetVersion' option is set to {ver}, where this feature is not supported."
+
+# messages reported by the loader
+def routine_uses_missing_library(label, schema, routine, library_schema, library_name):
+    return f"The {label} `{schema}`.`{routine}` uses library `{library_schema}`.`{library_name}` which does not exist."
+
+def routine_skipped_due_to_missing_deps(label, schema, routine):
+    return f"Skipping the {label} `{schema}`.`{routine}` due to missing dependencies."
 
 def urlencode_object_name(s):
     ret = ""
@@ -452,6 +489,21 @@ def truncate_basename(basename):
 # WL13807-TSFR8_2
 def encode_schema_basename(schema):
     return truncate_basename(urlencode_object_name(schema))
+
+class Schema_ddl(Enum):
+    Schema = 1
+    Events = 2
+    Libraries = 3
+    Routines = 4
+
+def schema_ddl_file(schema, ddl):
+    names = {
+        Schema_ddl.Schema: "",
+        Schema_ddl.Events: ".events",
+        Schema_ddl.Libraries: ".libraries",
+        Schema_ddl.Routines: ".routines",
+    }
+    return encode_schema_basename(schema) + (names[ddl] if instance_supports_libraries or Schema_ddl.Libraries == ddl else "") + ".sql"
 
 # WL13807-FR7.1 - The base name of any file created during the dump must be in the format `schema@table`, where:
 # * `schema` - percent-encoded name of the schema which contains the table to be exported,
@@ -634,6 +686,20 @@ def disable_bulk_load(sess):
     except:
         pass
 
+def enable_mle(sess):
+    try:
+        sess.run_sql("INSTALL COMPONENT 'file://component_mle'")
+        return True
+    except Exception as e:
+        print(e)
+        return False
+
+def disable_mle(sess):
+    try:
+        sess.run_sql("UNINSTALL COMPONENT 'file://component_mle'")
+    except:
+        pass
+
 def set_env_var(name, value):
     stack = ExitStack()
     if name in os.environ:
@@ -695,8 +761,16 @@ test_user = "sample_user"
 test_user_account = get_test_user_account(test_user)
 test_user_pwd = "p4$$"
 
+instance_supports_libraries = __version_num >= 90200
+
 partition_awareness_capability = {
     "id": "partition_awareness",
     "description": "Partition awareness - dumper treats each partition as a separate table, improving both dump and load times.",
     "versionRequired": "8.0.27",
+}
+
+multifile_schema_ddl_capability = {
+    "id": "multifile_schema_ddl",
+    "description": "Multifile schema DDL - schema DDL is split into multiple files, containing DDL for schema itself, events, routines and libraries.",
+    "versionRequired": "9.3.0",
 }

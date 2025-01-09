@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -205,6 +205,7 @@ struct Privilege_level_info {
     TABLE,
     ROUTINE,
     ROLE,
+    LIBRARY,
   };
 
   bool grant = true;
@@ -249,6 +250,15 @@ std::string to_grant_statement(const Privilege_level_info &info);
  * @returns true If server supports this privilege.
  */
 bool supports_set_any_definer_privilege(const mysqlshdk::utils::Version &v);
+
+/**
+ * Checks if server with the given version supports library DDL.
+ *
+ * @param v Version to be checked.
+ *
+ * @returns true If server supports library DDL.
+ */
+bool supports_library_ddl(const mysqlshdk::utils::Version &v);
 
 /**
  * Replaces first occurrence of a keyword (case insensitive comparison) with the

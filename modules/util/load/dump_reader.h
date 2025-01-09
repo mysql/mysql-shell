@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -140,6 +140,8 @@ class Dump_reader {
 
   bool ready() const { return m_contents.ready(); }
 
+  struct Schema_info;
+  const Schema_info *next_schema();
   bool next_schema_and_tables(std::string *out_schema,
                               std::list<Name_and_file> *out_tables,
                               std::list<Name_and_file> *out_view_placeholders);
@@ -156,9 +158,13 @@ class Dump_reader {
                       std::list<Object_info *> *out_triggers,
                       std::list<Object_info *> *out_functions,
                       std::list<Object_info *> *out_procedures,
+                      std::list<Object_info *> *out_libraries,
                       std::list<Object_info *> *out_events);
 
   std::string fetch_schema_script(const std::string &schema) const;
+  std::string fetch_events_script(const std::string &schema) const;
+  std::string fetch_libraries_script(const std::string &schema) const;
+  std::string fetch_routines_script(const std::string &schema) const;
 
   void schema_table_triggers(const std::string &schema,
                              std::list<Name_and_file> *out_table_triggers);
@@ -253,8 +259,8 @@ class Dump_reader {
 
   void rescan(dump::Progress_thread *progress_thread = nullptr);
 
-  uint64_t add_deferred_statements(const std::string &schema,
-                                   const std::string &table,
+  uint64_t add_deferred_statements(std::string_view schema,
+                                   std::string_view table,
                                    compatibility::Deferred_statements &&stmts);
 
   void validate_options();
@@ -299,6 +305,8 @@ class Dump_reader {
   bool include_event(const std::string &schema, const std::string &event) const;
   bool include_routine(const std::string &schema,
                        const std::string &routine) const;
+  bool include_library(const std::string &schema,
+                       const std::string &library) const;
   bool include_trigger(const std::string &schema, const std::string &table,
                        const std::string &trigger) const;
 
@@ -331,6 +339,11 @@ class Dump_reader {
   const std::vector<dump::common::Capability_info> &capabilities() const {
     return m_contents.dump.capabilities;
   }
+
+  bool has_library_ddl() const noexcept;
+
+  void exclude_routines_with_missing_dependencies(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
   struct Object_info {
     const Object_info *parent;
@@ -476,14 +489,31 @@ class Dump_reader {
     bool all_data_verification_scheduled() const;
   };
 
+  struct Routine_info : public Object_info {
+    struct Dependency {
+      std::string schema;
+      std::string library;
+    };
+
+    std::vector<Dependency> dependencies;
+  };
+
   struct Schema_info : public Object_info {
+    bool multifile_sql = false;
+
+    std::list<Routine_info> functions;
+    std::list<Routine_info> procedures;
+    std::vector<Object_info> libraries;
+    std::vector<Object_info> events;
+
+   private:
+    friend class Dump_reader;
+
     std::string basename;
 
     shcore::heterogeneous_map<std::string, std::shared_ptr<Table_info>> tables;
     std::vector<View_info> views;
-    std::vector<Object_info> functions;
-    std::vector<Object_info> procedures;
-    std::vector<Object_info> events;
+
     std::vector<std::string> foreign_key_queries;
     std::vector<std::string> queries_on_schema_end;
 
@@ -495,12 +525,19 @@ class Dump_reader {
     bool has_data = true;
 
     bool sql_seen = false;
+    bool schema_sql_done = false;
     bool table_sql_done = false;
     bool view_sql_done = false;
 
     bool ready() const;
 
     std::string script_name() const;
+
+    std::string events_script_name() const;
+
+    std::string libraries_script_name() const;
+
+    std::string routines_script_name() const;
 
     std::string metadata_name() const;
 
@@ -573,6 +610,11 @@ class Dump_reader {
  private:
   const std::string &override_schema(const std::string &s) const;
 
+  const Schema_info *find_schema(std::string_view schema,
+                                 const char *context) const;
+
+  Schema_info *find_schema(std::string_view schema, const char *context);
+
   const Table_info *find_table(std::string_view schema, std::string_view table,
                                const char *context) const;
 
@@ -595,7 +637,21 @@ class Dump_reader {
   View_info *find_view(std::string_view schema, std::string_view view,
                        const char *context);
 
+  template <typename T>
+  const T *find_schema_object(std::string_view schema, std::string_view object,
+                              std::vector<T> Schema_info::*member,
+                              const char *type, const char *context) const;
+
+  template <typename T>
+  T *find_schema_object(std::string_view schema, std::string_view object,
+                        std::vector<T> Schema_info::*member, const char *type,
+                        const char *context);
+
   uint64_t data_size_in_file(const std::string &filename) const;
+
+  std::string fetch_schema_script(const std::string &schema,
+                                  std::string (Schema_info::*method)()
+                                      const) const;
 
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;
 

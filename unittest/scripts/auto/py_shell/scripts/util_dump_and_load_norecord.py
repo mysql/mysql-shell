@@ -47,6 +47,17 @@ def prepare(sbport, options={}):
         })
     testutil.deploy_sandbox(sbport, "root", options)
 
+def TEST_ARRAY_OF_STRINGS_OPTION(option):
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: 5 }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is Integer")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: -5 }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is Integer")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: "dummy" }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is String")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: {} }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is Map")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: False }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is Bool")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ None ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Null")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ 5 ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Integer")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ -5 ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Integer")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ {} ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Map")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ False ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Bool")
 
 prepare(__mysql_sandbox_port1)
 session1 = mysql.get_session(__sandbox_uri1)
@@ -282,6 +293,9 @@ session.run_sql("CREATE TABLE table1 (pk INT PRIMARY KEY)")
 session.run_sql("CREATE definer=uuuuuuser@localhost TRIGGER trigger1 BEFORE UPDATE ON table1 FOR EACH ROW BEGIN END")
 session.run_sql("CREATE definer=uuuuuuuser@localhost EVENT event1 ON SCHEDULE EVERY 1 year DISABLE DO BEGIN END")
 
+if instance_supports_libraries:
+    session.run_sql("CREATE LIBRARY mylib1 LANGUAGE JAVASCRIPT AS $$ $$")
+
 session.run_sql("CREATE USER uuuser@localhost IDENTIFIED BY 'pwd'")
 session.run_sql("CREATE USER uuuuser@localhost IDENTIFIED BY 'pwd'")
 session.run_sql("CREATE USER uuuuuser@localhost IDENTIFIED BY 'pwd'")
@@ -324,6 +338,11 @@ grant_on_procedure = f"GRANT ALTER ROUTINE ON PROCEDURE `schema1`.`mysp1` TO {te
 session1.run_sql(grant_on_procedure)
 grant_on_excluded_schema = f"GRANT ALTER ON `schema2`.* TO {tested_user_for_output}"
 session1.run_sql(grant_on_excluded_schema)
+
+if instance_supports_libraries:
+    grant_on_library = f"GRANT ALTER ROUTINE ON LIBRARY `schema1`.`mylib1` TO {tested_user_for_output}"
+    session1.run_sql(grant_on_library)
+
 # schema-level privileges with wild-cards
 schema_level_grant_with_underscore = f"GRANT SELECT ON `some_schema`.* TO {tested_user_for_output}"
 session1.run_sql(schema_level_grant_with_underscore)
@@ -347,6 +366,11 @@ EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_function).
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_procedure).warning())
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_underscore).warning())
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_percent).warning())
+
+if instance_supports_libraries:
+    # WL16731-TSFR_1_8_1 - schema with the library is not included in the dump, warn on grant on excluded library
+    EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_library).warning())
+
 # wildcard grants are not reported
 EXPECT_STDOUT_NOT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_underscore).warning())
 EXPECT_STDOUT_NOT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_percent).warning())
@@ -364,12 +388,25 @@ EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_function).
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_procedure).warning())
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_underscore).warning())
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_escaped_percent).warning())
+
+if instance_supports_libraries:
+    # WL16731-TSFR_1_8_1 - schema with the library is not included in the dump, warn on grant on excluded library
+    EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_library).warning())
+
 # partial_revokes is ON, wildcard grants are reported
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_underscore).warning())
 EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, schema_level_grant_with_percent).warning())
 
 wipe_dir(dump_dir)
 session.run_sql("SET @@GLOBAL.partial_revokes = OFF")
+
+#@<> WL16731-TSFR_1_8_1 - libraries are not dumped, warn on grant on excluded library {instance_supports_libraries}
+shell.connect(__sandbox_uri1)
+
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "libraries": False, "showProgress": False }), "Dump")
+EXPECT_STDOUT_CONTAINS(grant_on_excluded_object(tested_user, grant_on_library).warning())
+
+wipe_dir(dump_dir)
 
 #@<> BUG#34952027 - dump excluding one of the schemas, load with no filters, schema-related privilege is present
 wipeout_server(session2)
@@ -382,7 +419,7 @@ shell.connect(__sandbox_uri2)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
 
 # BUG#36197620 - summary should contain more details regarding all executed stages
-EXPECT_STDOUT_CONTAINS(f"{60 if __version_num >= 84000 else 59} DDL files were executed in ")
+EXPECT_STDOUT_CONTAINS(f"{65 if instance_supports_libraries else 60 if __version_num >= 84000 else 59} DDL files were executed in ")
 EXPECT_STDOUT_CONTAINS("1 accounts were loaded")
 EXPECT_STDOUT_CONTAINS("Data load duration: ")
 EXPECT_STDOUT_CONTAINS("Total duration: ")
@@ -1191,6 +1228,21 @@ EXPECT_STDOUT_CONTAINS("""
         are included.
 """)
 
+# WL16731-TSFR_2_1_1-G1 - help entries - includeLibraries
+EXPECT_STDOUT_CONTAINS("""
+      - includeLibraries: array of strings (default not set) - Loads only the
+        specified library objects from the dump. Strings are in format
+        schema.library, quoted using backtick characters when required. By
+        default, all library objects are included.
+""")
+
+# WL16731-TSFR_2_2_1-G1 - help entries - excludeLibraries
+EXPECT_STDOUT_CONTAINS("""
+      - excludeLibraries: array of strings (default not set) - Skip loading
+        specified library objects from the dump. Strings are in format
+        schema.library, quoted using backtick characters when required.
+""")
+
 # WL14244-TSFR_6_3
 EXPECT_STDOUT_CONTAINS("""
       - excludeEvents: array of strings (default not set) - Skip loading
@@ -1236,6 +1288,39 @@ def dump_and_load(options):
     session.run_sql("CREATE EVENT existing_schema_2.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
     session.run_sql("CREATE PROCEDURE existing_schema_2.existing_routine() DETERMINISTIC BEGIN END")
     session.run_sql("CREATE TRIGGER existing_schema_2.existing_trigger AFTER DELETE ON existing_schema_2.existing_table FOR EACH ROW BEGIN END")
+    session.run_sql("CREATE SCHEMA existing_schema_3")
+    session.run_sql("CREATE SCHEMA existing_schema_4")
+    if instance_supports_libraries:
+        session.run_sql("""
+CREATE LIBRARY existing_schema_3.existing_library LANGUAGE JAVASCRIPT
+AS $$
+    export function squared(n) {
+        return n * n;
+    }
+$$
+            """)
+        session.run_sql("""
+CREATE FUNCTION existing_schema_3.existing_library_routine(n INTEGER) RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT
+USING (existing_schema_3.existing_library)
+AS $$
+    return existing_library.squared(n);
+$$
+            """)
+        session.run_sql("""
+CREATE LIBRARY existing_schema_4.existing_library LANGUAGE JAVASCRIPT
+AS $$
+    export function pow(n, m) {
+        return Math.pow(n, m);
+    }
+$$
+            """)
+        session.run_sql(f"""
+CREATE PROCEDURE existing_schema_4.existing_library_routine(n INTEGER) LANGUAGE JAVASCRIPT
+USING (existing_schema_3.existing_library AS l_1, existing_schema_4.existing_library AS l_2)
+AS $$
+    l_1.squared(n) + l_2.pow(n, 2);
+$$
+            """)
     # do the dump
     shutil.rmtree(dump_dir, True)
     util.dump_instance(dump_dir, { "showProgress": False })
@@ -1301,6 +1386,81 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "functions"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_1", "procedures"]))
 EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "functions"]))
 EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedures"]))
+
+#@<> WL16731-TSFR_2_1_1-G1 - includeLibraries - invalid values
+TEST_ARRAY_OF_STRINGS_OPTION("includeLibraries")
+
+#@<> WL16731-TSFR_2_1_1-G1 - invalid format of includeLibraries entries
+# WL16731-TSFR_2_3_1 - invalid format
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeLibraries": [ "library" ] }), "ValueError: Argument #2: The library to be included must be in the following form: schema.library, with optional backtick quotes, wrong value: 'library'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeLibraries": [ "schema.@" ] }), "ValueError: Argument #2: Failed to parse library to be included 'schema.@': Invalid character in identifier")
+
+#@<> WL16731 - includeLibraries - full dump
+expected_libraries = []
+if instance_supports_libraries:
+    expected_libraries.append("existing_library")
+
+# WL16731-TSFR_2_1_1-G3 - includeLibraries - default value
+snapshot = dump_and_load({})
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+# WL16731-TSFR_2_1_1-G4 - includeLibraries - empty list
+snapshot = dump_and_load({ "includeLibraries": [] })
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+#@<> WL16731-TSFR_2_5_1 - includeLibraries - full dump {instance_supports_libraries and not __dbug_off}
+testutil.dbug_set("+d,dump_loader_libraries_unsupported_version")
+
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Error: Shell Error (53032): The dump contains library DDL which requires server 9.2.0 or newer.")
+
+testutil.dbug_set("")
+
+#@<> WL16731 - includeLibraries - filtered dump
+# WL16731-TSFR_2_1_1-G4 - includeLibraries - non-existing objects
+# WL16731-TSFR_2_3_1 - valid format, non-existing objects
+snapshot = dump_and_load({ "includeLibraries": ['existing_schema_3.existing_library', 'existing_schema_3.non_existing_library', 'non_existing_schema.library'] })
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ([], entries(snapshot, ["existing_schema_4", "libraries"]))
+
+if instance_supports_libraries:
+    # WL16731-TSFR_2_4_1 - note about routine using a missing library is printed, routine is skipped
+    EXPECT_STDOUT_CONTAINS(routine_uses_missing_library("procedure", "existing_schema_4", "existing_library_routine", "existing_schema_4", "existing_library"))
+    EXPECT_STDOUT_CONTAINS(routine_skipped_due_to_missing_deps("procedure", "existing_schema_4", "existing_library_routine"))
+
+#@<> WL16731-TSFR_2_2_1-G1 - excludeLibraries - invalid values
+TEST_ARRAY_OF_STRINGS_OPTION("excludeLibraries")
+
+#@<> WL16731-TSFR_2_2_1-G1 - invalid format of excludeLibraries entries
+# WL16731-TSFR_2_3_1 - invalid format
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeLibraries": [ "library" ] }), "ValueError: Argument #2: The library to be excluded must be in the following form: schema.library, with optional backtick quotes, wrong value: 'library'.")
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "excludeLibraries": [ "schema.@" ] }), "ValueError: Argument #2: Failed to parse library to be excluded 'schema.@': Invalid character in identifier")
+
+#@<> WL16731 - excludeLibraries - full dump
+# WL16731-TSFR_2_2_1-G3 - excludeLibraries - default value
+snapshot = dump_and_load({})
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+# WL16731-TSFR_2_2_1-G4 - excludeLibraries - empty list
+snapshot = dump_and_load({ "excludeLibraries": [] })
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+#@<> WL16731 - excludeLibraries - filtered dump
+# WL16731-TSFR_2_2_1-G4 - excludeLibraries - non-existing objects
+# WL16731-TSFR_2_3_1 - valid format, non-existing objects
+snapshot = dump_and_load({ "excludeLibraries": ['existing_schema_3.existing_library', 'existing_schema_3.non_existing_library', 'non_existing_schema.library'] })
+EXPECT_EQ([], entries(snapshot, ["existing_schema_3", "libraries"]))
+EXPECT_EQ(expected_libraries, entries(snapshot, ["existing_schema_4", "libraries"]))
+
+if instance_supports_libraries:
+    # WL16731-TSFR_2_4_1 - note about routine using a missing library is printed, routine is skipped
+    EXPECT_STDOUT_CONTAINS(routine_uses_missing_library("function", "existing_schema_3", "existing_library_routine", "existing_schema_3", "existing_library"))
+    EXPECT_STDOUT_CONTAINS(routine_uses_missing_library("procedure", "existing_schema_4", "existing_library_routine", "existing_schema_3", "existing_library"))
+    EXPECT_STDOUT_CONTAINS(routine_skipped_due_to_missing_deps("function", "existing_schema_3", "existing_library_routine"))
+    EXPECT_STDOUT_CONTAINS(routine_skipped_due_to_missing_deps("procedure", "existing_schema_4", "existing_library_routine"))
 
 #@<> WL14244 - includeEvents - invalid values
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "includeEvents": [ "event" ] }), "ValueError: Argument #2: The event to be included must be in the following form: schema.event, with optional backtick quotes, wrong value: 'event'.")
@@ -1396,12 +1556,23 @@ ERROR: Schema `existing_schema_2` already contains a procedure named `existing_r
 ERROR: Schema `existing_schema_2` already contains an event named `existing_event`
 """)
 
+if instance_supports_libraries:
+    EXPECT_STDOUT_CONTAINS("""
+ERROR: Schema `existing_schema_3` already contains a function named `existing_library_routine`
+ERROR: Schema `existing_schema_3` already contains a library named `existing_library`
+""")
+    EXPECT_STDOUT_CONTAINS("""
+ERROR: Schema `existing_schema_4` already contains a procedure named `existing_library_routine`
+ERROR: Schema `existing_schema_4` already contains a library named `existing_library`
+""")
+
 # excluded trigger is not reported as a duplicate
 WIPE_STDOUT()
 EXPECT_THROWS(lambda: util.load_dump(dump_dir, {
     "excludeTables": [ "existing_schema_1.existing_table", "existing_schema_1.existing_view", "existing_schema_2.existing_view" ],
     "excludeTriggers": [ "existing_schema_2.existing_table.existing_trigger" ],
-    "excludeRoutines": [ "existing_schema_1.existing_routine", "existing_schema_2.existing_routine" ],
+    "excludeLibraries": [ "existing_schema_3.existing_library", "existing_schema_4.existing_library" ],
+    "excludeRoutines": [ "existing_schema_1.existing_routine", "existing_schema_2.existing_routine", "existing_schema_3.existing_library_routine", "existing_schema_4.existing_library_routine" ],
     "excludeEvents": [ "existing_schema_1.existing_event", "existing_schema_2.existing_event" ],
     "resetProgress": True,
     "loadData": False,
@@ -1412,11 +1583,18 @@ EXPECT_STDOUT_NOT_CONTAINS("existing_trigger")
 # exclude all existing objects to load the dump (triggers are excluded implicitly because tables are excluded)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, {
     "excludeTables": [ "existing_schema_1.existing_table", "existing_schema_1.existing_view", "existing_schema_2.existing_table", "existing_schema_2.existing_view" ],
-    "excludeRoutines": [ "existing_schema_1.existing_routine", "existing_schema_2.existing_routine" ],
+    "excludeLibraries": [ "existing_schema_3.existing_library", "existing_schema_4.existing_library" ],
+    "excludeRoutines": [ "existing_schema_1.existing_routine", "existing_schema_2.existing_routine", "existing_schema_3.existing_library_routine", "existing_schema_4.existing_library_routine" ],
     "excludeEvents": [ "existing_schema_1.existing_event", "existing_schema_2.existing_event" ],
     "resetProgress": True,
     "loadData": False,
     "showProgress": False }), "load works")
+
+#@<> WL14244 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_1")
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_2")
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_3")
+session.run_sql("DROP SCHEMA IF EXISTS existing_schema_4")
 
 #@<> includeX + excludeX conflicts - helpers
 def load_with_conflicts(options, throws = True):
@@ -1722,6 +1900,93 @@ EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `a`
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "excludeRoutines": [ "a.r" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `a`.`r` which refers to a schema which was not included in the dump.")
+
+#@<> WL16731 - includeLibraries + excludeLibraries conflicts
+# no conflicts
+load_with_conflicts({ "includeLibraries": [], "excludeLibraries": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeLibraries": [], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "b.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l1" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "excludeSchemas": [], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeSchemas": [], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "includeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "excludeSchemas": [ "b" ], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "excludeSchemas": [], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeSchemas": [], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+load_with_conflicts({ "includeSchemas": [ "a" ], "excludeLibraries": [ "a.l" ] }, False)
+EXPECT_STDOUT_NOT_CONTAINS("includeLibraries")
+EXPECT_STDOUT_NOT_CONTAINS("excludeLibraries")
+
+# WL16731-TSFR_2_3_1 - conflicts
+load_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+
+load_with_conflicts({ "includeLibraries": [ "a.l", "b.l" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`l`")
+
+load_with_conflicts({ "includeLibraries": [ "a.l", "a.l1" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`l1`")
+
+load_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l", "b.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`b`.`l`")
+
+load_with_conflicts({ "includeLibraries": [ "a.l" ], "excludeLibraries": [ "a.l", "a.l1" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: Both includeLibraries and excludeLibraries options contain a library `a`.`l`.")
+EXPECT_STDOUT_NOT_CONTAINS("`a`.`l1`")
+
+load_with_conflicts({ "excludeSchemas": [ "a" ], "includeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `a`.`l` which refers to an excluded schema.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "includeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `a`.`l` which refers to a schema which was not included in the dump.")
+
+load_with_conflicts({ "includeSchemas": [ "b" ], "excludeLibraries": [ "a.l" ] })
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `a`.`l` which refers to a schema which was not included in the dump.")
 
 #@<> includeTriggers + excludeTriggers conflicts
 # no conflicts
@@ -3378,6 +3643,8 @@ def create_objects(s, schema):
     s.run_sql("CREATE FUNCTION !.f() RETURNS INT DETERMINISTIC RETURN 1", [ schema ])
     s.run_sql("CREATE PROCEDURE !.p() BEGIN END", [ schema ])
     s.run_sql("CREATE EVENT !.e ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR DO BEGIN END", [ schema ])
+    if instance_supports_libraries:
+        s.run_sql("CREATE LIBRARY !.l LANGUAGE JAVASCRIPT AS $$ $$", [ schema ])
 
 def alter_user(s):
     s.run_sql(f"ALTER USER {test_user} IDENTIFIED BY 'password1@'")
@@ -3394,6 +3661,8 @@ def alter_schema_objects(s, schema):
     s.run_sql("ALTER FUNCTION !.f COMMENT 'modified'", [ schema ])
     s.run_sql("ALTER PROCEDURE !.p COMMENT 'modified'", [ schema ])
     s.run_sql("ALTER EVENT !.e COMMENT 'modified'", [ schema ])
+    # TODO(pawel): uncomment this once this feature is available
+    # s.run_sql("/*!90300 ALTER LIBRARY !.l COMMENT 'modified' */", [ schema ])
 
 def alter_objects(s, schema):
     alter_table(s, schema)
@@ -3427,17 +3696,18 @@ alter_objects(session2, test_schema)
 WIPE_OUTPUT()
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "resetProgress": True, "loadUsers": True, "showProgress": False }), "Load should not throw")
 
-EXPECT_STDOUT_CONTAINS(f"""
-Checking for pre-existing objects...
-NOTE: Account '{test_user}'@'%' already exists, dropping...
-NOTE: Schema `{test_schema}` already contains a table named `t`, dropping...
-NOTE: Schema `{test_schema}` already contains a view named `v`, dropping...
-NOTE: Schema `{test_schema}` already contains a trigger named `tt`, dropping...
-NOTE: Schema `{test_schema}` already contains a function named `f`, dropping...
-NOTE: Schema `{test_schema}` already contains a procedure named `p`, dropping...
-NOTE: Schema `{test_schema}` already contains an event named `e`, dropping...
-NOTE: One or more objects in the dump already exist in the destination database but will be dropped because the 'dropExistingObjects' option was enabled.
-""")
+EXPECT_STDOUT_CONTAINS("Checking for pre-existing objects...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Account '{test_user}'@'%' already exists, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a table named `t`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a view named `v`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a trigger named `tt`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a function named `f`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a procedure named `p`, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains an event named `e`, dropping...")
+EXPECT_STDOUT_CONTAINS("NOTE: One or more objects in the dump already exist in the destination database but will be dropped because the 'dropExistingObjects' option was enabled.")
+
+if instance_supports_libraries:
+    EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a library named `l`, dropping...")
 
 EXPECT_JSON_EQ(schemas, snapshot_schemas(session2), "Verifying schemas")
 EXPECT_JSON_EQ(accounts, snapshot_accounts(session2), "Verifying accounts")
@@ -3524,6 +3794,53 @@ os.remove(progress_file)
 #@<> BUG#36561962 - cleanup
 session1.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 session1.run_sql(f"DROP USER IF EXISTS {test_user}")
+
+#@<> WL16731-TSFR_2_4_2 - dump without libraries, load into instance with an existing library {instance_supports_libraries}
+# constants
+dump_dir = os.path.join(outdir, "wl16731")
+tested_schema = "wl16731"
+tested_library = "my_library"
+tested_function = "my_function"
+tested_procedure = "my_procedure"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE LIBRARY !.! LANGUAGE JAVASCRIPT AS $$ $$", [tested_schema, tested_library])
+session.run_sql("CREATE FUNCTION !.!() RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_function, tested_schema, tested_library])
+session.run_sql("CREATE PROCEDURE !.!() LANGUAGE JAVASCRIPT USING (!.!) AS $$ $$", [tested_schema, tested_procedure, tested_schema, tested_library])
+
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE LIBRARY !.! LANGUAGE JAVASCRIPT AS $$ $$", [tested_schema, tested_library])
+
+# test
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "libraries": False, "showProgress": False }), "Dump should not throw")
+
+shell.connect(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Load should not throw")
+
+# WL16731-TSFR_2_6_1 - warn about unavailable MLE component
+EXPECT_STDOUT_CONTAINS("WARNING: The dump contains library DDL, but the Multilingual Engine (MLE) component is not installed on the target instance. Routines which use these libraries will fail to execute, unless this component is installed.")
+
+# routines are loaded
+EXPECT_STDOUT_NOT_CONTAINS(routine_uses_missing_library("function", tested_schema, tested_function, tested_schema, tested_library))
+EXPECT_STDOUT_NOT_CONTAINS(routine_uses_missing_library("procedure", tested_schema, tested_procedure, tested_schema, tested_library))
+
+EXPECT_STDOUT_NOT_CONTAINS(routine_skipped_due_to_missing_deps("function", tested_schema, tested_function))
+EXPECT_STDOUT_NOT_CONTAINS(routine_skipped_due_to_missing_deps("procedure", tested_schema, tested_procedure))
+
+EXPECT_JSON_EQ(snapshot_schema(session1, tested_schema), snapshot_schema(session2, tested_schema), "Verifying schemas")
+
+# cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
+wipe_dir(dump_dir)
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

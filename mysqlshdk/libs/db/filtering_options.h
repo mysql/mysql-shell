@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -176,6 +176,9 @@ class Filtering_options final {
     bool is_included(const std::string &schema,
                      const std::string &object) const;
 
+    bool is_included_ci(const std::string &schema,
+                        const std::string &object) const;
+
     template <typename C>
     void exclude(const C &objects) {
       for (const auto &o : objects) {
@@ -264,9 +267,15 @@ class Filtering_options final {
     explicit Routine_filters(const Schema_filters *schemas);
 
     static const shcore::Option_pack_def<Routine_filters> &options();
+  };
 
-    bool is_included_ci(const std::string &schema,
-                        const std::string &routine) const;
+  class Library_filters : public Object_filters {
+   public:
+    using Object_filters::Object_filters;
+
+    explicit Library_filters(const Schema_filters *schemas);
+
+    static const shcore::Option_pack_def<Library_filters> &options();
   };
 
   class Trigger_filters {
@@ -362,6 +371,9 @@ class Filtering_options final {
   Routine_filters &routines() { return m_routines; }
   const Routine_filters &routines() const { return m_routines; }
 
+  Library_filters &libraries() { return m_libraries; }
+  const Library_filters &libraries() const { return m_libraries; }
+
   Trigger_filters &triggers() { return m_triggers; }
   const Trigger_filters &triggers() const { return m_triggers; }
 
@@ -373,6 +385,7 @@ class Filtering_options final {
   Table_filters m_tables;
   Event_filters m_events;
   Routine_filters m_routines;
+  Library_filters m_libraries;
   Trigger_filters m_triggers;
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,8 +26,10 @@
 #ifndef MODULES_UTIL_DUMP_CAPABILITY_H_
 #define MODULES_UTIL_DUMP_CAPABILITY_H_
 
+#include <optional>
 #include <string>
 
+#include "mysqlshdk/libs/utils/enumset.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -35,7 +37,12 @@ namespace dump {
 
 enum class Capability {
   PARTITION_AWARENESS,
+  MULTIFILE_SCHEMA_DDL,
+  LAST_VALUE = MULTIFILE_SCHEMA_DDL,
 };
+
+using Capability_set =
+    mysqlshdk::utils::Enum_set<Capability, Capability::LAST_VALUE>;
 
 namespace capability {
 
@@ -45,7 +52,7 @@ std::string description(Capability capability);
 
 mysqlshdk::utils::Version version_required(Capability capability);
 
-bool is_supported(const std::string &id);
+std::optional<Capability> to_capability(const std::string &id);
 
 }  // namespace capability
 }  // namespace dump

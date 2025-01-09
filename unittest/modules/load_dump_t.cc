@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -585,6 +585,12 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
 
     mock_main_session
         ->expect_query(
+            "show GLOBAL variables where `variable_name` in ('mle.memory_max')")
+        .then({"Variable_name", "Value"})
+        .add_row({"mle.memory_max", "0"});
+
+    mock_main_session
+        ->expect_query(
             "SELECT VARIABLE_VALUE = 'OFF' FROM "
             "performance_schema.global_status WHERE variable_name = "
             "'Innodb_redo_log_enabled'")
@@ -718,6 +724,12 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
           "('lower_case_table_names')")
       .then({"Variable_name", "Value"})
       .add_row({"lower_case_table_names", "0"});
+
+  mock_main_session
+      ->expect_query(
+          "show GLOBAL variables where `variable_name` in ('mle.memory_max')")
+      .then({"Variable_name", "Value"})
+      .add_row({"mle.memory_max", "0"});
 
   options.set_session(mock_main_session);
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,6 +66,9 @@ std::string to_string(Schema_dumper::Issue::Status s) {
 
     case Status::FIXED:
       return "FIXED";
+
+    case Status::NOTE:
+      return "NOTE";
 
     case Status::WARNING_DEPRECATED_DEFINERS:
       return "WARNING_DEPRECATED_STRIP_DEFINERS";
@@ -427,13 +430,14 @@ TEST_F(Schema_dumper_test, dump_schema) {
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Current Database: mysqldump_test_db
+-- Dumping database 'mysqldump_test_db'
 --
 
+-- begin database `mysqldump_test_db`
 CREATE DATABASE /*!32312 IF NOT EXISTS*/ `mysqldump_test_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 -- DEFAULT ENCRYPTION='N'
  */;
+-- end database `mysqldump_test_db`
 
-USE `mysqldump_test_db`;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -735,6 +739,53 @@ DELIMITER ;
   wipe_all();
 }
 
+TEST_F(Schema_dumper_test, dump_libraries) {
+  Schema_dumper sd(session);
+  EXPECT_NO_THROW(sd.dump_libraries_ddl(file.get(), db_name));
+  EXPECT_TRUE(output_handler.std_err.empty());
+  wipe_all();
+
+  if (!compatibility::supports_library_ddl(_target_server_version)) {
+    return;
+  }
+
+  expect_output_eq(R"(
+--
+-- Dumping libraries for database 'mysqldump_test_db'
+--
+
+-- begin library `mysqldump_test_db`.`a'b`
+DROP LIBRARY IF EXISTS `a'b`;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'REAL_AS_FLOAT,PIPES_AS_CONCAT,ANSI_QUOTES,IGNORE_SPACE,ONLY_FULL_GROUP_BY,ANSI' */ ;
+DELIMITER ;;
+CREATE LIBRARY "a'b"
+    LANGUAGE JAVASCRIPT
+AS $$
+      export function f(n) {
+        return n;
+      }
+    $$ ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+-- end library `mysqldump_test_db`.`a'b`
+
+-- begin library `mysqldump_test_db`.`lib1`
+DROP LIBRARY IF EXISTS `lib1`;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION' */ ;
+DELIMITER ;;
+CREATE LIBRARY `lib1`
+    LANGUAGE JAVASCRIPT
+AS $$ $$ ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+-- end library `mysqldump_test_db`.`lib1`
+
+)");
+  wipe_all();
+}
+
 TEST_F(Schema_dumper_test, dump_tablespaces) {
   Schema_dumper sd(session);
   EXPECT_NO_THROW(sd.dump_tablespaces_ddl_for_dbs(file.get(), {db_name}));
@@ -766,7 +817,7 @@ TEST_F(Schema_dumper_test, dump_grants) {
       "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';");
 
   Schema_dumper sd(session);
-  EXPECT_NO_THROW(sd.dump_grants(file.get(), {}));
+  EXPECT_NO_THROW(sd.dump_grants(file.get()));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   std::string out;
@@ -838,7 +889,8 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
   Filtering_options filters;
   filters.users().exclude(
       std::array{"mysql.infoschema", "mysql.session", "mysql.sys", "root"});
-  EXPECT_GE(sd.dump_grants(file.get(), filters).size(), 3);
+  sd.use_filters(&filters);
+  EXPECT_GE(sd.dump_grants(file.get()).size(), 3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   file->flush();
@@ -961,7 +1013,8 @@ TEST_F(Schema_dumper_test, dump_filtered_grants_super_priv) {
   Filtering_options filters;
   filters.users().exclude(
       std::array{"mysql.infoschema", "mysql.session", "mysql.sys", "root"});
-  EXPECT_GE(sd.dump_grants(file.get(), filters).size(), 3);
+  sd.use_filters(&filters);
+  EXPECT_GE(sd.dump_grants(file.get()).size(), 3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   file->flush();
@@ -1146,7 +1199,8 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   // Users
   Filtering_options filters;
   filters.users().exclude(std::array{"mysql", "root"});
-  EXPECT_NO_THROW(iss = sd.dump_grants(file.get(), filters));
+  sd.use_filters(&filters);
+  EXPECT_NO_THROW(iss = sd.dump_grants(file.get()));
 
   auto expected_issues = run_directory_tests ?
       std::set<std::string>{
@@ -1488,7 +1542,8 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   // Users
   Filtering_options filters;
   filters.users().exclude(std::array{"mysql", "root"});
-  EXPECT_NO_THROW(iss = sd.dump_grants(file.get(), filters));
+  sd.use_filters(&filters);
+  EXPECT_NO_THROW(iss = sd.dump_grants(file.get()));
 
   EXPECT_NE(iss.end(),
             std::find_if(iss.begin(), iss.end(), [](const auto &issue) {
@@ -1595,7 +1650,7 @@ TEST_F(Schema_dumper_test, get_users) {
 
   {
     // no filtering
-    const auto result = sd.get_users({});
+    const auto result = sd.get_users();
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
     EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
@@ -1605,17 +1660,19 @@ TEST_F(Schema_dumper_test, get_users) {
 
   {
     // include non-existent user
-    User_filters filters;
-    filters.include(std::array{"third"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"third"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(0, result.size());
   }
 
   {
     // exclude non-existent user
-    User_filters filters;
-    filters.exclude(std::array{"third"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().exclude(std::array{"third"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
     EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
@@ -1625,9 +1682,10 @@ TEST_F(Schema_dumper_test, get_users) {
 
   {
     // include all accounts for the user first
-    User_filters filters;
-    filters.include(std::array{"first"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(2, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
@@ -1635,19 +1693,21 @@ TEST_F(Schema_dumper_test, get_users) {
 
   {
     // include only 'first'@'localhost'
-    User_filters filters;
-    filters.include(std::array{"'first'@'localhost'"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"'first'@'localhost'"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(1, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
   }
 
   {
     // include all accounts for the user first, exclude second
-    User_filters filters;
-    filters.include(std::array{"first"});
-    filters.exclude(std::array{"second"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+    filters.users().exclude(std::array{"second"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(2, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
@@ -1655,28 +1715,31 @@ TEST_F(Schema_dumper_test, get_users) {
 
   {
     // include all accounts for the user first, exclude 'first'@'10.11.12.13'
-    User_filters filters;
-    filters.include(std::array{"first"});
-    filters.exclude(std::array{"'first'@'10.11.12.13'"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+    filters.users().exclude(std::array{"'first'@'10.11.12.13'"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(1, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
   }
 
   {
     // include all accounts for the user first, exclude first -> cancels out
-    User_filters filters;
-    filters.include(std::array{"first"});
-    filters.exclude(std::array{"first"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+    filters.users().exclude(std::array{"first"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(0, result.size());
   }
 
   {
     // include all accounts for the user first and second
-    User_filters filters;
-    filters.include(std::array{"first", "second"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "second"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(4, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
@@ -1686,10 +1749,11 @@ TEST_F(Schema_dumper_test, get_users) {
 
   {
     // include all accounts for the user first and second, exclude second
-    User_filters filters;
-    filters.include(std::array{"first", "second"});
-    filters.exclude(std::array{"second"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "second"});
+    filters.users().exclude(std::array{"second"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(2, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
@@ -1698,10 +1762,11 @@ TEST_F(Schema_dumper_test, get_users) {
   {
     // include all accounts for the user first and second, exclude
     // 'second'@'10.11.12.14'
-    User_filters filters;
-    filters.include(std::array{"first", "second"});
-    filters.exclude(std::array{"'second'@'10.11.12.14'"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "second"});
+    filters.users().exclude(std::array{"'second'@'10.11.12.14'"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(3, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
@@ -1711,10 +1776,11 @@ TEST_F(Schema_dumper_test, get_users) {
   {
     // include all accounts for the user first, include and exclude
     // 'second'@'10.11.12.14'
-    User_filters filters;
-    filters.include(std::array{"first", "'second'@'10.11.12.14'"});
-    filters.exclude(std::array{"'second'@'10.11.12.14'"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "'second'@'10.11.12.14'"});
+    filters.users().exclude(std::array{"'second'@'10.11.12.14'"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(2, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
@@ -1723,10 +1789,11 @@ TEST_F(Schema_dumper_test, get_users) {
   {
     // include all accounts for the user first and 'second'@'10.11.12.14',
     // exclude all accounts for second
-    User_filters filters;
-    filters.include(std::array{"first", "'second'@'10.11.12.14'"});
-    filters.exclude(std::array{"second"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "'second'@'10.11.12.14'"});
+    filters.users().exclude(std::array{"second"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
     EXPECT_EQ(2, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));
     EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
@@ -1735,10 +1802,11 @@ TEST_F(Schema_dumper_test, get_users) {
   {
     // include all accounts for the user first and non-existent third, exclude
     // non-existent fourth
-    User_filters filters;
-    filters.include(std::array{"first", "third"});
-    filters.exclude(std::array{"fourth"});
-    const auto result = sd.get_users(filters);
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "third"});
+    filters.users().exclude(std::array{"fourth"});
+    sd.use_filters(&filters);
+    const auto result = sd.get_users();
 
     EXPECT_EQ(2, result.size());
     EXPECT_TRUE(contains(result, "'first'@'localhost'"));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -113,6 +113,8 @@ void Dump_options::on_validate() const {
   m_filter_conflicts |= filters().tables().error_on_cross_filters_conflicts();
   m_filter_conflicts |= filters().events().error_on_cross_filters_conflicts();
   m_filter_conflicts |= filters().routines().error_on_cross_filters_conflicts();
+  m_filter_conflicts |=
+      filters().libraries().error_on_cross_filters_conflicts();
   m_filter_conflicts |= filters().triggers().error_on_cross_filters_conflicts();
 
   if (m_filter_conflicts) {

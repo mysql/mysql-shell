@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,6 +69,8 @@ Dump_info dump_info(const shcore::json::Value &object) {
       !target_version.empty()) {
     info.target_version = Version{target_version};
   }
+
+  info.has_library_ddl = optional_bool(object, "hasLibraryDdl").value_or(false);
 
   if (const auto source = optional_object(object, "source");
       source.has_value()) {

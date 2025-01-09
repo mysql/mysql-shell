@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -180,7 +180,11 @@
   "Dump contains one or more invalid views. Fix them manually, or use the " \
   "'excludeTables' option to exclude them."
 
-#define SHERR_DUMP_LAST 52039
+#define SHERR_DUMP_SD_LIBRARY_DDL_ERROR 52040
+#define SHERR_DUMP_SD_LIBRARY_DDL_ERROR_MSG \
+  "Error while dumping libraries for schema '%s': %s"
+
+#define SHERR_DUMP_LAST 52040
 
 #define SHERR_DUMP_MAX 52999
 

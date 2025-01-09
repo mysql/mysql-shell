@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -163,8 +163,6 @@ class Load_dump_options : public common::Common_options {
 
   bool skip_binlog() const { return m_skip_binlog; }
 
-  bool force() const { return m_force; }
-
   const Filtering_options &filters() const { return m_filtering_options; }
 
   inline Filtering_options &filters() { return m_filtering_options; }
@@ -235,6 +233,14 @@ class Load_dump_options : public common::Common_options {
     return m_bulk_load_info;
   }
 
+  inline bool is_mle_component_installed() const noexcept {
+    return m_is_mle_component_installed;
+  }
+
+  inline bool is_library_ddl_supported() const noexcept {
+    return m_is_library_ddl_supported;
+  }
+
   using Storage_options::set_storage_config;
 
   using Common_options::session;
@@ -278,7 +284,6 @@ class Load_dump_options : public common::Common_options {
   bool m_load_users = false;
   Analyze_table_mode m_analyze_tables = Analyze_table_mode::OFF;
   bool m_dry_run = false;
-  bool m_force = false;
   bool m_skip_binlog = false;
   bool m_ignore_existing_objects = false;
   bool m_drop_existing_objects = false;
@@ -316,6 +321,10 @@ class Load_dump_options : public common::Common_options {
   bool m_use_fast_sub_chunking = false;
 
   Bulk_load_info m_bulk_load_info;
+
+  bool m_is_mle_component_installed = false;
+
+  bool m_is_library_ddl_supported = false;
 };
 
 }  // namespace mysqlsh

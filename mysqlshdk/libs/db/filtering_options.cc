@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -288,6 +288,44 @@ bool Filtering_options::Object_filters::is_included(
   return false;
 }
 
+bool Filtering_options::Object_filters::is_included_ci(
+    const std::string &schema, const std::string &object) const {
+  if (!m_schemas->is_included(schema)) return false;
+
+  // case-sensitive check, in order to avoid character set conversions
+  if (is_included(schema, object)) {
+    return true;
+  }
+
+  const auto contains_ci = [o = shcore::utf8_to_wide(object)](const auto &c) {
+    for (const auto &e : c) {
+      if (shcore::str_caseeq(o, shcore::utf8_to_wide(e))) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  if (const auto s = m_excluded.find(schema); s != m_excluded.end()) {
+    if (contains_ci(s->second)) {
+      return false;
+    }
+  }
+
+  if (m_included.empty()) {
+    return true;
+  }
+
+  if (const auto s = m_included.find(schema); s != m_included.end()) {
+    if (contains_ci(s->second)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void Filtering_options::Object_filters::exclude(
     const std::string &qualified_object) {
   std::string schema;
@@ -426,43 +464,18 @@ const shcore::Option_pack_def<Filtering_options::Routine_filters>
   return opts;
 }
 
-bool Filtering_options::Routine_filters::is_included_ci(
-    const std::string &schema, const std::string &routine) const {
-  if (!m_schemas->is_included(schema)) return false;
+Filtering_options::Library_filters::Library_filters(
+    const Schema_filters *schemas)
+    : Object_filters(schemas, "library", "a library", "Libraries") {}
 
-  // case-sensitive check, in order to avoid character set conversions
-  if (is_included(schema, routine)) {
-    return true;
-  }
+const shcore::Option_pack_def<Filtering_options::Library_filters>
+    &Filtering_options::Library_filters::options() {
+  static const auto opts =
+      shcore::Option_pack_def<Library_filters>()
+          .optional("excludeLibraries", &Library_filters::exclude<Argument>)
+          .optional("includeLibraries", &Library_filters::include<Argument>);
 
-  const auto r = shcore::utf8_to_wide(routine);
-  const auto contains_ci = [&r](const auto &c) {
-    for (const auto &e : c) {
-      if (shcore::str_caseeq(r, shcore::utf8_to_wide(e))) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  if (const auto s = m_excluded.find(schema); s != m_excluded.end()) {
-    if (contains_ci(s->second)) {
-      return false;
-    }
-  }
-
-  if (m_included.empty()) {
-    return true;
-  }
-
-  if (const auto s = m_included.find(schema); s != m_included.end()) {
-    if (contains_ci(s->second)) {
-      return true;
-    }
-  }
-
-  return false;
+  return opts;
 }
 
 Filtering_options::Trigger_filters::Trigger_filters(
@@ -756,6 +769,7 @@ Filtering_options::Filtering_options()
     : m_tables(&m_schemas),
       m_events(&m_schemas),
       m_routines(&m_schemas),
+      m_libraries(&m_schemas),
       m_triggers(&m_schemas, &m_tables) {}
 
 Filtering_options::Filtering_options(const Filtering_options &other)
@@ -775,6 +789,7 @@ Filtering_options &Filtering_options::operator=(
   m_tables = other.m_tables;
   m_events = other.m_events;
   m_routines = other.m_routines;
+  m_libraries = other.m_libraries;
   m_triggers = other.m_triggers;
 
   update_pointers();
@@ -788,6 +803,7 @@ Filtering_options &Filtering_options::operator=(Filtering_options &&other) {
   m_tables = std::move(other.m_tables);
   m_events = std::move(other.m_events);
   m_routines = std::move(other.m_routines);
+  m_libraries = std::move(other.m_libraries);
   m_triggers = std::move(other.m_triggers);
 
   update_pointers();
@@ -799,6 +815,7 @@ void Filtering_options::update_pointers() {
   m_tables.m_schemas = &m_schemas;
   m_events.m_schemas = &m_schemas;
   m_routines.m_schemas = &m_schemas;
+  m_libraries.m_schemas = &m_schemas;
   m_triggers.m_schemas = &m_schemas;
   m_triggers.m_tables = &m_tables;
 }

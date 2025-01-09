@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,6 +36,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/common/dump/constants.h"
 #include "modules/util/common/dump/utils.h"
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/type_info/generic.h"
@@ -93,6 +94,8 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
                    &Filtering_options::events)
           .include(&Load_dump_options::m_filtering_options,
                    &Filtering_options::routines)
+          .include(&Load_dump_options::m_filtering_options,
+                   &Filtering_options::libraries)
           .include(&Load_dump_options::m_filtering_options,
                    &Filtering_options::schemas)
           .include(&Load_dump_options::m_filtering_options,
@@ -174,6 +177,9 @@ void Load_dump_options::on_set_session(
       Version(session->query("SELECT @@version")->fetch_one()->get_string(0));
   DBUG_EXECUTE_IF("dump_loader_bulk_unsupported_version",
                   { m_target_server_version = Version(8, 3, 0); });
+
+  DBUG_EXECUTE_IF("dump_loader_libraries_unsupported_version",
+                  { m_target_server_version = Version(9, 1, 0); });
 
   m_is_mds = m_target_server_version.is_mds();
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
@@ -258,6 +264,12 @@ void Load_dump_options::on_set_session(
 
   m_lower_case_table_names =
       instance.get_sysvar_int("lower_case_table_names", 0);
+
+  // this system variable is only available when MLE component is installed
+  m_is_mle_component_installed = instance.get_sysvar_int("mle.memory_max", 0);
+
+  m_is_library_ddl_supported =
+      compatibility::supports_library_ddl(m_target_server_version);
 }
 
 void Load_dump_options::on_set_url(
@@ -435,6 +447,8 @@ void Load_dump_options::on_unpacked_options() {
   has_conflicts |= filters().events().error_on_cross_filters_conflicts();
   has_conflicts |= filters().routines().error_on_conflicts();
   has_conflicts |= filters().routines().error_on_cross_filters_conflicts();
+  has_conflicts |= filters().libraries().error_on_conflicts();
+  has_conflicts |= filters().libraries().error_on_cross_filters_conflicts();
   has_conflicts |= filters().triggers().error_on_conflicts();
   has_conflicts |= filters().triggers().error_on_cross_filters_conflicts();
   has_conflicts |= filters().users().error_on_conflicts();

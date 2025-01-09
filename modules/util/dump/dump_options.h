@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,6 +160,8 @@ class Dump_options : public mysqlsh::common::Common_options {
   virtual bool dump_events() const = 0;
 
   virtual bool dump_routines() const = 0;
+
+  virtual bool dump_libraries() const = 0;
 
   virtual bool dump_triggers() const = 0;
 

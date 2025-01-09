@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,6 +54,8 @@ class Dump_schemas_options : public Ddl_dumper_options {
 
   bool dump_routines() const override { return m_dump_routines; }
 
+  bool dump_libraries() const override { return m_dump_libraries; }
+
   bool dump_users() const override { return false; }
 
   void set_schemas(const std::vector<std::string> &schemas);
@@ -68,6 +70,7 @@ class Dump_schemas_options : public Ddl_dumper_options {
 
   bool m_dump_events = true;
   bool m_dump_routines = true;
+  bool m_dump_libraries = true;
 
   std::unordered_set<std::string> m_schemas;
 };

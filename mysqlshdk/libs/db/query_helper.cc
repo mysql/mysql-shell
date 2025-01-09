@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -287,6 +287,11 @@ std::string Query_helper::event_filter(const Iterate_schema &info) const {
 std::string Query_helper::routine_filter(const Iterate_schema &info) const {
   return object_filter(info, m_filters.routines().included(),
                        m_filters.routines().excluded());
+}
+
+std::string Query_helper::library_filter(const Iterate_schema &info) const {
+  return object_filter(info, m_filters.libraries().included(),
+                       m_filters.libraries().excluded());
 }
 
 std::string Query_helper::schema_and_routine_filter() const {

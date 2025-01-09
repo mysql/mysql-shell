@@ -34,6 +34,9 @@ test_table_trigger = "sample_trigger"
 test_schema_procedure = "sample_procedure"
 test_schema_function = "sample_function"
 test_schema_event = "sample_event"
+test_schema_library = "sample_library"
+test_schema_library_procedure = "sample_library_procedure"
+test_schema_library_function = "sample_library_function"
 test_view = "sample_view"
 
 verification_schema = "wl13804_ver"
@@ -303,12 +306,34 @@ def create_test_schema_objects():
         CREATE PROCEDURE !.!()
         BEGIN
         DECLARE i INT DEFAULT 1;
-
         WHILE i < 10000 DO
             INSERT INTO !.! (`data`) VALUES (i);
             SET i = i + 1;
         END WHILE;
         END""", [ test_schema, test_schema_procedure, test_schema, test_table_primary ])
+    if instance_supports_libraries:
+        session.run_sql("""
+            CREATE LIBRARY !.! LANGUAGE JAVASCRIPT
+            AS $$
+                export function squared(n) {
+                    return n * n;
+                }
+            $$
+            """, [ test_schema, test_schema_library ])
+        session.run_sql("""
+            CREATE FUNCTION !.!(n INTEGER) RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT
+            USING (!.! AS mylib)
+            AS $$
+                return mylib.squared(n);
+            $$
+            """, [ test_schema, test_schema_library_function, test_schema, test_schema_library ])
+        session.run_sql(f"""
+            CREATE PROCEDURE !.!(n INTEGER) LANGUAGE JAVASCRIPT
+            USING (!.!)
+            AS $$
+                {test_schema_library}.squared(n);
+            $$
+            """, [ test_schema, test_schema_library_procedure, test_schema, test_schema_library ])
 
 create_test_schema_objects()
 
@@ -1065,7 +1090,7 @@ EXPECT_FAIL("ValueError", "Argument #4: The value of the option 's3EndpointOverr
 
 #@<> options param being a dictionary that contains an unknown key
 # WL13804-TSFR_11_1_2
-for param in { "dummy", "users", "excludeUsers", "includeUsers", "indexColumn", "excludeSchemas", "includeSchemas", "excludeTables", "includeTables", "events", "excludeEvents", "includeEvents", "routines", "excludeRoutines", "includeRoutines", "ociParManifest", "ociParExpireTime" }:
+for param in { "dummy", "users", "excludeUsers", "includeUsers", "indexColumn", "excludeSchemas", "includeSchemas", "excludeTables", "includeTables", "events", "excludeEvents", "includeEvents", "routines", "excludeRoutines", "includeRoutines", "libraries", "excludeLibraries", "includeLibraries", "ociParManifest", "ociParExpireTime" }:
     EXPECT_FAIL("ValueError", f"Argument #4: Invalid options: {param}", types_schema, types_schema_tables, test_output_relative, { param: "fails" })
 
 # FR12 - The `util.dumpTables()` function must create:
@@ -1226,12 +1251,12 @@ EXPECT_NO_THROWS(lambda: util.dump_schemas([test_schema], test_output_absolute, 
 # load the dump, target schema does not exist
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 # load the dump, target schema exists
 recreate_verification_schema()
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 # two schemas
 shutil.rmtree(test_output_absolute, True)
@@ -1245,7 +1270,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: The 'schema' option can only be used when loading
 
 # loading just one schema with 'schema' option succeeds
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 #@<> BUG#33799352 - it should be possible to use 'schema' option with dumps created by other dump utils as long as only one schema is loaded - util.dump_instance()
 # one schema
@@ -1255,12 +1280,12 @@ EXPECT_NO_THROWS(lambda: util.dump_instance(test_output_absolute, { "includeSche
 # load the dump, target schema does not exist
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ verification_schema ])
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 # load the dump, target schema exists
 recreate_verification_schema()
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "schema": verification_schema, "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 # two schemas
 shutil.rmtree(test_output_absolute, True)
@@ -1274,7 +1299,7 @@ EXPECT_STDOUT_CONTAINS("ERROR: The 'schema' option can only be used when loading
 
 # loading just one schema with 'schema' option succeeds
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 # filtering options - table
 backup = test_schema_snapshot["tables"][test_table_primary]
@@ -1282,7 +1307,7 @@ del test_schema_snapshot["tables"][test_table_primary]
 
 recreate_verification_schema()
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTables": [f"`{test_schema}`.`{test_table_primary}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 test_schema_snapshot["tables"][test_table_primary] = backup
 
@@ -1292,11 +1317,11 @@ test_schema_snapshot["tables"][test_table_no_index]["triggers"] = {}
 
 recreate_verification_schema()
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTriggers": [f"`{test_schema}`.`{test_table_no_index}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 recreate_verification_schema()
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTriggers": [f"`{test_schema}`.`{test_table_no_index}`.`{test_table_trigger}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 test_schema_snapshot["tables"][test_table_no_index]["triggers"] = backup
 
@@ -1306,7 +1331,7 @@ test_schema_snapshot["views"] = {}
 
 recreate_verification_schema()
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeTables": [f"`{test_schema}`.`{test_view}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 test_schema_snapshot["views"] = backup
 
@@ -1315,8 +1340,8 @@ backup = test_schema_snapshot["procedures"]
 test_schema_snapshot["procedures"] = {}
 
 recreate_verification_schema()
-EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeRoutines": [f"`{test_schema}`.`{test_schema_procedure}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeRoutines": [quote_identifier(test_schema, test_schema_procedure), quote_identifier(test_schema, test_schema_library_procedure)], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 test_schema_snapshot["procedures"] = backup
 
@@ -1325,10 +1350,20 @@ backup = test_schema_snapshot["functions"]
 test_schema_snapshot["functions"] = {}
 
 recreate_verification_schema()
-EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeRoutines": [f"`{test_schema}`.`{test_schema_function}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeRoutines": [quote_identifier(test_schema, test_schema_function), quote_identifier(test_schema, test_schema_library_function)], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 test_schema_snapshot["functions"] = backup
+
+# filtering options - libraries - this is executed regardless of instance version to test excludeLibraries option when instance does not support library DDL
+backup = test_schema_snapshot["libraries"]
+test_schema_snapshot["libraries"] = {}
+
+recreate_verification_schema()
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeLibraries": [quote_identifier(test_schema, test_schema_library)], "resetProgress": True, "showProgress": False }), "Loading should not fail")
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+
+test_schema_snapshot["libraries"] = backup
 
 # filtering options - event
 backup = test_schema_snapshot["events"]
@@ -1336,7 +1371,7 @@ test_schema_snapshot["events"] = {}
 
 recreate_verification_schema()
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "includeSchemas": [test_schema], "schema": verification_schema, "excludeEvents": [f"`{test_schema}`.`{test_schema_event}`"], "resetProgress": True, "showProgress": False }), "Loading should not fail")
-EXPECT_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
+EXPECT_JSON_EQ(test_schema_snapshot, snapshot_schema(session, verification_schema))
 
 test_schema_snapshot["events"] = backup
 

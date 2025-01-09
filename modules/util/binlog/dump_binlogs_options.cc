@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,7 +70,8 @@ bool verify_dump_instance_options(const shcore::json::Value &options) {
   }
 
   // these options need to be set to true, their default is true
-  for (const auto option : {"events", "routines", "users", "triggers"}) {
+  for (const auto option :
+       {"events", "routines", "libraries", "users", "triggers"}) {
     if (!shcore::json::optional_bool(options, option).value_or(true)) {
       return false;
     }
@@ -98,6 +99,7 @@ bool verify_dump_instance_options(const shcore::json::Value &options) {
            "includeTables",
            "includeEvents",
            "includeRoutines",
+           "includeLibraries",
            "includeUsers",
            "excludeUsers",
            "includeTriggers",
@@ -130,6 +132,7 @@ bool verify_dump_instance_options(const shcore::json::Value &options) {
              "excludeTables",
              "excludeEvents",
              "excludeRoutines",
+             "excludeLibraries",
              "excludeTriggers",
          }) {
       if (const auto a = shcore::json::optional_string_array(options, option);

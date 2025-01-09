@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -131,16 +131,16 @@ class Dump_loader {
     class Schema_ddl_task : public Task {
      public:
       Schema_ddl_task(std::string_view schema, std::string &&script,
-                      bool resuming)
+                      std::string &&context)
           : Task(schema, {}),
             m_script(std::move(script)),
-            m_resuming(resuming) {}
+            m_context(std::move(context)) {}
 
       bool execute(Worker *, Dump_loader *) override;
 
      private:
       std::string m_script;
-      bool m_resuming;
+      std::string m_context;
     };
 
     class Schema_sql_task : public Task {
@@ -435,6 +435,7 @@ class Dump_loader {
 
   void execute_tasks(bool testing = false);
   void execute_drop_ddl_tasks();
+  void execute_schema_ddl_tasks();
   void execute_table_ddl_tasks();
   void execute_view_ddl_tasks();
 
@@ -481,8 +482,10 @@ class Dump_loader {
 
   void on_schema_ddl_start(std::size_t worker_id,
                            const Worker::Schema_ddl_task *task);
+  void on_schema_ddl_start(const std::string &schema);
   void on_schema_ddl_end(std::size_t worker_id,
                          const Worker::Schema_ddl_task *task);
+  void on_schema_ddl_end(const std::string &schema);
 
   void on_table_ddl_start(std::size_t worker_id,
                           const Worker::Table_ddl_task *task);
@@ -535,6 +538,9 @@ class Dump_loader {
   std::function<bool(const std::string &, const std::string &)>
   filter_user_script_for_mds() const;
 
+  std::function<bool(std::string_view, const std::string &)>
+  filter_schema_objects(const std::string &schema) const;
+
   bool should_create_pks() const;
 
   void setup_load_data_progress();
@@ -544,8 +550,6 @@ class Dump_loader {
   void setup_analyze_tables_progress();
 
   void setup_checksum_tables_progress();
-
-  void add_skipped_schema(const std::string &schema);
 
   void on_ddl_done_for_schema(const std::string &schema);
 
@@ -605,14 +609,15 @@ class Dump_loader {
     bool operator()(std::string_view sql, std::string *out_new_sql) const {
       if (m_ops.empty()) return false;
 
-      std::string orig_sql(sql);
       std::string new_sql;
 
       for (const auto &f : m_ops) {
-        f(orig_sql, &new_sql);
-        orig_sql = std::move(new_sql);
+        f(sql, &new_sql);
+
+        *out_new_sql = std::move(new_sql);
+        sql = *out_new_sql;
+        new_sql.clear();
       }
-      *out_new_sql = std::move(orig_sql);
 
       return true;
     }
@@ -621,9 +626,9 @@ class Dump_loader {
 
     /**
      * Adds a callback which is going to be called whenever a CREATE|ALTER|DROP
-     * statement for an EVENT|FUNCTION|PROCEDURE|TRIGGER object is about to
-     * be executed. Callback is called with two arguments:
-     *  - type - EVENT|FUNCTION|PROCEDURE|TRIGGER
+     * statement for an EVENT|FUNCTION|PROCEDURE|LIBRARY|TRIGGER object is about
+     * to be executed. Callback is called with two arguments:
+     *  - type - EVENT|FUNCTION|PROCEDURE|LIBRARY|TRIGGER
      *  - name - name of the object
      * Callback should return true if this statement should be executed.
      */
@@ -711,9 +716,6 @@ class Dump_loader {
   Sql_transform m_default_sql_transforms;
 
   shcore::Synchronized_queue<Worker_event> m_worker_events;
-  std::recursive_mutex m_skip_schemas_mutex;
-  std::unordered_set<std::string> m_skip_schemas;
-  std::unordered_set<std::string> m_skip_tables;
   std::vector<std::exception_ptr> m_thread_exceptions;
   shcore::atomic_flag m_worker_hard_interrupt;
   shcore::atomic_flag m_worker_interrupt;
@@ -764,7 +766,6 @@ class Dump_loader {
   uint64_t m_data_load_tasks_scheduled = 0;
   bool m_all_data_load_tasks_scheduled = false;
 
-  std::unordered_map<std::string, bool> m_schema_ddl_ready;
   std::unordered_map<std::string, uint64_t> m_ddl_in_progress_per_schema;
 
   // progress thread needs to be placed after any of the fields it uses, in
