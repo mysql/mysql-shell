@@ -70,7 +70,7 @@ session2 = mysql.get_session(__sandbox_uri2)
 session2.run_sql("set names utf8mb4")
 
 # BUG#36159820 - accounts which are excluded when dumping with ocimds=true and when loading into MHS
-mhs_excluded_users = [ "administrator", "ociadmin", "ocidbm", "ocimonitor", "ocirpl", "oracle-cloud-agent", "rrhhuser" ]
+mhs_excluded_users = [ "administrator", "mysql_option_tracker_persister", "ociadmin", "ocidbm", "ocimonitor", "ocirpl", "oracle-cloud-agent", "rrhhuser" ]
 
 ## Tests to ensure restricted users dumped with strip_restricted_grants can be loaded with a restricted user and not just with root
 

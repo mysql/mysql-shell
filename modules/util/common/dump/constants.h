@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,8 +39,10 @@ constexpr inline std::array k_excluded_users = {
 };
 
 constexpr inline std::array k_mhs_excluded_users = {
-    "administrator", "ociadmin",           "ocidbm",   "ocimonitor",
-    "ocirpl",        "oracle-cloud-agent", "rrhhuser",
+    "administrator",      "mysql_option_tracker_persister",
+    "ociadmin",           "ocidbm",
+    "ocimonitor",         "ocirpl",
+    "oracle-cloud-agent", "rrhhuser",
 };
 
 constexpr inline std::array k_excluded_schemas = {
