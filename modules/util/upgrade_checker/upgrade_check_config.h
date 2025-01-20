@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,6 +94,12 @@ class Upgrade_check_config final {
 
   bool warn_on_excludes() const { return m_warn_on_excludes; }
 
+  bool has_check_timeout() const { return m_check_timeout.has_value(); }
+  size_t check_timeout() const {
+    assert(has_check_timeout());
+    return *m_check_timeout;
+  }
+
  private:
   Upgrade_check_config();
 
@@ -107,6 +113,7 @@ class Upgrade_check_config final {
   Check_id_set m_exclude;
   bool m_list_checks;
   bool m_warn_on_excludes = true;
+  std::optional<size_t> m_check_timeout;
 
   friend Upgrade_check_config create_config(
       std::optional<Version> server_version,

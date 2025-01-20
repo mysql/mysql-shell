@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,9 @@
 
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 
+#include <my_dbug.h>
 #include <mysqld_error.h>
+
 #include <forward_list>
 #include <regex>
 #include <vector>
@@ -449,10 +451,12 @@ std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
   for (const char *mode : modes) {
     queries.emplace_back(
         shcore::str_format(
-            "select routine_schema, routine_name, concat(routine_type, ' uses "
+            "select routine_schema, routine_name,%s concat(routine_type, ' "
+            "uses "
             "obsolete %s sql_mode') from information_schema.routines where "
             "<<schema_and_routine_filter>> and find_in_set('%s', sql_mode);",
-            mode, mode),
+            DBUG_EVALUATE_IF("dbg_uc_sql_mode_sleep", "SLEEP(2),", ""), mode,
+            mode),
         Upgrade_issue::Object_type::ROUTINE);
     queries.emplace_back(
         shcore::str_format("select event_schema, event_name, 'EVENT uses "
@@ -542,6 +546,10 @@ class Check_table_command : public Upgrade_check {
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
       const Upgrade_info &server_info) override {
+    // Workaround for 5.7 "No database selected/Corrupted" UPGRADE bug present
+    // up to 5.7.39
+    session->execute("USE mysql;");
+
     // Needed for warnings related to triggers, incompatible types in 5.7
     if (server_info.server_version < Version(8, 0, 0)) {
       try {
@@ -555,12 +563,16 @@ class Check_table_command : public Upgrade_check {
         }
       }
     }
-
     std::vector<std::pair<std::string, std::string>> tables;
-    auto result = session->query(
-        "SELECT TABLE_SCHEMA, TABLE_NAME FROM "
-        "INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA not in "
-        "('information_schema', 'performance_schema', 'sys')");
+    auto result =
+        session->query("SELECT TABLE_SCHEMA, TABLE_NAME" +
+                       std::string(DBUG_EVALUATE_IF("dbg_uc_check_table_sleep",
+                                                    ", SLEEP(1)", "")) +
+                       " FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA "
+                       "not in ('information_schema', 'performance_schema', "
+                       "'sys')" +
+                       std::string(DBUG_EVALUATE_IF("dbg_uc_check_table_sleep",
+                                                    " LIMIT 9", "")));
     {
       const mysqlshdk::db::IRow *pair = nullptr;
       while ((pair = result->fetch_one()) != nullptr) {
@@ -602,6 +614,8 @@ class Check_table_command : public Upgrade_check {
 
     return issues;
   }
+
+  bool is_custom_session_required() const override { return true; }
 };
 
 std::unique_ptr<Upgrade_check> get_table_command_check() {

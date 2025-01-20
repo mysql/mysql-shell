@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,7 +49,8 @@ Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
     : m_output_format(options.output_format),
       m_include(options.include_list),
       m_exclude(options.exclude_list),
-      m_list_checks(options.list_checks) {
+      m_list_checks(options.list_checks),
+      m_check_timeout(options.check_timeout) {
   m_upgrade_info.target_version = options.get_target_version();
   m_upgrade_info.explicit_target_version = options.target_version.has_value();
   m_upgrade_info.config_path = options.config_path;

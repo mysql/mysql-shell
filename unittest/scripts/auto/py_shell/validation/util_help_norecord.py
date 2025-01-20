@@ -108,9 +108,14 @@ DESCRIPTION
         excluded from the operation.
       - list - bool value to indicate the operation should only list the
         checks.
+      - checkTimeout - maximum time in seconds after which each check should be
+        interrupted.
 
       If targetVersion is not specified, the current Shell version will be used
       as target version.
+
+      If checkTimeout is not specified, each check will continue running until
+      completion.
 
       Limitations
 

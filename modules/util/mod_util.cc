@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -127,9 +127,14 @@ included in the operation.
  excluded from the operation.
 @li <b>list</b> - bool value to indicate the operation should only list the
 checks.
+@li <b>checkTimeout</b> - maximum time in seconds after which each check
+should be interrupted.
 
 If <b>targetVersion</b> is not specified, the current %Shell version will be
 used as target version.
+
+If <b>checkTimeout</b> is not specified, each check will continue running until
+completion.
 
 <b>Limitations</b>
 

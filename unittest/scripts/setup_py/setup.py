@@ -534,6 +534,16 @@ def EXPECT_STDERR_CONTAINS(text, note=None):
             "\n<yellow>Actual stderr:</yellow> " + err
         testutil.fail(context)
 
+def EXPECT_OUTPUT_CONTAINS(text, note=None):
+    out = testutil.fetch_captured_stdout(False)
+    err = testutil.fetch_captured_stderr(False)
+    if out.find(text) == -1 and err.find(text) == -1:
+        if not note:
+            note = __caller_context()
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + \
+                  "\n<yellow>Actual stdout:</yellow> " + out + \
+                  "\n<yellow>Actual stderr:</yellow> " + err
+        testutil.fail(context)
 
 def WIPE_STDOUT():
     line = testutil.fetch_captured_stdout(True)
@@ -628,11 +638,21 @@ def EXPECT_STDERR_NOT_CONTAINS(text, note=None):
     if err.find(text) != -1:
         if not note:
             note = __caller_context()
-        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + \
+        context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + \
             "\n<yellow>Actual stdout:</yellow> " + out + \
             "\n<yellow>Actual stderr:</yellow> " + err
         testutil.fail(context)
 
+def EXPECT_OUTPUT_NOT_CONTAINS(text, note=None):
+    out = testutil.fetch_captured_stdout(False)
+    err = testutil.fetch_captured_stderr(False)
+    if out.find(text) != -1 or err.find(text) != -1:
+        if not note:
+            note = __caller_context()
+        context = "<b>Context:</b> " + __test_context + "\n<red>Unexpected output:</red> " + text + \
+                  "\n<yellow>Actual stdout:</yellow> " + out + \
+                  "\n<yellow>Actual stderr:</yellow> " + err
+        testutil.fail(context)
 
 def EXPECT_FILE_CONTAINS(expected, path, note=None):
     with open(path, encoding='utf-8') as f:

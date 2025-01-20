@@ -219,6 +219,10 @@ WHERE
       connectionData: The connection data to server to be checked
 
 OPTIONS
+--checkTimeout=<uint>
+            Maximum time in seconds after which each check should be
+            interrupted.
+
 --configPath=<str>
             Full path to MySQL server configuration file.
 

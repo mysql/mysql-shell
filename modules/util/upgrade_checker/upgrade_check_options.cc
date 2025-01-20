@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -61,6 +61,7 @@ const shcore::Option_pack_def<Upgrade_check_options>
           .optional("include", &Upgrade_check_options::include)
           .optional("exclude", &Upgrade_check_options::exclude)
           .optional("list", &Upgrade_check_options::list_checks)
+          .optional("checkTimeout", &Upgrade_check_options::check_timeout)
           .on_done(&Upgrade_check_options::verify_options);
   return opts;
 }
@@ -94,6 +95,17 @@ void Upgrade_check_options::verify_options() {
   }
   if (!config_path.empty() && !shcore::is_file(config_path)) {
     throw std::invalid_argument("Invalid config path: " + config_path);
+  }
+  if (check_timeout.has_value() && *check_timeout == 0) {
+    throw std::invalid_argument(
+        "Check timeout must be non-zero, positive value");
+  }
+  constexpr auto max_seconds = std::chrono::duration_cast<std::chrono::seconds>(
+                                   std::chrono::steady_clock::duration::max())
+                                   .count();
+  if (check_timeout.has_value() && *check_timeout > max_seconds) {
+    throw std::invalid_argument(shcore::str_format(
+        "Check timeout value is bigger than supported value %ld", max_seconds));
   }
 }
 
