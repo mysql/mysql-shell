@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1158,10 +1158,12 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_CREATEROUTINGGUIDELINE,
  * $(CLUSTERSET_CREATEROUTINGGUIDELINE)
  */
 #if DOXYGEN_JS
-RoutingGuideline createRoutingGuideline(String name, Dictionary json,
-                                        Dictionary options) {}
+RoutingGuideline ClusterSet::createRoutingGuideline(String name,
+                                                    Dictionary json,
+                                                    Dictionary options) {}
 #elif DOXYGEN_PY
-RoutingGuideline create_routing_guideline(str name, dict json, dict options) {}
+RoutingGuideline ClusterSet::create_routing_guideline(str name, dict json,
+                                                      dict options) {}
 #endif
 
 REGISTER_HELP_FUNCTION(getRoutingGuideline, ClusterSet);
@@ -1173,9 +1175,9 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_GETROUTINGGUIDELINE,
  * $(CLUSTERSET_GETROUTINGGUIDELINE)
  */
 #if DOXYGEN_JS
-RoutingGuideline getRoutingGuideline(String name) {}
+RoutingGuideline ClusterSet::getRoutingGuideline(String name) {}
 #elif DOXYGEN_PY
-RoutingGuideline get_routing_guideline(str name) {}
+RoutingGuideline ClusterSet::get_routing_guideline(str name) {}
 #endif
 
 REGISTER_HELP_FUNCTION(removeRoutingGuideline, ClusterSet);
@@ -1187,9 +1189,9 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_REMOVEROUTINGGUIDELINE,
  * $(CLUSTERSET_REMOVEROUTINGGUIDELINE)
  */
 #if DOXYGEN_JS
-Undefined removeRoutingGuideline(String name) {}
+Undefined ClusterSet::removeRoutingGuideline(String name) {}
 #elif DOXYGEN_PY
-None remove_routing_guideline(str name) {}
+None ClusterSet::remove_routing_guideline(str name) {}
 #endif
 
 REGISTER_HELP_FUNCTION(routingGuidelines, ClusterSet);
@@ -1201,9 +1203,9 @@ REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_ROUTINGGUIDELINES,
  * $(CLUSTERSET_ROUTINGGUIDELINES)
  */
 #if DOXYGEN_JS
-List routingGuidelines() {}
+List ClusterSet::routingGuidelines() {}
 #elif DOXYGEN_PY
-list routing_guidelines() {}
+list ClusterSet::routing_guidelines() {}
 #endif
 
 REGISTER_HELP_FUNCTION(importRoutingGuideline, ClusterSet);

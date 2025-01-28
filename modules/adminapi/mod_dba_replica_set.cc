@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1225,10 +1225,12 @@ REGISTER_HELP_FUNCTION_TEXT(REPLICASET_CREATEROUTINGGUIDELINE,
  * $(REPLICASET_CREATEROUTINGGUIDELINE)
  */
 #if DOXYGEN_JS
-RoutingGuideline createRoutingGuideline(String name, Dictionary json,
-                                        Dictionary options) {}
+RoutingGuideline ReplicaSet::createRoutingGuideline(String name,
+                                                    Dictionary json,
+                                                    Dictionary options) {}
 #elif DOXYGEN_PY
-RoutingGuideline create_routing_guideline(str name, dict json, dict options) {}
+RoutingGuideline ReplicaSet::create_routing_guideline(str name, dict json,
+                                                      dict options) {}
 #endif
 
 REGISTER_HELP_FUNCTION(getRoutingGuideline, ReplicaSet);
@@ -1240,9 +1242,9 @@ REGISTER_HELP_FUNCTION_TEXT(REPLICASET_GETROUTINGGUIDELINE,
  * $(REPLICASET_GETROUTINGGUIDELINE)
  */
 #if DOXYGEN_JS
-RoutingGuideline getRoutingGuideline(String name) {}
+RoutingGuideline ReplicaSet::getRoutingGuideline(String name) {}
 #elif DOXYGEN_PY
-RoutingGuideline get_routing_guideline(str name) {}
+RoutingGuideline ReplicaSet::get_routing_guideline(str name) {}
 #endif
 
 REGISTER_HELP_FUNCTION(removeRoutingGuideline, ReplicaSet);
@@ -1254,9 +1256,9 @@ REGISTER_HELP_FUNCTION_TEXT(REPLICASET_REMOVEROUTINGGUIDELINE,
  * $(REPLICASET_REMOVEROUTINGGUIDELINE)
  */
 #if DOXYGEN_JS
-Undefined removeRoutingGuideline(String name) {}
+Undefined ReplicaSet::removeRoutingGuideline(String name) {}
 #elif DOXYGEN_PY
-None remove_routing_guideline(str name) {}
+None ReplicaSet::remove_routing_guideline(str name) {}
 #endif
 
 REGISTER_HELP_FUNCTION(routingGuidelines, ReplicaSet);
@@ -1268,9 +1270,9 @@ REGISTER_HELP_FUNCTION_TEXT(REPLICASET_ROUTINGGUIDELINES,
  * $(REPLICASET_ROUTINGGUIDELINES)
  */
 #if DOXYGEN_JS
-List routingGuidelines() {}
+List ReplicaSet::routingGuidelines() {}
 #elif DOXYGEN_PY
-list routing_guidelines() {}
+list ReplicaSet::routing_guidelines() {}
 #endif
 
 REGISTER_HELP_FUNCTION(importRoutingGuideline, ReplicaSet);

@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024, Oracle and/or its affiliates.
+Copyright (c) 2024, 2025, Oracle and/or its affiliates.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License, version 2.0,
@@ -334,7 +334,7 @@ rg.add_destination(
 
 In this example, _Local and _Remote versions of a destination refer to the location of each specific Router instance.
 
-When bootstrapping MySQL Router, the `--conf-local-cluster` option can be used to specify the name of the InnoDB Cluster that is considered "local" to the Router (e.g., located in the same data center, region, or any other criteria relevant to your setup). Consequently, Local servers are those located in the same data center as the Router, irrespective of whether the Cluster is a PRIMARY or SECONDARY one.
+When bootstrapping MySQL Router, the `--conf-target-cluster` option can be used to specify the name of the InnoDB Cluster that is considered "local" to the Router (e.g., located in the same data center, region, or any other criteria relevant to your setup). Consequently, Local servers are those located in the same data center as the Router, irrespective of whether the Cluster is a PRIMARY or SECONDARY one.
 
 ### Step 3: Add Routes for Read-Write and Read-Only Traffic
 
@@ -366,7 +366,7 @@ rg.add_route(
 
   - rw_traffic route: Routes read-write traffic to Primary_Local first and falls back to Primary_Remote.
 
-  - ro_traffic route: Routes read-only traffic to local secondary and scale-out nodes first. If those are unavailable, it falls back to remote secondary and scale-out nodes, then to primary nodes, and finally to read-only fallback nodes if needed. The multi-level priority ensures continuous availability.
+  - ro_traffic route: Routes read-only traffic to local secondary and local scale-out nodes first. If those are unavailable, it falls back to remote secondary and remote scale-out nodes, then to primary nodes, and finally to read-only fallback nodes if needed. The multi-level priority ensures continuous availability.
 
 ###  Step 4: Review the Routing Guideline Configuration
 
@@ -444,7 +444,7 @@ guideline = {
     "name": "Geo_Based_Guideline",
     "routes": [
         {
-            "connectionSharingAllowed": true,
+            "connectionSharingAllowed": True,
             "destinations": [
                 {
                     "classes": [
@@ -455,12 +455,12 @@ guideline = {
                     "priority": 0
                 }
             ],
-            "enabled": true,
+            "enabled": True,
             "match": "NETWORK($.session.sourceIP, 24) = NETWORK('192.168.1.0', 24) OR NETWORK($.session.sourceIP, 8) = NETWORK('10.0.0.0', 8)",
             "name": "geo_based"
         },
         {
-            "connectionSharingAllowed": true,
+            "connectionSharingAllowed": True,
             "destinations": [
                 {
                     "classes": [
@@ -470,7 +470,7 @@ guideline = {
                     "priority": 0
                 }
             ],
-            "enabled": true,
+            "enabled": True,
             "match": "$.session.connectAttrs.region = 'EU'",
             "name": "compliance_based"
         }
@@ -497,7 +497,7 @@ Once the guideline has been created, you can modify destinations or routes using
 rg = replicaset.get_routing_guideline("Geo_Based_Guideline");
 
 // Modify the match expression for the 'EU_Regions' destination
-rg.set_destination_option("EU_Regions", "matchExpr", "$.server.address IN ('eu-west-1.example.com', 'eu-south-1.example.com')");
+rg.set_destination_option("EU_Regions", "match", "$.server.address IN ('eu-west-1.example.com', 'eu-south-1.example.com')");
 
 // Disable the 'compliance_based' route temporarily
 rg.set_route_option("compliance_based", "enabled", False);
@@ -518,7 +518,7 @@ With the "Geo_Based_Guideline" configuration loaded from a predefined JSON file,
 
   - Compliance-Based Traffic: Directs traffic requiring GDPR compliance to servers tagged with GDPR_Compliant.
 
-This recipe demonstrates an efficient way to define and reuse routing guidelines for similar geolocation and compliance scenarios across multiple deployments by using JSON configuration files. This approach is ideal for scenarios where consistent routing configurations are needed across environments.
+This recipe demonstrates an efficient way to define and reuse routing guidelines for similar geolocation and compliance scenarios across multiple deployments by using a Routing Guideline imported from a JSON variable. This approach is ideal for scenarios where consistent routing configurations are needed across environments.
 
 ## Recipe 4: ClusterSet: Load Balancing and Resource Management
 
@@ -679,9 +679,9 @@ Application-specific and schema-based routing allows routing guidelines to direc
 
 With the Vertical_Partitioning_Guideline in place:
 
-  - Application Schema Traffic: Sessions using app_schema are directed to the AppCluster, with a round-robin strategy across primary and secondary replicas.
+  - Application Schema Traffic: Sessions using app_schema are directed to the AppCluster, with a round-robin strategy across primary and secondary members.
 
-  - Data Schema Traffic: Sessions using data_schema are directed to the main data cluster, distributed round-robin style between primary and secondary nodes.
+  - Data Schema Traffic: Sessions using data_schema are directed to the main data cluster (Primary), distributed round-robin style between primary and secondary members.
 
 This setup enables efficient traffic management across clusters tailored for specific application requirements, improving performance and simplifying database organization for vertically partitioned environments.
 
@@ -1043,14 +1043,14 @@ Client characteristics routing allows traffic to be directed based on specific a
 
 With the Comprehensive_ConnectAttrs_Routing in place:
 
-  - Linux Traffic: Routes sessions where the "_os" attribute is "Linux" to servers running on Linux, distributing connections in a round-robin fashion.
+  - linux_traffic: Routes sessions where the "_os" connection attribute is "Linux" to servers running on Linux, distributing connections in a round-robin fashion.
 
-  - x86_64 Traffic: Routes sessions with the "_platform" attribute set to "x86_64" to x86_64-servers, using a first-available strategy.
+  - x86_64_traffic: Routes sessions with the "_platform" attribute set to "x86_64" to x86_64-servers, using a first-available strategy.
 
-  - GPL-Compliant Traffic: Routes sessions with a GPL license (_client_license = "GPL-2.0") to GPL-compliant servers.
+  - backup_traffic: Routes sessions coming from "mysqldump" (connectAttrs.program_name = 'mysqldump') to the Backup servers.
 
-  - Commercial Traffic: Routes sessions with a commercial license to servers designated as Commercial_Servers.
+  - Commercial Traffic: Routes sessions using the 'audit' schema to servers designated as Commercial_Servers.
 
-  - Testing Traffic: Routes specific test sessions (e.g., _pid = "12345") to servers tagged as testing resources.
+  - Testing Traffic: Routes specific test sessions ($.session.user = 'test_user') to servers tagged as testing resources.
 
 This guideline provides flexibility to route traffic based on client-specific attributes, enabling targeted resource allocation and optimization for diverse client characteristics.
