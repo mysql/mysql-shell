@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,5 +44,10 @@ bool consume_optimizer_hints(Lex_input_stream *);
 void mysqlsh_hint_parser_error(internal::Parser_context *, const char *);
 int mysqlsh_hint_parser_lex(MYSQLSH_HINT_PARSER_STYPE *,
                             internal::Parser_context *);
+
+// used by the lexer, copied from the server code:
+//  - sql/auth/auth_common.h
+//  - sql/auth/sql_authorization.cc
+bool operator==(const LEX_CSTRING &a, const LEX_CSTRING &b);
 
 #endif  // MYSQLSHDK_LIBS_YPARSER_MYSQL_YACC_PARSER_INTERFACE_H_
