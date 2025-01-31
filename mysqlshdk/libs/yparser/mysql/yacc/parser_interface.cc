@@ -25,7 +25,6 @@
 
 #include "mysqlshdk/libs/yparser/mysql/yacc/parser_interface.h"
 
-#include <cstring>
 #include <string_view>
 #include <utility>
 
@@ -113,9 +112,4 @@ int mysqlsh_hint_parser_lex(MYSQLSH_HINT_PARSER_STYPE *,
                             internal::Parser_context *context) {
   assert(context->hint_scanner);
   return context->hint_scanner->get_next_token();
-}
-
-bool operator==(const LEX_CSTRING &a, const LEX_CSTRING &b) {
-  return (a.length == b.length &&
-          ((a.length == 0) || (memcmp(a.str, b.str, a.length) == 0)));
 }
