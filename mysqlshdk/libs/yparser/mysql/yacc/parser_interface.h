@@ -45,9 +45,4 @@ void mysqlsh_hint_parser_error(internal::Parser_context *, const char *);
 int mysqlsh_hint_parser_lex(MYSQLSH_HINT_PARSER_STYPE *,
                             internal::Parser_context *);
 
-// used by the lexer, copied from the server code:
-//  - sql/auth/auth_common.h
-//  - sql/auth/sql_authorization.cc
-bool operator==(const LEX_CSTRING &a, const LEX_CSTRING &b);
-
 #endif  // MYSQLSHDK_LIBS_YPARSER_MYSQL_YACC_PARSER_INTERFACE_H_
