@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -3559,7 +3559,10 @@ void Testutils::prepare_sandbox_boilerplate(int port,
 
   shcore::Value::Array_type_ref errors;
   shcore::Value mycnf_options = shcore::Value::new_array();
-  mycnf_options.as_array()->push_back(shcore::Value("innodb_log_file_size=1M"));
+  mycnf_options.as_array()->push_back(
+      shcore::Value("loose_innodb_redo_log_capacity=8M"));
+  mycnf_options.as_array()->push_back(
+      shcore::Value("loose_innodb_log_file_size=4M"));
   mycnf_options.as_array()->push_back(
       shcore::Value("innodb_log_buffer_size=1M"));
   mycnf_options.as_array()->push_back(
