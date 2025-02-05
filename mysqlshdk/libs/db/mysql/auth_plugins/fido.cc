@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,47 +48,10 @@ namespace {
 constexpr int HOSTNAME_LENGTH = 255;
 
 /**
- * Callback for print operations on the authentication_fido_client and
- * authentication_webauthn_client plugins
+ * Callback for print operations on the authentication_fido_client plugin
  */
 void plugin_messages_callback(const char *msg) {
   mysqlsh::current_console()->print_info(msg);
-}
-
-/**
- * Webauthn callback for password retrieval when the FIDO device has PIN
- */
-int plugin_messages_callback_get_password(char *buffer,
-                                          const unsigned int buffer_len) {
-  std::string reply;
-  // The empty prompt is because the plugin already printed the prompt using the
-  // message callback.
-  if (mysqlsh::current_console()->prompt_password("", &reply) ==
-      shcore::Prompt_result::Ok) {
-    memcpy(buffer, reply.c_str(), buffer_len);
-    return 0;
-  }
-  return 1;
-}
-
-/**
- * Webauthn callback for item selection when multiple credentials are found on
- * the device.
- */
-int plugin_messages_callback_get_uint(unsigned int *val) {
-  std::string reply;
-  // The empty prompt is because the plugin already printed the prompt using the
-  // message callback.
-  if (mysqlsh::current_console()->prompt("", &reply) ==
-      shcore::Prompt_result::Ok) {
-    try {
-      *val = shcore::lexical_cast<unsigned int>(reply);
-      return 0;
-    } catch (const std::invalid_argument &) {
-      // NO-OP, plugin will handle it through the returned value
-    }
-  }
-  return 1;
 }
 
 /**
@@ -119,36 +82,20 @@ bool parse_register_factor(const char *what_factor,
   return true;
 }
 
-void set_callbacks(struct st_mysql_client_plugin *plugin,
-                   const std::string &plugin_name) {
-  bool is_webauthn = plugin_name == "authentication_webauthn_client";
-  const char *callback_option =
-      is_webauthn ? "plugin_authentication_webauthn_client_messages_callback"
-                  : "fido_messages_callback";
-
-  /* set plugin message handler */
-  if (mysql_plugin_options(plugin, callback_option,
-                           (const void *)&plugin_messages_callback)) {
-    throw std::runtime_error(shcore::str_format(
-        "Failed to set message callback on %s plugin.", plugin_name.c_str()));
-  }
-
-  if (is_webauthn) {
-    mysql_plugin_options(
-        plugin, "plugin_authentication_webauthn_client_callback_get_password",
-        (const void *)&plugin_messages_callback_get_password);
-
-    mysql_plugin_options(
-        plugin, "plugin_authentication_webauthn_client_callback_get_uint",
-        (const void *)&plugin_messages_callback_get_uint);
-  }
-}
-
 }  // namespace
 
-void register_callbacks(MYSQL *conn, const std::string &plugin_name) {
-  auto plugin = auth::get_authentication_plugin(conn, plugin_name.c_str());
-  set_callbacks(plugin, plugin_name);
+void register_callbacks(MYSQL *conn) {
+  auto plugin =
+      auth::get_authentication_plugin(conn, "authentication_fido_client");
+
+  /* set plugin message handler */
+  if (mysql_plugin_options(
+          plugin, "fido_messages_callback",
+          reinterpret_cast<const void *>(&plugin_messages_callback))) {
+    throw std::runtime_error(
+        "Failed to set message callback on "
+        "authentication_fido_client plugin.");
+  }
 }
 
 /**

@@ -1362,6 +1362,8 @@ The following options are valid for use either in a URI or in a dictionary:
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
 - plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
+- plugin-authentication-webauthn-device: Allows selecting the authentication
+  device used for client side webauthn authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -1644,6 +1646,8 @@ The following options are valid for use either in a URI or in a dictionary:
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
 - plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
+- plugin-authentication-webauthn-device: Allows selecting the authentication
+  device used for client side webauthn authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -2004,6 +2008,8 @@ The following options are valid for use either in a URI or in a dictionary:
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
 - plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
+- plugin-authentication-webauthn-device: Allows selecting the authentication
+  device used for client side webauthn authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -103,6 +103,8 @@ inline constexpr const char kMysqlPluginDir[] = "mysql-plugin-dir";
 inline constexpr const char kClientInteractive[] = "client-interactive";
 inline constexpr const char kWebauthnClientPreservePrivacy[] =
     "plugin-authentication-webauthn-client-preserve-privacy";
+inline constexpr const char kWebauthnClientDeviceIndex[] =
+    "plugin-authentication-webauthn-device";
 inline constexpr const char kConnectionAttributes[] = "connection-attributes";
 inline constexpr const char kUri[] = "uri";
 inline constexpr const char kSsh[] = "ssh";

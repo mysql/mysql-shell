@@ -44,6 +44,9 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    Allows defining the OCI profile used from
                                    the configuration for client side OCI
                                    authentication.
+  --plugin-authentication-webauthn-device=<index>
+                                   Allows selecting the authentication device
+                                   used for client side webauthn authentication.
   --authentication-openid-connect-client-id-token-file=<path>
                                    Allows defining the file path to an OpenId
                                    Connect authorization token file when using

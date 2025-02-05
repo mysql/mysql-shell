@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,12 +130,13 @@ int trace_event(struct st_mysql_client_plugin_TRACE * /*plugin_data*/,
 
     if (0 == strcmp(args.plugin_name, "authentication_fido_client")) {
       // Instantiating the fido handler will set the print callback
-      fido::register_callbacks(conn, args.plugin_name);
+      fido::register_callbacks(conn);
     } else if (0 ==
                strcmp(args.plugin_name, "authentication_webauthn_client")) {
       // Instantiating the fido handler will set the print callback
-      fido::register_callbacks(conn, args.plugin_name);
+      webauthn::register_callbacks(conn);
       webauthn::set_preserve_privacy(conn);
+      webauthn::set_device_index(conn);
     } else if (0 == strcmp(args.plugin_name, "authentication_oci_client")) {
       // make sure that the configured OCI config file is used for
       // authentication

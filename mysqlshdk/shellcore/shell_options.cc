@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -353,6 +353,11 @@ Shell_options::Shell_options(
       "Allows defining the OCI profile used from the configuration for client side OCI authentication.",
       [this](const std::string&, const char* value) {
         storage.connection_data.set_oci_client_config_profile(value);
+      })
+    (cmdline("--plugin-authentication-webauthn-device=<index>"),
+      "Allows selecting the authentication device used for client side webauthn authentication.",
+      [this](const std::string&, const char* value) {
+        storage.connection_data.set(mysqlshdk::db::kWebauthnClientDeviceIndex, value);
       })
     (cmdline("--authentication-openid-connect-client-id-token-file=<path>"),
       "Allows defining the file path to an OpenId Connect authorization token file when using OpenId Connect authentication",

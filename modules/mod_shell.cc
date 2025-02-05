@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -581,6 +581,8 @@ PERFORMANCE_SCHEMA connection attributes tables.
 @li net-buffer-length: The buffer size for TCP/IP and socket communication.
 @li plugin-authentication-kerberos-client-mode: (Windows) Allows defining the kerberos
 client mode (SSPI, GSSAPI) when using kerberos authentication.
+@li plugin-authentication-webauthn-device: Allows selecting the authentication device
+used for client side webauthn authentication.
 @li oci-config-file: Allows defining the OCI configuration file for OCI authentication.
 @li authentication-oci-client-config-profile: Allows defining the OCI profile used from
 the configuration for client side OCI authentication.

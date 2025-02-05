@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -271,6 +271,10 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void set_interactive(bool value);
   bool is_interactive() const;
 
+  bool has_webauth_device_index() const;
+  void set_webauth_device_index(uint8_t index);
+  uint8_t get_webauth_device_index() const;
+
  private:
   void _set_fixed(const std::string &key, const std::string &val);
   bool is_extra_option(const std::string &option);
@@ -285,6 +289,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   std::optional<int> m_connect_timeout;
   std::optional<int> m_net_read_timeout;
   std::optional<int> m_net_write_timeout;
+  std::optional<uint8_t> m_webauth_device_index;
 
   Ssl_options m_ssl_options;
   ssh::Ssh_connection_options m_ssh_options;

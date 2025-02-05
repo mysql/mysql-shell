@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,7 +64,7 @@ const std::set<std::string> uri_extra_options = {
     kOciAuthenticationClientConfigProfile,
     kOpenIdConnectAuthenticationClientTokenFile,
     kClientInteractive,
-};
+    kWebauthnClientDeviceIndex};
 
 int lexical_cast_timeout(const std::string &name, const std::string &value) {
   try {
@@ -496,7 +496,15 @@ void Connection_options::set(const std::string &name,
         !has_value(kAuthMethod)) {
       set(kAuthMethod, kAuthMethodOpenIdConnect);
     }
-
+    if (name == kWebauthnClientDeviceIndex) {
+      try {
+        set_webauth_device_index(shcore::lexical_cast<uint8_t>(value));
+      } catch (...) {
+        throw std::invalid_argument(
+            "The value of '"s + kWebauthnClientDeviceIndex +
+            "' must be an integer equal or larger than 0."s);
+      }
+    }
     m_extra_options.set(name, value, Set_mode::CREATE);
   } else if (name == kConnectionAttributes) {
     // When connection-attributes has assigned a single value, it must
@@ -586,6 +594,7 @@ bool Connection_options::has(const std::string &name) const {
   if (name == db::kConnectTimeout) return has_connect_timeout();
   if (name == db::kNetReadTimeout) return has_net_read_timeout();
   if (name == db::kNetWriteTimeout) return has_net_write_timeout();
+  if (name == db::kWebauthnClientDeviceIndex) return has_webauth_device_index();
 
   return m_options.has(name) || m_ssl_options.has(name) ||
          m_extra_options.has(name) || m_options.compare(name, kPort) == 0;
@@ -715,6 +724,7 @@ int Connection_options::get_numeric(const std::string &name) const {
   if (name == db::kConnectTimeout) return get_connect_timeout();
   if (name == db::kNetReadTimeout) return get_net_read_timeout();
   if (name == db::kNetWriteTimeout) return get_net_write_timeout();
+  if (name == db::kWebauthnClientDeviceIndex) return get_webauth_device_index();
 
   throw std::invalid_argument(
       shcore::str_format("Invalid URI property: %s", name.c_str()));
@@ -951,6 +961,19 @@ void Connection_options::set_interactive(bool value) {
 
 bool Connection_options::is_interactive() const {
   return m_interactive || is_enabled(kClientInteractive);
+}
+
+bool Connection_options::has_webauth_device_index() const {
+  return m_webauth_device_index.has_value();
+}
+
+void Connection_options::set_webauth_device_index(uint8_t index) {
+  m_webauth_device_index = index;
+}
+
+uint8_t Connection_options::get_webauth_device_index() const {
+  assert(has_webauth_device_index());
+  return *m_webauth_device_index;
 }
 
 void Connection_options::set_connection_attribute(const std::string &attribute,
