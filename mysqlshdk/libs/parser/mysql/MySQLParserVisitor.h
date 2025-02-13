@@ -162,6 +162,10 @@ public:
 
     virtual std::any visitRoutineCreateOption(MySQLParser::RoutineCreateOptionContext *context) = 0;
 
+    virtual std::any visitLibraryList(MySQLParser::LibraryListContext *context) = 0;
+
+    virtual std::any visitLibraryNameWithAlias(MySQLParser::LibraryNameWithAliasContext *context) = 0;
+
     virtual std::any visitRoutineAlterOptions(MySQLParser::RoutineAlterOptionsContext *context) = 0;
 
     virtual std::any visitRoutineOption(MySQLParser::RoutineOptionContext *context) = 0;
@@ -187,6 +191,8 @@ public:
     virtual std::any visitCreateTablespace(MySQLParser::CreateTablespaceContext *context) = 0;
 
     virtual std::any visitCreateUndoTablespace(MySQLParser::CreateUndoTablespaceContext *context) = 0;
+
+    virtual std::any visitCreateLibrary(MySQLParser::CreateLibraryContext *context) = 0;
 
     virtual std::any visitTsDataFileName(MySQLParser::TsDataFileNameContext *context) = 0;
 
@@ -272,6 +278,8 @@ public:
 
     virtual std::any visitDropUndoTablespace(MySQLParser::DropUndoTablespaceContext *context) = 0;
 
+    virtual std::any visitDropLibrary(MySQLParser::DropLibraryContext *context) = 0;
+
     virtual std::any visitRenameTableStatement(MySQLParser::RenameTableStatementContext *context) = 0;
 
     virtual std::any visitRenamePair(MySQLParser::RenamePairContext *context) = 0;
@@ -338,6 +346,8 @@ public:
 
     virtual std::any visitLoadAlgorithm(MySQLParser::LoadAlgorithmContext *context) = 0;
 
+    virtual std::any visitCompressionAlgorithm(MySQLParser::CompressionAlgorithmContext *context) = 0;
+
     virtual std::any visitLoadParallel(MySQLParser::LoadParallelContext *context) = 0;
 
     virtual std::any visitLoadMemory(MySQLParser::LoadMemoryContext *context) = 0;
@@ -369,6 +379,14 @@ public:
     virtual std::any visitLimitOptions(MySQLParser::LimitOptionsContext *context) = 0;
 
     virtual std::any visitLimitOption(MySQLParser::LimitOptionContext *context) = 0;
+
+    virtual std::any visitOutfileURI(MySQLParser::OutfileURIContext *context) = 0;
+
+    virtual std::any visitOutfileFileInfo(MySQLParser::OutfileFileInfoContext *context) = 0;
+
+    virtual std::any visitOutfileFileInfoList(MySQLParser::OutfileFileInfoListContext *context) = 0;
+
+    virtual std::any visitOutfileFileInfoElem(MySQLParser::OutfileFileInfoElemContext *context) = 0;
 
     virtual std::any visitIntoClause(MySQLParser::IntoClauseContext *context) = 0;
 
@@ -532,11 +550,9 @@ public:
 
     virtual std::any visitSourceResetOptions(MySQLParser::SourceResetOptionsContext *context) = 0;
 
-    virtual std::any visitReplicationLoad(MySQLParser::ReplicationLoadContext *context) = 0;
+    virtual std::any visitReplicationSource(MySQLParser::ReplicationSourceContext *context) = 0;
 
     virtual std::any visitChangeReplicationSource(MySQLParser::ChangeReplicationSourceContext *context) = 0;
-
-    virtual std::any visitChangeSource(MySQLParser::ChangeSourceContext *context) = 0;
 
     virtual std::any visitSourceDefinitions(MySQLParser::SourceDefinitionsContext *context) = 0;
 
@@ -608,7 +624,7 @@ public:
 
     virtual std::any visitServerIdList(MySQLParser::ServerIdListContext *context) = 0;
 
-    virtual std::any visitChangeReplication(MySQLParser::ChangeReplicationContext *context) = 0;
+    virtual std::any visitChangeReplicationFilter(MySQLParser::ChangeReplicationFilterContext *context) = 0;
 
     virtual std::any visitFilterDefinition(MySQLParser::FilterDefinitionContext *context) = 0;
 
@@ -857,6 +873,8 @@ public:
     virtual std::any visitShowCreateProcedureStatement(MySQLParser::ShowCreateProcedureStatementContext *context) = 0;
 
     virtual std::any visitShowCreateFunctionStatement(MySQLParser::ShowCreateFunctionStatementContext *context) = 0;
+
+    virtual std::any visitShowCreateLibraryStatement(MySQLParser::ShowCreateLibraryStatementContext *context) = 0;
 
     virtual std::any visitShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext *context) = 0;
 
@@ -1525,6 +1543,10 @@ public:
     virtual std::any visitResourceGroupRef(MySQLParser::ResourceGroupRefContext *context) = 0;
 
     virtual std::any visitWindowName(MySQLParser::WindowNameContext *context) = 0;
+
+    virtual std::any visitLibraryName(MySQLParser::LibraryNameContext *context) = 0;
+
+    virtual std::any visitLibraryRef(MySQLParser::LibraryRefContext *context) = 0;
 
     virtual std::any visitPureIdentifier(MySQLParser::PureIdentifierContext *context) = 0;
 

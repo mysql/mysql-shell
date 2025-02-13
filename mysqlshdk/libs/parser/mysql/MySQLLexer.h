@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -283,12 +283,13 @@ public:
     GENERATE_SYMBOL = 823, PARSE_TREE_SYMBOL = 824, LOG_SYMBOL = 825, GTIDS_SYMBOL = 826, 
     PARALLEL_SYMBOL = 827, S3_SYMBOL = 828, QUALIFY_SYMBOL = 829, AUTO_SYMBOL = 830, 
     MANUAL_SYMBOL = 831, BERNOULLI_SYMBOL = 832, TABLESAMPLE_SYMBOL = 833, 
-    WHITESPACE = 834, INVALID_INPUT = 835, UNDERSCORE_CHARSET = 836, IDENTIFIER = 837, 
-    NCHAR_TEXT = 838, BACK_TICK_QUOTED_ID = 839, DOUBLE_QUOTED_TEXT = 840, 
-    SINGLE_QUOTED_TEXT = 841, DOLLAR_QUOTED_STRING_TEXT = 842, VERSION_COMMENT_START = 843, 
-    MYSQL_COMMENT_START = 844, VERSION_COMMENT_END = 845, BLOCK_COMMENT = 846, 
-    INVALID_BLOCK_COMMENT = 847, POUND_COMMENT = 848, DASHDASH_COMMENT = 849, 
-    SIMPLE_IDENTIFIER = 850, NOT_EQUAL2_OPERATOR = 851
+    VECTOR_SYMBOL = 834, PARAMETERS_SYMBOL = 835, HEADER_SYMBOL = 836, LIBRARY_SYMBOL = 837, 
+    WHITESPACE = 838, INVALID_INPUT = 839, UNDERSCORE_CHARSET = 840, DOLLAR_QUOTED_STRING_TEXT = 841, 
+    IDENTIFIER = 842, NCHAR_TEXT = 843, BACK_TICK_QUOTED_ID = 844, DOUBLE_QUOTED_TEXT = 845, 
+    SINGLE_QUOTED_TEXT = 846, VERSION_COMMENT_START = 847, MYSQL_COMMENT_START = 848, 
+    VERSION_COMMENT_END = 849, BLOCK_COMMENT = 850, INVALID_BLOCK_COMMENT = 851, 
+    POUND_COMMENT = 852, DASHDASH_COMMENT = 853, SIMPLE_IDENTIFIER = 854, 
+    NOT_EQUAL2_OPERATOR = 855
   };
 
   enum {
@@ -583,10 +584,14 @@ private:
   bool MANUAL_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool BERNOULLI_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool TABLESAMPLE_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool VECTOR_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool PARAMETERS_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool HEADER_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool LIBRARY_SYMBOLSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
+  bool DOLLAR_QUOTED_STRING_TEXTSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool BACK_TICK_QUOTED_IDSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool DOUBLE_QUOTED_TEXTSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool SINGLE_QUOTED_TEXTSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
-  bool DOLLAR_QUOTED_STRING_TEXTSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool VERSION_COMMENT_STARTSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
   bool VERSION_COMMENT_ENDSempred(antlr4::RuleContext *_localctx, size_t predicateIndex);
 

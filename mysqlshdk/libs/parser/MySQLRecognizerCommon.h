@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,11 +49,12 @@ namespace parsers {
 
 class PARSERS_PUBLIC_TYPE MySQLLexer;
 
-// A class containing definitions and members used by both lexer and parser
-// classes.
+/**
+ * This class describes functionality found in both, lexer and parser classes.
+ */
 class PARSERS_PUBLIC_TYPE MySQLRecognizerCommon {
  public:
-  // SQL modes that control parsing behavior.
+  /** SQL modes that control parsing behavior. */
   enum SqlMode {
     NoMode = 0,
     AnsiQuotes = 1 << 0,
@@ -63,16 +64,22 @@ class PARSERS_PUBLIC_TYPE MySQLRecognizerCommon {
     NoBackslashEscapes = 1 << 4
   };
 
-  // For parameterizing the parsing process.
+  /** The server version to use for lexing/parsing. */
   uint32_t serverVersion;
-  SqlMode sqlMode;  // A collection of flags indicating which of relevant SQL
-                    // modes are active.
+
+  /** SQL modes to use for lexing/parsing. */
+  SqlMode sqlMode;
 
   /** Enable Multi Language Extension support. */
   bool supportMle = true;
 
-  // Returns true if the given mode (one of the enums above) is set.
+  /** @returns true if the given mode (one of the enums above) is set. */
   bool isSqlModeActive(size_t mode) const;
+
+  /**
+   * Parses the given mode string and keeps all found SQL mode in a private
+   * member. Only used for lexer.
+   */
   void sqlModeFromString(std::string modes);
 
   static std::string dumpTree(antlr4::RuleContext *context,

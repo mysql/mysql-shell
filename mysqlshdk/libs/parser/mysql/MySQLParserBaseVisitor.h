@@ -273,6 +273,14 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitLibraryList(MySQLParser::LibraryListContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLibraryNameWithAlias(MySQLParser::LibraryNameWithAliasContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitRoutineAlterOptions(MySQLParser::RoutineAlterOptionsContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -322,6 +330,10 @@ public:
   }
 
   virtual std::any visitCreateUndoTablespace(MySQLParser::CreateUndoTablespaceContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitCreateLibrary(MySQLParser::CreateLibraryContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -493,6 +505,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitDropLibrary(MySQLParser::DropLibraryContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitRenameTableStatement(MySQLParser::RenameTableStatementContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -625,6 +641,10 @@ public:
     return visitChildren(ctx);
   }
 
+  virtual std::any visitCompressionAlgorithm(MySQLParser::CompressionAlgorithmContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
   virtual std::any visitLoadParallel(MySQLParser::LoadParallelContext *ctx) override {
     return visitChildren(ctx);
   }
@@ -686,6 +706,22 @@ public:
   }
 
   virtual std::any visitLimitOption(MySQLParser::LimitOptionContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitOutfileURI(MySQLParser::OutfileURIContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitOutfileFileInfo(MySQLParser::OutfileFileInfoContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitOutfileFileInfoList(MySQLParser::OutfileFileInfoListContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitOutfileFileInfoElem(MySQLParser::OutfileFileInfoElemContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -1013,15 +1049,11 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitReplicationLoad(MySQLParser::ReplicationLoadContext *ctx) override {
+  virtual std::any visitReplicationSource(MySQLParser::ReplicationSourceContext *ctx) override {
     return visitChildren(ctx);
   }
 
   virtual std::any visitChangeReplicationSource(MySQLParser::ChangeReplicationSourceContext *ctx) override {
-    return visitChildren(ctx);
-  }
-
-  virtual std::any visitChangeSource(MySQLParser::ChangeSourceContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -1165,7 +1197,7 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitChangeReplication(MySQLParser::ChangeReplicationContext *ctx) override {
+  virtual std::any visitChangeReplicationFilter(MySQLParser::ChangeReplicationFilterContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -1662,6 +1694,10 @@ public:
   }
 
   virtual std::any visitShowCreateFunctionStatement(MySQLParser::ShowCreateFunctionStatementContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitShowCreateLibraryStatement(MySQLParser::ShowCreateLibraryStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
@@ -2998,6 +3034,14 @@ public:
   }
 
   virtual std::any visitWindowName(MySQLParser::WindowNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLibraryName(MySQLParser::LibraryNameContext *ctx) override {
+    return visitChildren(ctx);
+  }
+
+  virtual std::any visitLibraryRef(MySQLParser::LibraryRefContext *ctx) override {
     return visitChildren(ctx);
   }
 

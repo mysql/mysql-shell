@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,10 @@
 #include "mysqlshdk/libs/parser/server/keyword_diff81.h"
 #include "mysqlshdk/libs/parser/server/keyword_diff82.h"
 #include "mysqlshdk/libs/parser/server/keyword_diff83.h"
+#include "mysqlshdk/libs/parser/server/keyword_diff84.h"
+#include "mysqlshdk/libs/parser/server/keyword_diff90.h"
+// no changes in 9.1.0
+#include "mysqlshdk/libs/parser/server/keyword_diff92.h"
 
 #include "mysqlshdk/libs/parser/server/system-functions.h"
 
@@ -54,12 +58,18 @@ std::set<std::string> const &MySQLSymbolInfo::systemFunctionsForVersion(
     case MySQLVersion::MySQL81:
     case MySQLVersion::MySQL82:
     case MySQLVersion::MySQL83:
+    case MySQLVersion::MySQL84:
+    case MySQLVersion::MySQL90:
+    case MySQLVersion::MySQL91:
+    case MySQLVersion::MySQL92:
     case MySQLVersion::Highest:
       return systemFunctions80;
 
-    default:
+    case MySQLVersion::Unknown:
       return k_empty;
   }
+
+  return k_empty;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -119,6 +129,18 @@ std::set<std::string_view> const &MySQLSymbolInfo::keywordsForVersion(
     if (version >= MySQLVersion::MySQL83) {
       apply(keyword_diff_83::added, keyword_diff_83::removed);
     }
+
+    if (version >= MySQLVersion::MySQL84) {
+      apply(keyword_diff_84::added, keyword_diff_84::removed);
+    }
+
+    if (version >= MySQLVersion::MySQL90) {
+      apply(keyword_diff_90::added, keyword_diff_90::removed);
+    }
+
+    if (version >= MySQLVersion::MySQL92) {
+      apply(keyword_diff_92::added, keyword_diff_92::removed);
+    }
   }
 
   return result;
@@ -145,10 +167,16 @@ bool MySQLSymbolInfo::isKeyword(std::string_view identifier,
 //----------------------------------------------------------------------------------------------------------------------
 
 MySQLVersion MySQLSymbolInfo::numberToVersion(uint32_t version) {
+  if (version < 100) {
+    version *= 10000;
+  } else if (version < 10000) {
+    version *= 100;
+  }
+
   uint32_t major = version / 10000, minor = (version / 100) % 100;
 
   if (major < 5) return MySQLVersion::Unknown;
-  if (major > 8) return MySQLVersion::Highest;
+  if (major > 9) return MySQLVersion::Highest;
 
   switch (major) {
     case 5:
@@ -167,6 +195,24 @@ MySQLVersion MySQLSymbolInfo::numberToVersion(uint32_t version) {
 
         case 3:
           return MySQLVersion::MySQL83;
+
+        case 4:
+          return MySQLVersion::MySQL84;
+
+        default:
+          return MySQLVersion::Unknown;
+      }
+
+    case 9:
+      switch (minor) {
+        case 0:
+          return MySQLVersion::MySQL90;
+
+        case 1:
+          return MySQLVersion::MySQL91;
+
+        case 2:
+          return MySQLVersion::MySQL92;
 
         default:
           return MySQLVersion::Highest;
