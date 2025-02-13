@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -148,13 +148,17 @@ const std::vector<std::string> &Polyglot_context::keywords() const {
 std::tuple<bool, polyglot::Store, std::string> Polyglot_context::get_member_of(
     const poly_value obj, const std::string &name) {
   auto member = get_member(thread(), obj, name);
-  auto type = to_string(thread(), type_info(member));
-  if (shcore::str_beginswith(type, "m.")) {
-    type = type.substr(2);
+  if (member) {
+    auto type = to_string(thread(), type_info(member));
+    if (shcore::str_beginswith(type, "m.")) {
+      type = type.substr(2);
+    }
+
+    return {is_executable(thread(), member), Store(thread(), member),
+            std::move(type)};
   }
 
-  return {is_executable(thread(), member), Store(thread(), member),
-          std::move(type)};
+  return {false, Store(nullptr), ""};
 }
 
 std::vector<std::pair<bool, std::string>> Polyglot_context::get_members_of(
