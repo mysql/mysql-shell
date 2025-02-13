@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1264,17 +1264,17 @@ public:
   virtual void enterShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext * /*ctx*/) override { }
   virtual void exitShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext * /*ctx*/) override { }
 
-  virtual void enterShowCreateProcedureStatusStatement(MySQLParser::ShowCreateProcedureStatusStatementContext * /*ctx*/) override { }
-  virtual void exitShowCreateProcedureStatusStatement(MySQLParser::ShowCreateProcedureStatusStatementContext * /*ctx*/) override { }
+  virtual void enterShowProcedureStatusStatement(MySQLParser::ShowProcedureStatusStatementContext * /*ctx*/) override { }
+  virtual void exitShowProcedureStatusStatement(MySQLParser::ShowProcedureStatusStatementContext * /*ctx*/) override { }
 
-  virtual void enterShowCreateFunctionStatusStatement(MySQLParser::ShowCreateFunctionStatusStatementContext * /*ctx*/) override { }
-  virtual void exitShowCreateFunctionStatusStatement(MySQLParser::ShowCreateFunctionStatusStatementContext * /*ctx*/) override { }
+  virtual void enterShowFunctionStatusStatement(MySQLParser::ShowFunctionStatusStatementContext * /*ctx*/) override { }
+  virtual void exitShowFunctionStatusStatement(MySQLParser::ShowFunctionStatusStatementContext * /*ctx*/) override { }
 
-  virtual void enterShowCreateProcedureCodeStatement(MySQLParser::ShowCreateProcedureCodeStatementContext * /*ctx*/) override { }
-  virtual void exitShowCreateProcedureCodeStatement(MySQLParser::ShowCreateProcedureCodeStatementContext * /*ctx*/) override { }
+  virtual void enterShowProcedureCodeStatement(MySQLParser::ShowProcedureCodeStatementContext * /*ctx*/) override { }
+  virtual void exitShowProcedureCodeStatement(MySQLParser::ShowProcedureCodeStatementContext * /*ctx*/) override { }
 
-  virtual void enterShowCreateFunctionCodeStatement(MySQLParser::ShowCreateFunctionCodeStatementContext * /*ctx*/) override { }
-  virtual void exitShowCreateFunctionCodeStatement(MySQLParser::ShowCreateFunctionCodeStatementContext * /*ctx*/) override { }
+  virtual void enterShowFunctionCodeStatement(MySQLParser::ShowFunctionCodeStatementContext * /*ctx*/) override { }
+  virtual void exitShowFunctionCodeStatement(MySQLParser::ShowFunctionCodeStatementContext * /*ctx*/) override { }
 
   virtual void enterShowCreateEventStatement(MySQLParser::ShowCreateEventStatementContext * /*ctx*/) override { }
   virtual void exitShowCreateEventStatement(MySQLParser::ShowCreateEventStatementContext * /*ctx*/) override { }

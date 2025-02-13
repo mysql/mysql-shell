@@ -1,7 +1,7 @@
 parser grammar MySQLParser;
 
 /*
- * Copyright (c) 2012, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2012, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -163,10 +163,10 @@ simpleStatement:
     | showCreateProcedureStatement
     | showCreateFunctionStatement
     | showCreateTriggerStatement
-    | showCreateProcedureStatusStatement
-    | showCreateFunctionStatusStatement
-    | showCreateProcedureCodeStatement
-    | showCreateFunctionCodeStatement
+    | showProcedureStatusStatement
+    | showFunctionStatusStatement
+    | showProcedureCodeStatement
+    | showFunctionCodeStatement
     | showCreateEventStatement
     | {this.serverVersion >= 50704}? showCreateUserStatement
     | {this.serverVersion >= 80000}? resourceGroupManagement
@@ -2600,20 +2600,20 @@ showCreateTriggerStatement:
     SHOW_SYMBOL CREATE_SYMBOL TRIGGER_SYMBOL triggerRef
 ;
 
-showCreateProcedureStatusStatement:
-    SHOW_SYMBOL CREATE_SYMBOL PROCEDURE_SYMBOL STATUS_SYMBOL likeOrWhere?
+showProcedureStatusStatement:
+    SHOW_SYMBOL PROCEDURE_SYMBOL STATUS_SYMBOL likeOrWhere?
 ;
 
-showCreateFunctionStatusStatement:
-    SHOW_SYMBOL CREATE_SYMBOL FUNCTION_SYMBOL STATUS_SYMBOL likeOrWhere?
+showFunctionStatusStatement:
+    SHOW_SYMBOL FUNCTION_SYMBOL STATUS_SYMBOL likeOrWhere?
 ;
 
-showCreateProcedureCodeStatement:
-    SHOW_SYMBOL CREATE_SYMBOL PROCEDURE_SYMBOL CODE_SYMBOL procedureRef
+showProcedureCodeStatement:
+    SHOW_SYMBOL PROCEDURE_SYMBOL CODE_SYMBOL procedureRef
 ;
 
-showCreateFunctionCodeStatement:
-    SHOW_SYMBOL CREATE_SYMBOL FUNCTION_SYMBOL CODE_SYMBOL functionRef
+showFunctionCodeStatement:
+    SHOW_SYMBOL FUNCTION_SYMBOL CODE_SYMBOL functionRef
 ;
 
 showCreateEventStatement:

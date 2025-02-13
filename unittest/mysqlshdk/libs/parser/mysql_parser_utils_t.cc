@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -263,6 +263,23 @@ TEST(MysqlParserUtils, extract_table_references) {
       "WITH cte (c1, c2) AS (SELECT 1, 2 UNION ALL SELECT 3, 4) SELECT c1, c2 "
       "FROM cte;",
       {});
+}
+
+TEST(MysqlParserUtils, bug_37393439) {
+  // grammar of SHOW FUNCTION/PROCEDURE STATUS/CODE was not correct
+  EXPECT_NO_THROW(check_sql_syntax("SHOW FUNCTION STATUS", {}));
+  EXPECT_NO_THROW(check_sql_syntax("SHOW FUNCTION STATUS LIKE 'func%'", {}));
+  EXPECT_NO_THROW(
+      check_sql_syntax("SHOW FUNCTION STATUS WHERE Name LIKE 'func%'", {}));
+
+  EXPECT_NO_THROW(check_sql_syntax("SHOW PROCEDURE STATUS", {}));
+  EXPECT_NO_THROW(check_sql_syntax("SHOW PROCEDURE STATUS LIKE 'proc%'", {}));
+  EXPECT_NO_THROW(
+      check_sql_syntax("SHOW PROCEDURE STATUS WHERE Name LIKE 'proc%'", {}));
+
+  EXPECT_NO_THROW(check_sql_syntax("SHOW FUNCTION CODE func", {}));
+
+  EXPECT_NO_THROW(check_sql_syntax("SHOW PROCEDURE CODE proc", {}));
 }
 
 }  // namespace parser

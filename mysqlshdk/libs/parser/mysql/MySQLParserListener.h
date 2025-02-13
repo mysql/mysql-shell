@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1262,17 +1262,17 @@ public:
   virtual void enterShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext *ctx) = 0;
   virtual void exitShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext *ctx) = 0;
 
-  virtual void enterShowCreateProcedureStatusStatement(MySQLParser::ShowCreateProcedureStatusStatementContext *ctx) = 0;
-  virtual void exitShowCreateProcedureStatusStatement(MySQLParser::ShowCreateProcedureStatusStatementContext *ctx) = 0;
+  virtual void enterShowProcedureStatusStatement(MySQLParser::ShowProcedureStatusStatementContext *ctx) = 0;
+  virtual void exitShowProcedureStatusStatement(MySQLParser::ShowProcedureStatusStatementContext *ctx) = 0;
 
-  virtual void enterShowCreateFunctionStatusStatement(MySQLParser::ShowCreateFunctionStatusStatementContext *ctx) = 0;
-  virtual void exitShowCreateFunctionStatusStatement(MySQLParser::ShowCreateFunctionStatusStatementContext *ctx) = 0;
+  virtual void enterShowFunctionStatusStatement(MySQLParser::ShowFunctionStatusStatementContext *ctx) = 0;
+  virtual void exitShowFunctionStatusStatement(MySQLParser::ShowFunctionStatusStatementContext *ctx) = 0;
 
-  virtual void enterShowCreateProcedureCodeStatement(MySQLParser::ShowCreateProcedureCodeStatementContext *ctx) = 0;
-  virtual void exitShowCreateProcedureCodeStatement(MySQLParser::ShowCreateProcedureCodeStatementContext *ctx) = 0;
+  virtual void enterShowProcedureCodeStatement(MySQLParser::ShowProcedureCodeStatementContext *ctx) = 0;
+  virtual void exitShowProcedureCodeStatement(MySQLParser::ShowProcedureCodeStatementContext *ctx) = 0;
 
-  virtual void enterShowCreateFunctionCodeStatement(MySQLParser::ShowCreateFunctionCodeStatementContext *ctx) = 0;
-  virtual void exitShowCreateFunctionCodeStatement(MySQLParser::ShowCreateFunctionCodeStatementContext *ctx) = 0;
+  virtual void enterShowFunctionCodeStatement(MySQLParser::ShowFunctionCodeStatementContext *ctx) = 0;
+  virtual void exitShowFunctionCodeStatement(MySQLParser::ShowFunctionCodeStatementContext *ctx) = 0;
 
   virtual void enterShowCreateEventStatement(MySQLParser::ShowCreateEventStatementContext *ctx) = 0;
   virtual void exitShowCreateEventStatement(MySQLParser::ShowCreateEventStatementContext *ctx) = 0;

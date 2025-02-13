@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -436,9 +436,9 @@ public:
     RuleShowCreateTableStatement = 399, RuleShowCreateViewStatement = 400, 
     RuleShowMasterStatusStatement = 401, RuleShowReplicaStatusStatement = 402, 
     RuleShowCreateProcedureStatement = 403, RuleShowCreateFunctionStatement = 404, 
-    RuleShowCreateTriggerStatement = 405, RuleShowCreateProcedureStatusStatement = 406, 
-    RuleShowCreateFunctionStatusStatement = 407, RuleShowCreateProcedureCodeStatement = 408, 
-    RuleShowCreateFunctionCodeStatement = 409, RuleShowCreateEventStatement = 410, 
+    RuleShowCreateTriggerStatement = 405, RuleShowProcedureStatusStatement = 406, 
+    RuleShowFunctionStatusStatement = 407, RuleShowProcedureCodeStatement = 408, 
+    RuleShowFunctionCodeStatement = 409, RuleShowCreateEventStatement = 410, 
     RuleShowCreateUserStatement = 411, RuleShowCommandType = 412, RuleEngineOrAll = 413, 
     RuleFromOrIn = 414, RuleInDb = 415, RuleProfileDefinitions = 416, RuleProfileDefinition = 417, 
     RuleOtherAdministrativeStatement = 418, RuleKeyCacheListOrParts = 419, 
@@ -978,10 +978,10 @@ public:
   class ShowCreateProcedureStatementContext;
   class ShowCreateFunctionStatementContext;
   class ShowCreateTriggerStatementContext;
-  class ShowCreateProcedureStatusStatementContext;
-  class ShowCreateFunctionStatusStatementContext;
-  class ShowCreateProcedureCodeStatementContext;
-  class ShowCreateFunctionCodeStatementContext;
+  class ShowProcedureStatusStatementContext;
+  class ShowFunctionStatusStatementContext;
+  class ShowProcedureCodeStatementContext;
+  class ShowFunctionCodeStatementContext;
   class ShowCreateEventStatementContext;
   class ShowCreateUserStatementContext;
   class ShowCommandTypeContext;
@@ -1412,10 +1412,10 @@ public:
     ShowCreateProcedureStatementContext *showCreateProcedureStatement();
     ShowCreateFunctionStatementContext *showCreateFunctionStatement();
     ShowCreateTriggerStatementContext *showCreateTriggerStatement();
-    ShowCreateProcedureStatusStatementContext *showCreateProcedureStatusStatement();
-    ShowCreateFunctionStatusStatementContext *showCreateFunctionStatusStatement();
-    ShowCreateProcedureCodeStatementContext *showCreateProcedureCodeStatement();
-    ShowCreateFunctionCodeStatementContext *showCreateFunctionCodeStatement();
+    ShowProcedureStatusStatementContext *showProcedureStatusStatement();
+    ShowFunctionStatusStatementContext *showFunctionStatusStatement();
+    ShowProcedureCodeStatementContext *showProcedureCodeStatement();
+    ShowFunctionCodeStatementContext *showFunctionCodeStatement();
     ShowCreateEventStatementContext *showCreateEventStatement();
     ShowCreateUserStatementContext *showCreateUserStatement();
     ResourceGroupManagementContext *resourceGroupManagement();
@@ -9341,12 +9341,11 @@ public:
 
   ShowCreateTriggerStatementContext* showCreateTriggerStatement();
 
-  class  ShowCreateProcedureStatusStatementContext : public antlr4::ParserRuleContext {
+  class  ShowProcedureStatusStatementContext : public antlr4::ParserRuleContext {
   public:
-    ShowCreateProcedureStatusStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    ShowProcedureStatusStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *SHOW_SYMBOL();
-    antlr4::tree::TerminalNode *CREATE_SYMBOL();
     antlr4::tree::TerminalNode *PROCEDURE_SYMBOL();
     antlr4::tree::TerminalNode *STATUS_SYMBOL();
     LikeOrWhereContext *likeOrWhere();
@@ -9358,14 +9357,13 @@ public:
    
   };
 
-  ShowCreateProcedureStatusStatementContext* showCreateProcedureStatusStatement();
+  ShowProcedureStatusStatementContext* showProcedureStatusStatement();
 
-  class  ShowCreateFunctionStatusStatementContext : public antlr4::ParserRuleContext {
+  class  ShowFunctionStatusStatementContext : public antlr4::ParserRuleContext {
   public:
-    ShowCreateFunctionStatusStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    ShowFunctionStatusStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *SHOW_SYMBOL();
-    antlr4::tree::TerminalNode *CREATE_SYMBOL();
     antlr4::tree::TerminalNode *FUNCTION_SYMBOL();
     antlr4::tree::TerminalNode *STATUS_SYMBOL();
     LikeOrWhereContext *likeOrWhere();
@@ -9377,14 +9375,13 @@ public:
    
   };
 
-  ShowCreateFunctionStatusStatementContext* showCreateFunctionStatusStatement();
+  ShowFunctionStatusStatementContext* showFunctionStatusStatement();
 
-  class  ShowCreateProcedureCodeStatementContext : public antlr4::ParserRuleContext {
+  class  ShowProcedureCodeStatementContext : public antlr4::ParserRuleContext {
   public:
-    ShowCreateProcedureCodeStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    ShowProcedureCodeStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *SHOW_SYMBOL();
-    antlr4::tree::TerminalNode *CREATE_SYMBOL();
     antlr4::tree::TerminalNode *PROCEDURE_SYMBOL();
     antlr4::tree::TerminalNode *CODE_SYMBOL();
     ProcedureRefContext *procedureRef();
@@ -9396,14 +9393,13 @@ public:
    
   };
 
-  ShowCreateProcedureCodeStatementContext* showCreateProcedureCodeStatement();
+  ShowProcedureCodeStatementContext* showProcedureCodeStatement();
 
-  class  ShowCreateFunctionCodeStatementContext : public antlr4::ParserRuleContext {
+  class  ShowFunctionCodeStatementContext : public antlr4::ParserRuleContext {
   public:
-    ShowCreateFunctionCodeStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    ShowFunctionCodeStatementContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
     antlr4::tree::TerminalNode *SHOW_SYMBOL();
-    antlr4::tree::TerminalNode *CREATE_SYMBOL();
     antlr4::tree::TerminalNode *FUNCTION_SYMBOL();
     antlr4::tree::TerminalNode *CODE_SYMBOL();
     FunctionRefContext *functionRef();
@@ -9415,7 +9411,7 @@ public:
    
   };
 
-  ShowCreateFunctionCodeStatementContext* showCreateFunctionCodeStatement();
+  ShowFunctionCodeStatementContext* showFunctionCodeStatement();
 
   class  ShowCreateEventStatementContext : public antlr4::ParserRuleContext {
   public:

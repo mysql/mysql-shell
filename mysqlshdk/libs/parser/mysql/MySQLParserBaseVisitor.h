@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1669,19 +1669,19 @@ public:
     return visitChildren(ctx);
   }
 
-  virtual std::any visitShowCreateProcedureStatusStatement(MySQLParser::ShowCreateProcedureStatusStatementContext *ctx) override {
+  virtual std::any visitShowProcedureStatusStatement(MySQLParser::ShowProcedureStatusStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitShowCreateFunctionStatusStatement(MySQLParser::ShowCreateFunctionStatusStatementContext *ctx) override {
+  virtual std::any visitShowFunctionStatusStatement(MySQLParser::ShowFunctionStatusStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitShowCreateProcedureCodeStatement(MySQLParser::ShowCreateProcedureCodeStatementContext *ctx) override {
+  virtual std::any visitShowProcedureCodeStatement(MySQLParser::ShowProcedureCodeStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 
-  virtual std::any visitShowCreateFunctionCodeStatement(MySQLParser::ShowCreateFunctionCodeStatementContext *ctx) override {
+  virtual std::any visitShowFunctionCodeStatement(MySQLParser::ShowFunctionCodeStatementContext *ctx) override {
     return visitChildren(ctx);
   }
 

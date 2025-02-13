@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -210,8 +210,8 @@ class Completer_frontend : public Shell_core_test_wrapper {
     execute("\\py");
     execute("import sys");
     // delete some Python global vars that are leftover from other tests
-    execute("del globals()['db1']");
-    execute("del globals()['db2']");
+    execute("globals().pop('db1', None)");
+    execute("globals().pop('db2', None)");
     wipe_all();
     execute("sys.version.split(' ')[0]");
     m_python_version = output_handler.std_out;
@@ -2492,6 +2492,18 @@ TEST_F(Completer_frontend, bug_36858205) {
   EXPECT_NO_THROW(complete("\\use "));
   EXPECT_NO_THROW(complete("\\help "));
   EXPECT_NO_THROW(complete("\\sql "));
+}
+
+TEST_F(Completer_frontend, bug_37393439) {
+  connect_classic();
+  execute("\\sql");
+
+  // grammar of SHOW FUNCTION/PROCEDURE STATUS/CODE was not correct
+  EXPECT_AFTER_TAB("SHOW FUN", "SHOW FUNCTION");
+  EXPECT_AFTER_TAB_TAB("SHOW FUNCTION ", strv({"CODE", "STATUS"}));
+
+  EXPECT_AFTER_TAB("SHOW PROCED", "SHOW PROCEDURE");
+  EXPECT_AFTER_TAB_TAB("SHOW PROCEDURE ", strv({"CODE", "STATUS"}));
 }
 
 }  // namespace mysqlsh

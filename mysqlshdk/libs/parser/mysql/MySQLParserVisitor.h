@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -860,13 +860,13 @@ public:
 
     virtual std::any visitShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext *context) = 0;
 
-    virtual std::any visitShowCreateProcedureStatusStatement(MySQLParser::ShowCreateProcedureStatusStatementContext *context) = 0;
+    virtual std::any visitShowProcedureStatusStatement(MySQLParser::ShowProcedureStatusStatementContext *context) = 0;
 
-    virtual std::any visitShowCreateFunctionStatusStatement(MySQLParser::ShowCreateFunctionStatusStatementContext *context) = 0;
+    virtual std::any visitShowFunctionStatusStatement(MySQLParser::ShowFunctionStatusStatementContext *context) = 0;
 
-    virtual std::any visitShowCreateProcedureCodeStatement(MySQLParser::ShowCreateProcedureCodeStatementContext *context) = 0;
+    virtual std::any visitShowProcedureCodeStatement(MySQLParser::ShowProcedureCodeStatementContext *context) = 0;
 
-    virtual std::any visitShowCreateFunctionCodeStatement(MySQLParser::ShowCreateFunctionCodeStatementContext *context) = 0;
+    virtual std::any visitShowFunctionCodeStatement(MySQLParser::ShowFunctionCodeStatementContext *context) = 0;
 
     virtual std::any visitShowCreateEventStatement(MySQLParser::ShowCreateEventStatementContext *context) = 0;
 
