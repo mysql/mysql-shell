@@ -2506,4 +2506,9 @@ TEST_F(Completer_frontend, bug_37393439) {
   EXPECT_AFTER_TAB_TAB("SHOW PROCEDURE ", strv({"CODE", "STATUS"}));
 }
 
+TEST_F(Completer_frontend, bug_37528585) {
+  execute("\\js");
+  EXPECT_NO_THROW(complete("shell.unexisting."));
+}
+
 }  // namespace mysqlsh
