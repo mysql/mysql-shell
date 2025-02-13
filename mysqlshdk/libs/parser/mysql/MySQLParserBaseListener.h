@@ -217,6 +217,12 @@ public:
   virtual void enterRoutineCreateOption(MySQLParser::RoutineCreateOptionContext * /*ctx*/) override { }
   virtual void exitRoutineCreateOption(MySQLParser::RoutineCreateOptionContext * /*ctx*/) override { }
 
+  virtual void enterLibraryList(MySQLParser::LibraryListContext * /*ctx*/) override { }
+  virtual void exitLibraryList(MySQLParser::LibraryListContext * /*ctx*/) override { }
+
+  virtual void enterLibraryNameWithAlias(MySQLParser::LibraryNameWithAliasContext * /*ctx*/) override { }
+  virtual void exitLibraryNameWithAlias(MySQLParser::LibraryNameWithAliasContext * /*ctx*/) override { }
+
   virtual void enterRoutineAlterOptions(MySQLParser::RoutineAlterOptionsContext * /*ctx*/) override { }
   virtual void exitRoutineAlterOptions(MySQLParser::RoutineAlterOptionsContext * /*ctx*/) override { }
 
@@ -255,6 +261,9 @@ public:
 
   virtual void enterCreateUndoTablespace(MySQLParser::CreateUndoTablespaceContext * /*ctx*/) override { }
   virtual void exitCreateUndoTablespace(MySQLParser::CreateUndoTablespaceContext * /*ctx*/) override { }
+
+  virtual void enterCreateLibrary(MySQLParser::CreateLibraryContext * /*ctx*/) override { }
+  virtual void exitCreateLibrary(MySQLParser::CreateLibraryContext * /*ctx*/) override { }
 
   virtual void enterTsDataFileName(MySQLParser::TsDataFileNameContext * /*ctx*/) override { }
   virtual void exitTsDataFileName(MySQLParser::TsDataFileNameContext * /*ctx*/) override { }
@@ -382,6 +391,9 @@ public:
   virtual void enterDropUndoTablespace(MySQLParser::DropUndoTablespaceContext * /*ctx*/) override { }
   virtual void exitDropUndoTablespace(MySQLParser::DropUndoTablespaceContext * /*ctx*/) override { }
 
+  virtual void enterDropLibrary(MySQLParser::DropLibraryContext * /*ctx*/) override { }
+  virtual void exitDropLibrary(MySQLParser::DropLibraryContext * /*ctx*/) override { }
+
   virtual void enterRenameTableStatement(MySQLParser::RenameTableStatementContext * /*ctx*/) override { }
   virtual void exitRenameTableStatement(MySQLParser::RenameTableStatementContext * /*ctx*/) override { }
 
@@ -481,6 +493,9 @@ public:
   virtual void enterLoadAlgorithm(MySQLParser::LoadAlgorithmContext * /*ctx*/) override { }
   virtual void exitLoadAlgorithm(MySQLParser::LoadAlgorithmContext * /*ctx*/) override { }
 
+  virtual void enterCompressionAlgorithm(MySQLParser::CompressionAlgorithmContext * /*ctx*/) override { }
+  virtual void exitCompressionAlgorithm(MySQLParser::CompressionAlgorithmContext * /*ctx*/) override { }
+
   virtual void enterLoadParallel(MySQLParser::LoadParallelContext * /*ctx*/) override { }
   virtual void exitLoadParallel(MySQLParser::LoadParallelContext * /*ctx*/) override { }
 
@@ -528,6 +543,18 @@ public:
 
   virtual void enterLimitOption(MySQLParser::LimitOptionContext * /*ctx*/) override { }
   virtual void exitLimitOption(MySQLParser::LimitOptionContext * /*ctx*/) override { }
+
+  virtual void enterOutfileURI(MySQLParser::OutfileURIContext * /*ctx*/) override { }
+  virtual void exitOutfileURI(MySQLParser::OutfileURIContext * /*ctx*/) override { }
+
+  virtual void enterOutfileFileInfo(MySQLParser::OutfileFileInfoContext * /*ctx*/) override { }
+  virtual void exitOutfileFileInfo(MySQLParser::OutfileFileInfoContext * /*ctx*/) override { }
+
+  virtual void enterOutfileFileInfoList(MySQLParser::OutfileFileInfoListContext * /*ctx*/) override { }
+  virtual void exitOutfileFileInfoList(MySQLParser::OutfileFileInfoListContext * /*ctx*/) override { }
+
+  virtual void enterOutfileFileInfoElem(MySQLParser::OutfileFileInfoElemContext * /*ctx*/) override { }
+  virtual void exitOutfileFileInfoElem(MySQLParser::OutfileFileInfoElemContext * /*ctx*/) override { }
 
   virtual void enterIntoClause(MySQLParser::IntoClauseContext * /*ctx*/) override { }
   virtual void exitIntoClause(MySQLParser::IntoClauseContext * /*ctx*/) override { }
@@ -772,14 +799,11 @@ public:
   virtual void enterSourceResetOptions(MySQLParser::SourceResetOptionsContext * /*ctx*/) override { }
   virtual void exitSourceResetOptions(MySQLParser::SourceResetOptionsContext * /*ctx*/) override { }
 
-  virtual void enterReplicationLoad(MySQLParser::ReplicationLoadContext * /*ctx*/) override { }
-  virtual void exitReplicationLoad(MySQLParser::ReplicationLoadContext * /*ctx*/) override { }
+  virtual void enterReplicationSource(MySQLParser::ReplicationSourceContext * /*ctx*/) override { }
+  virtual void exitReplicationSource(MySQLParser::ReplicationSourceContext * /*ctx*/) override { }
 
   virtual void enterChangeReplicationSource(MySQLParser::ChangeReplicationSourceContext * /*ctx*/) override { }
   virtual void exitChangeReplicationSource(MySQLParser::ChangeReplicationSourceContext * /*ctx*/) override { }
-
-  virtual void enterChangeSource(MySQLParser::ChangeSourceContext * /*ctx*/) override { }
-  virtual void exitChangeSource(MySQLParser::ChangeSourceContext * /*ctx*/) override { }
 
   virtual void enterSourceDefinitions(MySQLParser::SourceDefinitionsContext * /*ctx*/) override { }
   virtual void exitSourceDefinitions(MySQLParser::SourceDefinitionsContext * /*ctx*/) override { }
@@ -886,8 +910,8 @@ public:
   virtual void enterServerIdList(MySQLParser::ServerIdListContext * /*ctx*/) override { }
   virtual void exitServerIdList(MySQLParser::ServerIdListContext * /*ctx*/) override { }
 
-  virtual void enterChangeReplication(MySQLParser::ChangeReplicationContext * /*ctx*/) override { }
-  virtual void exitChangeReplication(MySQLParser::ChangeReplicationContext * /*ctx*/) override { }
+  virtual void enterChangeReplicationFilter(MySQLParser::ChangeReplicationFilterContext * /*ctx*/) override { }
+  virtual void exitChangeReplicationFilter(MySQLParser::ChangeReplicationFilterContext * /*ctx*/) override { }
 
   virtual void enterFilterDefinition(MySQLParser::FilterDefinitionContext * /*ctx*/) override { }
   virtual void exitFilterDefinition(MySQLParser::FilterDefinitionContext * /*ctx*/) override { }
@@ -1260,6 +1284,9 @@ public:
 
   virtual void enterShowCreateFunctionStatement(MySQLParser::ShowCreateFunctionStatementContext * /*ctx*/) override { }
   virtual void exitShowCreateFunctionStatement(MySQLParser::ShowCreateFunctionStatementContext * /*ctx*/) override { }
+
+  virtual void enterShowCreateLibraryStatement(MySQLParser::ShowCreateLibraryStatementContext * /*ctx*/) override { }
+  virtual void exitShowCreateLibraryStatement(MySQLParser::ShowCreateLibraryStatementContext * /*ctx*/) override { }
 
   virtual void enterShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext * /*ctx*/) override { }
   virtual void exitShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext * /*ctx*/) override { }
@@ -2262,6 +2289,12 @@ public:
 
   virtual void enterWindowName(MySQLParser::WindowNameContext * /*ctx*/) override { }
   virtual void exitWindowName(MySQLParser::WindowNameContext * /*ctx*/) override { }
+
+  virtual void enterLibraryName(MySQLParser::LibraryNameContext * /*ctx*/) override { }
+  virtual void exitLibraryName(MySQLParser::LibraryNameContext * /*ctx*/) override { }
+
+  virtual void enterLibraryRef(MySQLParser::LibraryRefContext * /*ctx*/) override { }
+  virtual void exitLibraryRef(MySQLParser::LibraryRefContext * /*ctx*/) override { }
 
   virtual void enterPureIdentifier(MySQLParser::PureIdentifierContext * /*ctx*/) override { }
   virtual void exitPureIdentifier(MySQLParser::PureIdentifierContext * /*ctx*/) override { }

@@ -215,6 +215,12 @@ public:
   virtual void enterRoutineCreateOption(MySQLParser::RoutineCreateOptionContext *ctx) = 0;
   virtual void exitRoutineCreateOption(MySQLParser::RoutineCreateOptionContext *ctx) = 0;
 
+  virtual void enterLibraryList(MySQLParser::LibraryListContext *ctx) = 0;
+  virtual void exitLibraryList(MySQLParser::LibraryListContext *ctx) = 0;
+
+  virtual void enterLibraryNameWithAlias(MySQLParser::LibraryNameWithAliasContext *ctx) = 0;
+  virtual void exitLibraryNameWithAlias(MySQLParser::LibraryNameWithAliasContext *ctx) = 0;
+
   virtual void enterRoutineAlterOptions(MySQLParser::RoutineAlterOptionsContext *ctx) = 0;
   virtual void exitRoutineAlterOptions(MySQLParser::RoutineAlterOptionsContext *ctx) = 0;
 
@@ -253,6 +259,9 @@ public:
 
   virtual void enterCreateUndoTablespace(MySQLParser::CreateUndoTablespaceContext *ctx) = 0;
   virtual void exitCreateUndoTablespace(MySQLParser::CreateUndoTablespaceContext *ctx) = 0;
+
+  virtual void enterCreateLibrary(MySQLParser::CreateLibraryContext *ctx) = 0;
+  virtual void exitCreateLibrary(MySQLParser::CreateLibraryContext *ctx) = 0;
 
   virtual void enterTsDataFileName(MySQLParser::TsDataFileNameContext *ctx) = 0;
   virtual void exitTsDataFileName(MySQLParser::TsDataFileNameContext *ctx) = 0;
@@ -380,6 +389,9 @@ public:
   virtual void enterDropUndoTablespace(MySQLParser::DropUndoTablespaceContext *ctx) = 0;
   virtual void exitDropUndoTablespace(MySQLParser::DropUndoTablespaceContext *ctx) = 0;
 
+  virtual void enterDropLibrary(MySQLParser::DropLibraryContext *ctx) = 0;
+  virtual void exitDropLibrary(MySQLParser::DropLibraryContext *ctx) = 0;
+
   virtual void enterRenameTableStatement(MySQLParser::RenameTableStatementContext *ctx) = 0;
   virtual void exitRenameTableStatement(MySQLParser::RenameTableStatementContext *ctx) = 0;
 
@@ -479,6 +491,9 @@ public:
   virtual void enterLoadAlgorithm(MySQLParser::LoadAlgorithmContext *ctx) = 0;
   virtual void exitLoadAlgorithm(MySQLParser::LoadAlgorithmContext *ctx) = 0;
 
+  virtual void enterCompressionAlgorithm(MySQLParser::CompressionAlgorithmContext *ctx) = 0;
+  virtual void exitCompressionAlgorithm(MySQLParser::CompressionAlgorithmContext *ctx) = 0;
+
   virtual void enterLoadParallel(MySQLParser::LoadParallelContext *ctx) = 0;
   virtual void exitLoadParallel(MySQLParser::LoadParallelContext *ctx) = 0;
 
@@ -526,6 +541,18 @@ public:
 
   virtual void enterLimitOption(MySQLParser::LimitOptionContext *ctx) = 0;
   virtual void exitLimitOption(MySQLParser::LimitOptionContext *ctx) = 0;
+
+  virtual void enterOutfileURI(MySQLParser::OutfileURIContext *ctx) = 0;
+  virtual void exitOutfileURI(MySQLParser::OutfileURIContext *ctx) = 0;
+
+  virtual void enterOutfileFileInfo(MySQLParser::OutfileFileInfoContext *ctx) = 0;
+  virtual void exitOutfileFileInfo(MySQLParser::OutfileFileInfoContext *ctx) = 0;
+
+  virtual void enterOutfileFileInfoList(MySQLParser::OutfileFileInfoListContext *ctx) = 0;
+  virtual void exitOutfileFileInfoList(MySQLParser::OutfileFileInfoListContext *ctx) = 0;
+
+  virtual void enterOutfileFileInfoElem(MySQLParser::OutfileFileInfoElemContext *ctx) = 0;
+  virtual void exitOutfileFileInfoElem(MySQLParser::OutfileFileInfoElemContext *ctx) = 0;
 
   virtual void enterIntoClause(MySQLParser::IntoClauseContext *ctx) = 0;
   virtual void exitIntoClause(MySQLParser::IntoClauseContext *ctx) = 0;
@@ -770,14 +797,11 @@ public:
   virtual void enterSourceResetOptions(MySQLParser::SourceResetOptionsContext *ctx) = 0;
   virtual void exitSourceResetOptions(MySQLParser::SourceResetOptionsContext *ctx) = 0;
 
-  virtual void enterReplicationLoad(MySQLParser::ReplicationLoadContext *ctx) = 0;
-  virtual void exitReplicationLoad(MySQLParser::ReplicationLoadContext *ctx) = 0;
+  virtual void enterReplicationSource(MySQLParser::ReplicationSourceContext *ctx) = 0;
+  virtual void exitReplicationSource(MySQLParser::ReplicationSourceContext *ctx) = 0;
 
   virtual void enterChangeReplicationSource(MySQLParser::ChangeReplicationSourceContext *ctx) = 0;
   virtual void exitChangeReplicationSource(MySQLParser::ChangeReplicationSourceContext *ctx) = 0;
-
-  virtual void enterChangeSource(MySQLParser::ChangeSourceContext *ctx) = 0;
-  virtual void exitChangeSource(MySQLParser::ChangeSourceContext *ctx) = 0;
 
   virtual void enterSourceDefinitions(MySQLParser::SourceDefinitionsContext *ctx) = 0;
   virtual void exitSourceDefinitions(MySQLParser::SourceDefinitionsContext *ctx) = 0;
@@ -884,8 +908,8 @@ public:
   virtual void enterServerIdList(MySQLParser::ServerIdListContext *ctx) = 0;
   virtual void exitServerIdList(MySQLParser::ServerIdListContext *ctx) = 0;
 
-  virtual void enterChangeReplication(MySQLParser::ChangeReplicationContext *ctx) = 0;
-  virtual void exitChangeReplication(MySQLParser::ChangeReplicationContext *ctx) = 0;
+  virtual void enterChangeReplicationFilter(MySQLParser::ChangeReplicationFilterContext *ctx) = 0;
+  virtual void exitChangeReplicationFilter(MySQLParser::ChangeReplicationFilterContext *ctx) = 0;
 
   virtual void enterFilterDefinition(MySQLParser::FilterDefinitionContext *ctx) = 0;
   virtual void exitFilterDefinition(MySQLParser::FilterDefinitionContext *ctx) = 0;
@@ -1258,6 +1282,9 @@ public:
 
   virtual void enterShowCreateFunctionStatement(MySQLParser::ShowCreateFunctionStatementContext *ctx) = 0;
   virtual void exitShowCreateFunctionStatement(MySQLParser::ShowCreateFunctionStatementContext *ctx) = 0;
+
+  virtual void enterShowCreateLibraryStatement(MySQLParser::ShowCreateLibraryStatementContext *ctx) = 0;
+  virtual void exitShowCreateLibraryStatement(MySQLParser::ShowCreateLibraryStatementContext *ctx) = 0;
 
   virtual void enterShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext *ctx) = 0;
   virtual void exitShowCreateTriggerStatement(MySQLParser::ShowCreateTriggerStatementContext *ctx) = 0;
@@ -2260,6 +2287,12 @@ public:
 
   virtual void enterWindowName(MySQLParser::WindowNameContext *ctx) = 0;
   virtual void exitWindowName(MySQLParser::WindowNameContext *ctx) = 0;
+
+  virtual void enterLibraryName(MySQLParser::LibraryNameContext *ctx) = 0;
+  virtual void exitLibraryName(MySQLParser::LibraryNameContext *ctx) = 0;
+
+  virtual void enterLibraryRef(MySQLParser::LibraryRefContext *ctx) = 0;
+  virtual void exitLibraryRef(MySQLParser::LibraryRefContext *ctx) = 0;
 
   virtual void enterPureIdentifier(MySQLParser::PureIdentifierContext *ctx) = 0;
   virtual void exitPureIdentifier(MySQLParser::PureIdentifierContext *ctx) = 0;

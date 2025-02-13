@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 
 namespace keyword_diff_83 {
 
+// TODO(pawel): verify if these are correct, depending on the fix of BUG37596276
 inline constexpr std::array<keyword_t, 2> added = {{
     {"CUBE", 0},
     {"QUALIFY", 0},

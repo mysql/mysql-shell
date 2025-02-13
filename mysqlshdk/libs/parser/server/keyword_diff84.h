@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,45 +25,45 @@
 
 #pragma once
 
-// Provides MySQL symbol information for various tasks, like symbol tables,
-// identifier quoting + code completion.
+#include <array>
 
-#include <cstdint>
-#include <set>
-#include <string>
-#include <string_view>
+namespace keyword_diff_84 {
 
-namespace base {
+inline constexpr std::array<keyword_t, 4> added = {{
+    {"AUTO", 0},
+    {"BERNOULLI", 0},
+    {"MANUAL", 0},
+    {"TABLESAMPLE", 0},
+}};
 
-// Currently supported MySQL versions.
-enum class MySQLVersion {
-  Unknown,
-  MySQL57,
-  MySQL80,
-  MySQL81,
-  MySQL82,
-  MySQL83,
-  MySQL84,
-  MySQL90,
-  MySQL91,
-  MySQL92,
-  Highest,
-};
+inline constexpr std::array<keyword_t, 27> removed = {{
+    {"GET_MASTER_PUBLIC_KEY", 0},
+    {"MASTER_AUTO_POSITION", 0},
+    {"MASTER_BIND", 1},
+    {"MASTER_COMPRESSION_ALGORITHMS", 0},
+    {"MASTER_CONNECT_RETRY", 0},
+    {"MASTER_DELAY", 0},
+    {"MASTER_HEARTBEAT_PERIOD", 0},
+    {"MASTER_HOST", 0},
+    {"MASTER_LOG_FILE", 0},
+    {"MASTER_LOG_POS", 0},
+    {"MASTER_PASSWORD", 0},
+    {"MASTER_PORT", 0},
+    {"MASTER_PUBLIC_KEY_PATH", 0},
+    {"MASTER_RETRY_COUNT", 0},
+    {"MASTER_SSL", 0},
+    {"MASTER_SSL_CA", 0},
+    {"MASTER_SSL_CAPATH", 0},
+    {"MASTER_SSL_CERT", 0},
+    {"MASTER_SSL_CIPHER", 0},
+    {"MASTER_SSL_CRL", 0},
+    {"MASTER_SSL_CRLPATH", 0},
+    {"MASTER_SSL_KEY", 0},
+    {"MASTER_SSL_VERIFY_SERVER_CERT", 1},
+    {"MASTER_TLS_CIPHERSUITES", 0},
+    {"MASTER_TLS_VERSION", 0},
+    {"MASTER_USER", 0},
+    {"MASTER_ZSTD_COMPRESSION_LEVEL", 0},
+}};
 
-class MySQLSymbolInfo {
- public:
-  static std::set<std::string> const &systemFunctionsForVersion(
-      MySQLVersion version);
-
-  static std::set<std::string_view> const &keywordsForVersion(
-      MySQLVersion version);
-
-  static bool isReservedKeyword(std::string_view identifier,
-                                MySQLVersion version);
-
-  static bool isKeyword(std::string_view identifier, MySQLVersion version);
-
-  static MySQLVersion numberToVersion(uint32_t version);
-};
-
-}  // namespace base
+}  // namespace keyword_diff_84
