@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1316,7 +1316,7 @@ shell.register_global('kwtest', obj)
   // TEST: Passing named argument for parameter already defined but in a
   // dictionary (See BUG#31500843 For More Details)
   add_py_test("kwtest.print_args('Black', 'Pearl', {'name': 'allowed'})",
-              "ScriptingError: print_args() got multiple "
+              "RuntimeError: print_args() got multiple "
               "values for argument 'name'");
 
   // run the test

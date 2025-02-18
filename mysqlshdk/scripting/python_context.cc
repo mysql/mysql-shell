@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1857,7 +1857,15 @@ void Python_context::throw_if_mysqlsh_error() {
 
 void Python_context::clear_exception() { PyErr_Clear(); }
 
-std::string Python_context::fetch_and_clear_exception() {
+std::string Python_context::fetch_and_clear_exception(
+    std::string *out_traceback, std::string *out_type) {
+  // If out_traceback is NULL, then return the whole traceback (legacy behavior)
+  // If out_traceback is NOT NULL, then only the exception text is returned and
+  // out_traceback contains the full traceback
+
+  // if out_type is set, then out_traceback must also be set
+  assert(!out_type || (out_type && out_traceback));
+
   if (!PyErr_Occurred()) return {};
 
   std::string exception;
@@ -1899,6 +1907,7 @@ std::string Python_context::fetch_and_clear_exception() {
     return exception;
   }
 
+  std::string traceback;
   py::Release format_exception{
       PyObject_GetAttrString(traceback_module.get(), "format_exception")};
 
@@ -1908,17 +1917,25 @@ std::string Python_context::fetch_and_clear_exception() {
                                      exc_value.get(), exc_tb.get(), nullptr)};
 
     if (backtrace && PyList_Check(backtrace.get())) {
-      exception = "\n";
+      traceback = "\n";
 
       for (Py_ssize_t c = PyList_Size(backtrace.get()), i = 0; i < c; ++i) {
         std::string item;
         pystring_to_string(PyList_GetItem(backtrace.get(), i), &item);
-        exception += item;
+        traceback += item;
       }
     }
   }
 
-  return exception;
+  if (!out_traceback) {
+    return traceback;
+  } else {
+    *out_traceback = traceback;
+    if (out_type) {
+      *out_type = Py_TYPE(exc_type.get())->tp_name;
+    }
+    return exception;
+  }
 }
 
 }  // namespace shcore

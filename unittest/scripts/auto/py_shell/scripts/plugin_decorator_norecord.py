@@ -169,6 +169,19 @@ def test_more_options(dictOne, dictTwo, dictThree, dictFour):
         strLast (str): sample option
     """
     pass
+
+class MyException(Exception):
+    pass
+
+def throw_something(text):
+    raise MyException(text)
+
+@plugin_function("decorator.inner.testException", cli=True)
+def test_exception():
+    """
+    Test that exception is wrapped correctly.
+    """
+    throw_something("My Exception Message")
 '''
 
 user_path = testutil.get_user_config_path()
@@ -191,6 +204,7 @@ def call_mysqlsh_py_e(e_arg):
 
 def call_mysqlsh_cli(*cmdline_args):
     return __call_mysqlsh(["--"] + [arg for arg in cmdline_args])
+
 
 # Using the Plugin In JavaScript
 # ==============================
@@ -307,6 +321,16 @@ rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, {'whateverO
 rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3])")
 rc = call_mysqlsh_py_e("decorator.inner.test_options('Passing Options', {'invalidOption':'String Option Value'})")
 
+#@<> Function call errors should not include traceback (py) 
+rc = call_mysqlsh_py_e("""try:
+    decorator.inner.test_exception()
+except Exception as e:
+    import traceback
+    print(traceback.format_exception_only(e))
+
+""")
+EXPECT_STDOUT_NOT_CONTAINS("Traceback")
+EXPECT_STDOUT_CONTAINS("MyException: My Exception Message")
 
 ###########################
 # Using the Plugin As CLI

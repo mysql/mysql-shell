@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -507,6 +507,9 @@ class SHCORE_PUBLIC Exception : public shcore::Error {
                                              int code, const char *sqlstate);
   static Exception parser_error(const std::string &message);
   static Exception scripting_error(const std::string &message);
+  static Exception scripting_error(const std::string &type,
+                                   const std::string &message,
+                                   const std::string &traceback);
 
   void set_file_context(const std::string &file, size_t line);
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -113,11 +113,10 @@ def collect_diagnostics(path: str, **options):
     if not globals.shell.get_session():
         raise Error(
             "Shell must be connected to a member of the desired MySQL topology.")
-
     session = globals.shell.open_session()
 
     if shell.parse_uri(session.uri)["scheme"] == "mysqlx":
-        session = reconnect_to_classic_session();
+        session = reconnect_to_classic_session()
 
     do_collect_diagnostics(session, path, orig_args=options, **options)
 

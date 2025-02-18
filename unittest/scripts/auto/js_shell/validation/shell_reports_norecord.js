@@ -480,9 +480,7 @@ This is a JavaScript exception at (shell):1
 
 //@<ERR> Call PY report which throws in PY mode
 
-Traceback (most recent call last):
-  File "<string>", line 2, in python_report_which_throws_an_exception
-Exception: This is a Python exception
+This is a Python exception
 
 //@ Switch to SQL to call both throwing reports
 |Switching to SQL mode... Commands end with ;|
@@ -492,18 +490,14 @@ This is a JavaScript exception at (shell):1
 
 //@<ERR> Call PY report which throws in SQL mode
 
-Traceback (most recent call last):
-  File "<string>", line 2, in python_report_which_throws_an_exception
-Exception: This is a Python exception
+This is a Python exception
 
 //@ Switch to JavaScript to call Python report which throws
 |Switching to JavaScript mode...|
 
 //@<ERR> Call PY report which throws in JS mode
 
-Traceback (most recent call last):
-  File "<string>", line 2, in python_report_which_throws_an_exception
-Exception: This is a Python exception
+This is a Python exception
 
 //@ WL11263_TSF9_19 - register the report
 ||

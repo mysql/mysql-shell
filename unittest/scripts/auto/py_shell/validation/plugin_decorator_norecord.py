@@ -51,6 +51,9 @@ FUNCTIONS
       help([member])
             Provides help about this object and it's members
 
+      testException()
+            Test that exception is wrapped correctly.
+
       testMoreOptions(dictOne, dictTwo, dictThree, dictFour)
             Tests some parameter documentation.
 
@@ -278,6 +281,9 @@ DESCRIPTION
 FUNCTIONS
       help([member])
             Provides help about this object and it's members
+
+      test_exception()
+            Test that exception is wrapped correctly.
 
       test_more_options(dictOne, dictTwo, dictThree, dictFour)
             Tests some parameter documentation.
@@ -520,6 +526,9 @@ The following operations are available at 'decorator':
 
 #@<OUT> Lists help of plugin child object (cli)
 The following operations are available at 'decorator inner':
+
+   test-exception
+      Test that exception is wrapped correctly.
 
    test-more-options
       Tests some parameter documentation.

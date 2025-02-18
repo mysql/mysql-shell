@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -111,7 +111,8 @@ class TYPES_COMMON_PUBLIC Python_context {
   py::Store error() const;
 
   void clear_exception();
-  std::string fetch_and_clear_exception();
+  std::string fetch_and_clear_exception(std::string *out_traceback = nullptr,
+                                        std::string *out_type = nullptr);
   void throw_if_mysqlsh_error();
 
   bool raw_execute(const std::string &statement, std::string *error = nullptr);

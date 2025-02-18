@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -593,6 +593,17 @@ Exception Exception::runtime_error(const std::string &message) {
   auto error = std::make_shared<Value::Map_type>();
   (*error)["type"] = Value("RuntimeError");
   (*error)["message"] = Value(message);
+  Exception e(message, -1, error);
+  return e;
+}
+
+Exception Exception::scripting_error(const std::string &type,
+                                     const std::string &message,
+                                     const std::string &traceback) {
+  auto error = std::make_shared<Value::Map_type>();
+  (*error)["type"] = Value(type);
+  (*error)["message"] = Value(message);
+  (*error)["traceback"] = Value(traceback);
   Exception e(message, -1, error);
   return e;
 }

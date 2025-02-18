@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -121,13 +121,15 @@ PyObject *Python_function::invoke(PyObject *args) {
     // the Python exception is something else, then just returns
     _py->throw_if_mysqlsh_error();
 
-    std::string error = _py->fetch_and_clear_exception();
+    std::string traceback;
+    std::string type;
+    std::string error = _py->fetch_and_clear_exception(&traceback, &type);
 
     if (error.empty()) {
       error = "User-defined function threw an exception";
     }
 
-    throw Exception::scripting_error(error);
+    throw Exception::scripting_error(type, error, traceback);
   } else {
     return ret_val;
   }
@@ -179,13 +181,15 @@ Value Python_function::invoke(const Argument_list &args) {
     // the Python exception is something else, then just returns
     _py->throw_if_mysqlsh_error();
 
-    std::string error = _py->fetch_and_clear_exception();
+    std::string traceback;
+    std::string type;
+    std::string error = _py->fetch_and_clear_exception(&traceback, &type);
 
     if (error.empty()) {
       error = "User-defined function threw an exception";
     }
 
-    throw Exception::scripting_error(error);
+    throw Exception::scripting_error(type, error, traceback);
   } else {
     return _py->convert(ret_val.get());
   }
