@@ -3129,7 +3129,7 @@ void Dump_loader::check_server_version() {
   }
 
   if (mds) {
-    if (!m_dump->mds_compatibility()) {
+    if (!source_server.is_mds() && !m_dump->mds_compatibility()) {
       msg =
           "Destination is a MySQL HeatWave Service DB System instance but the "
           "dump was produced without the compatibility option. ";

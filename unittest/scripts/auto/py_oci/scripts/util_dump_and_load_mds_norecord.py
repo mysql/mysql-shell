@@ -122,6 +122,28 @@ shell.connect(MDS_URI)
 
 EXPECT_NO_THROWS(lambda: util.dump_instance('mhs-test', {"ocimds": True, "osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file}), "dump should not fail")
 
+#@<> BUG#37419320 - a dump generated from an MHS instance without the ocimds:true option should be loadable into MHS
+# constants
+tested_schema = "bug_37419320"
+tested_table = "bug_37419320"
+
+# setup
+shell.connect(MDS_URI)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (a INT PRIMARY KEY)", [tested_schema, tested_table])
+
+# dump
+prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], 'mhs-test', {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file}), "dump should not fail")
+
+# load
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+EXPECT_NO_THROWS(lambda: util.load_dump('mhs-test', {"osBucketName": OS_BUCKET_NAME, "osNamespace": OS_NAMESPACE, "ociConfigFile": oci_config_file}), "load should not fail")
+
+# cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
 #@<> cleanup
 shell.connect(MDS_URI)
 cleanup_mds(session)
