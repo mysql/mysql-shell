@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -734,6 +734,8 @@ class Dump_loader {
   uint64_t m_indexes_recreated;
   // (this variable does not change once DDL finishes loading)
   uint64_t m_indexes_to_recreate = 0;
+  // whether to query for partial index progress
+  bool m_query_index_progress = true;
   // these variables are used to track the progress
   std::mutex m_indexes_progress_mutex;
   uint64_t m_indexes_completed = 0;
