@@ -248,9 +248,10 @@ Instance_cache_builder &Instance_cache_builder::routines() {
 
           auto &routine = target.at(row->get_string(1));  // ROUTINE_NAME
           routine.library_references.emplace_back(
-              row->get_string(3),     // LIBRARY_SCHEMA
-              row->get_string(4),     // LIBRARY_NAME
-              1 == row->get_int(5));  // EXISTS
+              Instance_cache::Routine::Library_reference{
+                  row->get_string(3),      // LIBRARY_SCHEMA
+                  row->get_string(4),      // LIBRARY_NAME
+                  1 == row->get_int(5)});  // EXISTS
 
           has_library_ddl = true;
         });

@@ -2822,9 +2822,10 @@ Schema_dumper::get_routine_dependencies(const std::string &db,
         db, routine, type));
 
     while (const auto dependency_list_row = dependency_list_res->fetch_one()) {
-      dependency_list.emplace_back(dependency_list_row->get_string(0),
-                                   dependency_list_row->get_string(1),
-                                   1 == dependency_list_row->get_int(2));
+      dependency_list.emplace_back(Instance_cache::Routine::Library_reference{
+          dependency_list_row->get_string(0),
+          dependency_list_row->get_string(1),
+          1 == dependency_list_row->get_int(2)});
     }
   }
 
