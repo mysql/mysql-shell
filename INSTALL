@@ -95,7 +95,7 @@ ext/polyglot/README.txt
 
 To support JavaScript on the MySQL Shell add the following flag to the CMake call:
 
--DBUNDLED_POLYGLOT_DIR=<Path>
+-DJIT_EXECUTOR_LIB=<Path>
 
 Where Path is the path to the folder containing the native Polyglot API library
 and headers

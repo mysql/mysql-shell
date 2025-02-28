@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2019, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -89,10 +89,10 @@ function(add_shell_executable)
                 "${ANTLR4_LIB_FILENAME}" "@loader_path/../${INSTALL_LIBDIR}/${ANTLR4_LIB_FILENAME}"
                 $<TARGET_FILE:${ARGV0}>)
     endif()
-    if(BUNDLED_POLYGLOT_DIR)
+    if(JIT_EXECUTOR_LIB)
       add_custom_command(TARGET "${ARGV0}" POST_BUILD
         COMMAND install_name_tool -change
-                "${POLYGLOT_LIBRARY_NAME}" "@loader_path/../${INSTALL_LIBDIR}/${POLYGLOT_LIBRARY_NAME}"
+                "${JIT_EXECUTOR_LIBRARY_NAME}" "@loader_path/../${INSTALL_LIBDIR}/${JIT_EXECUTOR_LIBRARY_NAME}"
                 $<TARGET_FILE:${ARGV0}>
       )
     endif()

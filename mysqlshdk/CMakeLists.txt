@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2017, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -84,6 +84,6 @@ target_link_libraries(mysqlshdk-static PUBLIC
           ${SSL_LIBRARIES}
           ${ANTLR4_LIBRARIES})
 
-IF(HAVE_POLYGLOT)
-    target_link_libraries(mysqlshdk-static PUBLIC ${POLYGLOT_LIBRARY})
+IF(HAVE_JIT_EXECUTOR)
+    target_link_libraries(mysqlshdk-static PUBLIC ${JIT_EXECUTOR_LIBRARY})
 ENDIF()

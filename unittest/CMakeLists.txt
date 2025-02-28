@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -178,8 +178,8 @@ if(WITH_TESTS)
                         ${CMAKE_SOURCE_DIR}/samples/prompt/
                         $<TARGET_FILE_DIR:run_unit_tests>/)
 
-    if(HAVE_POLYGLOT)
-      target_link_libraries(run_unit_tests ${POLYGLOT_LIBRARY})
+    if(HAVE_JIT_EXECUTOR)
+      target_link_libraries(run_unit_tests ${JIT_EXECUTOR_LIBRARY})
     endif()
 
     if(HAVE_PYTHON)

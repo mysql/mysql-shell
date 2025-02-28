@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,7 @@ set(SCRIPTING_SOURCES
     type_info/custom.cc)
 
 
-if (HAVE_POLYGLOT)
+if (HAVE_JIT_EXECUTOR)
     set(SCRIPTING_SOURCES
       ${SCRIPTING_SOURCES}
       polyglot/native_wrappers/polyglot_collectable.cc
