@@ -1,5 +1,5 @@
 
-# Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -228,8 +228,8 @@ cmake .. \
 %if 0%{?with_yacc_parser:1}
     -DWITH_YACC_PARSER=1 \
 %endif
-%if 0%{?bundled_polyglot:1}
-    -DBUNDLED_POLYGLOT_DIR="%{bundled_polyglot}" \
+%if 0%{?jit_executor_lib:1}
+    -DJIT_EXECUTOR_LIB="%{jit_executor_lib}" \
 %endif
     -DHAVE_PYTHON=1 \
     -DLIBEXECDIR=`basename %{_libexecdir}`
@@ -302,8 +302,8 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %{_prefix}/lib/mysqlsh/python-packages/*
 %{_prefix}/lib/mysqlsh/yparser/*
 %{_mandir}/man1/mysqlsh.1*
-%if 0%{?bundled_polyglot:1}
-    %{_prefix}/lib/mysqlsh/libpolyglot*
+%if 0%{?jit_executor_lib:1}
+    %{_prefix}/lib/mysqlsh/libjitexecutor*
 %endif
 
 %changelog

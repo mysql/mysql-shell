@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -814,21 +814,20 @@ if(HAVE_PYTHON)
   ENDIF()
 endif()
 
-IF (BUNDLED_POLYGLOT_DIR)
-  FIND_LIBRARY(POLYGLOT_LIBRARY
+IF (JIT_EXECUTOR_LIB)
+  FIND_LIBRARY(JIT_EXECUTOR_LIBRARY
     NAMES
-      polyglot
-      libpolyglot
+      jitexecutor
     HINTS
-      "${BUNDLED_POLYGLOT_DIR}"
+      "${JIT_EXECUTOR_LIB}"
     NO_DEFAULT_PATH)
 
-  INCLUDE_DIRECTORIES(SYSTEM "${BUNDLED_POLYGLOT_DIR}")
-  MESSAGE(STATUS "Polyglot Library: ${POLYGLOT_LIBRARY}")  
+  INCLUDE_DIRECTORIES(SYSTEM "${JIT_EXECUTOR_LIB}")
+  MESSAGE(STATUS "Jit Executor Library: ${JIT_EXECUTOR_LIBRARY}")  
   SET(HAVE_JS 1)
-  SET(HAVE_POLYGLOT 1)
+  SET(HAVE_JIT_EXECUTOR 1)
   ADD_DEFINITIONS(-DHAVE_JS)
-  ADD_DEFINITIONS(-DHAVE_POLYGLOT)
+  ADD_DEFINITIONS(-DHAVE_JIT_EXECUTOR)
 ENDIF()
 
 

@@ -1,20 +1,19 @@
-This project builds a native version of the GraalVM Polyglot Native API Library
-with some enhancements required for the proper integration of GraalVM as a
-JavaScript runtime on the MySQL Middleware Clients.
+This project builds the JIT Executor library based on the GraalVM Polyglot
+Native API Library with some enhancements required for the proper integration of
+GraalVM as a JavaScript runtime on the MySQL Middleware Clients.
 
 The library is assembled by taking the official code for the GraalVM Polyglot
 Native API Library sources and exporting additional functionality through the
 use of a patch file contained in the polyglot-nativeapi/patches directory.
 
 For details about how to update this library to meet additional requirements on
-the MySQL Middleware clients, refer to the README.txt file at the
-polyglot-nativeapi folder.
+the MySQL Middleware clients, refer to polyglot-nativeapi folder.
 
 BUILD REQUIREMENTS
 ------------------
 
-To build the native version of the GraalVM Polyglot Native API created with
-this project the following requirements should be met:
+To build the JIT Executor library created with this project the following
+requirements should be met:
 
 - GraalVM 23.0.1 Installed and in PATH (to execute the native-image command)
 - The GraalVM 23.0.1 source code.
@@ -36,10 +35,9 @@ This command will execute the following steps:
 - 1) Copy the GraalVM Polyglot API sources from GRAALJDK_ROOT to this project.
 - 2) Apply the patches in the polyglot-nativeapi/patches folder to the copied
      sources.
-- 3) Build the native library for the GraalVM Polyglot Native API
+- 3) Build the JIT Executor library
 
-The native library for the GraalVM Polyglot Native API library will be built at
-the following path:
+The JIT Executor library library will be built at the following path:
 
 polyglot-nativeapi-native-library/target
 
