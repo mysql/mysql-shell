@@ -1,4 +1,4 @@
-# Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -170,8 +170,8 @@ else()
   endif()
 endif()
 
-if(BUNDLED_POLYGLOT_DIR)
-  list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_POLYGLOT_DIR=${BUNDLED_POLYGLOT_DIR}")
+if(JIT_EXECUTOR_LIB)
+  list(APPEND EXTRA_CMAKE_OPTS "-DJIT_EXECUTOR_LIB=${JIT_EXECUTOR_LIB}")
 endif()
 
 if(HAVE_PYTHON)
@@ -319,9 +319,9 @@ usr/lib/mysqlsh/yparser
 ")
 endif()
 
-if(BUNDLED_POLYGLOT_DIR)
+if(JIT_EXECUTOR_LIB)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "
-usr/lib/mysqlsh/libpolyglot.so
+usr/lib/mysqlsh/libjitexecutor.so
 ")
 endif()

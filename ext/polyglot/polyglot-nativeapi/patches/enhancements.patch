@@ -1,5 +1,5 @@
 diff --git a/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java b/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java
-index 1ed21c307..496663aec 100644
+index 1ed21c307..7301ff355 100644
 --- a/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java
 +++ b/src/main/java/org/graalvm/polyglot/nativeapi/PolyglotNativeAPI.java
 @@ -28,23 +28,60 @@ import static org.graalvm.polyglot.nativeapi.types.PolyglotNativeAPITypes.Polygl
@@ -189,7 +189,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_context_builder_build", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Builds a <code>context</code> from a <code>context_builder</code>. The same builder can be used to ",
                      "produce multiple <code>poly_context</code> instances.",
-@@ -808,6 +935,138 @@ public final class PolyglotNativeAPI {
+@@ -808,6 +935,160 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -212,6 +212,28 @@ index 1ed21c307..496663aec 100644
 +        if (result.isNonNull()) {
 +            result.write(createHandle(evalResult));
 +        }
++        return poly_ok;
++    }
++
++    @CEntryPoint(name = "poly_create_source", exceptionHandler = ExceptionHandler.class, documentation = {
++        "Creates a Source object.",
++        "",
++        "@param language_id_utf8 0 terminated and UTF-8 encoded language identifier.",
++        "@param name_utf8 0 terminated and UTF-8 encoded name given to the evaluate source code.",
++        "@param source_utf8 0 terminated and UTF-8 encoded source code to be evaluated.",
++        "@param result <code>poly_value</code> that is the Source Builder object.",
++        "@return poly_ok if all works, poly_generic_error if there is a failure.",
++    })
++    public static PolyglotStatus poly_create_source(PolyglotIsolateThread thread, @CConst CCharPointer language_id_utf8, @CConst CCharPointer path_utf8,
++            PolyglotValuePointer result) throws Exception {
++        resetErrorState();
++        nullCheck(language_id_utf8, "language_id_utf8");
++        nullCheck(path_utf8, "path_utf8");
++        String languageName = CTypeConversion.utf8ToJavaString(language_id_utf8);
++        String jPath = CTypeConversion.utf8ToJavaString(path_utf8);
++
++        Source source = Source.newBuilder(languageName, new File(jPath)).build();
++        result.write(createHandle(source));
 +        return poly_ok;
 +    }
 +
@@ -328,7 +350,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_context_get_engine", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Returns the engine this context belongs to.",
                      "",
-@@ -954,6 +1213,36 @@ public final class PolyglotNativeAPI {
+@@ -954,6 +1235,36 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -365,7 +387,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_value_put_member", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Sets the value of a member with the `identifier_utf8`.",
                      "",
-@@ -975,6 +1264,25 @@ public final class PolyglotNativeAPI {
+@@ -975,6 +1286,25 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -391,7 +413,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_value_has_member", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Returns `true` if such a member exists for the given `identifier_utf8`. If the value has no members ",
                      "then it returns `false`.",
-@@ -1174,86 +1482,1769 @@ public final class PolyglotNativeAPI {
+@@ -1174,86 +1504,1769 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -2212,7 +2234,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_create_array", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Creates a polyglot array from the C array of polyglot values.",
                      "",
-@@ -1396,6 +3387,60 @@ public final class PolyglotNativeAPI {
+@@ -1396,6 +3409,60 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -2273,7 +2295,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_value_is_null", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Returns `true` if this value is `null` like.",
                      "",
-@@ -1668,6 +3713,71 @@ public final class PolyglotNativeAPI {
+@@ -1668,6 +3735,71 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -2345,7 +2367,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_value_to_string_utf8", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Writes a <code>toString</code> representation of a <code>poly_value</code> as a 0 terminated and UTF-8 encoded string.",
                      "",
-@@ -1985,14 +4095,14 @@ public final class PolyglotNativeAPI {
+@@ -1985,14 +4117,14 @@ public final class PolyglotNativeAPI {
                      for (int i = 0; i < arguments.length; i++) {
                          handleArgs[i] = createHandle(arguments[i]);
                      }
@@ -2366,7 +2388,7 @@ index 1ed21c307..496663aec 100644
                  } finally {
                      threadLocals.get().callbackException = null;
                      getHandles().popFramesIncluding(frame);
-@@ -2003,6 +4113,81 @@ public final class PolyglotNativeAPI {
+@@ -2003,6 +4135,81 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -2448,7 +2470,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_get_callback_info", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Retrieves details about the call within a callback (e.g., the arguments from a given callback info).",
                      "",
-@@ -2020,20 +4205,43 @@ public final class PolyglotNativeAPI {
+@@ -2020,20 +4227,43 @@ public final class PolyglotNativeAPI {
          nullCheck(data, "data");
          PolyglotCallbackInfoInternal callbackInfo = fetchHandle(callback_info);
          UnsignedWord numberOfArguments = WordFactory.unsigned(callbackInfo.arguments.length);
@@ -2501,7 +2523,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_throw_exception", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Raises an exception in a C callback.",
                      "",
-@@ -2052,6 +4260,25 @@ public final class PolyglotNativeAPI {
+@@ -2052,6 +4282,25 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -2527,7 +2549,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_delete_reference", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Deletes a poly_reference. After this point, the reference must not be used anymore.",
                      "",
-@@ -2171,6 +4398,26 @@ public final class PolyglotNativeAPI {
+@@ -2171,6 +4420,26 @@ public final class PolyglotNativeAPI {
          return poly_ok;
      }
  
@@ -2554,7 +2576,7 @@ index 1ed21c307..496663aec 100644
      @CEntryPoint(name = "poly_exception_is_internal_error", exceptionHandler = ExceptionHandler.class, documentation = {
                      "Checks if this exception was caused by an internal implementation error.",
                      "",
-@@ -2649,6 +4896,61 @@ public final class PolyglotNativeAPI {
+@@ -2649,6 +4918,61 @@ public final class PolyglotNativeAPI {
          }
      }
  
@@ -2627,5 +2649,5 @@ index a227d9c9e..58a723a15 100644
 -        return createIsolate(params, isolate, thread) == 0 ? Poly.ok() : Poly.generic_failure();
 +        return createIsolate(params, isolate, thread);
      }
-
+ 
      @Uninterruptible(reason = UNINTERRUPTIBLE_REASON)
