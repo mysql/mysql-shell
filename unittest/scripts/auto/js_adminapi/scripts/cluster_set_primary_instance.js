@@ -59,11 +59,11 @@ EXPECT_THROWS_TYPE(function() { cluster.setPrimaryInstance(__endpoint4); }, "Una
 
 testutil.destroySandbox(__mysql_sandbox_port4);
 
-// F6 - To execute a group configuration function all cluster members must be ONLINE.
-//@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE
+//@<> setPrimary does not require that all members are ONLINE as long as there is quorum
 testutil.killSandbox(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "(MISSING)");
-cluster.setPrimaryInstance(__sandbox_uri2)
+EXPECT_NO_THROWS(function() { cluster.setPrimaryInstance(__sandbox_uri2); });
+EXPECT_OUTPUT_CONTAINS("The instance '" + localhost + ":" + __mysql_sandbox_port2 + "' was successfully elected as primary.");
 
 //@<ERR> WL#12052: Error when executing setPrimaryInstance on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
 testutil.startSandbox(__mysql_sandbox_port3);

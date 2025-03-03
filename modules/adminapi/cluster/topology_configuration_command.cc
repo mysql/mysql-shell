@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,12 +30,8 @@
 #include "modules/adminapi/common/dba_errors.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/validations.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/config/config_server_handler.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 
@@ -44,8 +40,8 @@ namespace dba {
 namespace cluster {
 
 Topology_configuration_command::Topology_configuration_command(
-    Cluster_impl *cluster)
-    : m_cluster(cluster) {
+    Cluster_impl *cluster, bool allow_offline_members)
+    : m_cluster(cluster), m_is_switchover(allow_offline_members) {
   assert(cluster);
   m_cluster_session_instance = m_cluster->get_cluster_server();
 }
@@ -243,7 +239,7 @@ void Topology_configuration_command::prepare() {
   ensure_user_privileges(*m_cluster_session_instance);
 
   // Establishes a session to all the cluster members
-  connect_all_members();
+  if (!m_is_switchover) connect_all_members();
 
   // Verify if all cluster members have a version >= 8.0.13
   ensure_version_all_members_cluster(mysqlshdk::utils::Version(8, 0, 13));
@@ -253,7 +249,7 @@ void Topology_configuration_command::prepare() {
       mysqlshdk::gr::get_members(*m_cluster_session_instance);
 
   // Get the Cluster Config Object
-  m_cfg = m_cluster->create_config_object();
+  m_cfg = m_cluster->create_config_object({}, m_is_switchover);
 }
 
 shcore::Value Topology_configuration_command::execute() {

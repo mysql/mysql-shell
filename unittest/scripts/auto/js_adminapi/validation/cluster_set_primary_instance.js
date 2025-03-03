@@ -10,9 +10,6 @@ Operation not supported on target server version: '<<<__version>>>' (RuntimeErro
 ||Argument #1: Invalid connection options, no options provided. (ArgumentError)
 ||The instance 'localhost:3355' does not belong to the Cluster: 'cluster'. (RuntimeError)
 
-//@ WL#12052: Error when executing setPrimaryInstance on a cluster with 1 or more members not ONLINE
-||This operation requires all the cluster members to be ONLINE (RuntimeError)
-
 //@<ERR> WL#12052: Error when executing setPrimaryInstance on a cluster with no visible quorum < 8.0.13 {VER(>=8.0.13)}
 There is no quorum to perform the operation (MYSQLSH 51011)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,9 +30,7 @@
 #include <vector>
 
 #include "adminapi/cluster/cluster_impl.h"
-#include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/command_interface.h"
-#include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -42,7 +40,8 @@ namespace cluster {
 
 class Topology_configuration_command : public Command_interface {
  public:
-  explicit Topology_configuration_command(Cluster_impl *cluster);
+  explicit Topology_configuration_command(Cluster_impl *cluster,
+                                          bool allow_offline_members = false);
 
   ~Topology_configuration_command() override = default;
 
@@ -87,6 +86,8 @@ class Topology_configuration_command : public Command_interface {
 
   // Configuration object (to read and set instance configurations).
   std::unique_ptr<mysqlshdk::config::Config> m_cfg;
+
+  bool m_is_switchover = false;
 
   /**
    * Verify if the instance of the current cluster session has a supported
