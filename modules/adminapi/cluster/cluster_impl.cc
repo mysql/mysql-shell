@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2911,7 +2911,7 @@ void Cluster_impl::set_primary_instance(
     auto conds = Command_conditions::Builder::gen_cluster("setPrimaryInstance")
                      .target_instance(TargetType::InnoDBCluster,
                                       TargetType::InnoDBClusterSet)
-                     .quorum_state(ReplicationQuorum::States::All_online)
+                     .quorum_state(ReplicationQuorum::States::Normal)
                      .primary_not_required()
                      .build();
 

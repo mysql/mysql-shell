@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,17 +24,13 @@
  */
 
 #include <string>
-#include <vector>
 
 #include "modules/adminapi/cluster/set_primary_instance.h"
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/metadata_storage.h"
-#include "modules/adminapi/common/sql.h"
+#include "modules/adminapi/mod_dba_cluster_set.h"
 #include "mysqlshdk/include/shellcore/console.h"
-#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
-#include "mysqlshdk/libs/utils/utils_general.h"
-#include "utils/utils_sqlstring.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -43,7 +39,7 @@ namespace cluster {
 Set_primary_instance::Set_primary_instance(
     const mysqlshdk::db::Connection_options &instance_cnx_opts,
     Cluster_impl *cluster, const cluster::Set_primary_instance_options &options)
-    : Topology_configuration_command(cluster),
+    : Topology_configuration_command(cluster, true),
       m_instance_cnx_opts(instance_cnx_opts) {
   assert(m_instance_cnx_opts.has_data());
   m_runningTransactionsTimeout = options.running_transactions_timeout;

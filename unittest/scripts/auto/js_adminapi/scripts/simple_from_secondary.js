@@ -193,7 +193,8 @@ EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to instance '127.0.0.1:"+__mysq
 EXPECT_OUTPUT_CONTAINS("ERROR: Could not update remaining cluster members after removing '"+__sandbox2+"': Access denied for user 'root'@'localhost'. Account is locked.");
 
 //@<> setPrimaryInstance (no primary, should fail)
-EXPECT_THROWS(function(){cluster.setPrimaryInstance(__sandbox_uri2)}, "This operation requires all the cluster members to be ONLINE");
+EXPECT_THROWS(function(){cluster.setPrimaryInstance(__sandbox_uri2)}, "Access denied for user 'root'@'localhost'. Account is locked.");
+EXPECT_OUTPUT_CONTAINS("ERROR: Unable to connect to instance '127.0.0.1:"+__mysql_sandbox_port1+"'. Please verify connection credentials and make sure the instance is available.");
 
 //@<> rejoinInstance (no primary, should fail)
 cluster2.addInstance("localhost:"+__mysql_sandbox_port3, {recoveryMethod:'incremental'});
