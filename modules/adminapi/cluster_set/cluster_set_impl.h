@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <utility>
 #include <vector>
 
 #include "modules/adminapi/cluster/cluster_impl.h"
@@ -42,7 +41,6 @@
 #include "modules/adminapi/common/gtid_validations.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "modules/adminapi/common/replication_account.h"
-#include "mysqlshdk/libs/mysql/group_replication.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 
@@ -282,6 +280,9 @@ class Cluster_set_impl : public Base_cluster_impl,
   void upgrade_routing_guidelines(const Cluster_id &cluster_id,
                                   const Cluster_set_id &cluster_set_id,
                                   const std::string &active_routing_guideline);
+
+  void handle_guidelines_on_cluster_removal(
+      const std::shared_ptr<Cluster_impl> &target_cluster) const;
 
   [[nodiscard]] mysqlshdk::mysql::Lock_scoped get_lock(
       mysqlshdk::mysql::Lock_mode mode, std::chrono::seconds timeout = {});

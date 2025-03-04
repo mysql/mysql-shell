@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1340,9 +1340,9 @@ void Cluster_set_impl::remove_cluster(
 
       // Revert in case of failure
       undo_tracker.add("Re-adding Cluster as Replica", [=, this]() {
-        drop_cluster_undo->call();
+        if (drop_cluster_undo) drop_cluster_undo->call();
 
-        replication_user_undo->call();
+        if (replication_user_undo) replication_user_undo->call();
 
         auto repl_source = get_primary_master();
 
@@ -1593,13 +1593,25 @@ void Cluster_set_impl::remove_cluster(
           unfence_instance(target_cluster_server.get(), true);
 
           target_cluster->set_target_server(target_cluster_server);
-          target_cluster->get_metadata_storage()->cleanup_for_cluster(
-              target_cluster->get_id());
+          metadata = target_cluster->get_metadata_storage();
+
+          // Handle Routing Guidelines:
+          //
+          // At this point if there are any Routing Guidelines they are
+          // ClusterSet-wide. The possible approaches are:
+          //
+          //   1) Remove all guidelines: drastic, possibly unexpected to the
+          //      user.
+          //   2) Disable the active guideline (if any) and "downgrade"
+          //      all to cluster, i.e. set them back to belong to the Cluster
+          //      and not the ClusterSet and warn the user: preferred
+          handle_guidelines_on_cluster_removal(target_cluster);
+
+          metadata->cleanup_for_cluster(target_cluster->get_id());
 
           target_cluster->clear_clusterset_data();
 
-          target_cluster_recov_users = target_cluster->get_metadata_storage()
-                                           ->get_recovery_account_users();
+          target_cluster_recov_users = metadata->get_recovery_account_users();
 
           // remove the clusterset recovery users from the target cluster
           for (const auto &user : cluster_set_recov_users) {
@@ -2317,6 +2329,38 @@ void Cluster_set_impl::upgrade_routing_guidelines(
       set_global_routing_option(k_router_option_routing_guideline,
                                 shcore::Value(rg->get_id()));
     }
+  }
+}
+
+void Cluster_set_impl::handle_guidelines_on_cluster_removal(
+    const std::shared_ptr<Cluster_impl> &target_cluster) const {
+  auto metadata = target_cluster->get_metadata_storage();
+
+  if (std::string active_rg = target_cluster->get_active_routing_guideline();
+      !active_rg.empty()) {
+    metadata->set_global_routing_option(get_type(), get_id(),
+                                        k_router_option_routing_guideline,
+                                        shcore::Value(nullptr));
+  }
+
+  auto guidelines = metadata->get_routing_guidelines(
+      Cluster_type::REPLICATED_CLUSTER, get_id());
+
+  if (!guidelines.empty()) {
+    auto console = mysqlsh::current_console();
+    console->print_info();
+    console->print_warning(
+        "The Routing Guidelines will be adjusted to belong only to "
+        "the target Cluster. However, they may have been tailored "
+        "for a ClusterSet deployment and might not be suitable for a "
+        "standalone Cluster. Please review and modify them as "
+        "necessary.");
+  }
+
+  for (const auto &guideline : guidelines) {
+    auto rg = Routing_guideline_impl::load(target_cluster, guideline);
+
+    rg->downgrade_routing_guideline_to_cluster(target_cluster->get_id());
   }
 }
 
