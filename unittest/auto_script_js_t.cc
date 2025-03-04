@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -223,6 +223,14 @@ class Auto_script_js : public Shell_js_script_tester,
                shcore::path::join_path(g_test_home, "data", "dba"), '\'') +
            ";";
     execute(code);
+
+    // bundled plugins
+    for (const auto plugin : {"gui", "mds", "mrs", "msm"}) {
+      code = std::string("var __has_") + plugin +
+             "_plugin = (function() {try {" + plugin +
+             ";return true;} catch(e) {return false;}})();";
+      execute(code);
+    }
   }
 
   void run_and_check() {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -124,7 +124,7 @@ struct Help_topic {
   bool is_enabled(IShell_core::Mode mode) const;
   std::string get_name(IShell_core::Mode mode) const;
   std::string get_base_name() const;
-  std::string get_id() const { return m_id; }
+  const std::string &get_id() const noexcept { return m_id; }
   std::string get_id(IShell_core::Mode mode,
                      Topic_id_mode id_mode = Topic_id_mode::FULL) const;
 

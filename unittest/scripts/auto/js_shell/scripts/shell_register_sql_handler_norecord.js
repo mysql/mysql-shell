@@ -13,7 +13,19 @@ function callMysqlsh(command_line_args) {
 
 //@<> Empty list of SQL Handlers
 callMysqlsh([__mysqluripwd, "--", "shell", "list-sql-handlers"])
-EXPECT_OUTPUT_CONTAINS('[]')
+
+if (__has_mrs_plugin) {
+    EXPECT_STDOUT_CONTAINS_MULTILINE(`
+[
+    {
+        "description": "MySQL REST Service SQL Extension",
+        "name": "MRS"
+    }
+]
+`)
+} else {
+    EXPECT_OUTPUT_CONTAINS('[]')
+}
 
 //@<> SQL Handler Registration Errors
 EXPECT_THROWS(function() {shell.registerSqlHandler(5, 5, 45, null)}, "Argument #1 is expected to be a string")
@@ -110,17 +122,34 @@ shell.registerSqlHandler("tableShow", "Handler for SHOW TABLES", ["SHOW TABLES"]
 testutil.createFile(plugin_path, plugin_code)
 
 callMysqlsh([__mysqluripwd, "--", "shell", "list-sql-handlers"])
-EXPECT_OUTPUT_CONTAINS_MULTILINE(`
-[
+
+if (__has_mrs_plugin) {
+    EXPECT_STDOUT_CONTAINS_MULTILINE(`[
     {
-        "description": "Handler for SHOW DATABASE", 
+        "description": "MySQL REST Service SQL Extension",
+        "name": "MRS"
+    },
+    {
+        "description": "Handler for SHOW DATABASE",
         "name": "databaseShow"
-    }, 
+    },
     {
-        "description": "Handler for SHOW TABLES", 
+        "description": "Handler for SHOW TABLES",
         "name": "tableShow"
     }
 ]`)
+} else {
+    EXPECT_STDOUT_CONTAINS_MULTILINE(`[
+    {
+        "description": "Handler for SHOW DATABASE",
+        "name": "databaseShow"
+    },
+    {
+        "description": "Handler for SHOW TABLES",
+        "name": "tableShow"
+    }
+]`)
+}
 
 callMysqlsh([__mysqluripwd, "--sql", "-e", "show databases"])
 EXPECT_STDOUT_CONTAINS(`====> FIRST HANDLER: show databases

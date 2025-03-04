@@ -81,7 +81,7 @@ shell.help("deleteAllCredentials")
 shell.help("deleteCredential")
 
 //@ Help on deleteCredential, \? [USE:Help on deleteCredential]
-\? deleteCredential
+\? shell.deleteCredential
 
 //@ Help on disablePager
 shell.help("disablePager")
@@ -117,7 +117,7 @@ shell.help("listCredentialHelpers")
 shell.help("listCredentials")
 
 //@ Help on listCredentials, \? [USE:Help on listCredentials]
-\? listCredentials
+\? shell.listCredentials
 
 //@ Help on listSshConnections
 shell.help("listSshConnections")

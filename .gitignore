@@ -8,3 +8,4 @@ unittest/traces
 mysqlshdk/libs/db/mysqlx/xpl_error.h
 /build/
 tests/fuzz/corpus/**
+plugins/external

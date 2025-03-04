@@ -4,6 +4,18 @@ GLOBAL OBJECTS
 The following modules and objects are ready for use when the shell starts:
 
  - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
+?{__has_gui_plugin}
+ - gui      MySQL Shell GUI backend plugin.
+?{}
+?{__has_mds_plugin}
+ - mds      Plugin to manage the MySQL Database Service on OCI.
+?{}
+?{__has_mrs_plugin}
+ - mrs      Plugin to manage the MySQL REST Data Service (MRS).
+?{}
+?{__has_msm_plugin}
+ - msm      Plugin to manage database schemas.
+?{}
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
  - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
@@ -22,6 +34,18 @@ GLOBAL OBJECTS
 The following modules and objects are ready for use when the shell starts:
 
  - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
+?{__has_gui_plugin}
+ - gui      MySQL Shell GUI backend plugin.
+?{}
+?{__has_mds_plugin}
+ - mds      Plugin to manage the MySQL Database Service on OCI.
+?{}
+?{__has_mrs_plugin}
+ - mrs      Plugin to manage the MySQL REST Data Service (MRS).
+?{}
+?{__has_msm_plugin}
+ - msm      Plugin to manage database schemas.
+?{}
  - myGlobal User defined global object.
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
@@ -342,6 +366,18 @@ The following modules and objects are ready for use when the shell starts:
 
  - dba            Used for InnoDB Cluster, ReplicaSet, and ClusterSet
                   administration.
+?{__has_gui_plugin}
+ - gui            MySQL Shell GUI backend plugin.
+?{}
+?{__has_mds_plugin}
+ - mds            Plugin to manage the MySQL Database Service on OCI.
+?{}
+?{__has_mrs_plugin}
+ - mrs            Plugin to manage the MySQL REST Data Service (MRS).
+?{}
+?{__has_msm_plugin}
+ - msm            Plugin to manage database schemas.
+?{}
  - myGlobal       User defined global object.
  - mySecondGlobal User defined global object.
  - mysql          Support for connecting to MySQL servers using the classic
