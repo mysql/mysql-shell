@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -114,6 +114,7 @@ class Routing_guideline_impl {
   void save_guideline();
   void upgrade_routing_guideline_to_clusterset(
       const Cluster_set_id &cluster_set_id);
+  void downgrade_routing_guideline_to_cluster(const Cluster_id &cluster_id);
   static std::string serialize_value(const shcore::Value &value);
   void validate_or_throw_if_invalid();
 

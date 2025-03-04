@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1754,6 +1754,26 @@ void Routing_guideline_impl::upgrade_routing_guideline_to_clusterset(
         "is recognized and the configurations are updated. Otherwise, "
         "Routers will operate as if the Clusters were standalone.");
   }
+
+  // Update the document
+  guideline.guideline = shcore::Value(as_json()).json();
+
+  // Save in the metadata
+  m_owner->get_metadata_storage()->update_routing_guideline(guideline);
+}
+
+void Routing_guideline_impl::downgrade_routing_guideline_to_cluster(
+    const Cluster_id &cluster_id) {
+  Routing_guideline_metadata guideline;
+  auto console = mysqlsh::current_console();
+
+  // Keep the id and name
+  guideline.id = m_id;
+  guideline.name = get_name();
+
+  // Clear the clusterset_id and set the cluster_id
+  guideline.clusterset_id = "";
+  guideline.cluster_id = cluster_id;
 
   // Update the document
   guideline.guideline = shcore::Value(as_json()).json();

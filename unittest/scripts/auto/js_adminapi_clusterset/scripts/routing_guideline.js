@@ -230,6 +230,38 @@ rg = clusterset.getRoutingGuideline();
 
 COMMON_RG_TESTS(rg, "default_cluster_rg", expected_default_clusterset_guideline_destinations, expected_default_clusterset_guideline_destinations_match, expected_default_clusterset_guideline_routes, expected_default_clusterset_guideline_routes_match, expected_default_clusterset_guideline_routes_destinations, default_clusterset_guideline, expected_default_clusterset_guideline_show_output);
 
+//@<> Removing a Replica Cluster from a ClusterSet with Routing Guidelines should not fail (default)
+testutil.startSandbox(__mysql_sandbox_port2);
+session2 = mysql.getSession(__sandbox_uri2);
+reset_instance(session2);
+
+// Add a Replica Cluster
+EXPECT_NO_THROWS(function() { rc = clusterset.createReplicaCluster(__sandbox_uri2, "replica", {recoveryMethod: "clone"});} );
+
+// Confirm the default_cluster_rg guideline is the active one
+var router_options = clusterset.routerOptions();
+EXPECT_EQ("default_cluster_rg", router_options["configuration"]["routing_rules"]["guideline"]);
+
+// removeCluster
+EXPECT_NO_THROWS(function() { clusterset.removeCluster("replica"); });
+
+//@<> Removing a Replica Cluster from a ClusterSet with Routing Guidelines should not fail (dissolve: false)
+
+// Add back the Replica Cluster
+EXPECT_NO_THROWS(function() { rc = clusterset.createReplicaCluster(__sandbox_uri2, "replica", {recoveryMethod: "clone"});} );
+
+// removeCluster
+EXPECT_NO_THROWS(function() { clusterset.removeCluster("replica", {dissolve: false}); });
+
+EXPECT_OUTPUT_CONTAINS(`WARNING: The Routing Guidelines will be adjusted to belong only to the target Cluster. However, they may have been tailored for a ClusterSet deployment and might not be suitable for a standalone Cluster. Please review and modify them as necessary.`);
+
+shell.connect(__sandbox_uri2);
+cluster = dba.getCluster();
+
+// Confirm the default_cluster_rg guideline is NOT active anymore
+var router_options = cluster.routerOptions();
+EXPECT_EQ(undefined, router_options["configuration"]["routing_rules"]["guideline"]);
+
 //@<> Cleanup
 scene.destroy();
 testutil.destroySandbox(__mysql_sandbox_port2);
