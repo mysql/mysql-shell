@@ -126,19 +126,19 @@ schema.help('get_tables')
 schema.help('help')
 
 #@ global ? for help[USE:schema.help]
-\? Schema.help
+\? mysqlx.Schema.help
 
 #@ global help for help[USE:schema.help]
-\help Schema.help
+\help mysqlx.Schema.help
 
 #@ schema.name
 schema.help('name')
 
 #@ global ? for name[USE:schema.name]
-\? Schema.name
+\? mysqlx.Schema.name
 
 #@ global help for name[USE:schema.name]
-\help Schema.name
+\help mysqlx.Schema.name
 
 #@ schema.schema
 schema.help('schema')

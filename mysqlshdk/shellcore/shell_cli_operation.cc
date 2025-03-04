@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -247,11 +247,32 @@ void Shell_cli_operation::prepare() {
 }
 
 void Shell_cli_operation::print_help() {
-  auto help_type = m_cli_mapper.help_type();
+  const auto help_type = m_cli_mapper.help_type();
+  shcore::Topic_mask topic_type;
+
+  switch (help_type) {
+    case Help_type::GLOBAL:
+      topic_type = shcore::Topic_type::CLASS;
+      topic_type |= shcore::Topic_type::GLOBAL_OBJECT;
+      break;
+
+    case Help_type::OBJECT:
+      topic_type = shcore::Topic_type::OBJECT;
+      break;
+
+    case Help_type::FUNCTION:
+      topic_type = shcore::Topic_type::FUNCTION;
+      break;
+
+    case Help_type::NONE:
+      // cannot happen
+      assert(false);
+      break;
+  }
 
   Help_manager help;
   help.set_mode(shcore::IShell_core::Mode::JavaScript);
-  auto get_help_topic = [&help](
+  auto get_help_topic = [&help, topic_type](
                             const std::shared_ptr<Cpp_object_bridge> &object,
                             const std::string &function = "",
                             const std::string &qualified_parent = "") {
@@ -270,6 +291,17 @@ void Shell_cli_operation::print_help() {
     if (!function.empty()) search_item += "." + function;
 
     auto topics = help.search_topics(search_item);
+
+    if (topics.size() > 1) {
+      topics.erase(std::remove_if(topics.begin(), topics.end(),
+                                  [topic_type](const shcore::Help_topic *t) {
+                                    return !topic_type.is_set(t->m_type);
+                                  }),
+                   topics.end());
+    }
+
+    // detect potential conflicts
+    assert(topics.size() <= 1);
 
     return topics.empty() ? nullptr : topics[0];
   };

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,12 +24,17 @@
  */
 
 #include "shellcore/utils_help.h"
+
+#include <array>
 #include <cctype>
+#include <functional>
 #include <map>
 #include <regex>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "utils/utils_general.h"
@@ -2467,13 +2472,76 @@ std::string Help_manager::get_help(const std::string &topic_id, Topic_mask type,
   // At this point if we still have multiple topics, we search to see if there's
   // an exact match with the provided topic_id, if so, that one is returned
   decltype(topics) exact_matches;
+
   if (topics.size() > 1) {
-    for (size_t index = 0; index < topics.size(); index++) {
-      if (topics[index]->get_id() == topic_id) {
-        exact_matches.push_back(topics[index]);
+    std::array<std::function<bool(const shcore::Help_topic *)>, 3> comparators =
+        {{
+            // case sensitive comparison with topic ID
+            [&topic_id](const shcore::Help_topic *topic) {
+              return topic->get_id() == topic_id;
+            },
+            // if topic is a global object or has a parent that's a global
+            // object, that global object might have been registered with a
+            // lower case name (i.e. a global shell object of Shell class) and
+            // that became a part of its ID; topic_id uses class names, so we
+            // need to compare first letter case-insensitive, and the rest
+            // case-sensitive
+            [&topic_id](const shcore::Help_topic *topic) {
+              auto global = topic;
+
+              while (global) {
+                if (Topic_type::GLOBAL_OBJECT == global->m_type) {
+                  break;
+                }
+
+                global = global->m_parent;
+              }
+
+              if (!global) {
+                return false;
+              }
+
+              const auto id = std::string_view{topic->get_id()};
+              const auto tid = std::string_view{topic_id};
+
+              return shcore::str_caseeq(id.substr(0, 1), tid.substr(0, 1)) &&
+                     id.substr(1) == tid.substr(1);
+            },
+            // if topic has a parent that's a module, its name is part of the
+            // topic's ID, but topic_id may not start with it, strip it and
+            // do a case sensitive comparison
+            [&topic_id](const shcore::Help_topic *topic) {
+              auto parent = topic->m_parent;
+
+              while (parent) {
+                if (parent->is_module()) {
+                  break;
+                }
+
+                parent = parent->m_parent;
+              }
+
+              if (!parent) {
+                return false;
+              }
+
+              return std::string_view{topic->get_id()}.substr(
+                         parent->get_id().length() + 1) == topic_id;
+            },
+        }};
+
+    for (const auto &comparator : comparators) {
+      exact_matches.clear();
+
+      for (const auto &topic : topics) {
+        if (comparator(topic)) {
+          exact_matches.push_back(topic);
+        }
       }
-      if (!exact_matches.empty()) {
+
+      if (1 == exact_matches.size()) {
         found_topics = &exact_matches;
+        break;
       }
     }
   }

@@ -76,6 +76,18 @@ GLOBAL OBJECTS
 The following modules and objects are ready for use when the shell starts:
 
  - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
+?{__has_gui_plugin}
+ - gui      MySQL Shell GUI backend plugin.
+?{}
+?{__has_mds_plugin}
+ - mds      Plugin to manage the MySQL Database Service on OCI.
+?{}
+?{__has_mrs_plugin}
+ - mrs      Plugin to manage the MySQL REST Data Service (MRS).
+?{}
+?{__has_msm_plugin}
+ - msm      Plugin to manage database schemas.
+?{}
  - mysql    Support for connecting to MySQL servers using the classic MySQL
             protocol.
  - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
@@ -555,11 +567,14 @@ For help on a specific topic use: \? <topic>
 e.g.: \? dba.deleteSandboxInstance
 
 //@<OUT> Help for SQL, with classic session, multiple matches
-Found several entries matching select
+SELECT can also be used to retrieve rows computed without reference to
+any table.
 
-The following topics were found at the SQL Syntax category:
+URL: [[*]]select[[*]]
 
-- SQL Syntax/SELECT
+SEE ALSO
+
+Additional entries were found matching select
 
 The following topics were found at the X DevAPI category:
 
@@ -568,7 +583,7 @@ The following topics were found at the X DevAPI category:
 
 For help on a specific topic use: \? <topic>
 
-e.g.: \? SQL Syntax/SELECT
+e.g.: \? mysqlx.Table.select
 
 //@ Switching to SQL mode, same test gives results
 |Syntax:|

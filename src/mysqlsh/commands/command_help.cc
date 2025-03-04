@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include "src/mysqlsh/commands/command_help.h"
 
 #include <algorithm>
+#include <array>
 #include <map>
 #include <optional>
 #include <set>
@@ -235,40 +236,47 @@ void Command_help::print_help_multiple_topics(
            std::set<const shcore::Help_topic *, shcore::Help_topic_id_compare>>
       groups;
 
-  // Let's see if from the list, any topic fully qualified id matches the
-  // searched string
   std::optional<int> index;
-  auto mode = _shell->get_helper()->get_mode();
-  index = find_unique_match(topics,
-                            [&pattern, mode](const shcore::Help_topic *topic) {
-                              return topic->get_id(mode) == pattern;
-                            });
+  const auto mode = _shell->get_helper()->get_mode();
 
-  // If no matches so far, tries a case sensitive exact match on the found
-  // topics
-  if (!index.has_value()) {
-    index =
-        find_unique_match(topics, [&pattern](const shcore::Help_topic *topic) {
-          return topic->m_name == pattern;
-        });
-  }
+  constexpr std::array<bool (*)(std::string_view, std::string_view), 2>
+      comparators = {{
+          // case sensitive
+          [](std::string_view a, std::string_view b) { return a == b; },
+          // case insensitive
+          [](std::string_view a, std::string_view b) {
+            return shcore::str_caseeq(a, b);
+          },
+      }};
 
-  // If no matches so far, tries a case sensitive exact match on the found
-  // topics
-  if (!index.has_value()) {
-    index =
-        find_unique_match(topics, [&pattern](const shcore::Help_topic *topic) {
-          return shcore::str_caseeq(pattern, topic->m_name);
-        });
-  }
+  std::array<std::function<std::string(const shcore::Help_topic *)>, 3> ids = {{
+      // fully qualified id
+      [mode](const shcore::Help_topic *topic) { return topic->get_id(mode); },
+      // short id
+      [mode](const shcore::Help_topic *topic) {
+        return topic->get_id(mode, shcore::Topic_id_mode::EXCLUDE_CATEGORIES);
+      },
+      // name
+      [](const shcore::Help_topic *topic) { return topic->m_name; },
+  }};
 
-  // Finally it tries a case search by name and global objects
-  if (!index.has_value()) {
-    index =
-        find_unique_match(topics, [&pattern](const shcore::Help_topic *topic) {
-          return topic->m_name == pattern &&
-                 topic->m_type == shcore::Topic_type::GLOBAL_OBJECT;
-        });
+  // looks for a unique exact match in the order of provided IDs, each ID is
+  // checked case sensitive, then case insensitive
+  for (const auto &id : ids) {
+    for (const auto &comparator : comparators) {
+      index = find_unique_match(topics, [&id, &comparator, &pattern](
+                                            const shcore::Help_topic *topic) {
+        return comparator(id(topic), pattern);
+      });
+
+      if (index.has_value()) {
+        break;
+      }
+    }
+
+    if (index.has_value()) {
+      break;
+    }
   }
 
   const shcore::Help_topic *match = nullptr;
@@ -293,13 +301,16 @@ void Command_help::print_help_multiple_topics(
   // end, otherwise the normal printing for multiple topics is used
   std::vector<std::string> output;
   if (match) {
-    auto data = _shell->get_helper()->get_help(*match);
-
-    if (!data.empty()) {
-      current_console()->println(data);
+    if (match->is_sql()) {
+      current_console()->print(match->m_help_tag);
+    } else {
+      if (const auto data = _shell->get_helper()->get_help(*match);
+          !data.empty()) {
+        current_console()->println(data);
+        current_console()->println();
+      }
     }
 
-    current_console()->println();
     output.push_back("<b>SEE ALSO</b>");
     output.push_back("Additional entries were found matching <b>" + pattern +
                      "</b>");

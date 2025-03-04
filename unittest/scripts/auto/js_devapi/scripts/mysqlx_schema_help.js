@@ -16,7 +16,7 @@ schema.help();
 schema.help('name');
 
 //@ Schema name, \? [USE:Help on name]
-\? schema.name
+\? mysqlx.schema.name
 
 //@ Help on schema
 schema.help('schema');
@@ -106,4 +106,4 @@ schema.help('getTables');
 schema.help('help');
 
 //@ Schema help, \? [USE:Help on help]
-\? schema.help
+\? mysqlx.schema.help
