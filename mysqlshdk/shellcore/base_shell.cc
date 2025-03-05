@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,7 @@
 #include "mysqlshdk/shellcore/provider_python.h"
 #include "shellcore/shell_python.h"
 #endif
-#ifdef HAVE_POLYGLOT
+#ifdef HAVE_JIT_EXECUTOR
 #include "mysqlshdk/include/shellcore/shell_polyglot.h"
 #include "mysqlshdk/shellcore/provider_polyglot.h"
 #endif

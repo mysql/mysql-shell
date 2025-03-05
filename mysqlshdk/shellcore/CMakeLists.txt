@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -55,7 +55,7 @@ set(SHELLCORE_SOURCES
   utils_help.cc
   wizard.cc)
 
-if(HAVE_POLYGLOT)
+if(HAVE_JIT_EXECUTOR)
   set(SHELLCORE_SOURCES
         ${SHELLCORE_SOURCES}
         provider_polyglot.cc
