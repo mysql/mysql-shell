@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <string>
+#include <string_view>
 #include <tuple>
 
 #include <ShlObj.h>
@@ -222,8 +223,8 @@ std::string SHCORE_PUBLIC home(const std::string & /* username */) {
   return std::string{};
 }
 
-std::string SHCORE_PUBLIC expand_user(const std::string &path) {
-  const char sep[] = "\\/";
+std::string SHCORE_PUBLIC expand_user(std::string_view path) {
+  static constexpr std::string_view sep = "\\/";
   return detail::expand_user(path, sep);
 }
 

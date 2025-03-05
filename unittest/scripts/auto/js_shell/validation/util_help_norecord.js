@@ -2748,6 +2748,60 @@ connecting to the OCI:
 For more information please see:
 https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
 
+Handling of OCI options
+
+The OCI options are evaluated in the order of precedence, the first available
+value is used.
+
+1. Location of the configuration file:
+
+- the ociConfigFile option
+- the OCI_CLI_CONFIG_FILE environment variable
+- the value of oci.configFile Shell option (defaults to ~/.oci/config)
+
+2. Name of the OCI profile:
+
+- the ociProfile option
+- the OCI_CLI_PROFILE environment variable
+- the value of oci.profile Shell option (defaults to DEFAULT)
+
+3. Authentication method:
+
+- the ociAuth option
+- the OCI_CLI_AUTH environment variable
+- the default value of api_key
+
+Other environment variables
+
+It is possible to override values specified in the OCI configuration file using
+envinronment variables. When an environment variable is set, it takes
+precedence over the corresponding configuration file entry. This only applies
+to the following authentication methods:
+
+1. API Key-Based Authentication
+
+- OCI_CLI_USER environment variable - user entry
+- OCI_CLI_REGION environment variable - region entry
+- OCI_CLI_FINGERPRINT environment variable - fingerprint entry
+- OCI_CLI_KEY_CONTENT environment variable - key_file entry
+- OCI_CLI_KEY_FILE environment variable - key_file entry
+- OCI_CLI_PASSPHRASE environment variable - pass_phrase entry
+- OCI_CLI_TENANCY environment variable - tenancy entry
+
+2. Session Token-Based Authentication
+
+- OCI_CLI_REGION environment variable - region entry
+- OCI_CLI_KEY_FILE environment variable - key_file entry
+- OCI_CLI_PASSPHRASE environment variable - pass_phrase entry
+- OCI_CLI_TENANCY environment variable - tenancy entry
+- OCI_CLI_SECURITY_TOKEN_FILE environment variable - security_token_file entry
+
+NOTE: When the OCI_CLI_KEY_CONTENT environment variable is set, it takes
+precedence over the OCI_CLI_KEY_FILE environment variable.
+
+For more information please see:
+https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/clienvironmentvariables.htm
+
 OCI Object Storage Pre-Authenticated Requests (PARs)
 
 When using a PAR to perform an operation, the OCI configuration is not needed

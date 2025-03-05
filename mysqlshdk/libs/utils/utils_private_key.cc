@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -95,7 +95,7 @@ struct Read_key_state final {
   int user_asked = 0;
 };
 
-std::string expand_path(const std::string &path) {
+std::string expand_path(std::string_view path) {
   return shcore::get_absolute_path(shcore::path::expand_user(path));
 }
 
@@ -230,7 +230,7 @@ Private_key Private_key::generate(int bits) {
 #endif
 }
 
-Private_key Private_key::from_file(const std::string &path,
+Private_key Private_key::from_file(std::string_view path,
                                    std::string_view passphrase) {
   const auto full = expand_path(path);
   validate_private_key_file(full);
@@ -290,7 +290,7 @@ Private_key Private_key::from_file(const std::string &path,
   return Private_key{{key_ptr, ::EVP_PKEY_free}};
 }
 
-Private_key Private_key::from_file(const std::string &path,
+Private_key Private_key::from_file(std::string_view path,
                                    Password_callback callback,
                                    void *user_data) {
   assert(callback);
@@ -394,7 +394,7 @@ void Private_key::save(const std::string &path,
 
 Private_key_id::~Private_key_id() { clear_buffer(m_id); }
 
-Private_key_id Private_key_id::from_path(const std::string &path) {
+Private_key_id Private_key_id::from_path(std::string_view path) {
   return Private_key_id("file://" + expand_path(path));
 }
 
@@ -429,19 +429,19 @@ Private_key Private_key_storage::get(const Private_key_id &id) {
   }
 }
 
-Private_key Private_key_storage::from_file(const std::string &path,
+Private_key Private_key_storage::from_file(std::string_view path,
                                            std::string_view passphrase) {
   return from_file_impl(path, passphrase);
 }
 
 Private_key Private_key_storage::from_file(
-    const std::string &path, Private_key::Password_callback callback,
+    std::string_view path, Private_key::Password_callback callback,
     void *user_data) {
   return from_file_impl(path, callback, user_data);
 }
 
 template <typename... Args>
-Private_key Private_key_storage::from_file_impl(const std::string &path,
+Private_key Private_key_storage::from_file_impl(std::string_view path,
                                                 Args &&...args) {
   const auto id = Private_key_id::from_path(path);
 

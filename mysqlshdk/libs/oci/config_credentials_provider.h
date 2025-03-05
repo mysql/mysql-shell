@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,10 +28,10 @@
 
 #include <string>
 
+#include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/utils/utils_private_key.h"
 
 #include "mysqlshdk/libs/oci/oci_credentials_provider.h"
-#include "mysqlshdk/libs/oci/oci_setup.h"
 
 namespace mysqlshdk {
 namespace oci {
@@ -54,19 +54,32 @@ class Config_credentials_provider : public Oci_credentials_provider {
   }
 
  protected:
+  enum class Entry {
+    USER,
+    FINGERPRINT,
+    KEY_FILE,
+    PASS_PHRASE,
+    TENANCY,
+    REGION,
+    SECURITY_TOKEN_FILE,
+  };
+
   Config_credentials_provider(const std::string &config_file,
                               const std::string &config_profile,
-                              std::string name);
+                              std::string name, bool allow_key_content_env_var);
 
-  std::string config_option(const char *name) const;
+  std::string config_option(Entry entry);
 
   Credentials m_credentials;
 
  private:
-  shcore::ssl::Private_key_id load_key(const std::string &key_file);
+  void load_key(bool allow_key_content_env_var);
 
-  Oci_setup m_oci_setup;
+  std::string m_config_file;
   std::string m_config_profile;
+
+  mysqlshdk::config::Config_file m_config;
+  bool m_config_is_read = false;
 };
 
 }  // namespace oci

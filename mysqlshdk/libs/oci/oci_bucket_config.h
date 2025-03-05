@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,8 +86,11 @@ class Oci_bucket_config
   FRIEND_TEST(Oci_os_tests, file_write_multipart_errors);
   FRIEND_TEST(Oci_os_tests, file_auto_cancel_multipart_upload);
 #endif
+  void set_config_file();
+  void set_profile();
+  void set_authentication(const Oci_bucket_options &options);
 
-  void resolve_credentials(Oci_bucket_options::Auth auth);
+  void resolve_credentials();
 
   void fetch_namespace();
 
@@ -95,6 +98,8 @@ class Oci_bucket_config
 
   std::string m_namespace;
   mutable std::string m_hash;
+
+  Authentication m_auth;
 
   std::unique_ptr<Oci_credentials_provider> m_credentials_provider;
 };

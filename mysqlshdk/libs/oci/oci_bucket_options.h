@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,9 @@
 #define MYSQLSHDK_LIBS_OCI_OCI_BUCKET_OPTIONS_H_
 
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "mysqlshdk/include/scripting/types_cpp.h"
@@ -38,18 +40,18 @@ namespace oci {
 
 class Oci_bucket_config;
 
+enum class Authentication {
+  API_KEY,
+  SECURITY_TOKEN,
+  INSTANCE_PRINCIPAL,
+  RESOURCE_PRINCIPAL,
+};
+
 class Oci_bucket_options
     : public storage::backend::object_storage::Object_storage_options,
       public storage::backend::object_storage::mixin::Config_file,
       public storage::backend::object_storage::mixin::Config_profile {
  public:
-  enum class Auth {
-    API_KEY,
-    SECURITY_TOKEN,
-    INSTANCE_PRINCIPAL,
-    RESOURCE_PRINCIPAL,
-  };
-
   Oci_bucket_options() = default;
 
   Oci_bucket_options(const Oci_bucket_options &) = default;
@@ -74,7 +76,9 @@ class Oci_bucket_options
 
   std::shared_ptr<Oci_bucket_config> oci_config() const;
 
-  inline Auth auth() const noexcept { return m_auth; }
+  inline const std::optional<Authentication> &authentication() const noexcept {
+    return m_auth;
+  }
 
  protected:
   std::shared_ptr<storage::backend::object_storage::Config> create_config()
@@ -95,9 +99,12 @@ class Oci_bucket_options
 
   void set_auth(const std::string &auth);
 
-  Auth m_auth = Auth::API_KEY;
+  std::optional<Authentication> m_auth;
   std::string m_auth_str;
 };
+
+Authentication to_authentication(std::string_view auth);
+const char *to_string(Authentication auth);
 
 }  // namespace oci
 }  // namespace mysqlshdk

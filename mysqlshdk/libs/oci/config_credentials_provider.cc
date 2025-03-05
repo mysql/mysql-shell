@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,74 +25,277 @@
 
 #include "mysqlshdk/libs/oci/config_credentials_provider.h"
 
+#include <algorithm>
+#include <cassert>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 #include <utility>
 
+#include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
 namespace oci {
 
-Config_credentials_provider::Config_credentials_provider(
-    const std::string &config_file, const std::string &config_profile,
-    std::string name)
-    : Oci_credentials_provider(std::move(name)),
-      m_oci_setup(config_file),
-      m_config_profile(config_profile) {
-  if (!m_oci_setup.has_profile(m_config_profile)) {
-    log_error("The OCI config file '%s' does not contain a profile named: '%s'",
-              config_file.c_str(), m_config_profile.c_str());
-    throw std::runtime_error("The indicated OCI Profile does not exist.");
-  }
+namespace {
 
-  log_info("Using the OCI config file '%s' and a profile named: '%s'",
-           config_file.c_str(), m_config_profile.c_str());
+using mysqlsh::current_console;
 
-  set_region(config_option("region"));
-  set_tenancy_id(config_option("tenancy"));
+using shcore::ssl::Private_key;
+using Loader = Private_key (*)(std::string_view, Private_key::Password_callback,
+                               void *);
 
-  m_credentials.private_key_id = load_key(config_option("key_file")).id();
+// loads the private key prompting for password
+Private_key load_private_key(std::string_view pk, Loader loader) {
+  struct Callback_data {
+    int attempt = 0;
+    bool cancelled = false;
+  } data;
+
+  const auto pwd_cb = [](char *buf, int size, int, void *u) {
+    auto d = reinterpret_cast<Callback_data *>(u);
+    const auto msg = d->attempt++ ? "Wrong passphrase, please try again: "
+                                  : "Please enter the API key passphrase: ";
+    std::string passphrase;
+    shcore::on_leave_scope clear_passphrase{
+        [&passphrase]() { shcore::clear_buffer(passphrase); }};
+
+    if (current_console()->prompt_password(msg, &passphrase) !=
+        shcore::Prompt_result::Ok) {
+      d->cancelled = true;
+      return 0;
+    } else {
+      const auto passphrase_size = std::min<int>(size, passphrase.size());
+      memcpy(buf, passphrase.c_str(), passphrase_size);
+
+      return passphrase_size;
+    }
+  };
+
+  do {
+    try {
+      return loader(pk, pwd_cb, &data);
+    } catch (const shcore::ssl::Decrypt_error &) {
+      // Ignore, user gave wrong password
+    }
+  } while (!data.cancelled);
+
+  // user did not provide a valid passphrase
+  throw std::runtime_error{"Invalid passphrase"};
 }
 
-std::string Config_credentials_provider::config_option(const char *name) const {
-  const auto &config = m_oci_setup.get_cfg();
+// loads the private key with the given passphrase
+Private_key load_private_key(std::string_view pk, std::string_view pass,
+                             Loader loader) {
+  struct Callback_data {
+    std::string_view passphrase;
+    bool requires_passphrase = false;
+  } data;
+  data.passphrase = pass;
 
-  if (!config.has_option(m_config_profile, name)) {
+  try {
+    // Password callback in case the key file is encrypted
+    const auto pwd_cb = [](char *buf, int size, int, void *u) {
+      auto d = reinterpret_cast<Callback_data *>(u);
+      int result = 0;
+
+      if (!d->passphrase.empty()) {
+        result = std::min<int>(size, d->passphrase.size());
+        memcpy(buf, d->passphrase.data(), result);
+      }
+
+      // we now know that a passphrase is required
+      d->requires_passphrase = true;
+
+      return result;
+    };
+
+    auto private_key = loader(pk, pwd_cb, &data);
+
+    if (!data.requires_passphrase && !data.passphrase.empty()) {
+      current_console()->print_warning(
+          "The API key does not require a passphrase but one is configured on "
+          "the profile, ignoring it.");
+    }
+
+    return private_key;
+  } catch (const shcore::ssl::Decrypt_error &) {
+    // wrong passphrase?
+    if (!data.requires_passphrase) {
+      // passphrase callback was not called, some other error
+      throw;
+    }
+  }
+
+  // wrong passphrase
+  if (!data.passphrase.empty()) {
+    current_console()->print_warning(
+        "The API key requires a passphrase and the configured one is "
+        "incorrect.");
+  }
+
+  return load_private_key(pk, loader);
+}
+
+}  // namespace
+
+Config_credentials_provider::Config_credentials_provider(
+    const std::string &config_file, const std::string &config_profile,
+    std::string name, bool allow_key_content_env_var)
+    : Oci_credentials_provider(std::move(name)),
+      m_config_file(config_file),
+      m_config_profile(config_profile),
+      m_config(mysqlshdk::config::Case::SENSITIVE,
+               mysqlshdk::config::Escape::NO) {
+  log_info("Using the OCI config file '%s' and a profile named: '%s'",
+           m_config_file.c_str(), m_config_profile.c_str());
+
+  set_region(config_option(Entry::REGION));
+  set_tenancy_id(config_option(Entry::TENANCY));
+
+  load_key(allow_key_content_env_var);
+}
+
+std::string Config_credentials_provider::config_option(Entry entry) {
+  const char *env_var;
+  const char *name;
+  // if entry is optional, we don't report any errors, and simply return an
+  // empty string
+  bool optional = false;
+#define DONT_FAIL_IF_OPTIONAL \
+  do {                        \
+    if (optional) {           \
+      return {};              \
+    }                         \
+  } while (false)
+
+  switch (entry) {
+    case Entry::USER:
+      env_var = "OCI_CLI_USER";
+      name = "user";
+      break;
+
+    case Entry::FINGERPRINT:
+      env_var = "OCI_CLI_FINGERPRINT";
+      name = "fingerprint";
+      break;
+
+    case Entry::KEY_FILE:
+      env_var = "OCI_CLI_KEY_FILE";
+      name = "key_file";
+      break;
+
+    case Entry::PASS_PHRASE:
+      env_var = "OCI_CLI_PASSPHRASE";
+      name = "pass_phrase";
+      optional = true;
+      break;
+
+    case Entry::TENANCY:
+      env_var = "OCI_CLI_TENANCY";
+      name = "tenancy";
+      break;
+
+    case Entry::REGION:
+      env_var = "OCI_CLI_REGION";
+      name = "region";
+      break;
+
+    case Entry::SECURITY_TOKEN_FILE:
+      env_var = "OCI_CLI_SECURITY_TOKEN_FILE";
+      name = "security_token_file";
+      break;
+  }
+
+  if (const auto env = shcore::get_env(env_var); env.has_value()) {
+    log_info("The OCI config entry '%s' set via '%s' environment variable",
+             name, env_var);
+    return *env;
+  }
+
+  if (!m_config_is_read) {
+    try {
+      m_config.read(m_config_file);
+    } catch (const std::exception &e) {
+      DONT_FAIL_IF_OPTIONAL;
+      log_error("Failed to read the OCI config file '%s': %s",
+                m_config_file.c_str(), e.what());
+      throw std::runtime_error("Could not read the OCI config file.");
+    }
+
+    if (!m_config.has_group(m_config_profile)) {
+      DONT_FAIL_IF_OPTIONAL;
+      log_error(
+          "The OCI config file '%s' does not contain a profile named: '%s'",
+          m_config_file.c_str(), m_config_profile.c_str());
+      throw std::runtime_error("The indicated OCI Profile does not exist.");
+    }
+
+    m_config_is_read = true;
+  }
+
+  if (!m_config.has_option(m_config_profile, name)) {
+    DONT_FAIL_IF_OPTIONAL;
     throw std::runtime_error(shcore::str_format(
-        "The OCI profile '%s' does not contain an entry named: %s",
+        "The OCI profile '%s' does not contain an entry named: '%s'",
         m_config_profile.c_str(), name));
   }
 
-  auto option = config.get(m_config_profile, name);
+  auto option = m_config.get(m_config_profile, name);
 
   if (!option.has_value()) {
+    DONT_FAIL_IF_OPTIONAL;
     throw std::runtime_error(shcore::str_format(
         "The OCI profile '%s' has an entry '%s' with no value",
         m_config_profile.c_str(), name));
   }
 
+#undef DONT_FAIL_IF_OPTIONAL
+
   return std::move(*option);
 }
 
-shcore::ssl::Private_key_id Config_credentials_provider::load_key(
-    const std::string &key_file) {
-  auto id = shcore::ssl::Private_key_id::from_path(key_file);
+void Config_credentials_provider::load_key(bool allow_key_content_env_var) {
+  static constexpr auto k_key_content_env_var = "OCI_CLI_KEY_CONTENT";
+  shcore::ssl::Private_key_id key_id{""};
+  std::string pk;
+  Loader loader;
 
-  if (!shcore::ssl::Private_key_storage::instance().contains(id)) {
-    m_oci_setup.load_profile(m_config_profile);
+  if (const auto env_var = shcore::get_env(k_key_content_env_var);
+      allow_key_content_env_var && env_var.has_value()) {
+    log_info("The API key contents set via '%s' environment variable",
+             k_key_content_env_var);
+    pk = *env_var;
+    key_id = shcore::ssl::Private_key_id{k_key_content_env_var};
+    loader = shcore::ssl::Private_key::from_string;
+  } else {
+    pk = config_option(Entry::KEY_FILE);
+    key_id = shcore::ssl::Private_key_id::from_path(pk);
+    loader = shcore::ssl::Private_key::from_file;
+  }
 
-    // Check if load_profile() opened successfully private key and put it into
-    // private key storage.
-    if (!shcore::ssl::Private_key_storage::instance().contains(id)) {
+  assert(!key_id.id().empty());
+
+  if (!shcore::ssl::Private_key_storage::instance().contains(key_id)) {
+    try {
+      auto passphrase = config_option(Entry::PASS_PHRASE);
+      shcore::on_leave_scope clear_passphrase{
+          [&passphrase]() { shcore::clear_buffer(passphrase); }};
+
+      shcore::ssl::Private_key_storage::instance().put(
+          key_id, load_private_key(pk, passphrase, loader));
+    } catch (const std::exception &e) {
       throw std::runtime_error(
-          shcore::str_format("Cannot load '%s' private key associated with OCI "
-                             "configuration profile named '%s'.",
-                             key_file.c_str(), m_config_profile.c_str()));
+          shcore::str_format("Cannot load API key associated with OCI "
+                             "configuration profile named '%s': %s",
+                             m_config_profile.c_str(), e.what()));
     }
   }
 
-  return id;
+  m_credentials.private_key_id = key_id.id();
 }
 
 }  // namespace oci
