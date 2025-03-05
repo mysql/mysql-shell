@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,10 +32,11 @@ namespace oci {
 
 Api_key_credentials_provider::Api_key_credentials_provider(
     const std::string &config_file, const std::string &config_profile)
-    : Config_credentials_provider(config_file, config_profile, "api_key") {
+    : Config_credentials_provider(config_file, config_profile, "api_key",
+                                  true) {
   m_credentials.auth_key_id = shcore::str_format(
-      "%s/%s/%s", tenancy_id().c_str(), config_option("user").c_str(),
-      config_option("fingerprint").c_str());
+      "%s/%s/%s", tenancy_id().c_str(), config_option(Entry::USER).c_str(),
+      config_option(Entry::FINGERPRINT).c_str());
 }
 
 Api_key_credentials_provider::Credentials

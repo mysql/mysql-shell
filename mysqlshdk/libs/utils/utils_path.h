@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,7 @@
 #define MYSQLSHDK_LIBS_UTILS_UTILS_PATH_H_
 
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 #include <vector>
@@ -35,7 +36,7 @@
 namespace shcore {
 namespace path {
 namespace detail {
-std::string expand_user(const std::string &path, const std::string &sep);
+std::string expand_user(std::string_view path, std::string_view sep);
 std::tuple<std::string, std::string> split_extension(const std::string &path,
                                                      const std::string &sep);
 size_t span_dirname(const std::string &path);
@@ -117,7 +118,7 @@ std::string SHCORE_PUBLIC home(const std::string &loginname);
  *         If the expansion fails or if the path does not begin with `~`, the
  *         path is returned unchanged.
  */
-std::string SHCORE_PUBLIC expand_user(const std::string &path);
+std::string SHCORE_PUBLIC expand_user(std::string_view path);
 
 /**
  * Unix:

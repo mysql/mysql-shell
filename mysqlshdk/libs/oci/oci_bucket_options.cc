@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 
 #include "mysqlshdk/libs/oci/oci_bucket_options.h"
 
+#include <cassert>
 #include <memory>
 #include <stdexcept>
 
@@ -83,19 +84,13 @@ bool Oci_bucket_options::has_value(const char *option) const {
 void Oci_bucket_options::set_auth(const std::string &auth) {
   if ("" == auth) {
     // use the default value
-  } else if ("api_key" == auth) {
-    m_auth = Auth::API_KEY;
-  } else if ("security_token" == auth) {
-    m_auth = Auth::SECURITY_TOKEN;
-  } else if ("instance_principal" == auth) {
-    m_auth = Auth::INSTANCE_PRINCIPAL;
-  } else if ("resource_principal" == auth) {
-    m_auth = Auth::RESOURCE_PRINCIPAL;
   } else {
-    throw std::invalid_argument(shcore::str_format(
-        "Invalid value of '%s' option, expected one of: api_key, "
-        "instance_principal, resource_principal, security_token, but got: %s.",
-        auth_option(), auth.c_str()));
+    try {
+      m_auth = to_authentication(auth);
+    } catch (const std::exception &e) {
+      throw std::invalid_argument(shcore::str_format(
+          "Invalid value of '%s' option, %s.", auth_option(), e.what()));
+    }
   }
 
   m_auth_str = auth;
@@ -104,8 +99,8 @@ void Oci_bucket_options::set_auth(const std::string &auth) {
 void Oci_bucket_options::on_unpacked_options() const {
   Object_storage_options::on_unpacked_options();
 
-  if (Auth::INSTANCE_PRINCIPAL == auth() ||
-      Auth::RESOURCE_PRINCIPAL == auth()) {
+  if (Authentication::INSTANCE_PRINCIPAL == authentication() ||
+      Authentication::RESOURCE_PRINCIPAL == authentication()) {
     for (const auto disallowed : {config_file_option(), profile_option()}) {
       if (has_value(disallowed)) {
         throw std::invalid_argument(
@@ -115,6 +110,43 @@ void Oci_bucket_options::on_unpacked_options() const {
       }
     }
   }
+}
+
+Authentication to_authentication(std::string_view auth) {
+  if ("api_key" == auth) {
+    return Authentication::API_KEY;
+  } else if ("security_token" == auth) {
+    return Authentication::SECURITY_TOKEN;
+  } else if ("instance_principal" == auth) {
+    return Authentication::INSTANCE_PRINCIPAL;
+  } else if ("resource_principal" == auth) {
+    return Authentication::RESOURCE_PRINCIPAL;
+  } else {
+    throw std::invalid_argument(
+        shcore::str_format("expected one of: api_key, instance_principal, "
+                           "resource_principal, security_token, but got: %.*s",
+                           static_cast<int>(auth.length()), auth.data()));
+  }
+}
+
+const char *to_string(Authentication auth) {
+  switch (auth) {
+    case Authentication::API_KEY:
+      return "api_key";
+
+    case Authentication::SECURITY_TOKEN:
+      return "security_token";
+
+    case Authentication::INSTANCE_PRINCIPAL:
+      return "instance_principal";
+
+    case Authentication::RESOURCE_PRINCIPAL:
+      return "resource_principal";
+  }
+
+  // should not happen
+  assert(false);
+  return nullptr;
 }
 
 }  // namespace oci

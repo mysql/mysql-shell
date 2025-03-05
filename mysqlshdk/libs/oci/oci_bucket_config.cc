@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,9 @@
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/libs/rest/signed/signed_request.h"
 #include "mysqlshdk/libs/rest/signed/signed_rest_service.h"
+#include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "mysqlshdk/libs/oci/api_key_credentials_provider.h"
 #include "mysqlshdk/libs/oci/instance_principal_credentials_provider.h"
@@ -50,37 +53,116 @@ Oci_bucket_config::Oci_bucket_config(const Oci_bucket_options &options)
       m_namespace(options.m_namespace) {
   m_label = "OCI-OS";
 
-  if (m_config_file.empty()) {
-    m_config_file = mysqlsh::current_shell_options()->get().oci_config_file;
-  }
+  set_config_file();
+  set_profile();
+  set_authentication(options);
 
-  if (m_config_profile.empty()) {
-    m_config_profile = mysqlsh::current_shell_options()->get().oci_profile;
-  }
-
-  resolve_credentials(options.auth());
+  resolve_credentials();
   configure_endpoint();
   fetch_namespace();
 }
 
-void Oci_bucket_config::resolve_credentials(Oci_bucket_options::Auth auth) {
-  switch (auth) {
-    case Oci_bucket_options::Auth::API_KEY:
+void Oci_bucket_config::set_config_file() {
+  if (!m_config_file.empty()) {
+    log_debug("The OCI config file set via '%s' option",
+              Oci_bucket_options::config_file_option());
+  }
+
+  if (m_config_file.empty()) {
+    static constexpr auto k_env_var = "OCI_CLI_CONFIG_FILE";
+
+    if (const auto env = shcore::get_env(k_env_var); env.has_value()) {
+      m_config_file = *env;
+      log_debug("The OCI config file set via '%s' environment variable",
+                k_env_var);
+    }
+  }
+
+  if (m_config_file.empty()) {
+    m_config_file = mysqlsh::current_shell_options()->get().oci_config_file;
+    log_debug("The OCI config file set via '" SHCORE_OCI_CONFIG_FILE
+              "' Shell option");
+  }
+
+  log_info("The OCI config file set to: %s", m_config_file.c_str());
+}
+
+void Oci_bucket_config::set_profile() {
+  if (!m_config_profile.empty()) {
+    log_debug("The OCI profile set via '%s' option",
+              Oci_bucket_options::profile_option());
+  }
+
+  if (m_config_profile.empty()) {
+    static constexpr auto k_env_var = "OCI_CLI_PROFILE";
+
+    if (const auto env = shcore::get_env(k_env_var); env.has_value()) {
+      m_config_profile = *env;
+      log_debug("The OCI profile set via '%s' environment variable", k_env_var);
+    }
+  }
+
+  if (m_config_profile.empty()) {
+    m_config_profile = mysqlsh::current_shell_options()->get().oci_profile;
+    log_debug("The OCI profile set via '" SHCORE_OCI_PROFILE "' Shell option");
+  }
+
+  log_info("The OCI profile set to: %s", m_config_profile.c_str());
+}
+
+void Oci_bucket_config::set_authentication(const Oci_bucket_options &options) {
+  auto auth = options.authentication();
+
+  if (auth.has_value()) {
+    log_debug("The OCI authentication set via '%s' option",
+              Oci_bucket_options::auth_option());
+  }
+
+  if (!auth.has_value()) {
+    static constexpr auto k_env_var = "OCI_CLI_AUTH";
+
+    if (const auto env = shcore::get_env(k_env_var); env.has_value()) {
+      try {
+        auth = to_authentication(*env);
+      } catch (const std::exception &e) {
+        throw std::invalid_argument(shcore::str_format(
+            "Invalid value of '%s' environment variable, %s.", k_env_var,
+            e.what()));
+      }
+
+      log_debug("The OCI authentication set via '%s' environment variable",
+                k_env_var);
+    }
+  }
+
+  if (!auth.has_value()) {
+    auth = Authentication::API_KEY;
+    log_debug("The OCI authentication set to the default value");
+  }
+
+  m_auth = *auth;
+
+  log_info("The OCI authentication set to: %s", to_string(m_auth));
+}
+
+void Oci_bucket_config::resolve_credentials() {
+  switch (m_auth) {
+    case Authentication::API_KEY:
       m_credentials_provider = std::make_unique<Api_key_credentials_provider>(
           m_config_file, m_config_profile);
       break;
 
-    case Oci_bucket_options::Auth::INSTANCE_PRINCIPAL:
+    case Authentication::INSTANCE_PRINCIPAL:
       m_credentials_provider =
           std::make_unique<Instance_principal_credentials_provider>();
       break;
 
-    case Oci_bucket_options::Auth::RESOURCE_PRINCIPAL:
+    case Authentication::RESOURCE_PRINCIPAL:
       m_credentials_provider =
           std::make_unique<Resource_principal_credentials_provider>();
       break;
 
-    case Oci_bucket_options::Auth::SECURITY_TOKEN:
+    case Authentication::SECURITY_TOKEN:
       m_credentials_provider =
           std::make_unique<Security_token_credentials_provider>(
               m_config_file, m_config_profile);

@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2024 Oracle and/or its affiliates.
+# Copyright (c) 2020, 2025 Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,6 @@ set(oci_SOURCES
   oci_credentials_provider.cc
   oci_par.cc
   oci_regions.cc
-  oci_setup.cc
   oci_signer.cc
   resource_principal_credentials_provider.cc
   security_token.cc

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -38,10 +38,10 @@ namespace oci {
 
 Security_token_credentials_provider::Security_token_credentials_provider(
     const std::string &config_file, const std::string &config_profile)
-    : Config_credentials_provider(config_file, config_profile,
-                                  "security_token") {
+    : Config_credentials_provider(config_file, config_profile, "security_token",
+                                  false) {
   m_security_token_file =
-      shcore::path::expand_user(config_option("security_token_file"));
+      shcore::path::expand_user(config_option(Entry::SECURITY_TOKEN_FILE));
 
   if (!shcore::is_file(m_security_token_file)) {
     throw std::runtime_error(shcore::str_format(

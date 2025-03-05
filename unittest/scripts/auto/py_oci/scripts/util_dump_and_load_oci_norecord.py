@@ -6,6 +6,7 @@
 #@<> INCLUDE dump_utils.inc
 
 #@<> Setup
+from contextlib import ExitStack
 import oci
 import os
 import os.path
@@ -306,26 +307,78 @@ token_path = os.path.join(__tmp_dir, "oci_security_token")
 with open(token_path, "w") as f:
     f.write(get_session_token(oci_config_file))
 
+profile_name = random_string(10)
+
 current_config = read_config_file(oci_config_file)
 new_config = {"security_token_file": token_path, "region": current_config["region"], "tenancy": current_config["tenancy"], "key_file": current_config["key_file"]}
+
 if "pass_phrase" in current_config:
     new_config["pass_phrase"] = current_config["pass_phrase"]
+
 config_path = os.path.join(__tmp_dir, "oci_config_file_with_token")
-write_config_file(config_path, new_config)
+write_config_file(config_path, new_config, profile_name)
 
 # tests
 prepare_empty_bucket(OS_BUCKET_NAME, OS_NAMESPACE)
 
 shell.connect(__sandbox_uri1)
 
-EXPECT_NO_THROWS(lambda: util.dump_instance("instance", {"ociAuth": "security_token", "includeSchemas": ["world"], "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "dump_instance() with `ociAuth` = 'security_token'")
-EXPECT_NO_THROWS(lambda: util.dump_schemas(["world"], "schemas", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "dump_schemas() with `ociAuth` = 'security_token'")
-EXPECT_NO_THROWS(lambda: util.dump_tables("world", ["Country"], "tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "dump_tables() with `ociAuth` = 'security_token'")
+EXPECT_NO_THROWS(lambda: util.dump_instance("instance", {"ociAuth": "security_token", "includeSchemas": ["world"], "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "ociProfile": profile_name, "showProgress": False}), "dump_instance() with `ociAuth` = 'security_token'")
+EXPECT_NO_THROWS(lambda: util.dump_schemas(["world"], "schemas", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "ociProfile": profile_name, "showProgress": False}), "dump_schemas() with `ociAuth` = 'security_token'")
+EXPECT_NO_THROWS(lambda: util.dump_tables("world", ["Country"], "tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "ociProfile": profile_name, "showProgress": False}), "dump_tables() with `ociAuth` = 'security_token'")
+
+# BUG#37592840 - support for OCI CLI env vars
+with set_env_var("OCI_CLI_CONFIG_FILE", config_path):
+    EXPECT_NO_THROWS(lambda: util.dump_instance("instance-env", {"ociAuth": "security_token", "includeSchemas": ["world"], "osBucketName": OS_BUCKET_NAME, "ociProfile": profile_name, "showProgress": False}), "dump_instance() with `ociAuth` = 'security_token' + env var")
+
+with set_env_var("OCI_CLI_PROFILE", profile_name):
+    EXPECT_NO_THROWS(lambda: util.dump_schemas(["world"], "schemas-env", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "dump_schemas() with `ociAuth` = 'security_token' + env var")
+
+with set_env_var("OCI_CLI_AUTH", "security_token"):
+    EXPECT_NO_THROWS(lambda: util.dump_tables("world", ["Country"], "tables-env", {"osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "ociProfile": profile_name, "showProgress": False}), "dump_tables() with `ociAuth` = 'security_token' + env var")
 
 shell.connect(__sandbox_uri2)
-wipeout_server(session2)
 
-EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "showProgress": False}), "load_dump() with `ociAuth` = 'security_token'")
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": config_path, "ociProfile": profile_name, "showProgress": False}), "load_dump() with `ociAuth` = 'security_token'")
+
+# BUG#37592840 - if environment variables are set, config file and profile do not have to exist - security_token
+with ExitStack() as stack:
+    stack.enter_context(set_env_var("OCI_CLI_REGION", new_config["region"]))
+    stack.enter_context(set_env_var("OCI_CLI_KEY_CONTENT", "qwerty")) # this variable is ignored when using security_token authentication
+    stack.enter_context(set_env_var("OCI_CLI_KEY_FILE", new_config["key_file"]))
+    if "pass_phrase" in new_config:
+        stack.enter_context(set_env_var("OCI_CLI_PASSPHRASE", new_config["pass_phrase"]))
+    stack.enter_context(set_env_var("OCI_CLI_TENANCY", new_config["tenancy"]))
+    stack.enter_context(set_env_var("OCI_CLI_SECURITY_TOKEN_FILE", new_config["security_token_file"]))
+    wipeout_server(session2)
+    EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "security_token", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": "abc", "ociProfile": "xyz", "showProgress": False, "resetProgress": True}), "load_dump() with `ociAuth` = 'security_token' + env vars")
+
+# BUG#37592840 - if environment variables are set, config file and profile do not have to exist - api_key
+with ExitStack() as stack:
+    stack.enter_context(set_env_var("OCI_CLI_USER", current_config["user"]))
+    stack.enter_context(set_env_var("OCI_CLI_REGION", current_config["region"]))
+    stack.enter_context(set_env_var("OCI_CLI_FINGERPRINT", current_config["fingerprint"]))
+    stack.enter_context(set_env_var("OCI_CLI_KEY_FILE", current_config["key_file"]))
+    if "pass_phrase" in current_config:
+        stack.enter_context(set_env_var("OCI_CLI_PASSPHRASE", current_config["pass_phrase"]))
+    stack.enter_context(set_env_var("OCI_CLI_TENANCY", current_config["tenancy"]))
+    wipeout_server(session2)
+    EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "api_key", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": "abc", "ociProfile": "xyz", "showProgress": False, "resetProgress": True}), "load_dump() with `ociAuth` = 'api_key' + env vars")
+
+# BUG#37592840 - if environment variables are set, config file and profile do not have to exist - api_key + OCI_CLI_KEY_CONTENT
+with ExitStack() as stack:
+    stack.enter_context(set_env_var("OCI_CLI_USER", current_config["user"]))
+    stack.enter_context(set_env_var("OCI_CLI_REGION", current_config["region"]))
+    stack.enter_context(set_env_var("OCI_CLI_FINGERPRINT", current_config["fingerprint"]))
+    with open(os.path.expanduser(current_config["key_file"])) as f:
+        stack.enter_context(set_env_var("OCI_CLI_KEY_CONTENT", f.read()))
+    stack.enter_context(set_env_var("OCI_CLI_KEY_FILE", "qwerty")) # this variable is ignored when using OCI_CLI_KEY_CONTENT
+    if "pass_phrase" in current_config:
+        stack.enter_context(set_env_var("OCI_CLI_PASSPHRASE", current_config["pass_phrase"]))
+    stack.enter_context(set_env_var("OCI_CLI_TENANCY", current_config["tenancy"]))
+    wipeout_server(session2)
+    EXPECT_NO_THROWS(lambda: util.load_dump("tables", {"ociAuth": "api_key", "osBucketName": OS_BUCKET_NAME, "ociConfigFile": "abc", "ociProfile": "xyz", "showProgress": False, "resetProgress": True}), "load_dump() with `ociAuth` = 'api_key' + env vars + OCI_CLI_KEY_CONTENT")
 
 #@<> BUG#34891382 - Dump fails if an empty table is dumped when compression is set to none.
 tested_schema = "tested_schema"

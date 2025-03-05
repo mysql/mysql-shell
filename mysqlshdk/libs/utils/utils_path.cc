@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,28 +35,28 @@ namespace shcore {
 namespace path {
 namespace detail {
 
-std::string expand_user(const std::string &path, const std::string &sep) {
-  if (path.size() > 0) {
-    if (path[0] == '~') {
-      std::string user_home;
-      auto p = std::find_first_of(begin(path), end(path), begin(sep), end(sep));
-      auto tilde_prefix_length = std::distance(begin(path), p);
+std::string expand_user(std::string_view path, std::string_view sep) {
+  if (!path.empty() && '~' == path[0]) {
+    std::string user_home;
+    auto p = std::find_first_of(begin(path), end(path), begin(sep), end(sep));
+    auto tilde_prefix_length = std::distance(begin(path), p);
 
-      if (tilde_prefix_length == 1) {
-        // `~` prefix
-        user_home = home();
-      } else if (tilde_prefix_length > 1) {
-        // `~loginname` prefix
-        auto login_name = std::string(begin(path) + 1, p);
-        user_home = home(login_name);
-      }
+    if (tilde_prefix_length == 1) {
+      // `~` prefix
+      user_home = home();
+    } else if (tilde_prefix_length > 1) {
+      // `~loginname` prefix
+      auto login_name = std::string(begin(path) + 1, p);
+      user_home = home(login_name);
+    }
 
-      if (!user_home.empty()) {
-        return user_home + std::string(p, end(path));
-      }
+    if (!user_home.empty()) {
+      user_home.append(p, end(path));
+      return user_home;
     }
   }
-  return path;
+
+  return std::string(path);
 }
 
 std::tuple<std::string, std::string> split_extension(const std::string &path,

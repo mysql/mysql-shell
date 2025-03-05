@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,6 +59,9 @@
 #define SHCORE_PAGER "pager"
 
 #define SHCORE_DEFAULT_COMPRESS "defaultCompress"
+
+#define SHCORE_OCI_CONFIG_FILE "oci.configFile"
+#define SHCORE_OCI_PROFILE "oci.profile"
 
 #define SHCORE_VERBOSE "verbose"
 #define SHCORE_DEBUG "debug"

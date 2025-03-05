@@ -769,9 +769,9 @@ Shell_options::Shell_options(
         "in global shell sessions.")
     (&storage.oci_config_file,
         shcore::path::join_path(shcore::path::home(), ".oci", "config"),
-        "oci.configFile",
+        SHCORE_OCI_CONFIG_FILE,
         "Path to Oracle Cloud Infrastructure (OCI) configuration file.")
-    (&storage.oci_profile, std::string{"DEFAULT"}, "oci.profile",
+    (&storage.oci_profile, std::string{"DEFAULT"}, SHCORE_OCI_PROFILE,
         "Oracle Cloud Infrastructure (OCI) configuration file profile name.")
     (&storage.mysql_plugin_dir, shcore::get_default_mysql_plugin_dir(),
         SHCORE_MYSQL_PLUGIN_DIR,

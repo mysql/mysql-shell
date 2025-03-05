@@ -705,6 +705,53 @@ connecting to the OCI:
 @li <b>security_token</b> - Session Token-Based Authentication
 
 For more information please see: https://docs.oracle.com/en-us/iaas/Content/API/Concepts/sdk_authentication_methods.htm
+
+<b>Handling of OCI options</b>
+
+The OCI options are evaluated in the order of precedence, the first available
+value is used.
+
+-# Location of the configuration file:
+@li the <b>ociConfigFile</b> option
+@li the <b>OCI_CLI_CONFIG_FILE</b> environment variable
+@li the value of <b>oci.configFile</b> Shell option (defaults to <b>~/.oci/config</b>)
+-# Name of the OCI profile:
+@li the <b>ociProfile</b> option
+@li the <b>OCI_CLI_PROFILE</b> environment variable
+@li the value of <b>oci.profile</b> Shell option (defaults to <b>DEFAULT</b>)
+-# Authentication method:
+@li the <b>ociAuth</b> option
+@li the <b>OCI_CLI_AUTH</b> environment variable
+@li the default value of <b>api_key</b>
+
+.
+<b>Other environment variables</b>
+
+It is possible to override values specified in the OCI configuration file using
+envinronment variables. When an environment variable is set, it takes precedence
+over the corresponding configuration file entry. This only applies to the
+following authentication methods:
+
+-# API Key-Based Authentication
+@li <b>OCI_CLI_USER</b> environment variable - <b>user</b> entry
+@li <b>OCI_CLI_REGION</b> environment variable - <b>region</b> entry
+@li <b>OCI_CLI_FINGERPRINT</b> environment variable - <b>fingerprint</b> entry
+@li <b>OCI_CLI_KEY_CONTENT</b> environment variable - <b>key_file</b> entry
+@li <b>OCI_CLI_KEY_FILE</b> environment variable - <b>key_file</b> entry
+@li <b>OCI_CLI_PASSPHRASE</b> environment variable - <b>pass_phrase</b> entry
+@li <b>OCI_CLI_TENANCY</b> environment variable - <b>tenancy</b> entry
+-# Session Token-Based Authentication
+@li <b>OCI_CLI_REGION</b> environment variable - <b>region</b> entry
+@li <b>OCI_CLI_KEY_FILE</b> environment variable - <b>key_file</b> entry
+@li <b>OCI_CLI_PASSPHRASE</b> environment variable - <b>pass_phrase</b> entry
+@li <b>OCI_CLI_TENANCY</b> environment variable - <b>tenancy</b> entry
+@li <b>OCI_CLI_SECURITY_TOKEN_FILE</b> environment variable - <b>security_token_file</b> entry
+
+.
+NOTE: When the <b>OCI_CLI_KEY_CONTENT</b> environment variable is set, it takes
+precedence over the <b>OCI_CLI_KEY_FILE</b> environment variable.
+
+For more information please see: https://docs.oracle.com/en-us/iaas/Content/API/SDKDocs/clienvironmentvariables.htm
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_OCI_STORAGE_PAR_DETAILS, R"*(

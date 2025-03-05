@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,7 +166,7 @@ class Private_key {
    * @param path Full path to the private key.
    * @param passphrase Pass phrase used to decrypt the key.
    */
-  static Private_key from_file(const std::string &path,
+  static Private_key from_file(std::string_view path,
                                std::string_view passphrase = {});
 
   /**
@@ -177,7 +177,7 @@ class Private_key {
    *                 phrase.
    * @param user_data User data passed to the callback when it's called.
    */
-  static Private_key from_file(const std::string &path,
+  static Private_key from_file(std::string_view path,
                                Password_callback callback,
                                void *user_data = nullptr);
 
@@ -259,7 +259,7 @@ class Private_key_id {
   /**
    * Generates an ID from the given path.
    */
-  static Private_key_id from_path(const std::string &path);
+  static Private_key_id from_path(std::string_view path);
 
  private:
   std::string m_id;
@@ -325,7 +325,7 @@ class Private_key_storage {
    * @param path Full path to the private key.
    * @param passphrase Pass phrase used to decrypt the key.
    */
-  Private_key from_file(const std::string &path,
+  Private_key from_file(std::string_view path,
                         std::string_view passphrase = {});
 
   /**
@@ -337,7 +337,7 @@ class Private_key_storage {
    *                 phrase.
    * @param user_data User data passed to the callback when it's called.
    */
-  Private_key from_file(const std::string &path,
+  Private_key from_file(std::string_view path,
                         Private_key::Password_callback callback,
                         void *user_data = nullptr);
 
@@ -354,7 +354,7 @@ class Private_key_storage {
   Private_key_storage() = default;
 
   template <typename... Args>
-  Private_key from_file_impl(const std::string &path, Args &&...args);
+  Private_key from_file_impl(std::string_view path, Args &&...args);
 
   Key_library m_store;
   mutable std::mutex m_store_mutex;
