@@ -3090,7 +3090,8 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", 
 #@<> BUG#34566034 - cleanup {VER(>=8.0.0)}
 shell.connect(__sandbox_uri2)
 c.dissolve({ 'force': True })
-session.run_sql("SET GLOBAL super_read_only = 0")
+reset_instance(session)
+wipeout_server(session)
 
 #@<> BUG#35304391 - loader should notify if rows were replaced during load
 # constants
@@ -3406,8 +3407,9 @@ session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 #@<> BUG#35830920 mysql_audit and mysql_firewall schemas should be automatically excluded when loading a dump into MHS - setup {not __dbug_off}
 # BUG#37023079 - exclude mysql_option schema
 # BUG#37278169 - exclude mysql_autopilot schema
+# BUG#37637843 - exclude `mysql_rest_service_metadata` and `mysql_tasks` schemas
 # create schemas
-schema_names = [ "mysql_audit", "mysql_autopilot", "mysql_firewall", "mysql_option" ]
+schema_names = [ "mysql_audit", "mysql_autopilot", "mysql_firewall", "mysql_option", "mysql_rest_service_metadata", "mysql_tasks" ]
 
 def create_mhs_schemas(s):
     for schema_name in schema_names:
@@ -3537,6 +3539,50 @@ EXPECT_SHELL_LOG_CONTAINS("Session disconnected: ")
 testutil.clear_traps("mysql")
 
 # cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
+#@<> BUG#37593239 - load hanged when rebuilding indexes if user running the load didn't have SELECT privilege on performance_schema
+# constants
+dump_dir = os.path.join(outdir, "bug_37593239")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+# setup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE TABLE !.! (`id` int NOT NULL AUTO_INCREMENT, `text` longtext NOT NULL, PRIMARY KEY (`id`))", [ tested_schema, tested_table ])
+
+session.run_sql("INSERT INTO !.! VALUES (null,'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')", [ tested_schema, tested_table ])
+session.run_sql("UPDATE !.! SET text = repeat(text,100) where id = 1", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! VALUES (null,'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB')", [ tested_schema, tested_table ])
+session.run_sql("UPDATE !.! SET text = repeat(text,1000) where id = 2", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! VALUES (null,'CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC')", [ tested_schema, tested_table ])
+session.run_sql("UPDATE !.! SET text = repeat(text,10000) where id = 3", [ tested_schema, tested_table ])
+
+session.run_sql("ALTER TABLE !.! ADD FULLTEXT KEY `ftsidx` (`text`)", [ tested_schema, tested_table ])
+
+# dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "showProgress": False }), "Dump should not fail")
+
+# create the test user
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+session.run_sql(f"CREATE USER {test_user_account} IDENTIFIED BY ?", [test_user_pwd])
+session.run_sql(f"GRANT FILE ON *.* TO {test_user_account}")
+session.run_sql(f"GRANT ALL ON !.* TO {test_user_account}", [tested_schema])
+
+# load
+shell.connect(test_user_uri(__mysql_sandbox_port2))
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "showProgress": True }), "Load should not fail")
+
+# verification
+compare_schema(session1, session2, tested_schema, check_rows=True)
+
+#@<> BUG#37593239 - cleanup
+shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
 #@<> BUG#36470302 - use JSON output when executing EXPLAIN statements

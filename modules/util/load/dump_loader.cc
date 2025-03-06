@@ -5116,11 +5116,19 @@ void Dump_loader::setup_create_indexes_progress() {
 
     double updated_progress = 100.0 * indexes_completed / m_indexes_to_recreate;
 
-    if (index_statements_in_progress) {
-      updated_progress +=
-          add_index_progress(session, index_statements_in_progress,
-                             indexes_in_progress) *
-          indexes_in_progress / m_indexes_to_recreate;
+    if (m_query_index_progress && index_statements_in_progress) {
+      try {
+        updated_progress +=
+            add_index_progress(session, index_statements_in_progress,
+                               indexes_in_progress) *
+            indexes_in_progress / m_indexes_to_recreate;
+      } catch (const std::exception &e) {
+        // query failed, do not try again
+        m_query_index_progress = false;
+        log_warning(
+            "Disabling partial index progress reporting due to error: %s",
+            e.what());
+      }
     }
 
     if (updated_progress > m_indexes_progress) {
