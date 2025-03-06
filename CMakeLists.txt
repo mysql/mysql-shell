@@ -813,6 +813,7 @@ IF (JIT_EXECUTOR_LIB)
   FIND_LIBRARY(JIT_EXECUTOR_LIBRARY
     NAMES
       jitexecutor
+      libjitexecutor
     HINTS
       "${JIT_EXECUTOR_LIB}"
     NO_DEFAULT_PATH)
