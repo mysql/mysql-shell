@@ -3696,8 +3696,9 @@ session.run_sql("DROP ROLE IF EXISTS ?;", [ test_role ])
 # BUG#35805866 - exclude `mysql_firewall` schema if the `ocimds` option is set
 # BUG#37023079 - exclude `mysql_option` schema if the `ocimds` option is set
 # BUG#37278169 - exclude `mysql_autopilot` schema if the `ocimds` option is set
+# BUG#37637843 - exclude `mysql_rest_service_metadata` and `mysql_tasks` schemas
 # setup
-schema_names = [ "mysql_audit", "mysql_autopilot", "mysql_firewall", "mysql_option" ]
+schema_names = [ "mysql_audit", "mysql_autopilot", "mysql_firewall", "mysql_option", "mysql_rest_service_metadata", "mysql_tasks" ]
 
 for schema_name in schema_names:
     session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])

@@ -58,6 +58,10 @@ constexpr inline std::array k_mhs_excluded_schemas = {
     "mysql_firewall",
     // stores the options information
     "mysql_option",
+    // stores the MRS metadata
+    "mysql_rest_service_metadata",
+    // MRS related
+    "mysql_tasks",
 };
 
 }  // namespace common
