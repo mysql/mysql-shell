@@ -39,10 +39,22 @@ constexpr inline std::array k_excluded_users = {
 };
 
 constexpr inline std::array k_mhs_excluded_users = {
-    "administrator",      "mysql_option_tracker_persister",
-    "ociadmin",           "ocidbm",
-    "ocimonitor",         "ocirpl",
-    "oracle-cloud-agent", "rrhhuser",
+    "administrator",
+    "mysql_option_tracker_persister",
+    "mysql_rest_service_admin",
+    "mysql_rest_service_data_provider",
+    "mysql_rest_service_dev",
+    "mysql_rest_service_meta_provider",
+    "mysql_rest_service_schema_admin",
+    "mysql_rest_service_user",
+    "mysql_task_admin",
+    "mysql_task_user",
+    "ociadmin",
+    "ocidbm",
+    "ocimonitor",
+    "ocirpl",
+    "oracle-cloud-agent",
+    "rrhhuser",
 };
 
 constexpr inline std::array k_excluded_schemas = {
