@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -492,7 +492,12 @@ const std::map<std::string, std::string> k_plugin_doclink = {
     {"keyring_oci",
      "https://dev.mysql.com/doc/mysql-security-excerpt/en/"
      "keyring-oci-plugin.html"},
-};
+    {"rpl_semi_sync_master",
+     "https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
+     "news-8-0-26.html#mysqld-8-0-26-feature"},
+    {"rpl_semi_sync_slave",
+     "https://dev.mysql.com/doc/relnotes/mysql/8.0/en/"
+     "news-8-0-26.html#mysqld-8-0-26-feature"}};
 
 }  // namespace
 
@@ -503,7 +508,8 @@ TEST(Auth_method_usage_check, notices) {
   std::map<std::string, bool> tested_plugins = {
       {"authentication_fido", false},
       {"sha256_password", false},
-      {"mysql_native_password", false}};
+      {"mysql_native_password", false},
+  };
 
   auto features = check.get_features();
   for (const auto feature : features) {
@@ -698,7 +704,13 @@ TEST(Plugin_usage_check, enabled_and_features) {
     Upgrade_info info;
     info.server_version = Version(8, 4, 0);
     Plugin_usage_check check(info);
-    EXPECT_FALSE(check.enabled());
+    EXPECT_TRUE(check.enabled());
+    EXPECT_FALSE(check.has_feature("keyring_file"));
+    EXPECT_FALSE(check.has_feature("keyring_encrypted_file"));
+    EXPECT_FALSE(check.has_feature("keyring_oci"));
+    EXPECT_FALSE(check.has_feature("authentication_fido"));
+    EXPECT_TRUE(check.has_feature("rpl_semi_sync_master"));
+    EXPECT_TRUE(check.has_feature("rpl_semi_sync_slave"));
   }
   {
     // UC Start version before introduction of fido_authentication
@@ -808,10 +820,9 @@ TEST(Plugin_usage_check, notices) {
   Plugin_usage_check check(info);
 
   std::map<std::string, bool> tested_plugins = {
-      {"authentication_fido", false},
-      {"keyring_file", false},
-      {"keyring_encrypted_file", false},
-      {"keyring_oci", false}};
+      {"authentication_fido", false},    {"keyring_file", false},
+      {"keyring_encrypted_file", false}, {"keyring_oci", false},
+      {"rpl_semi_sync_master", false},   {"rpl_semi_sync_slave", false}};
 
   auto features = check.get_features();
   for (const auto feature : features) {
@@ -842,7 +853,9 @@ TEST(Plugin_usage_check, notices) {
       {{"authentication_fido", true},
        {"keyring_file", false},            // No start version so no notices
        {"keyring_encrypted_file", false},  // No start version so no notices
-       {"keyring_oci", false}},            // No start version so no notices
+       {"keyring_oci", false},             // No start version so no notices
+       {"rpl_semi_sync_master", false},    // No start version so no notices
+       {"rpl_semi_sync_slave", false}},    // No start version so no notices
       tested_plugins);
 }
 
@@ -851,10 +864,9 @@ TEST(Plugin_usage_check, warnings) {
   Plugin_usage_check check(info);
 
   std::map<std::string, bool> tested_plugins = {
-      {"authentication_fido", false},
-      {"keyring_file", false},
-      {"keyring_encrypted_file", false},
-      {"keyring_oci", false}};
+      {"authentication_fido", false},    {"keyring_file", false},
+      {"keyring_encrypted_file", false}, {"keyring_oci", false},
+      {"rpl_semi_sync_master", false},   {"rpl_semi_sync_slave", false}};
 
   auto features = check.get_features();
   for (const auto feature : features) {
@@ -880,13 +892,14 @@ TEST(Plugin_usage_check, warnings) {
     }
   }
 
-  validate_expected(
-      Upgrade_issue::Level::WARNING,
-      {{"authentication_fido", true},
-       {"keyring_file", true},            // No start version so no notices
-       {"keyring_encrypted_file", true},  // No start version so no notices
-       {"keyring_oci", true}},            // No start version so no notices
-      tested_plugins);
+  validate_expected(Upgrade_issue::Level::WARNING,
+                    {{"authentication_fido", true},
+                     {"keyring_file", true},
+                     {"keyring_encrypted_file", true},
+                     {"keyring_oci", true},
+                     {"rpl_semi_sync_master", true},
+                     {"rpl_semi_sync_slave", true}},
+                    tested_plugins);
 }
 
 TEST(Plugin_usage_check, errors) {
@@ -927,7 +940,9 @@ TEST(Plugin_usage_check, errors) {
       {{"authentication_fido", true},
        {"keyring_file", true},            // No start version so no notices
        {"keyring_encrypted_file", true},  // No start version so no notices
-       {"keyring_oci", true}},            // No start version so no notices
+       {"keyring_oci", true},             // No start version so no notices
+       {"rpl_semi_sync_master", false},   // No removed version so no errors
+       {"rpl_semi_sync_slave", false}},   // No removed version so no errors
       tested_plugins);
 }
 
