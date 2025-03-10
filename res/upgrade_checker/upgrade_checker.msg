@@ -538,6 +538,12 @@ https://dev.mysql.com/doc/refman/en/keyring-encrypted-file-component.html
 * pluginUsage.docLink.keyring_oci
 https://dev.mysql.com/doc/mysql-security-excerpt/en/keyring-oci-plugin.html
 
+* pluginUsage.docLink.rpl_semi_sync_master
+https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-26.html#mysqld-8-0-26-feature
+
+* pluginUsage.docLink.rpl_semi_sync_slave
+https://dev.mysql.com/doc/relnotes/mysql/8.0/en/news-8-0-26.html#mysqld-8-0-26-feature
+
 * invalidPrivileges.title
 Checks for user privileges that will be removed
 

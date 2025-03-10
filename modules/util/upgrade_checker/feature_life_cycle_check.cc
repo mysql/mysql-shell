@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -279,6 +279,16 @@ Plugin_usage_check::Plugin_usage_check(const Upgrade_info &server_info)
                Version(8, 0, 31),
                Version(8, 4, 0),
                "the 'component_keyring_oci' component"});
+  add_feature({"rpl_semi_sync_master",
+               {},
+               Version(8, 0, 26),
+               {},
+               "'rpl_semi_sync_source' plugin"});
+  add_feature({"rpl_semi_sync_slave",
+               {},
+               Version(8, 0, 26),
+               {},
+               "'rpl_semi_sync_replica' plugin"});
 }
 
 std::string Plugin_usage_check::build_query() {
