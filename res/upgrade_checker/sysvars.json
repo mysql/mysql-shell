@@ -1667,11 +1667,13 @@
   },
   {
     "name": "innodb_log_files_in_group",
-    "deprecation": "8.0.30"
+    "deprecation": "8.0.30",
+    "removal": "9.3.0"
   },
   {
     "name": "innodb_log_file_size",
-    "deprecation": "8.0.30"
+    "deprecation": "8.0.30",
+    "removal": "9.3.0"
   },
   {
     "name": "innodb_log_wait_for_flush_spin_hwm",
@@ -1709,7 +1711,7 @@
         "version": "9.1.0",
         "all": {
           "default": {
-            "all": "ON, if available logical processors >= 32"
+            "all": "ON, if available logical processors >= 32, otherwise OFF"
           }
         }
       }
@@ -2002,6 +2004,7 @@
     "name": "innodb_undo_tablespaces",
     "version": "5.6.3",
     "deprecation": "5.7.21",
+    "removal": "9.3.0",
     "initial": {
       "all": {
         "default": {
