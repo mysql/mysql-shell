@@ -1932,7 +1932,12 @@ std::string Python_context::fetch_and_clear_exception(
   } else {
     *out_traceback = traceback;
     if (out_type) {
+#if PY_VERSION_HEX >= 0x030c0000
       *out_type = Py_TYPE(exc_type.get())->tp_name;
+#else
+      py::Release str{PyObject_GetAttrString(exc_type.get(), "__name__")};
+      pystring_to_string(str, out_type);
+#endif
     }
     return exception;
   }
