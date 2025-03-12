@@ -321,12 +321,12 @@ rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, {'whateverO
 rc = call_mysqlsh_py_e("decorator.test_simple_types('one', 2, False, {'whateverOption':'whateverValue'}, [1,2,3])")
 rc = call_mysqlsh_py_e("decorator.inner.test_options('Passing Options', {'invalidOption':'String Option Value'})")
 
-#@<> Function call errors should not include traceback (py) 
+#@<> Function call errors should not include traceback (py)
 rc = call_mysqlsh_py_e("""try:
     decorator.inner.test_exception()
 except Exception as e:
     import traceback
-    print(traceback.format_exception_only(e))
+    print(traceback.format_exception_only(type(e), e))
 
 """)
 EXPECT_STDOUT_NOT_CONTAINS("Traceback")
