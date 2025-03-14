@@ -1586,7 +1586,9 @@ EXPECT_NO_THROWS(function(){ cluster.removeRoutingGuideline("rg2");} );
 EXPECT_THROWS(function(){ cluster.importRoutingGuideline("");}, "The input file path cannot be empty");
 
 //@<> import_routing_guideline() - filepath doesn't exist
-EXPECT_THROWS(function () { cluster.importRoutingGuideline("/foo/bar"); }, `${__os_type == "windows" ? "\\\\?\\foo\\bar" : "/foo/bar"}: No such file or directory`);
+var file_path = __os_type == "windows" ? "\\\\?\\foo\\bar" : "/foo/bar";
+
+EXPECT_THROWS(function () { cluster.importRoutingGuideline(file_path); }, `${file_path}: No such file or directory`);
 
 //@<> import_routing_guideline() - filepath does not point to an existing file
 EXPECT_THROWS(function(){ cluster.importRoutingGuideline("foo");}, "foo: No such file or directory");
