@@ -133,6 +133,7 @@ class Mock_session : public mysqlshdk::db::ISession,
   MOCK_CONST_METHOD0(get_server_version, mysqlshdk::utils::Version());
 
   MOCK_CONST_METHOD0(get_socket_fd, socket_t());
+  MOCK_METHOD1(track_system_variable, std::string(const std::string &));
 
   // Error handling
   MOCK_CONST_METHOD0(get_last_error, mysqlshdk::db::Error *());

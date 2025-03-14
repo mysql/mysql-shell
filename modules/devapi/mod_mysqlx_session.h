@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -90,6 +90,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   List getSchemas();
   String getUri();
   String getSshUri();
+  String getSqlMode();
   Integer getConnectionId();
   Undefined close();
   Undefined setFetchWarnings(Boolean enable);
@@ -105,6 +106,8 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   Undefined releaseSavepoint(String name);
   Undefined rollbackTo(String name);
   SqlResult runSql(String query, Array args);
+  Undefined setClientData(String key, Any value);
+  Any getClientData(String key);
 
  private:
 #elif DOXYGEN_PY
@@ -122,6 +125,7 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   list get_schemas();
   str get_uri();
   str get_ssh_uri();
+  str get_sql_mode();
   int get_connection_id();
   None close();
   None set_fetch_warnings(bool enable);
@@ -137,6 +141,8 @@ class SHCORE_PUBLIC Session : public ShellBaseSession,
   None release_savepoint(str name);
   None rollback_to(str name);
   SqlResult run_sql(str query, list args);
+  None set_client_data(str key, Any value);
+  Any get_client_data(str key);
 
  private:
 #endif

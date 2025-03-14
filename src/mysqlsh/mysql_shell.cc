@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1076,7 +1076,11 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
       old_session->close();
     }
 
-    new_session->enable_sql_mode_tracking();
+    try {
+      new_session->track_system_variable("sql_mode");
+    } catch (const mysqlshdk::db::Error &e) {
+      // can throw for e.g. ER_MUST_CHANGE_PASSWORD which we should ignore
+    }
   }
 
   if (interactive) {
@@ -2087,11 +2091,13 @@ void Mysql_shell::add_devapi_completions() {
                                   {"commit", "SqlResult", true},
                                   {"createSchema", "Schema", true},
                                   {"dropSchema", "", true},
+                                  {"getClientData", "", true},
                                   {"getConnectionId", "Schema", true},
                                   {"getCurrentSchema", "Schema", true},
                                   {"getDefaultSchema", "Schema", true},
                                   {"getSchema", "Schema", true},
                                   {"getSchemas", "", true},
+                                  {"getSqlMode", "", true},
                                   {"getSshUri", "", true},
                                   {"getUri", "", true},
                                   {"help", "", true},
@@ -2103,6 +2109,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"setFetchWarnings", "Result", true},
                                   {"sql", "SqlOperation*", true},
                                   {"startTransaction", "SqlResult", true},
+                                  {"setClientData", "", true},
                                   {"setSavepoint", "", true},
                                   {"releaseSavepoint", "", true},
                                   {"rollbackTo", "", true},
@@ -2493,15 +2500,19 @@ void Mysql_shell::add_devapi_completions() {
   registry->add_completable_type("ClassicSession",
                                  {{"close", "", true},
                                   {"commit", "ClassicResult", true},
+                                  {"getClientData", "", true},
                                   {"getConnectionId", "", true},
                                   {"getUri", "", true},
+                                  {"getSqlMode", "", true},
                                   {"getSshUri", "", true},
                                   {"help", "", true},
                                   {"isOpen", "", true},
                                   {"rollback", "ClassicResult", true},
                                   {"runSql", "ClassicResult", true},
                                   {"startTransaction", "ClassicResult", true},
+                                  {"setClientData", "", true},
                                   {"setQueryAttributes", "", true},
+                                  {"trackSystemVariable", "", true},
                                   {"connectionId", "", false},
                                   {"uri", "", false},
                                   {"sshUri", "", false},

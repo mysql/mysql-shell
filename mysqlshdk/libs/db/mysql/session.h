@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -107,6 +107,12 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   void connect(const mysqlshdk::db::Connection_options &connection_info);
 
   std::shared_ptr<IResult> query(
+      std::string_view sql, bool buffered,
+      const std::vector<Query_attribute> &query_attributes = {}) {
+    return query(sql.data(), sql.length(), buffered, query_attributes);
+  }
+
+  std::shared_ptr<IResult> query(
       const char *sql, size_t len, bool buffered,
       const std::vector<Query_attribute> &query_attributes = {});
   std::shared_ptr<IResult> query_udf(std::string_view sql, bool buffered);
@@ -192,7 +198,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   }
 
   std::vector<std::string> get_last_gtids() const;
-  std::optional<std::string> get_last_statement_id() const;
+  const std::optional<std::string> &get_last_statement_id() const;
+  const std::optional<std::string> &get_last_sql_mode() const;
 
   uint32_t get_server_status() const {
     return _mysql ? _mysql->server_status : 0;
@@ -222,12 +229,25 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   void set_character_set(const std::string &charset_name);
 
+  void check_session_track_system_variables() const;
+
   std::string _uri;
   MYSQL *_mysql = nullptr;
   std::shared_ptr<MYSQL_RES> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
   uint64_t m_thread_id = 0;
   std::unique_ptr<Error> m_last_error;
+
+  struct Session_tracker_info {
+    std::optional<std::string> statement_id;
+    std::optional<std::string> sql_mode;
+
+    void reset() {
+      statement_id.reset();
+      sql_mode.reset();
+    }
+  };
+  mutable Session_tracker_info m_session_tracker_info;
 
   struct Local_infile_callbacks {
     int (*init)(void **, const char *, void *) = nullptr;
@@ -255,16 +275,21 @@ class SHCORE_PUBLIC Session : public ISession,
   std::shared_ptr<IResult> querys(
       const char *sql, size_t len, bool buffered = false,
       const std::vector<Query_attribute> &query_attributes = {}) override {
-    return _impl->query(sql, len, buffered, query_attributes);
+    auto res = _impl->query(sql, len, buffered, query_attributes);
+    refresh_sql_mode_tracked();
+    return res;
   }
 
   std::shared_ptr<IResult> query_udf(std::string_view sql,
                                      bool buffered = false) override {
-    return _impl->query_udf(sql, buffered);
+    auto res = _impl->query_udf(sql, buffered);
+    refresh_sql_mode_tracked();
+    return res;
   }
 
   void executes(const char *sql, size_t len) override {
     _impl->execute(sql, len);
+    refresh_sql_mode_tracked();
   }
 
   const char *get_ssl_cipher() const override {
@@ -310,11 +335,13 @@ class SHCORE_PUBLIC Session : public ISession,
    */
   MYSQL *release_connection() { return _impl->release_connection(); }
 
+  std::string track_system_variable(const std::string &variable) override;
+
   /**
    * Sets the default character set for the current connection.
    *
-   * This function works like the SET NAMES statement, but also sets the value
-   * of mysql->charset.
+   * This function works like the SET NAMES statement, but also sets the
+   * value of mysql->charset.
    */
   void set_character_set(const std::string &charset_name) {
     _impl->set_character_set(charset_name);
@@ -375,6 +402,8 @@ class SHCORE_PUBLIC Session : public ISession,
   }
 
   void do_close() override { _impl->close(); }
+
+  void refresh_sql_mode_tracked();
 
  private:
   std::shared_ptr<Session_impl> _impl;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <wctype.h>
 
 #include <algorithm>
+#include <cassert>
 #include <cctype>
 #include <cstdint>
 #include <cstring>
@@ -755,6 +756,24 @@ inline std::string utf8_upper(std::string_view s) {
 
 inline std::string utf8_lower(std::string_view s) {
   return wide_to_utf8(str_lower(utf8_to_wide(s.data(), s.length())));
+}
+
+/**
+ * Checks whether a , separated list in a string contains the given item.
+ * Spaces not allowed.
+ */
+inline bool strlist_contains(std::string_view list, std::string_view item) {
+  assert(!item.empty());
+
+  if (list.empty()) return false;
+  if (list == item) return true;
+
+  auto pos = list.find(item);
+  if (pos == std::string_view::npos) return false;
+  if (pos > 0 && list[pos - 1] != ',') return false;
+  pos += item.size();
+  if (pos < list.length() && list[pos] != ',') return false;
+  return true;
 }
 
 }  // namespace shcore

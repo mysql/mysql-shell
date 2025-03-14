@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -554,6 +554,9 @@ std::shared_ptr<IResult> Session_impl::run_sql(
   if (_mysql == nullptr) throw std::runtime_error("Not connected");
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("run_sql");
+
+  m_session_tracker_info.reset();
+
   if (_prev_result) {
     _prev_result.reset();
   } else {
@@ -663,6 +666,8 @@ std::shared_ptr<IResult> Session_impl::run_sql(
       new Result(shared_from_this(), mysql_affected_rows(_mysql),
                  mysql_insert_id(_mysql), mysql_info(_mysql), buffered));
 
+  check_session_track_system_variables();
+
   /*
   Because of the way UDFs are implemented in the server, they don't return
   errors the same way "regular" functions do. In short, they have two parts: an
@@ -751,27 +756,53 @@ std::vector<std::string> Session_impl::get_last_gtids() const {
   return gtids;
 }
 
-std::optional<std::string> Session_impl::get_last_statement_id() const {
+namespace {
+enum class Tracked_system_variable { UNINTERESTING, STATEMENT_ID, SQL_MODE };
+
+Tracked_system_variable variable_by_name(const char *data, size_t length) {
+  if (strncmp(data, "statement_id", length) == 0)
+    return Tracked_system_variable::STATEMENT_ID;
+  if (strncmp(data, "sql_mode", length) == 0)
+    return Tracked_system_variable::SQL_MODE;
+  return Tracked_system_variable::UNINTERESTING;
+}
+}  // namespace
+
+void Session_impl::check_session_track_system_variables() const {
+  // Must be called after results are fetched, statement_id only
+  // comes in after that
   const char *data;
   size_t length;
-  std::optional<std::string> statement_id;
+  int found_variables = 0;
 
   if (mysql_session_track_get_first(_mysql, SESSION_TRACK_SYSTEM_VARIABLES,
                                     &data, &length) == 0) {
-    bool found_statement_id = strncmp(data, "statement_id", length) == 0;
+    Tracked_system_variable var = variable_by_name(data, length);
 
-    while (!statement_id.has_value() &&
-           mysql_session_track_get_next(_mysql, SESSION_TRACK_SYSTEM_VARIABLES,
+    while (mysql_session_track_get_next(_mysql, SESSION_TRACK_SYSTEM_VARIABLES,
                                         &data, &length) == 0) {
-      if (found_statement_id) {
-        statement_id = std::string(data, length);
-      } else {
-        found_statement_id = strncmp(data, "statement_id", length) == 0;
+      if (var == Tracked_system_variable::STATEMENT_ID) {
+        m_session_tracker_info.statement_id = std::string(data, length);
+        found_variables++;
+      } else if (var == Tracked_system_variable::SQL_MODE) {
+        m_session_tracker_info.sql_mode = std::string(data, length);
+        found_variables++;
       }
+      if (found_variables == 2) break;
+      if (mysql_session_track_get_next(_mysql, SESSION_TRACK_SYSTEM_VARIABLES,
+                                       &data, &length) != 0)
+        break;
+      var = variable_by_name(data, length);
     }
   }
+}
 
-  return statement_id;
+const std::optional<std::string> &Session_impl::get_last_statement_id() const {
+  return m_session_tracker_info.statement_id;
+}
+
+const std::optional<std::string> &Session_impl::get_last_sql_mode() const {
+  return m_session_tracker_info.sql_mode;
 }
 
 std::string Session::escape_string(std::string_view s) const {
@@ -823,6 +854,35 @@ std::function<std::shared_ptr<Session>()> Session::set_factory_function(
 std::shared_ptr<Session> Session::create() {
   if (g_session_factory) return g_session_factory();
   return std::shared_ptr<Session>(new Session());
+}
+
+std::string Session::track_system_variable(const std::string &variable) {
+  if (get_server_version() < mysqlshdk::utils::Version(5, 7, 0))
+    throw std::invalid_argument("Session tracker not supported by server");
+
+  if (variable != "sql_mode")
+    throw std::invalid_argument("Variable unsupported");
+
+  const auto res = query("SELECT @@SESSION.session_track_system_variables");
+  const auto row = res->fetch_one_or_throw();
+
+  auto current_value = shcore::str_lower(row->get_string(0));
+
+  if (shcore::has_session_track_system_variable(current_value, variable))
+    return current_value;
+
+  if (!current_value.empty()) current_value.append(",");
+  current_value.append(variable);
+
+  executef("SET SESSION session_track_system_variables = ?", current_value);
+
+  return current_value;
+}
+
+void Session::refresh_sql_mode_tracked() {
+  if (_impl->m_session_tracker_info.sql_mode.has_value()) {
+    set_sql_mode(*_impl->m_session_tracker_info.sql_mode);
+  }
 }
 
 }  // namespace mysql

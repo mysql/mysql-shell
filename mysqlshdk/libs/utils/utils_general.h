@@ -326,6 +326,17 @@ std::string SHCORE_PUBLIC unquote_identifier(const std::string &str,
 
 std::string SHCORE_PUBLIC unquote_sql_string(const std::string &str);
 
+/**
+ * Check whether a variable is enabled in @@session_track_system_variables,
+ * either specifically or because it's set to *
+ *
+ * variable must be in lowercase, as normalized by the server for
+ * @@session_track_system_variables
+ */
+bool has_session_track_system_variable(
+    const std::string &session_track_system_variables,
+    const std::string &variable);
+
 /** Substitute variables in string.
  *
  * str_subvar("hello ${foo}",

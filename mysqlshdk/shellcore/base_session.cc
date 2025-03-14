@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -314,54 +314,6 @@ std::shared_ptr<mysqlshdk::db::IResult> ShellBaseSession::execute_sql(
   return ret_val;
 }
 
-void ShellBaseSession::enable_sql_mode_tracking() {
-  if (m_is_sql_mode_tracking_enabled) return;
-
-  auto session = get_core_session();
-
-  if (session->get_connection_options().get_session_type() !=
-      mysqlsh::SessionType::Classic)
-    return;
-  if (session->get_server_version() < mysqlshdk::utils::Version(5, 7, 0))
-    return;
-
-  std::string current_value;
-  try {
-    const auto res =
-        session->query("SELECT @@SESSION.session_track_system_variables");
-    const auto row = res->fetch_one();
-    if (!row)
-      throw std::logic_error(
-          "Unable to determine current session tracked system variables.");
-
-    current_value = shcore::str_lower(row->get_string(0));
-
-  } catch (const mysqlshdk::db::Error &) {
-    return;
-  }
-
-  m_is_sql_mode_tracking_enabled =
-      current_value.find("sql_mode") != std::string::npos ||
-      current_value == "*";
-
-  if (m_is_sql_mode_tracking_enabled) {
-    log_info("Already tracking 'sql_mode'system variable.");
-    return;
-  }
-
-  current_value.append(current_value.empty() ? "sql_mode" : ", sql_mode");
-
-  try {
-    session->executef("SET SESSION session_track_system_variables = ?;",
-                      current_value);
-  } catch (const mysqlshdk::db::Error &) {
-    return;
-  }
-
-  m_is_sql_mode_tracking_enabled = true;
-  log_info("Now tracking 'sql_mode' system variable.");
-}
-
 std::string ShellBaseSession::get_quoted_name(std::string_view name) {
   std::string quoted_name;
   quoted_name.reserve(name.size() + 2);
@@ -464,4 +416,33 @@ void ShellBaseSession::set_query_attributes(const shcore::Dictionary_t &args) {
   if (!m_query_attributes.set(args)) {
     m_query_attributes.handle_errors(true);
   }
+}
+
+void ShellBaseSession::set_client_data(const std::string &key,
+                                       const shcore::Value &value) {
+  if (!m_client_data) m_client_data = shcore::make_dict();
+
+  (*m_client_data)[key] = value;
+}
+
+shcore::Value ShellBaseSession::get_client_data(const std::string &key) const {
+  if (m_client_data) {
+    if (auto it = m_client_data->find(key); it != m_client_data->end()) {
+      return it->second;
+    }
+  }
+  return {};
+}
+
+std::string ShellBaseSession::get_sql_mode() {
+  if (!m_tracking_sql_mode) get_core_session()->refresh_sql_mode();
+  return get_core_session()->get_sql_mode();
+}
+
+std::string ShellBaseSession::track_system_variable(
+    const std::string &variable) {
+  auto new_value = get_core_session()->track_system_variable(variable);
+  m_tracking_sql_mode =
+      shcore::has_session_track_system_variable(new_value, "sql_mode");
+  return new_value;
 }

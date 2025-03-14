@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,6 +62,13 @@ void ISession::close() {
   }
 }
 
+void ISession::set_sql_mode(const std::string &sql_mode) {
+  m_sql_mode = shcore::str_upper(sql_mode);
+  m_ansi_quotes_enabled = m_sql_mode->find("ANSI_QUOTES") != std::string::npos;
+  m_no_backslash_escapes_enabled =
+      m_sql_mode->find("NO_BACKSLASH_ESCAPES") != std::string::npos;
+}
+
 void ISession::refresh_sql_mode() {
   assert(is_open());
   try {
@@ -70,12 +77,7 @@ void ISession::refresh_sql_mode() {
 
     if (!row || row->is_null(0)) throw std::runtime_error("Missing sql_mode");
 
-    m_sql_mode = shcore::str_upper(row->get_string(0));
-    m_ansi_quotes_enabled =
-        m_sql_mode->find("ANSI_QUOTES") != std::string::npos;
-    m_no_backslash_escapes_enabled =
-        m_sql_mode->find("NO_BACKSLASH_ESCAPES") != std::string::npos;
-
+    set_sql_mode(row->get_string(0));
   } catch (...) {
     m_sql_mode = std::nullopt;
     m_ansi_quotes_enabled = m_no_backslash_escapes_enabled = false;

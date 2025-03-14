@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -138,7 +138,6 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
                             std::shared_ptr<mysqlsh::ShellBaseSession> session,
                             mysqlshdk::utils::Sql_splitter *splitter) {
   bool ret_val = false;
-  std::optional<bool> server_state_changed;
   if (session) {
     try {
       std::shared_ptr<mysqlshdk::db::IResult> result;
@@ -161,14 +160,6 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
                                         true);
 
           session->query_attribute_store().clear();
-
-          if ((mysqlshdk::db::replay::g_replay_mode ==
-               mysqlshdk::db::replay::Mode::Direct) &&
-              session->is_sql_mode_tracking_enabled()) {
-            server_state_changed =
-                session->get_core_session()->get_server_status() &
-                SERVER_SESSION_STATE_CHANGED;
-          }
         }
 
         timer.stage_end();
@@ -211,42 +202,40 @@ bool Shell_sql::process_sql(std::string_view query, std::string_view delimiter,
 
   _last_handled.append(query).append(delimiter);
 
-  // check if the value of sql_mode have changed - statement can either begin
-  // with 'SET' or, because our splitter does not strip them, with a C style
-  // comment e.g.: /*...*/ set sql_mode...
-  if (ret_val) {
-    auto core_session = session->get_core_session();
-    if (server_state_changed) {
-      if (*server_state_changed) {
-        core_session->refresh_sql_mode();
-      }
-
+  if (auto core_session = session->get_core_session()) {
+    if (session->is_sql_mode_tracking_enabled()) {
       splitter->set_ansi_quotes(core_session->ansi_quotes_enabled());
       splitter->set_no_backslash_escapes(
           core_session->no_backslash_escapes_enabled());
-
-    } else if (query.size() > 12 &&
-               (query[2] == 't' || query[2] == 'T' || query[1] == '*')) {
-      mysqlshdk::utils::SQL_iterator it(_last_handled);
-      auto next = it.next_token();
-      if (shcore::str_caseeq(next, "SET")) {
-        constexpr std::array<std::string_view, 4> mods = {"GLOBAL", "PERSIST",
-                                                          "SESSION", "LOCAL"};
-        next = it.next_token();
-        for (auto mod : mods) {
-          if (shcore::str_caseeq(next, mod)) {
+    } else {
+      // check if the value of sql_mode have changed - statement can either
+      // begin with 'SET' or, because our splitter does not strip them, with a C
+      // style comment e.g.: /*...*/ set sql_mode...
+      if (ret_val) {
+        if (query.size() > 12 &&
+            (query[2] == 't' || query[2] == 'T' || query[1] == '*')) {
+          mysqlshdk::utils::SQL_iterator it(_last_handled);
+          auto next = it.next_token();
+          if (shcore::str_caseeq(next, "SET")) {
+            constexpr std::array<std::string_view, 4> mods = {
+                "GLOBAL", "PERSIST", "SESSION", "LOCAL"};
             next = it.next_token();
-            break;
+            for (auto mod : mods) {
+              if (shcore::str_caseeq(next, mod)) {
+                next = it.next_token();
+                break;
+              }
+            }
+
+            while (next == "@") next = it.next_token();
+
+            if (shcore::str_upper(next).find("SQL_MODE") != std::string::npos) {
+              core_session->refresh_sql_mode();
+              splitter->set_ansi_quotes(core_session->ansi_quotes_enabled());
+              splitter->set_no_backslash_escapes(
+                  core_session->no_backslash_escapes_enabled());
+            }
           }
-        }
-
-        while (next == "@") next = it.next_token();
-
-        if (shcore::str_upper(next).find("SQL_MODE") != std::string::npos) {
-          core_session->refresh_sql_mode();
-          splitter->set_ansi_quotes(core_session->ansi_quotes_enabled());
-          splitter->set_no_backslash_escapes(
-              core_session->no_backslash_escapes_enabled());
         }
       }
     }
@@ -315,10 +304,14 @@ void Shell_sql::handle_input(std::string &code, Input_state &state) {
       return;
     }
   }
-  auto session = get_session();
 
-  m_splitter->set_ansi_quotes(ansi_quotes_enabled(session));
-  m_splitter->set_no_backslash_escapes(no_backslash_escapes_enabled(session));
+  auto session = get_session();
+  if (auto core_session = session->get_core_session()) {
+    m_splitter->set_ansi_quotes(core_session->ansi_quotes_enabled());
+    m_splitter->set_no_backslash_escapes(
+        core_session->no_backslash_escapes_enabled());
+  }
+
   _last_handled.clear();
 
   // the whole code to be executed is in the `code` variable
