@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -147,6 +147,10 @@ void Session::init() {
   expose("quoteName", &Session::quote_name, "id");
 
   expose("runSql", &Session::run_sql, "query", "?args");
+
+  expose("setClientData", &Session::set_client_data, "key", "data");
+  expose("getClientData", &Session::get_client_data, "key");
+  expose("getSqlMode", &Session::get_sql_mode);
 
   expose("_getSocketFd", &Session::_get_socket_fd);
   expose("_fetchNotice", &Session::_fetch_notice);
@@ -444,7 +448,7 @@ REGISTER_HELP_FUNCTION(getUri, Session);
 REGISTER_HELP_FUNCTION_TEXT(SESSION_GETURI, R"*(
 Retrieves the URI for the current session.
 
-@return A string representing the connection data.
+@returns A string representing the connection data.
 )*");
 /**
  * $(SESSION_GETURI_BRIEF)
@@ -464,7 +468,7 @@ REGISTER_HELP_FUNCTION(getCurrentSchema, Session);
 REGISTER_HELP_FUNCTION_TEXT(SESSION_GETCURRENTSCHEMA, R"*(
 Retrieves the active schema on the session.
 
-@return A Schema object if a schema is active on the session.
+@returns A Schema object if a schema is active on the session.
 )*");
 /**
  * $(SESSION_GETCURRENTSCHEMA_BRIEF)
@@ -905,6 +909,49 @@ std::shared_ptr<SqlResult> Session::_rollback() {
   return std::make_shared<SqlResult>(result);
 }
 
+REGISTER_HELP_FUNCTION(setClientData, Session);
+REGISTER_HELP_FUNCTION_TEXT(SESSION_SETCLIENTDATA, R"*(
+Associates a value with the session for the given key.
+
+@param key (string) A string to identify the stored value.
+@param value JSON-like value to be stored.
+
+Saves a value in the session data structure associated to the given key.
+The value can be retrieved later using <<<getClientData>>>().
+)*");
+/**
+ * $(SESSION_SETCLIENTDATA_BRIEF)
+ *
+ * $(SESSION_SETCLIENTDATA)
+ */
+#if DOXYGEN_JS
+Undefined Session::setClientData(String key, Any value) {}
+#elif DOXYGEN_PY
+None Session::set_client_data(str key, Any value) {}
+#endif
+
+REGISTER_HELP_FUNCTION(getClientData, Session);
+REGISTER_HELP_FUNCTION_TEXT(SESSION_GETCLIENTDATA, R"*(
+Returns value associated with the session for the given key.
+
+@param key (string) A string to identify the stored value.
+
+@returns JSON-like value stored for the key.
+
+Returns a value previously stored in the session data structure associated
+with <<<setClientData>>>().
+)*");
+/**
+ * $(SESSION_GETCLIENTDATA_BRIEF)
+ *
+ * $(SESSION_GETCLIENTDATA)
+ */
+#if DOXYGEN_JS
+Any Session::getClientData(String key) {}
+#elif DOXYGEN_PY
+Any Session::get_client_data(str key) {}
+#endif
+
 std::string Session::query_one_string(const std::string &query, int field) {
   auto result = execute_sql(query);
   if (auto row = result->fetch_one()) {
@@ -1066,7 +1113,7 @@ target MySQL Server.
 
 @param sql A string containing the SQL statement to be executed.
 
-@return A SqlExecute object.
+@returns A SqlExecute object.
 
 This method creates an SqlExecute object which is a SQL execution handler.
 
@@ -1148,7 +1195,7 @@ REGISTER_HELP_FUNCTION(getSshUri, Session);
 REGISTER_HELP_FUNCTION_TEXT(SESSION_GETSSHURI, R"*(
 Retrieves the SSH URI for the current session.
 
-@return A string representing the SSH connection data.
+@returns A string representing the SSH connection data.
 )*");
 /**
  * $(SESSION_GETSSHURI_BRIEF)
@@ -1161,13 +1208,32 @@ String Session::getSshUri() {}
 str Session::get_ssh_uri() {}
 #endif
 
+REGISTER_HELP_FUNCTION(getSqlMode, Session);
+REGISTER_HELP_FUNCTION_TEXT(SESSION_GETSQLMODE, R"*(
+Retrieves the SQL_MODE for the current session.
+
+@returns Value of the SQL_MODE session variable.
+
+Queries the value of the SQL_MODE session variable.
+)*");
+/**
+ * $(SESSION_GETSQLMODE_BRIEF)
+ *
+ * $(SESSION_GETSQLMODE)
+ */
+#if DOXYGEN_JS
+String Session::getSqlMode() {}
+#elif DOXYGEN_PY
+str Session::get_sql_mode() {}
+#endif
+
 REGISTER_HELP_PROPERTY(connectionId, Session);
 REGISTER_HELP(SESSION_CONNECTIONID_BRIEF, "${SESSION_GETCONNECTIONID_BRIEF}");
 REGISTER_HELP_FUNCTION(getConnectionId, Session);
 REGISTER_HELP_FUNCTION_TEXT(SESSION_GETCONNECTIONID, R"*(
 Retrieves the connection id for the current session.
 
-@return An integer value representing the connection id.
+@returns An integer value representing the connection id.
 )*");
 /**
  * $(SESSION_GETCONNECTIONID_BRIEF)
@@ -1224,7 +1290,7 @@ Escapes the passed identifier.
 
 @param id The identifier to be quoted.
 
-@return A String containing the escaped identifier.
+@returns A String containing the escaped identifier.
 )*");
 /**
  * $(SESSION_QUOTENAME_BRIEF)
@@ -1247,7 +1313,7 @@ Sets the current schema for this session, and returns the schema object for it.
 
 @param name the name of the new schema to switch to.
 
-@return the Schema object for the new schema.
+@returns the Schema object for the new schema.
 
 At the database level, this is equivalent at issuing the following SQL query:
 

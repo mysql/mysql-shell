@@ -96,3 +96,12 @@ session.help('set_query_attributes')
 
 #@ Help on set_query_attributes, \? [USE:Help on set_query_attributes]
 \? classicsession.set_query_attributes
+
+#@ Help on get_sql_mode()
+\? ClassicSession.get_sql_mode
+
+#@ Help on set_client_data()
+\? ClassicSession.set_client_data
+
+#@ Help on get_client_data()
+\? ClassicSession.get_client_data

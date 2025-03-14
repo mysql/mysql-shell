@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -236,20 +236,26 @@ const IRow *Result::fetch_one() {
             if (code != 0) throw mysqlshdk::db::Error(err, code, state);
           }
 
-          // It means we are done, time to fetch the statement id
-          fetch_statement_id();
+          on_end_fetch();
         }
       } else {
         _row.reset();
       }
     } else {
-      fetch_statement_id();
+      on_end_fetch();
       _row.reset();
     }
     return _row.get();
   }
 
   return nullptr;
+}
+
+void Result::on_end_fetch() {
+  if (auto s = _session.lock()) {
+    s->check_session_track_system_variables();
+  }
+  fetch_statement_id();
 }
 
 void Result::fetch_statement_id() {

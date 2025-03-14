@@ -48,6 +48,9 @@ FUNCTIONS
       drop_schema(name)
             Drops the schema with the specified name.
 
+      get_client_data(key)
+            Returns value associated with the session for the given key.
+
       get_connection_id()
             Retrieves the connection id for the current session.
 
@@ -63,6 +66,9 @@ FUNCTIONS
 
       get_schemas()
             Retrieves the Schemas available on the session.
+
+      get_sql_mode()
+            Retrieves the SQL_MODE for the current session.
 
       get_ssh_uri()
             Retrieves the SSH URI for the current session.
@@ -92,6 +98,9 @@ FUNCTIONS
 
       run_sql(query[, args])
             Executes a query and returns the corresponding SqlResult object.
+
+      set_client_data(key, value)
+            Associates a value with the session for the given key.
 
       set_current_schema(name)
             Sets the current schema for this session, and returns the schema

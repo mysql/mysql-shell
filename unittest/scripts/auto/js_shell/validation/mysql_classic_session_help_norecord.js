@@ -25,8 +25,14 @@ FUNCTIONS
             Commits all the operations executed after a call to
             startTransaction().
 
+      getClientData(key)
+            Returns value associated with the session for the given key.
+
       getConnectionId()
             Retrieves the connection id for the current session.
+
+      getSqlMode()
+            Retrieves the SQL_MODE for the current session.
 
       getSshUri()
             Retrieves the SSH URI for the current session.
@@ -48,6 +54,9 @@ FUNCTIONS
             Executes a query and returns the corresponding ClassicResult
             object.
 
+      setClientData(key, value)
+            Associates a value with the session for the given key.
+
       setQueryAttributes()
             Defines query attributes that apply to the next statement sent to
             the server for execution.
@@ -61,6 +70,20 @@ NAME
 
 SYNTAX
       <ClassicSession>.uri
+
+//@<OUT> Help on getSqlMode
+NAME
+      getSqlMode - Retrieves the SQL_MODE for the current session.
+
+SYNTAX
+      <ClassicSession>.getSqlMode()
+
+RETURNS
+      Value of the SQL_MODE session variable.
+
+DESCRIPTION
+      Queries the value of the SQL_MODE session variable. If session tracking
+      of SQL_MODE is enabled, it will fetch its cached value.
 
 //@<OUT> Help on close
 NAME

@@ -10,6 +10,9 @@ session.help();
 //@ Help on uri
 session.help('uri')
 
+//@ Help on getSqlMode
+session.help('getSqlMode')
+
 //@ Help on uri, \? [USE:Help on uri]
 \? classicsession.uri
 

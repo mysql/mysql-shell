@@ -802,8 +802,9 @@ TEST_F(Completer_frontend, js_devapi) {
 
   EXPECT_AFTER_TAB_TAB(
       "session.get",
-      strv({"getConnectionId()", "getCurrentSchema()", "getDefaultSchema()",
-            "getSchema()", "getSchemas()", "getSshUri()", "getUri()"}));
+      strv({"getClientData()", "getConnectionId()", "getCurrentSchema()",
+            "getDefaultSchema()", "getSchema()", "getSchemas()", "getSqlMode()",
+            "getSshUri()", "getUri()"}));
   EXPECT_AFTER_TAB("session.getCu", "session.getCurrentSchema()");
 
   // TS_FR5.1_X01
@@ -1111,6 +1112,9 @@ TEST_F(Completer_frontend, js_devapi_members_x) {
   std::vector<std::pair<std::string, std::string>> session_calls{
       {"createSchema", "('dropme2')"},
       {"dropSchema", "('dropme2')"},
+      {"getClientData", "('test')"},
+      {"setClientData", "('test', 123)"},
+      {"getSqlMode", "()"},
       {"setCurrentSchema", "('actest')"},
       {"getSchema", "('actest')"},
       {"setFetchWarnings", "(true)"},
@@ -1186,7 +1190,10 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"close", ""},
       {"runSql", "('select 1')"},
       {"setQueryAttributes", "({})"},
-      {"_getSocketFd", ""}};
+      {"_getSocketFd", ""},
+      {"setClientData", "('key', 4)"},
+      {"getClientData", "('key')"},
+      {"trackSystemVariable", "('sql_mode')"}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 }
 #endif
@@ -1357,10 +1364,11 @@ TEST_F(Completer_frontend, py_devapi) {
   EXPECT_AFTER_TAB("session.sql(mkquery(\"\")).e",
                    "session.sql(mkquery(\"\")).execute()");
 
-  EXPECT_AFTER_TAB_TAB("session.get_",
-                       strv({"get_connection_id()", "get_current_schema()",
-                             "get_default_schema()", "get_schema()",
-                             "get_schemas()", "get_ssh_uri()", "get_uri()"}));
+  EXPECT_AFTER_TAB_TAB(
+      "session.get_",
+      strv({"get_client_data()", "get_connection_id()", "get_current_schema()",
+            "get_default_schema()", "get_schema()", "get_schemas()",
+            "get_sql_mode()", "get_ssh_uri()", "get_uri()"}));
   EXPECT_AFTER_TAB("session.get_cu", "session.get_current_schema()");
 
   // TS_FR5.1_X01

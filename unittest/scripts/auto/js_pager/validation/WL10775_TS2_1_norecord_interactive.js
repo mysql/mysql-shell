@@ -95,8 +95,14 @@ FUNCTIONS
             Commits all the operations executed after a call to
             startTransaction().
 
+      getClientData(key)
+            Returns value associated with the session for the given key.
+
       getConnectionId()
             Retrieves the connection id for the current session.
+
+      getSqlMode()
+            Retrieves the SQL_MODE for the current session.
 
       getSshUri()
             Retrieves the SSH URI for the current session.
@@ -117,6 +123,9 @@ FUNCTIONS
       runSql(query[, args])
             Executes a query and returns the corresponding ClassicResult
             object.
+
+      setClientData(key, value)
+            Associates a value with the session for the given key.
 
       setQueryAttributes()
             Defines query attributes that apply to the next statement sent to

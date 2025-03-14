@@ -8,17 +8,21 @@ var classicSession = mysql.getClassicSession(__uripwd);
 validateMembers(classicSession, [
     'close',
     'commit',
+    'getClientData',
     'getConnectionId',
     'getUri',
+    'getSqlMode',
     'getSshUri',
     'help',
     'isOpen',
     'startTransaction',
+    'setClientData',
     'setQueryAttributes',
     'rollback',
     'runSql',
     'connectionId',
     'sshUri',
+    'trackSystemVariable',
     'uri',
     '_getSocketFd'])
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -284,6 +284,8 @@ class SHCORE_PUBLIC Session : public ISession,
       const std::function<bool(const GlobalNotice &)> &listener) {
     _impl->add_notice_listener(listener);
   }
+
+  std::string track_system_variable(const std::string &) override { return ""; }
 
  public:
   xcl::XSession *get_driver_obj() { return _impl->_mysql.get(); }

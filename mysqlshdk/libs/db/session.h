@@ -235,11 +235,15 @@ class SHCORE_PUBLIC ISession {
     return m_dollar_quoted_strings.value_or(false);
   }
 
+  virtual std::string track_system_variable(const std::string &) = 0;
+
   void refresh_sql_mode();
 
  protected:
   virtual void do_connect(const mysqlshdk::db::Connection_options &data) = 0;
   virtual void do_close() = 0;
+
+  void set_sql_mode(const std::string &sql_mode);
 
  private:
   std::optional<std::string> m_sql_mode;

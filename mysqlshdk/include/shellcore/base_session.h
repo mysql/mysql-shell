@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,6 +85,8 @@ class Query_attribute_store {
 
 class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
  public:
+  using Client_data = shcore::Dictionary_t;
+
   static std::shared_ptr<ShellBaseSession> wrap_session(
       std::shared_ptr<mysqlshdk::db::ISession> session);
 
@@ -149,11 +151,6 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   virtual std::shared_ptr<mysqlshdk::db::ISession> get_core_session() const = 0;
 
-  void enable_sql_mode_tracking();
-  bool is_sql_mode_tracking_enabled() const {
-    return m_is_sql_mode_tracking_enabled;
-  }
-
   virtual std::vector<mysqlshdk::db::Query_attribute> query_attributes() const {
     return {};
   }
@@ -166,11 +163,19 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   std::function<void(const std::string &, bool exists)> update_schema_cache;
 
+  void set_client_data(const std::string &key, const shcore::Value &value);
+  shcore::Value get_client_data(const std::string &key) const;
+
+  virtual std::string track_system_variable(const std::string &variable);
+  bool is_sql_mode_tracking_enabled() const { return m_tracking_sql_mode; }
+
  protected:
   std::string get_quoted_name(std::string_view name);
   // TODO(rennox): Note that these are now stored on the low level session
   // object too, they should be removed from here
   mysqlshdk::db::Connection_options _connection_options;
+
+  std::string get_sql_mode();
 
  protected:
   std::string sub_query_placeholders(const std::string &query,
@@ -180,8 +185,10 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   Query_attribute_store m_query_attributes;
 
+  Client_data m_client_data;
+  bool m_tracking_sql_mode{false};
+
  private:
-  bool m_is_sql_mode_tracking_enabled = false;
   std::string m_active_custom_sql;
 
   virtual std::shared_ptr<ShellBaseSession> get_shared_this() = 0;

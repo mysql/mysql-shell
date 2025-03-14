@@ -28,8 +28,14 @@ FUNCTIONS
             Commits all the operations executed after a call to
             start_transaction().
 
+      get_client_data(key)
+            Returns value associated with the session for the given key.
+
       get_connection_id()
             Retrieves the connection id for the current session.
+
+      get_sql_mode()
+            Retrieves the SQL_MODE for the current session.
 
       get_ssh_uri()
             Retrieves the SSH URI for the current session.
@@ -51,12 +57,18 @@ FUNCTIONS
             Executes a query and returns the corresponding ClassicResult
             object.
 
+      set_client_data(key, value)
+            Associates a value with the session for the given key.
+
       set_query_attributes()
             Defines query attributes that apply to the next statement sent to
             the server for execution.
 
       start_transaction()
             Starts a transaction context on the server.
+
+      track_system_variable(variable)
+            Enables session tracking of the given system variable.
 
 #@<OUT> session.close
 NAME
@@ -201,3 +213,49 @@ DESCRIPTION
          session.run_sql('INSTALL COMPONENT
       "file://component_query_attributes"');
 
+#@<OUT> Help on get_sql_mode()
+NAME
+      get_sql_mode - Retrieves the SQL_MODE for the current session.
+
+SYNTAX
+      <ClassicSession>.get_sql_mode()
+
+RETURNS
+      Value of the SQL_MODE session variable.
+
+DESCRIPTION
+      Queries the value of the SQL_MODE session variable. If session tracking
+      of SQL_MODE is enabled, it will fetch its cached value.
+
+#@<OUT> Help on set_client_data()
+NAME
+      set_client_data - Associates a value with the session for the given key.
+
+SYNTAX
+      <ClassicSession>.set_client_data(key, value)
+
+WHERE
+      key: (string) A string to identify the stored value.
+      value: JSON-like value to be stored.
+
+DESCRIPTION
+      Saves a value in the session data structure associated to the given key.
+      The value can be retrieved later using get_client_data().
+
+#@<OUT> Help on get_client_data()
+NAME
+      get_client_data - Returns value associated with the session for the given
+                        key.
+
+SYNTAX
+      <ClassicSession>.get_client_data(key)
+
+WHERE
+      key: (string) A string to identify the stored value.
+
+RETURNS
+      JSON-like value stored for the key.
+
+DESCRIPTION
+      Returns a value previously stored in the session data structure
+      associated with set_client_data().

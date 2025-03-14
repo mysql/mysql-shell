@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #define _MOD_SESSION_H_
 
 #include <memory>
+#include <string>
 #include <string_view>
 
 #include "modules/mod_common.h"
@@ -79,6 +80,7 @@ class SHCORE_PUBLIC ClassicSession
 
   String getUri();
   String getSshUri();
+  String getSqlMode();
   Integer getConnectionId();
   ClassicResult runSql(String query, Array args = []);
   Undefined close();
@@ -87,6 +89,9 @@ class SHCORE_PUBLIC ClassicSession
   ClassicResult rollback();
   Bool isOpen();
   Undefined setQueryAttributes(Dictionary attributes);
+  Undefined setClientData(String key, Any value);
+  Any getClientData(String key);
+  String trackSystemVariable(String variable);
 
  private:
 #elif DOXYGEN_PY
@@ -96,6 +101,7 @@ class SHCORE_PUBLIC ClassicSession
 
   str get_uri();
   str get_ssh_uri();
+  str get_sql_mode();
   str get_connection_id();
   ClassicResult run_sql(str query, list args = []);
   None close();
@@ -104,6 +110,9 @@ class SHCORE_PUBLIC ClassicSession
   ClassicResult rollback();
   bool is_open();
   None set_query_attributes(dict attributes);
+  None set_client_data(str key, Any value);
+  Any get_client_data(str key);
+  str track_system_variable(str variable);
 
  private:
 #endif
@@ -157,6 +166,8 @@ class SHCORE_PUBLIC ClassicSession
   SessionType session_type() const override { return SessionType::Classic; }
 
   bool is_open() const override;
+
+  std::string track_system_variable(const std::string &variable) override;
 
  private:
   void init();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -99,6 +99,8 @@ class SHCORE_PUBLIC Result : public mysqlshdk::db::IResult,
   void fetch_metadata();
   void fetch_statement_id();
   Type map_data_type(int raw_type, int flags, int collation_id);
+
+  void on_end_fetch();
 
   virtual std::shared_ptr<Field_names> field_names() const;
 

@@ -30,6 +30,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/textui/textui.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "include/mysh_config.h"
 #include "my_config.h"
@@ -1406,6 +1407,13 @@ bool is_valid_hostname(std::string_view hostname) {
 
   return std::regex_match<std::string_view::const_iterator>(
       hostname.begin(), hostname.end(), k_pattern);
+}
+
+bool has_session_track_system_variable(
+    const std::string &session_track_system_variables,
+    const std::string &variable) {
+  return session_track_system_variables == "*" ||
+         shcore::strlist_contains(session_track_system_variables, variable);
 }
 
 }  // namespace shcore

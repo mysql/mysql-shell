@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,6 +94,11 @@ void ClassicSession::init() {
   expose("rollback", &ClassicSession::_rollback);
   expose("setQueryAttributes", &ClassicSession::set_query_attributes,
          "attributes");
+  expose("setClientData", &ClassicSession::set_client_data, "key", "data");
+  expose("getClientData", &ClassicSession::get_client_data, "key");
+  expose("getSqlMode", &ClassicSession::get_sql_mode);
+  expose("trackSystemVariable", &ClassicSession::track_system_variable,
+         "variable");
 
   expose("_getSocketFd", &ClassicSession::_get_socket_fd);
 }
@@ -308,7 +313,7 @@ REGISTER_HELP_FUNCTION(getUri, ClassicSession);
 REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_GETURI, R"*(
 Retrieves the URI for the current session.
 
-@return A string representing the connection data.
+@returns A string representing the connection data.
 )*");
 /**
  * $(CLASSICSESSION_GETURI_BRIEF)
@@ -327,7 +332,7 @@ REGISTER_HELP(CLASSICSESSION_SSHURI_BRIEF, "${CLASSICSESSION_GETSSHURI_BRIEF}");
 REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_GETSSHURI, R"*(
 Retrieves the SSH URI for the current session.
 
-@return A string representing the SSH connection data.
+@returns A string representing the SSH connection data.
 )*");
 /**
  * $(CLASSICSESSION_GETSSHURI_BRIEF)
@@ -340,6 +345,26 @@ String ClassicSession::getSshUri() {}
 str ClassicSession::get_ssh_uri() {}
 #endif
 
+REGISTER_HELP_FUNCTION(getSqlMode, ClassicSession);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_GETSQLMODE, R"*(
+Retrieves the SQL_MODE for the current session.
+
+@returns Value of the SQL_MODE session variable.
+
+Queries the value of the SQL_MODE session variable. If session tracking of
+SQL_MODE is enabled, it will fetch its cached value.
+)*");
+/**
+ * $(CLASSICSESSION_GETSQLMODE_BRIEF)
+ *
+ * $(CLASSICSESSION_GETSQLMODE)
+ */
+#if DOXYGEN_JS
+String ClassicSession::getSqlMode() {}
+#elif DOXYGEN_PY
+str ClassicSession::get_sql_mode() {}
+#endif
+
 REGISTER_HELP_PROPERTY(connectionId, ClassicSession);
 REGISTER_HELP_FUNCTION(getConnectionId, ClassicSession);
 REGISTER_HELP(CLASSICSESSION_CONNECTIONID_BRIEF,
@@ -347,7 +372,7 @@ REGISTER_HELP(CLASSICSESSION_CONNECTIONID_BRIEF,
 REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_GETCONNECTIONID, R"*(
 Retrieves the connection id for the current session.
 
-@return An integer value representing the connection id.
+@returns An integer value representing the connection id.
 )*");
 /**
  * $(CLASSICSESSION_GETCONNECTIONID_BRIEF)
@@ -401,6 +426,49 @@ void ClassicSession::set_current_schema(const std::string &name) {
   const auto query = sqlstring("use !", 0) << name;
   get_core_session()->execute(query.str_view());
 }
+
+REGISTER_HELP_FUNCTION(setClientData, ClassicSession);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_SETCLIENTDATA, R"*(
+Associates a value with the session for the given key.
+
+@param key (string) A string to identify the stored value.
+@param value JSON-like value to be stored.
+
+Saves a value in the session data structure associated to the given key.
+The value can be retrieved later using <<<getClientData>>>().
+)*");
+/**
+ * $(CLASSICSESSION_SETCLIENTDATA_BRIEF)
+ *
+ * $(CLASSICSESSION_SETCLIENTDATA)
+ */
+#if DOXYGEN_JS
+Undefined ClassicSession::setClientData(String key, Any value) {}
+#elif DOXYGEN_PY
+None ClassicSession::set_client_data(str key, Any value) {}
+#endif
+
+REGISTER_HELP_FUNCTION(getClientData, ClassicSession);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_GETCLIENTDATA, R"*(
+Returns value associated with the session for the given key.
+
+@param key (string) A string to identify the stored value.
+
+@returns JSON-like value stored for the key.
+
+Returns a value previously stored in the session data structure associated
+with <<<setClientData>>>().
+)*");
+/**
+ * $(CLASSICSESSION_GETCLIENTDATA_BRIEF)
+ *
+ * $(CLASSICSESSION_GETCLIENTDATA)
+ */
+#if DOXYGEN_JS
+Any ClassicSession::getClientData(String key) {}
+#elif DOXYGEN_PY
+Any ClassicSession::get_client_data(str key) {}
+#endif
 
 std::shared_ptr<shcore::Object_bridge> ClassicSession::create(
     const mysqlshdk::db::Connection_options &co_) {
@@ -692,4 +760,33 @@ socket_t ClassicSession::_get_socket_fd() const {
   if (!_session || !_session->is_open())
     throw std::invalid_argument("Session is not open");
   return _session->get_socket_fd();
+}
+
+REGISTER_HELP_FUNCTION(trackSystemVariable, ClassicSession);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_TRACKSYSTEMVARIABLE, R"*(
+Enables session tracking of the given system variable.
+
+@param variable Name of the system variable to track.
+@returns The new value of the session_track_system_variables session variable.
+
+Appends the given system variable name to the session_track_system_variables,
+session variable enabling session tracking of changes to it.
+Currently supported variables:
+@li SQL_MODE
+)*");
+/**
+ * $(CLASSICSESSION_TRACKSYSTEMVARIABLE_BRIEF)
+ *
+ * $(CLASSICSESSION_TRACKSYSTEMVARIABLE)
+ */
+#if DOXYGEN_JS
+String ClassicSession::trackSystemVariable(String variable) {}
+#elif DOXYGEN_PY
+str ClassicSession::track_system_variable(str variable) {}
+#endif
+std::string ClassicSession::track_system_variable(const std::string &variable) {
+  if (!_session || !_session->is_open())
+    throw std::invalid_argument("Session is not open");
+
+  return ShellBaseSession::track_system_variable(variable);
 }
