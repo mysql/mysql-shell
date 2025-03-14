@@ -160,8 +160,8 @@ Config_credentials_provider::Config_credentials_provider(
 }
 
 std::string Config_credentials_provider::config_option(Entry entry) {
-  const char *env_var;
-  const char *name;
+  const char *env_var = nullptr;
+  const char *name = nullptr;
   // if entry is optional, we don't report any errors, and simply return an
   // empty string
   bool optional = false;
@@ -209,6 +209,8 @@ std::string Config_credentials_provider::config_option(Entry entry) {
       name = "security_token_file";
       break;
   }
+
+  assert(env_var && name);
 
   if (const auto env = shcore::get_env(env_var); env.has_value()) {
     log_info("The OCI config entry '%s' set via '%s' environment variable",
