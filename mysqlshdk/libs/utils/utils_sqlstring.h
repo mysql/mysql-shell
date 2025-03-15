@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,21 +29,22 @@
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS 1
 #endif
-#include <inttypes.h>
+
+#include <cinttypes>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <utility>
 
 #include "scripting/common.h"
 
-#include <stdexcept>
-#include <type_traits>
-
 namespace shcore {
-enum SqlStringFlags { QuoteOnlyIfNeeded = 1 << 0 };
+enum SqlStringFlags {
+  QuoteOnlyIfNeeded = 1 << 0,
+  NoBackslashEscapes = 1 << 1,
+};
 
-SHCORE_PUBLIC std::string escape_sql_string(
-    std::string_view string,
-    bool wildcards = false);  // "strings" or 'strings'
 SHCORE_PUBLIC std::string escape_backticks(
     std::string_view string);  // `identifier`
 /**
@@ -195,20 +196,26 @@ class SHCORE_PUBLIC sqlstring {
 
 /**
  * Variadic query formatter
+ * @param flags additional flags for sql formatting
  * @param s    format string with placeholders, as in sqlstring
  * @param args values to substitute for placeholders
  *
  * @return query string with placeholders substituted
  */
 template <typename... Args>
-inline std::string sqlformat(std::string s, Args &&...args) {
-  sqlstring sqls(std::move(s), 0);
+inline std::string sqlformat(int flags, std::string s, Args &&...args) {
+  sqlstring sqls(std::move(s), flags);
 
   if constexpr (sizeof...(args) > 0) (sqls << ... << args);
 
   sqls.done();
 
   return sqls.str();
+}
+
+template <typename... Args>
+inline std::string sqlformat(std::string s, Args &&...args) {
+  return sqlformat(0, std::move(s), std::forward<Args>(args)...);
 }
 
 }  // namespace shcore

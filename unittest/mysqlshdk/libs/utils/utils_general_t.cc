@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -219,13 +219,12 @@ TEST(utils_general, make_account) {
     const char *user;
     const char *host;
   };
-  static std::vector<Case> good_cases{
-      {"'foo'@'bar'", "foo", "bar"},
-      {"'\\'foo\\''@'bar'", "'foo'", "bar"},
-      {"'\\\"foo\\\"'@'bar%'", "\"foo\"", "bar%"},
-      {"'a@b'@'bar'", "a@b", "bar"},
-      {"'a@b'@'bar'", "a@b", "bar"},
-      {"''@''", "", ""}};
+  static std::vector<Case> good_cases{{"'foo'@'bar'", "foo", "bar"},
+                                      {"'\\'foo\\''@'bar'", "'foo'", "bar"},
+                                      {"'\"foo\"'@'bar%'", "\"foo\"", "bar%"},
+                                      {"'a@b'@'bar'", "a@b", "bar"},
+                                      {"'a@b'@'bar'", "a@b", "bar"},
+                                      {"''@''", "", ""}};
   for (auto &t : good_cases) {
     SCOPED_TRACE(t.account);
     EXPECT_EQ(t.account, make_account(t.user, t.host));

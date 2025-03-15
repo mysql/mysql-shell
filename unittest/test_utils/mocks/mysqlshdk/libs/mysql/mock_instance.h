@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,6 +81,7 @@ class Mock_instance : public mysqlshdk::mysql::IInstance {
                      void(const std::string &, const Var_qualifier));
   MOCK_CONST_METHOD1(has_variable_compiled_value, bool(std::string_view));
   MOCK_CONST_METHOD0(is_performance_schema_enabled, bool());
+  MOCK_CONST_METHOD0(no_backslash_escapes_enabled, bool());
   MOCK_CONST_METHOD0(is_ssl_enabled, bool());
 
   MOCK_CONST_METHOD1(is_read_only, bool(bool super));

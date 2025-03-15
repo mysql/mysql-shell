@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -174,6 +174,7 @@ class IInstance {
 
   virtual bool has_variable_compiled_value(std::string_view name) const = 0;
   virtual bool is_performance_schema_enabled() const = 0;
+  virtual bool no_backslash_escapes_enabled() const = 0;
 
   virtual bool is_ssl_enabled() const = 0;
 
@@ -251,7 +252,9 @@ class IInstance {
   template <typename... Args>
   inline std::shared_ptr<mysqlshdk::db::IResult> queryf(
       const std::string &sql, const Args &...args) const {
-    return query(shcore::sqlformat(sql, args...));
+    return query(shcore::sqlformat(
+        no_backslash_escapes_enabled() ? shcore::NoBackslashEscapes : 0, sql,
+        args...));
   }
 
   template <typename... Args>
@@ -426,6 +429,7 @@ class Instance : public IInstance {
 
   bool has_variable_compiled_value(std::string_view name) const override;
   bool is_performance_schema_enabled() const override;
+  bool no_backslash_escapes_enabled() const override;
   bool is_ssl_enabled() const override;
 
   std::shared_ptr<db::ISession> get_session() const override {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -393,6 +393,10 @@ Instance::get_system_variables_like(const std::string &pattern,
 
 bool Instance::is_performance_schema_enabled() const {
   return get_sysvar_bool("performance_schema", false);
+}
+
+bool Instance::no_backslash_escapes_enabled() const {
+  return m_session->no_backslash_escapes_enabled();
 }
 
 bool Instance::is_ssl_enabled() const {

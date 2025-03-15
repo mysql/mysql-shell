@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -756,8 +756,10 @@ Account split_account(const std::string &account,
 /** Join MySQL account components into a string suitable for use with GRANT
  *  and similar
  */
-std::string make_account(const std::string &user, const std::string &host) {
-  return shcore::sqlstring("?@?", 0) << user << host;
+std::string make_account(const std::string &user, const std::string &host,
+                         bool no_backslash_escapes) {
+  return shcore::sqlstring("?@?", no_backslash_escapes ? NoBackslashEscapes : 0)
+         << user << host;
 }
 
 std::string make_account(const Account &account) {

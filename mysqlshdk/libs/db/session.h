@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -213,7 +213,7 @@ class SHCORE_PUBLIC ISession {
     return m_ansi_quotes_enabled;
   }
 
-  bool no_backslash_escapes_enabled() {
+  virtual bool no_backslash_escapes_enabled() {
     if (!m_sql_mode && is_open()) refresh_sql_mode();
     return m_no_backslash_escapes_enabled;
   }
