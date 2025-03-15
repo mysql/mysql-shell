@@ -115,6 +115,9 @@ std::shared_ptr<mysqlshdk::db::ISession> clone_session(
   }
 
   new_session->connect(co);
+
+  new_session->execute("SET SQL_MODE=DEFAULT");
+
   return new_session;
 }
 

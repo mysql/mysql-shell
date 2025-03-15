@@ -204,5 +204,16 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
 }
 """)
 
+#@<> Bug#37484875 Upgrade checker failed With sql_mode=NO_BACKSLASH_ESCAPES
+# switch to sql_mode NO_BACKSLASH_ESCAPES
+session.run_sql("SET @saved_sql_mode = @@SQL_MODE;")
+session.run_sql("SET GLOBAL SQL_MODE='NO_BACKSLASH_ESCAPES';")
+session.run_sql("SET SESSION SQL_MODE='NO_BACKSLASH_ESCAPES';")
+
+EXPECT_NO_THROWS(lambda: util.check_for_server_upgrade(__sandbox_uri1, {"include":["invalid57Names"]}));
+EXPECT_OUTPUT_CONTAINS("Check for invalid table names and schema names used in 5.7 (invalid57Names)")
+session.run_sql("SET GLOBAL sql_mode = @saved_sql_mode")
+session.run_sql("SET SESSION sql_mode = @saved_sql_mode")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

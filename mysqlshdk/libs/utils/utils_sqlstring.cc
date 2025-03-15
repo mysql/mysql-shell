@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -325,17 +325,23 @@ bool is_reserved_word(std::string_view word) {
 namespace shcore {
 //--------------------------------------------------------------------------------------------------
 
+namespace {
 /**
  * Escape a string to be used in a SQL query
  * Same code as used by mysql. Handles null bytes in the middle of the string.
  * If wildcards is true then _ and % are masked as well.
  */
-std::string escape_sql_string(std::string_view s, bool wildcards) {
+std::string escape_sql_string(std::string_view s, char quoting_char,
+                              bool wildcards = false,
+                              bool no_backslash_quotes = false) {
   std::string result;
   result.reserve(s.size());
 
   for (const auto ch : s) {
     char escape = 0;
+    // when NO_BACKSLASH_ESCAPES is enabled, escaping most special characters
+    // is impossible, so they are left as is
+    char escape_char = no_backslash_quotes ? 0 : '\\';
 
     switch (ch) {
       case 0: /* Must be escaped for 'mysql' */
@@ -348,13 +354,18 @@ std::string escape_sql_string(std::string_view s, bool wildcards) {
         escape = 'r';
         break;
       case '\\':
-        escape = '\\';
+        // with NoBackslashEscape backslash is treated like a normal
+        // character
+        escape = no_backslash_quotes ? 0 : '\\';
         break;
+      // quote chars are escaped by double quote if quoted with the same char,
+      // otherwise, no escape is needed
       case '\'':
-        escape = '\'';
-        break;
-      case '"': /* Better safe than sorry */
-        escape = '"';
+      case '"':
+        if (ch == quoting_char) {
+          escape = ch;
+          escape_char = no_backslash_quotes ? ch : escape_char;
+        }
         break;
       case '\032': /* This gives problems on Win32 */
         escape = 'Z';
@@ -366,13 +377,15 @@ std::string escape_sql_string(std::string_view s, bool wildcards) {
         if (wildcards) escape = '%';
         break;
     }
-    if (escape)
-      result.append(1, '\\').append(1, escape);
-    else
+    if (escape && escape_char) {
+      result.append(1, escape_char).append(1, escape);
+    } else {
       result.append(1, ch);
+    }
   }
   return result;
 }
+}  // namespace
 
 //--------------------------------------------------------------------------------------------------
 
@@ -431,7 +444,7 @@ std::string escape_wildcards(std::string_view s) {
 std::string quote_sql_string(std::string_view s) {
   std::string res;
   res.reserve(s.size() + 2);
-  res.append("'").append(escape_sql_string(s)).append("'");
+  res.append("'").append(escape_sql_string(s, '\'')).append("'");
   return res;
 }
 
@@ -585,7 +598,10 @@ sqlstring &sqlstring::operator<<(std::string_view v) {
     else
       append(quote_identifier(v));
   } else if (esc == '?') {
-    append("'").append(escape_sql_string(v)).append("'");
+    append("'")
+        .append(escape_sql_string(v, '\'', false,
+                                  (_format._flags & NoBackslashEscapes) != 0))
+        .append("'");
   } else {  // shouldn't happen
     throw std::invalid_argument(
         "Error formatting SQL query: internal error, expected ? or ! escape "

@@ -201,6 +201,9 @@ void Util::check_for_server_upgrade(
     }
     const auto session =
         establish_session(connection, current_shell_options()->get().wizards);
+
+    session->execute("SET SQL_MODE=DEFAULT");
+
     mysqlshdk::mysql::Instance instance(session);
 
     try {

@@ -116,7 +116,7 @@ function genlog_filter_reads(logs, pattern) {
     for (log of logs) {
       sql = log["sql"];
       if (pattern === undefined) {
-        if (sql.match("select 1") || sql.match(/select.*from.*/i) ||
+        if (sql.match("select 1") || sql.match(/select.*from.*/i) || sql.match("select @@sql_mode") ||
             sql.match(/(show|begin|start transaction|rollback|.*@@hostname|.*@@server_uuid|select.*gtid)/i) ||
             sql.match(/set (session|@)/i) || sql.match(/select\s*(service_get_write_locks|service_get_read_locks|service_release_locks)\(.*\)/i)) {
         } else {

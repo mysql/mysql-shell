@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -151,7 +151,8 @@ User_privileges::User_privileges(const mysqlshdk::mysql::IInstance &instance,
                                  const std::string &host,
                                  bool allow_skip_grants_user)
     : m_user(user), m_host(host) {
-  m_account = shcore::make_account(m_user, m_host);
+  m_account = shcore::make_account(m_user, m_host,
+                                   instance.no_backslash_escapes_enabled());
   const bool is_skip_grants_user =
       ("'skip-grants user'@'skip-grants host'" == m_account) &&
       allow_skip_grants_user;
@@ -201,11 +202,16 @@ bool User_privileges::user_exists() const { return m_user_exists; }
 
 bool User_privileges::check_if_user_exists(
     const mysqlshdk::mysql::IInstance &instance) const {
+  // user_privileges.grantee column stores account as raw 'user'@'host' strings,
+  // so to properly accommodate special escape characters (like quotes), it
+  // needs to be escaped on the query level
+  const auto raw_account =
+      shcore::str_format("'%s'@'%s'", m_user.c_str(), m_host.c_str());
   // all users have at least one privilege: USAGE
   const auto result = instance.queryf(
       "SELECT PRIVILEGE_TYPE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE "
       "GRANTEE=? LIMIT 1",
-      m_account);
+      raw_account);
   return nullptr != result->fetch_one();
 }
 
