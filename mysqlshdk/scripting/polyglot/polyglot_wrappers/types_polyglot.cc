@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -190,6 +190,19 @@ bool Polyglot_object::remove_member(const std::string &name) {
   }
 
   return removed;
+}
+
+bool Polyglot_object::is_exception() const {
+  bool is_exception = false;
+  throw_if_error(poly_value_is_exception, m_thread, m_object.get(),
+                 &is_exception);
+
+  return is_exception;
+}
+
+void Polyglot_object::throw_exception() const {
+  const auto rc = poly_value_throw_exception(m_thread, m_object.get());
+  throw Polyglot_error(m_thread, rc);
 }
 
 Polyglot_function::Polyglot_function(std::weak_ptr<Polyglot_language> language,

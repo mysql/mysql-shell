@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,7 +30,6 @@
 
 #include <memory>
 
-#include "mysqlshdk/scripting/polyglot/languages/polyglot_garbage_collector.h"
 #include "mysqlshdk/scripting/polyglot/native_wrappers/polyglot_collectable.h"
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_scope.h"
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_store.h"
@@ -59,22 +58,20 @@ class Polyglot_common_context {
   Polyglot_common_context() = default;
   virtual ~Polyglot_common_context() = default;
 
-  virtual void initialize();
+  virtual void initialize(const std::vector<std::string> &isolate_args);
   virtual void finalize();
 
   poly_reference engine() const { return m_engine.get(); }
   poly_isolate isolate() const { return m_isolate; }
   poly_thread thread() const { return m_thread; }
 
-  Garbage_collector &garbage_collector() { return m_garbage_collector; }
-
   void clean_collectables();
 
   Collectable_registry *collectable_registry() { return &m_registry; }
 
  protected:
-  poly_isolate m_isolate;
-  poly_thread m_thread;
+  poly_isolate m_isolate = nullptr;
+  poly_thread m_thread = nullptr;
 
  private:
   void init_engine();
@@ -85,11 +82,9 @@ class Polyglot_common_context {
   virtual void flush() = 0;
   virtual void log(const char *bytes, size_t length) = 0;
   virtual poly_engine create_engine() { return nullptr; }
-  virtual Garbage_collector::Config gc_config() { return {}; }
 
   Store m_engine;
   std::unique_ptr<Polyglot_scope> m_scope;
-  Garbage_collector m_garbage_collector;
   Collectable_registry m_registry;
 };
 
