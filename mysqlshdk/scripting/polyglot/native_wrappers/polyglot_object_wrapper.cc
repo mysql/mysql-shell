@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,7 +71,7 @@ class Object_iterator : public IPolyglot_iterator {
     }
 
     return shcore::Value(item);
-  };
+  }
 
  private:
   std::vector<std::string> m_members;
