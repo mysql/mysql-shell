@@ -69,6 +69,15 @@ class Storage_options {
   static const shcore::Option_pack_def<Storage_options> &options();
 
   /**
+   * Provides a description of the given URL.
+   *
+   * @param url URL to a directory.
+   *
+   * @return Description of the given URL.
+   */
+  std::string describe(const std::string &url) const;
+
+  /**
    * Fetches storage configuration for the given URL.
    *
    * @param url URL to a directory.
@@ -150,6 +159,12 @@ class Storage_options {
 
   const mysqlshdk::storage::backend::object_storage::Object_storage_options *
   storage_options() const noexcept;
+
+  const mysqlshdk::storage::Config_ptr &storage_config() const noexcept {
+    return m_storage;
+  }
+
+  Storage_type storage_type() const noexcept { return m_storage_type; }
 
  private:
   void on_unpacked_options();

@@ -55,6 +55,7 @@
 #include "modules/util/common/dump/basenames.h"
 #include "modules/util/common/dump/checksums.h"
 #include "modules/util/common/dump/server_info.h"
+#include "modules/util/common/dump/vector_store_info.h"
 #include "modules/util/dump/capability.h"
 #include "modules/util/dump/dump_options.h"
 #include "modules/util/dump/dump_writer.h"
@@ -148,11 +149,36 @@ class Dumper {
 
   bool dump_users() const;
 
+  std::string decode_column(const Instance_cache::Table *table,
+                            const Instance_cache::Column *column) const;
+
  private:
   class Dump_writer_controller;
   class Single_file_writer_controller;
   class Default_writer_controller;
   class Multi_file_writer_controller;
+
+  struct Output_config {
+    void init(
+        const import_table::Dialect &dialect,
+        mysqlshdk::storage::Compression compression,
+        const mysqlshdk::storage::Compression_options &compression_options);
+
+    void create_directory();
+
+    void fini();
+
+    std::unique_ptr<mysqlshdk::storage::IDirectory> dir;
+    std::string data_file_extension;
+
+    import_table::Dialect dialect;
+
+    mysqlshdk::storage::Compression compression =
+        mysqlshdk::storage::Compression::NONE;
+    mysqlshdk::storage::Compression_options compression_options;
+
+    std::function<std::unique_ptr<Dump_writer>()> writer_creator;
+  };
 
   struct Object_info {
     std::string name;
@@ -189,6 +215,7 @@ class Dumper {
     std::string schema;
     std::string extra_filter;
     Index_info index;
+    const Output_config *output_config = nullptr;
   };
 
   struct Table_data_task : Table_task {
@@ -275,6 +302,10 @@ class Dumper {
   void create_output_directory();
 
   void close_output_directory();
+
+  void setup_vector_store_directory();
+
+  void close_vector_store_directory();
 
   void create_worker_sessions();
 
@@ -370,15 +401,15 @@ class Dumper {
   bool should_dump_data(const Table_task &table) const;
 
   std::unique_ptr<Dump_writer_controller> table_dump_controller(
-      const std::string &filename) const;
+      const Output_config *config, const std::string &filename) const;
 
   std::unique_ptr<Dump_writer_controller> table_dump_multi_file_controller(
-      const std::string &basename) const;
+      const Output_config *config, const std::string &basename) const;
 
   void finish_writing(const std::string &schema, const std::string &table,
                       const Dump_writer_controller *controller);
 
-  void write_metadata() const;
+  void write_dump_redirected_metadata() const;
 
   void write_dump_started_metadata() const;
 
@@ -402,12 +433,6 @@ class Dumper {
 
   void kill_workers();
 
-  std::string get_table_data_filename(const std::string &basename) const;
-
-  std::string get_table_data_filename(const std::string &basename,
-                                      const std::size_t idx,
-                                      const bool last_chunk) const;
-
   void initialize_throughput_progress();
 
   void initialize_checksum_progress();
@@ -418,10 +443,20 @@ class Dumper {
 
   std::string throughput() const;
 
-  mysqlshdk::storage::IDirectory *directory() const;
+  inline mysqlshdk::storage::IDirectory *dump_dir() const noexcept {
+    return m_dump_config.dir.get();
+  }
 
-  std::unique_ptr<mysqlshdk::storage::IFile> make_file(
-      const std::string &filename, bool use_mmap = false) const;
+  inline mysqlshdk::storage::IDirectory *vector_store_dir() const noexcept {
+    return m_vector_store_config.dir.get();
+  }
+
+  std::unique_ptr<mysqlshdk::storage::IFile> make_dump_file(
+      const std::string &filename) const;
+
+  std::unique_ptr<mysqlshdk::storage::IFile> make_data_file(
+      const Output_config *config, const std::string &filename,
+      bool use_mmap) const;
 
   std::string get_basename(const std::string &basename);
 
@@ -470,7 +505,23 @@ class Dumper {
   common::Binlog binlog(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
+  Dump_writer::Encoding_type encoding_type(
+      const Instance_cache::Table *table,
+      const Instance_cache::Column *column) const;
+
   std::string optimizer_hints(const Instance_cache::Table *info) const;
+
+  bool uses_multifile_schema_ddl() const noexcept {
+    return m_capability_set.is_set(Capability::MULTIFILE_SCHEMA_DDL);
+  }
+
+  bool uses_dump_dir_redirection() const noexcept {
+    return !m_redirected_dump_dir.empty();
+  }
+
+  bool uses_innodb_vector_store() const noexcept {
+    return m_capability_set.is_set(Capability::INNODB_VECTOR_STORE);
+  }
 
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
@@ -491,12 +542,20 @@ class Dumper {
 
   // input data
   const Dump_options &m_options;
-  std::unique_ptr<mysqlshdk::storage::IDirectory> m_output_dir;
+
+  mysqlshdk::storage::File_options m_mmap_options;
+  Output_config m_dump_config;
+
+  Output_config m_vector_store_config;
+  std::string m_vector_store_output_description;
+
+  std::string m_redirected_dump_dir;
+  std::string m_redirected_output_url;
+
   std::unique_ptr<mysqlshdk::storage::IFile> m_output_file;
   Instance_cache m_cache;
   std::vector<Schema_info> m_schema_infos;
   common::Basenames m_basenames;
-  std::string m_table_data_extension;
 
   // status variables
   bool m_instance_locked = false;
@@ -555,7 +614,6 @@ class Dumper {
   std::atomic<uint64_t> m_checksum_tasks_completed;
   Progress_thread::Duration m_checksum_duration;
   std::atomic<bool> m_main_thread_finished_producing_chunking_tasks;
-  std::function<std::unique_ptr<Dump_writer>()> m_writer_creator;
   shcore::atomic_flag m_worker_interrupt;
 
   // progress thread needs to be placed after any of the fields it uses, in
@@ -569,6 +627,8 @@ class Dumper {
 
   std::mutex m_checksums_mutex;
   std::unique_ptr<common::Checksums> m_checksum;
+
+  common::Vector_store_info m_vector_store_info;
 };
 
 }  // namespace dump

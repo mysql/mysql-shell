@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,8 +30,10 @@
 #define MYSQLSHDK_LIBS_DB_RESULT_H_
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
+
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/row.h"
 #include "mysqlshdk/libs/db/row_by_name.h"
@@ -46,6 +48,21 @@ struct Warning {
   std::string msg;
   uint32_t code;
 };
+
+inline const char *to_string(Warning::Level level) {
+  switch (level) {
+    case Warning::Level::Note:
+      return "Note";
+
+    case Warning::Level::Warn:
+      return "Warning";
+
+    case Warning::Level::Error:
+      return "Error";
+  }
+
+  throw std::logic_error{"to_string(Warning::Level)"};
+}
 
 class SHCORE_PUBLIC IResult {
  public:

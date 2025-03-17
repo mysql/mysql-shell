@@ -26,7 +26,6 @@ testutil.wait_sandbox_alive(__sandbox_uri2)
 
 #@<> constants
 RFC3339 = True
-oci_config_file = os.path.join(OCI_CONFIG_HOME, "config")
 
 test_schema = "wl15432"
 test_table = "wl15432"

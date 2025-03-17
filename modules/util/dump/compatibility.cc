@@ -103,16 +103,23 @@ struct Comment_offset {
 
 using Coffsets = std::vector<Comment_offset>;
 
-std::string replace_at_offsets(const std::string &s, const Offsets &offsets,
+std::string replace_at_offsets(std::string_view s, const Offsets &offsets,
                                const std::string &target) {
-  if (offsets.empty()) return s;
+  if (offsets.empty()) return std::string{s};
 
-  std::string out = s.substr(0, offsets[0].first) + target;
-  for (std::size_t i = 1; i < offsets.size(); i++)
+  std::string out;
+
+  out += s.substr(0, offsets[0].first);
+  out += target;
+
+  for (std::size_t i = 1; i < offsets.size(); i++) {
     out += s.substr(offsets[i - 1].second,
-                    offsets[i].first - offsets[i - 1].second) +
-           target;
+                    offsets[i].first - offsets[i - 1].second);
+    out += target;
+  }
+
   out += s.substr(offsets.back().second);
+
   return out;
 }
 
@@ -962,7 +969,7 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
 }
 
 Deferred_statements check_create_table_for_indexes(
-    const std::string &statement, const std::string &table_name,
+    std::string_view statement, const std::string &table_name,
     bool fulltext_only) {
   Deferred_statements ret;
   Offsets offsets;
@@ -1077,6 +1084,8 @@ Deferred_statements check_create_table_for_indexes(
     storage->emplace_back(shcore::str_strip(index_clause));
   }
 
+  std::string_view engine;
+
   while (it.valid()) {
     auto token = it.next_token();
 
@@ -1097,10 +1106,20 @@ Deferred_statements check_create_table_for_indexes(
         ret.secondary_engine += secondary_engine;
         ret.secondary_engine += ';';
       }
+    } else if (shcore::str_caseeq(token, "ENGINE")) {
+      // ENGINE [=] engine_name
+      engine = it.next_token();
 
-      // no need to check the rest
-      break;
+      if (shcore::str_caseeq(engine, "=")) {
+        engine = it.next_token();
+      }
     }
+  }
+
+  if (shcore::str_caseeq(engine, "Lakehouse")) {
+    // we prevent any modifications of tables which are using the Lakehouse
+    // engine, they don't benefit from index deferral
+    return {};
   }
 
   ret.rewritten = replace_at_offsets(statement, offsets, "");
@@ -1241,7 +1260,7 @@ std::string convert_create_user_to_create_role(const std::string &create_user) {
   return sql;
 }
 
-void add_pk_to_create_table(const std::string &statement,
+void add_pk_to_create_table(std::string_view statement,
                             std::string *rewritten) {
   assert(rewritten);
 
@@ -1284,10 +1303,12 @@ void add_pk_to_create_table(const std::string &statement,
     }
   }
 
-  *rewritten =
-      statement.substr(0, position) +
-      "`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY," +
-      statement.substr(position);
+  rewritten->clear();
+
+  rewritten->append(statement.substr(0, position));
+  rewritten->append(
+      "`my_row_id` BIGINT UNSIGNED AUTO_INCREMENT INVISIBLE PRIMARY KEY,");
+  rewritten->append(statement.substr(position));
 }
 
 bool add_pk_to_create_table_if_missing(const std::string &statement,
@@ -1971,6 +1992,10 @@ bool supports_set_any_definer_privilege(const mysqlshdk::utils::Version &v) {
 
 bool supports_library_ddl(const mysqlshdk::utils::Version &v) {
   return v.numeric() >= 90200;
+}
+
+bool supports_vector_store_conversion(const mysqlshdk::utils::Version &v) {
+  return v.numeric() >= 90401;
 }
 
 bool replace_keyword(std::string_view stmt, std::string_view from,

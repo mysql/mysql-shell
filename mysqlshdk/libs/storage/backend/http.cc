@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -433,7 +433,7 @@ bool Http_directory::is_local() const { return false; }
 
 std::string Http_directory::join_path(const std::string &a,
                                       const std::string &b) const {
-  return a + "/" + b;
+  return utils::join_uri_path(a, b, true);
 }
 
 }  // namespace backend

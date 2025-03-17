@@ -65,7 +65,7 @@ void Common_options::on_log_options(const std::string &msg) const {
 
 void Common_options::set_url(const std::string &url) {
   Storage_type storage;
-  const auto config = storage_config(url, &storage);
+  auto config = storage_config(url, &storage);
 
   auto final_url = url;
 
@@ -73,7 +73,7 @@ void Common_options::set_url(const std::string &url) {
       Storage_options::Storage_type::Oci_par == storage) {
     // automatically append the slash to convert the URL to a prefix PAR
     final_url.append(1, '/');
-    storage = Storage_options::Storage_type::Oci_prefix_par;
+    config = storage_config(final_url, &storage);
   }
 
   on_set_url(final_url, storage, config);
@@ -81,9 +81,10 @@ void Common_options::set_url(const std::string &url) {
   m_url = std::move(final_url);
 }
 
-void Common_options::on_set_url(const std::string &url, Storage_type,
-                                const mysqlshdk::storage::Config_ptr &) {
+void Common_options::on_set_url(const std::string &url, Storage_type type,
+                                const mysqlshdk::storage::Config_ptr &storage) {
   throw_on_url_and_storage_conflict(url);
+  set_storage_config(storage, type);
 }
 
 void Common_options::set_session(

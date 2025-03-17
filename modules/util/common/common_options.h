@@ -59,6 +59,8 @@ class Common_options : public Storage_options {
 
   static const shcore::Option_pack_def<Common_options> &options();
 
+  const std::string &url() const noexcept { return m_url; }
+
   void set_url(const std::string &url);
 
   void set_session(const std::shared_ptr<mysqlshdk::db::ISession> &session);
@@ -85,8 +87,6 @@ class Common_options : public Storage_options {
   virtual void on_validate() const {}
 
   virtual void on_configure() {}
-
-  const std::string &url() const noexcept { return m_url; }
 
   const std::shared_ptr<mysqlshdk::db::ISession> &session() const noexcept {
     return m_session;

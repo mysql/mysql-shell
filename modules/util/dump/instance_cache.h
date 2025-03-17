@@ -63,6 +63,7 @@ struct Instance_cache {
     bool auto_increment = false;
     bool nullable = true;
     mysqlshdk::db::Type type = mysqlshdk::db::Type::Null;
+    bool is_innodb_vector_store_column = false;
   };
 
   class Index final {
@@ -121,6 +122,7 @@ struct Instance_cache {
     std::vector<Histogram> histograms;
     std::vector<std::string> triggers;  // order of triggers is important
     std::vector<Partition> partitions;
+    bool is_innodb_vector_store_table = false;
   };
 
   struct View : public Table {
@@ -164,6 +166,8 @@ struct Instance_cache {
 
   bool has_ndbinfo = false;
   bool has_library_ddl = false;
+  bool has_innodb_vector_store_tables = false;
+  uint64_t innodb_vector_store_tables = 0;
   std::string user;
   std::string hostname;
   common::Server_info server;

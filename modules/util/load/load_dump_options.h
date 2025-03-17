@@ -43,6 +43,9 @@
 #include "modules/mod_utils.h"
 #include "modules/util/common/common_options.h"
 #include "modules/util/import_table/helpers.h"
+#include "modules/util/load/convert_vector_store.h"
+#include "modules/util/load/heatwave_load.h"
+#include "modules/util/load/lakehouse_source_option.h"
 
 namespace mysqlsh {
 
@@ -191,6 +194,8 @@ class Load_dump_options : public common::Common_options {
 
   bool is_mds() const { return m_is_mds; }
 
+  bool is_lakehouse_enabled() const { return m_is_lakehouse_enabled; }
+
   bool show_metadata() const { return m_show_metadata; }
 
   void set_show_metadata(bool show) { m_show_metadata = show; }
@@ -241,6 +246,44 @@ class Load_dump_options : public common::Common_options {
     return m_is_library_ddl_supported;
   }
 
+  inline bool has_lakehouse_source_option() const {
+    return !m_lakehouse_source.par().empty() ||
+           !m_lakehouse_source.resource_principals().empty();
+  }
+
+  inline const load::Lakehouse_source_option &lakehouse_source()
+      const noexcept {
+    return m_lakehouse_source;
+  }
+
+  inline bool has_convert_vector_store_option() const {
+    return m_convert_vector_store.has_value();
+  }
+
+  inline void set_convert_vector_store(load::Convert_vector_store mode) {
+    m_convert_vector_store = mode;
+  }
+
+  inline load::Convert_vector_store convert_vector_store() const {
+    // WL16802-FR2.1.2: if not given, use the AUTO mode
+    return m_convert_vector_store.value_or(load::Convert_vector_store::AUTO);
+  }
+
+  inline bool has_heatwave_load_option() const {
+    return m_heatwave_load.has_value();
+  }
+
+  inline void set_heatwave_load(load::Heatwave_load mode) {
+    m_heatwave_load = mode;
+  }
+
+  inline load::Heatwave_load heatwave_load() const {
+    // WL16802-FR2.3.2: heatwaveLoad is set to 'vector_store' by default
+    return load_data()
+               ? m_heatwave_load.value_or(load::Heatwave_load::VECTOR_STORE)
+               : load::Heatwave_load::NONE;
+  }
+
   using Storage_options::set_storage_config;
 
   using Common_options::session;
@@ -269,6 +312,10 @@ class Load_dump_options : public common::Common_options {
 
   void configure_bulk_load();
 
+  void set_convert_vector_store_option(const std::string &value);
+
+  void set_heatwave_load_option(const std::string &value);
+
   uint64_t m_threads_count = 4;
   std::optional<uint64_t> m_background_threads_count;
 
@@ -296,6 +343,7 @@ class Load_dump_options : public common::Common_options {
 
   mysqlshdk::utils::Version m_target_server_version;
   bool m_is_mds = false;
+  bool m_is_lakehouse_enabled = false;
   bool m_show_metadata = false;
   std::optional<bool> m_create_invisible_pks;
   std::optional<bool> m_sql_generate_invisible_primary_key;
@@ -325,6 +373,12 @@ class Load_dump_options : public common::Common_options {
   bool m_is_mle_component_installed = false;
 
   bool m_is_library_ddl_supported = false;
+
+  load::Lakehouse_source_option m_lakehouse_source;
+
+  std::optional<load::Convert_vector_store> m_convert_vector_store;
+
+  std::optional<load::Heatwave_load> m_heatwave_load;
 };
 
 }  // namespace mysqlsh

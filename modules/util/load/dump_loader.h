@@ -89,6 +89,63 @@ class Dump_loader {
   dump::Progress_thread *progress() { return &m_progress_thread; }
 
  private:
+  class Sql_transform {
+   public:
+    bool operator()(std::string_view sql, std::string *out_new_sql) const {
+      if (m_ops.empty()) return false;
+
+      std::string new_sql;
+      bool result = false;
+
+      for (const auto &f : m_ops) {
+        if (sql.empty()) {
+          break;
+        }
+
+        if (f(sql, &new_sql)) {
+          *out_new_sql = std::move(new_sql);
+          sql = *out_new_sql;
+          new_sql.clear();
+          result = true;
+        }
+      }
+
+      return result;
+    }
+
+    void add_strip_removed_sql_modes();
+
+    /**
+     * Adds a callback which is going to be called whenever a CREATE|ALTER|DROP
+     * statement for an EVENT|FUNCTION|PROCEDURE|LIBRARY|TRIGGER object is about
+     * to be executed. Callback is called with two arguments:
+     *  - type - EVENT|FUNCTION|PROCEDURE|LIBRARY|TRIGGER
+     *  - name - name of the object
+     * Callback should return true if this statement should be executed.
+     */
+    void add_execution_condition(
+        std::function<bool(std::string_view, const std::string &)> f);
+
+    /**
+     * Whenever a USE `schema` or CREATE DATABASE ... `schema` statement is
+     * executed, `schema` is going to be replaced with the new name.
+     */
+    void add_rename_schema(std::string_view new_name);
+
+    /**
+     * Adds another transform to be executed, added object needs to outlive this
+     * one.
+     */
+    void add_sql_transform(const Sql_transform &transform);
+
+    void add(std::function<bool(std::string_view, std::string *)> f) {
+      m_ops.emplace_back(std::move(f));
+    }
+
+   private:
+    std::list<std::function<bool(std::string_view, std::string *)>> m_ops;
+  };
+
   class Worker {
    public:
     class Task {
@@ -113,6 +170,10 @@ class Dump_loader {
      protected:
       static void handle_current_exception(Worker *worker, Dump_loader *loader,
                                            const std::string &error);
+
+      std::string query_comment() const;
+
+      virtual std::string on_query_comment() const { return {}; }
 
      protected:
       size_t m_id = std::numeric_limits<size_t>::max();
@@ -168,12 +229,16 @@ class Dump_loader {
 
       bool execute(Worker *, Dump_loader *) override;
 
-      std::unique_ptr<compatibility::Deferred_statements>
-      steal_deferred_statements() {
+      compatibility::Deferred_statements steal_deferred_statements() {
         return std::move(m_deferred_statements);
       }
 
       bool placeholder() const { return m_placeholder; }
+
+      void add_sql_transform(
+          std::function<bool(std::string_view, std::string *)> f) {
+        m_transform.add(std::move(f));
+      }
 
      private:
       void pre_process(Dump_loader *loader);
@@ -192,9 +257,11 @@ class Dump_loader {
       bool m_placeholder = false;
       Load_progress_log::Status m_status;
 
-      std::unique_ptr<compatibility::Deferred_statements> m_deferred_statements;
+      compatibility::Deferred_statements m_deferred_statements;
 
       bool m_exists = false;
+
+      Sql_transform m_transform;
     };
 
     class Table_data_task : public Task {
@@ -211,17 +278,16 @@ class Dump_loader {
 
       const std::string &partition() const noexcept { return m_partition; }
 
-     protected:
-      std::string query_comment() const;
-
      private:
+      std::string on_query_comment() const override;
+
       ssize_t m_chunk_index;
       std::string m_partition;
     };
 
     class Load_data_task : public Table_data_task {
      public:
-      Load_data_task(Dump_reader::Table_chunk chunk, bool resume)
+      Load_data_task(Dump_reader::Table_chunk &&chunk, bool resume)
           : Table_data_task(chunk.schema, chunk.table, chunk.partition,
                             chunk.index),
             m_chunk(std::move(chunk)),
@@ -255,7 +321,7 @@ class Dump_loader {
 
     class Load_chunk_task : public Load_data_task {
      public:
-      Load_chunk_task(Dump_reader::Table_chunk chunk, bool resume,
+      Load_chunk_task(Dump_reader::Table_chunk &&chunk, bool resume,
                       uint64_t bytes_to_skip)
           : Load_data_task(std::move(chunk), resume),
             m_bytes_to_skip(bytes_to_skip) {}
@@ -272,7 +338,7 @@ class Dump_loader {
 
     class Bulk_load_task : public Load_data_task {
      public:
-      Bulk_load_task(Dump_reader::Table_chunk chunk, bool resume,
+      Bulk_load_task(Dump_reader::Table_chunk &&chunk, bool resume,
                      uint64_t weight)
           : Load_data_task(std::move(chunk), resume),
             m_target_table(this->chunk().table) {
@@ -347,6 +413,14 @@ class Dump_loader {
      private:
       const dump::common::Checksums::Checksum_data *m_checksum;
       Checksum_result m_result = {true, {}};
+    };
+
+    class Secondary_load_task : public Task {
+     public:
+      Secondary_load_task(std::string_view schema, std::string_view table)
+          : Task(schema, table) {}
+
+      bool execute(Worker *, Dump_loader *) override;
     };
 
     Worker(size_t id, Dump_loader *owner);
@@ -426,6 +500,9 @@ class Dump_loader {
       BULK_LOAD_START,
       BULK_LOAD_PROGRESS,
       BULK_LOAD_END,
+      SECONDARY_LOAD_START,
+      SECONDARY_LOAD_ERROR,
+      SECONDARY_LOAD_END,
     };
     Event event;
     Worker *worker = nullptr;
@@ -453,11 +530,13 @@ class Dump_loader {
   void on_dump_end();
 
   bool handle_table_data();
-  void handle_schema_post_scripts();
+  bool handle_secondary_load();
 
   bool should_fetch_table_ddl(bool placeholder) const;
 
-  bool schedule_table_chunk(Dump_reader::Table_chunk chunk);
+  bool schedule_table_chunk(Dump_reader::Table_chunk &&chunk);
+  bool schedule_secondary_load(const std::string &schema,
+                               const std::string &table);
 
   bool schedule_next_task();
   size_t handle_worker_events(const std::function<bool()> &schedule_next);
@@ -521,6 +600,13 @@ class Dump_loader {
   void on_bulk_load_end(std::size_t worker_id,
                         const Worker::Bulk_load_task *task);
 
+  void on_secondary_load_start(std::size_t worker_id,
+                               const Worker::Secondary_load_task *task);
+  void on_secondary_load_error(std::size_t worker_id,
+                               const Worker::Secondary_load_task *task);
+  void on_secondary_load_end(std::size_t worker_id,
+                             const Worker::Secondary_load_task *task);
+
   void on_checksum_start(
       const dump::common::Checksums::Checksum_data *checksum);
   void on_checksum_end(const dump::common::Checksums::Checksum_data *checksum,
@@ -536,6 +622,8 @@ class Dump_loader {
   void check_tables_without_primary_key();
 
   void handle_schema_option();
+
+  void handle_vector_store_dump();
 
   std::function<bool(const std::string &, const std::string &)>
   filter_user_script_for_mds() const;
@@ -553,6 +641,8 @@ class Dump_loader {
 
   void setup_checksum_tables_progress();
 
+  void setup_secondary_load_progress();
+
   void on_ddl_done_for_schema(const std::string &schema);
 
   bool is_data_load_complete() const;
@@ -561,10 +651,11 @@ class Dump_loader {
 
   void push_pending_task(Task_ptr task);
 
-  Task_ptr load_chunk_file(Dump_reader::Table_chunk chunk, bool resuming,
+  Task_ptr load_chunk_file(Dump_reader::Table_chunk &&chunk, bool resuming,
                            uint64_t bytes_to_skip) const;
 
-  Task_ptr bulk_load_table(Dump_reader::Table_chunk chunk, bool resuming) const;
+  Task_ptr bulk_load_table(Dump_reader::Table_chunk &&chunk,
+                           bool resuming) const;
 
   Task_ptr recreate_indexes(
       const std::string &schema, const std::string &table,
@@ -586,7 +677,7 @@ class Dump_loader {
 
   bool bulk_load_supported(const Dump_reader::Table_chunk &chunk) const;
 
-  bool schedule_bulk_load(Dump_reader::Table_chunk chunk);
+  bool schedule_bulk_load(Dump_reader::Table_chunk &&chunk);
 
   bool is_table_included(const std::string &schema, const std::string &table);
 
@@ -607,55 +698,10 @@ class Dump_loader {
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
-  FRIEND_TEST(Load_dump, add_execute_conditionally);
+  FRIEND_TEST(Load_dump, add_execution_condition);
   friend class Load_dump_mocked;
   FRIEND_TEST(Load_dump_mocked, filter_user_script_for_mds);
 #endif
-
-  class Sql_transform {
-   public:
-    bool operator()(std::string_view sql, std::string *out_new_sql) const {
-      if (m_ops.empty()) return false;
-
-      std::string new_sql;
-
-      for (const auto &f : m_ops) {
-        f(sql, &new_sql);
-
-        *out_new_sql = std::move(new_sql);
-        sql = *out_new_sql;
-        new_sql.clear();
-      }
-
-      return true;
-    }
-
-    void add_strip_removed_sql_modes();
-
-    /**
-     * Adds a callback which is going to be called whenever a CREATE|ALTER|DROP
-     * statement for an EVENT|FUNCTION|PROCEDURE|LIBRARY|TRIGGER object is about
-     * to be executed. Callback is called with two arguments:
-     *  - type - EVENT|FUNCTION|PROCEDURE|LIBRARY|TRIGGER
-     *  - name - name of the object
-     * Callback should return true if this statement should be executed.
-     */
-    void add_execute_conditionally(
-        std::function<bool(std::string_view, const std::string &)> f);
-
-    /**
-     * Whenever a USE `schema` or CREATE DATABASE ... `schema` statement is
-     * executed, `schema` is going to be replaced with the new name.
-     */
-    void add_rename_schema(std::string_view new_name);
-
-   private:
-    void add(std::function<void(std::string_view, std::string *)> f) {
-      m_ops.emplace_back(std::move(f));
-    }
-
-    std::list<std::function<void(std::string_view, std::string *)>> m_ops;
-  };
 
   /**
    * Stable priority queue.
@@ -748,7 +794,6 @@ class Dump_loader {
   std::string m_character_set;
 
   bool m_init_done = false;
-  bool m_workers_killed = false;
 
   // tables and partitions loaded
   std::atomic<std::size_t> m_unique_tables_loaded = 0;
@@ -792,6 +837,11 @@ class Dump_loader {
   uint64_t m_data_load_tasks_scheduled = 0;
   bool m_all_data_load_tasks_scheduled = false;
 
+  uint64_t m_secondary_load_tasks_completed = 0;
+  uint64_t m_secondary_load_tasks_failed = 0;
+  uint64_t m_secondary_load_tasks_scheduled = 0;
+  bool m_all_secondary_load_tasks_scheduled = false;
+
   std::unordered_map<std::string, uint64_t> m_ddl_in_progress_per_schema;
 
   // progress thread needs to be placed after any of the fields it uses, in
@@ -802,6 +852,7 @@ class Dump_loader {
   dump::Progress_thread::Stage *m_create_indexes_stage = nullptr;
   dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
   dump::Progress_thread::Stage *m_checksum_tables_stage = nullptr;
+  dump::Progress_thread::Stage *m_secondary_load_stage = nullptr;
 
   User_accounts m_users;
 

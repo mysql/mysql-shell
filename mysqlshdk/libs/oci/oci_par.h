@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,6 +67,12 @@ struct PAR_structure {
 
   inline const std::string &endpoint() const noexcept { return m_endpoint; }
 
+  inline const std::string &region() const noexcept { return m_region; }
+
+  inline const std::string &namespace_() const noexcept { return m_namespace; }
+
+  inline const std::string &bucket() const noexcept { return m_bucket; }
+
   inline const std::string &object_prefix() const noexcept {
     return m_object_prefix;
   }
@@ -89,6 +95,9 @@ struct PAR_structure {
   PAR_type m_type = PAR_type::NONE;
 
   std::string m_endpoint;
+  std::string m_region;
+  std::string m_namespace;
+  std::string m_bucket;
   std::string m_object_prefix;
   std::string m_object_name;
 

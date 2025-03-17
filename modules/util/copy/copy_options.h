@@ -55,10 +55,12 @@ class Copy_options {
             .template ignore<common::Storage_options>()
             .template ignore<import_table::Dialect>()
             .ignore({"backgroundThreads", "characterSet", "compression",
-                     "createInvisiblePKs", "disableBulkLoad", "loadData",
-                     "loadDdl", "loadUsers", "ocimds", "skipUpgradeChecks",
-                     "progressFile", "resetProgress", "showMetadata",
-                     "targetVersion", "waitDumpTimeout"})
+                     "convertInnoDbVectorStore", "createInvisiblePKs",
+                     "disableBulkLoad", "heatwaveLoad", "lakehouseSource",
+                     "lakehouseTarget", "loadData", "loadDdl", "loadUsers",
+                     "ocimds", "skipUpgradeChecks", "progressFile",
+                     "resetProgress", "showMetadata", "targetVersion",
+                     "waitDumpTimeout"})
             .include(&Copy_options::m_dump_options)
             .include(&Copy_options::m_load_options)
             .on_done(&Copy_options::on_unpacked_options)
@@ -80,6 +82,8 @@ class Copy_options {
     m_dump_options.disable_index_files();
     // do not use the .dumping extension
     m_dump_options.dont_rename_data_files();
+    // no special handling of InnoDB-based vector store tables
+    m_dump_options.disable_innodb_vector_store_tables_handling();
 
     // we're going to show the metadata manually
     m_load_options.set_show_metadata(false);

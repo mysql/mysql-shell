@@ -192,65 +192,17 @@ bool histograms_supported(const Version &version) {
   return version > Version(8, 0, 0);
 }
 
-compatibility::Deferred_statements preprocess_table_script_for_indexes(
-    std::string *script, const std::string &key, bool fulltext_only) {
-  compatibility::Deferred_statements stmts;
-  auto script_length = script->length();
-  std::istringstream stream(*script);
-  script->clear();
-  mysqlshdk::utils::iterate_sql_stream(
-      &stream, script_length,
-      [&](std::string_view s, std::string_view delim, size_t, size_t) {
-        auto sql = shcore::str_format(
-            "%.*s%.*s\n", static_cast<int>(s.length()), s.data(),
-            static_cast<int>(delim.length()), delim.data());
+bool add_invisible_pk(std::string_view sql, std::string *out_new_sql) {
+  mysqlshdk::utils::SQL_iterator it(sql, 0, false);
 
-        mysqlshdk::utils::SQL_iterator sit(sql);
-        if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
-            shcore::str_caseeq(sit.next_token(), "TABLE")) {
-          assert(stmts.rewritten.empty());
+  if (!it.consume_tokens("CREATE", "TABLE")) {
+    // not a CREATE TABLE statement
+    return false;
+  }
 
-          stmts = compatibility::check_create_table_for_indexes(sql, key,
-                                                                fulltext_only);
-          sql = stmts.rewritten;
-        }
-        script->append(sql);
-        return true;
-      },
-      [&key](std::string_view err) {
-        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(),
-                    std::string{err}.c_str());
-      });
-  return stmts;
-}
+  compatibility::add_pk_to_create_table(sql, out_new_sql);
 
-void add_invisible_pk(std::string *script, const std::string &key) {
-  const auto script_length = script->length();
-  std::istringstream stream(*script);
-
-  script->clear();
-
-  mysqlshdk::utils::iterate_sql_stream(
-      &stream, script_length,
-      [&](std::string_view s, std::string_view delim, size_t, size_t) {
-        auto sql = shcore::str_format(
-            "%.*s%.*s\n", static_cast<int>(s.length()), s.data(),
-            static_cast<int>(delim.length()), delim.data());
-
-        mysqlshdk::utils::SQL_iterator sit(sql);
-
-        if (shcore::str_caseeq(sit.next_token(), "CREATE") &&
-            shcore::str_caseeq(sit.next_token(), "TABLE")) {
-          compatibility::add_pk_to_create_table(sql, &sql);
-        }
-
-        script->append(sql);
-        return true;
-      },
-      [&key](std::string_view err) {
-        THROW_ERROR(SHERR_LOAD_SPLITTING_DDL_FAILED, key.c_str(),
-                    std::string{err}.c_str());
-      });
+  return true;
 }
 
 /**
@@ -329,7 +281,7 @@ void execute_script(
         &stream, 1024 * 64,
         [&](std::string_view s, std::string_view, size_t, size_t) {
           if (process_stmt && process_stmt(s, &new_stmt)) {
-            s = std::move(new_stmt);
+            s = new_stmt;
           }
 
           if (!s.empty()) {
@@ -350,7 +302,7 @@ void drop_account(const Session_ptr &session, const std::string &account) {
 }
 
 std::string format_table(std::string_view schema, std::string_view table,
-                         std::string_view partition, ssize_t chunk) {
+                         std::string_view partition = {}, ssize_t chunk = -1) {
   std::string result = "`";
   result += schema;
   result += "`.`";
@@ -522,6 +474,53 @@ double add_index_progress(const Session_ptr &session, uint64_t statements,
   progress /= weights.back() * statements;
 
   return progress;
+}
+
+std::function<bool(std::string_view, std::string *)> convert_vector_store_table(
+    std::string &&engine_attribute) {
+  return [engine_attribute = std::move(engine_attribute)](
+             std::string_view sql, std::string *out_new_sql) {
+    mysqlshdk::utils::SQL_iterator it(sql, 0, false);
+
+    if (!it.consume_tokens("CREATE", "TABLE")) {
+      // not a CREATE TABLE statement
+      return false;
+    }
+
+    bool engine_found = false;
+    std::string_view token;
+
+    while (it.valid()) {
+      token = it.next_token();
+
+      if (shcore::str_caseeq(token, "ENGINE")) {
+        auto engine = it.next_token();
+
+        if (shcore::str_caseeq(engine, "=")) {
+          engine = it.next_token();
+        }
+
+        *out_new_sql = sql.substr(0, it.position() - engine.length());
+        out_new_sql->append("Lakehouse");
+        out_new_sql->append(sql.substr(it.position()));
+
+        engine_found = true;
+        break;
+      }
+    }
+
+    if (!engine_found) {
+      *out_new_sql = sql;
+      out_new_sql->append(" ENGINE=Lakehouse");
+    }
+
+    // we don't check if statement already contains ENGINE_ATTRIBUTE, as last
+    // specified value is used anyway
+    out_new_sql->append(" ENGINE_ATTRIBUTE=");
+    out_new_sql->append(shcore::quote_sql_string(engine_attribute));
+
+    return true;
+  };
 }
 
 }  // namespace
@@ -1017,6 +1016,23 @@ void Dump_loader::Worker::Task::handle_current_exception(
   worker->handle_current_exception(loader, error);
 }
 
+std::string Dump_loader::Worker::Task::query_comment() const {
+  std::string comment = "/* mysqlsh loadDump(), thread ";
+  comment += std::to_string(id());
+
+  if (table().empty()) {
+    comment += ", schema ";
+  } else {
+    comment += ", table ";
+  }
+
+  comment += shcore::str_replace(key(), "*/", "*\\/");
+  comment += on_query_comment();
+  comment += " */ ";
+
+  return comment;
+}
+
 bool Dump_loader::Worker::Schema_ddl_task::execute(Worker *worker,
                                                    Dump_loader *loader) {
   log_debug("%swill execute DDL for %s", log_id(), m_context.c_str());
@@ -1026,9 +1042,10 @@ bool Dump_loader::Worker::Schema_ddl_task::execute(Worker *worker,
       log_info("Executing DDL script for %s", m_context.c_str());
 
       if (!loader->m_options.dry_run()) {
-        auto transforms = loader->m_default_sql_transforms;
+        Dump_loader::Sql_transform transforms;
 
-        transforms.add_execute_conditionally(
+        transforms.add_sql_transform(loader->m_default_sql_transforms);
+        transforms.add_execution_condition(
             loader->filter_schema_objects(schema()));
 
         // execute sql
@@ -1143,27 +1160,44 @@ void Dump_loader::Worker::Table_ddl_task::pre_process(Dump_loader *loader) {
     if (loader->m_options.load_ddl() && loader->should_create_pks() &&
         !loader->m_options.auto_create_pks_supported() &&
         !loader->m_dump->has_primary_key(m_schema, m_table)) {
-      add_invisible_pk(&m_script, key());
+      m_transform.add(add_invisible_pk);
     }
   }
 }
 
 void Dump_loader::Worker::Table_ddl_task::extract_deferred_statements(
     Dump_loader *loader) {
-  const auto &table_name = key();
   const auto fulltext_only = loader->m_options.defer_table_indexes() ==
                              Load_dump_options::Defer_index_mode::FULLTEXT;
 
-  m_deferred_statements = std::make_unique<compatibility::Deferred_statements>(
-      preprocess_table_script_for_indexes(&m_script, table_name,
-                                          fulltext_only));
+  m_transform.add(
+      [this, fulltext_only](std::string_view sql, std::string *out_new_sql) {
+        mysqlshdk::utils::SQL_iterator it(sql, 0, false);
+
+        if (!it.consume_tokens("CREATE", "TABLE")) {
+          // not a CREATE TABLE statement
+          return false;
+        }
+
+        assert(m_deferred_statements.rewritten.empty());
+
+        m_deferred_statements = compatibility::check_create_table_for_indexes(
+            sql, key(), fulltext_only);
+
+        if (m_deferred_statements.rewritten.empty()) {
+          return false;
+        } else {
+          *out_new_sql = m_deferred_statements.rewritten;
+          return true;
+        }
+      });
 }
 
 void Dump_loader::Worker::Table_ddl_task::post_process(Worker *worker,
                                                        Dump_loader *loader) {
   if ((m_status == Load_progress_log::DONE ||
        loader->m_options.ignore_existing_objects()) &&
-      m_deferred_statements && !m_deferred_statements->empty()) {
+      !m_deferred_statements.empty()) {
     remove_duplicate_deferred_statements(worker, loader);
   }
 }
@@ -1218,16 +1252,16 @@ void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
   };
 
   remove_duplicates(recreated.index_info.fulltext,
-                    &m_deferred_statements->index_info.fulltext);
+                    &m_deferred_statements.index_info.fulltext);
   remove_duplicates(recreated.index_info.spatial,
-                    &m_deferred_statements->index_info.spatial);
+                    &m_deferred_statements.index_info.spatial);
   remove_duplicates(recreated.index_info.regular,
-                    &m_deferred_statements->index_info.regular);
+                    &m_deferred_statements.index_info.regular);
   remove_duplicates(recreated.foreign_keys,
-                    &m_deferred_statements->foreign_keys);
+                    &m_deferred_statements.foreign_keys);
 
   if (!recreated.secondary_engine.empty()) {
-    if (m_deferred_statements->has_alters()) {
+    if (m_deferred_statements.has_alters()) {
       // recreated table already has a secondary engine (possibly table was
       // modified by the user), but not all indexes were applied, we're unable
       // to continue, as ALTER TABLE statements will fail
@@ -1235,54 +1269,68 @@ void Dump_loader::Worker::Table_ddl_task::remove_duplicate_deferred_statements(
     } else {
       // recreated table has all the indexes and the secondary engine in place,
       // nothing more to do
-      m_deferred_statements->secondary_engine.clear();
+      m_deferred_statements.secondary_engine.clear();
     }
   }
 }
 
 void Dump_loader::Worker::Table_ddl_task::load_ddl(Worker *worker,
                                                    Dump_loader *loader) {
-  if (m_status == Load_progress_log::DONE || !loader->m_options.load_ddl()) {
-    return;
-  }
+  bool execute = true;
 
-  log_debug("%sExecuting %stable DDL for %s", log_id(),
-            m_placeholder ? "placeholder " : "", key().c_str());
-  log_info("%s%s DDL script for %s%s", log_id(),
-           (m_status == Load_progress_log::INTERRUPTED ? "Re-executing"
-                                                       : "Executing"),
-           key().c_str(),
-           (m_placeholder
-                ? " (placeholder for view)"
-                : (m_deferred_statements && m_deferred_statements->has_alters()
-                       ? " (indexes removed for deferred creation)"
-                       : "")));
+  if (m_status == Load_progress_log::DONE || !loader->m_options.load_ddl()) {
+    execute = false;
+  } else {
+    log_info("%s%s DDL script for %s%s", log_id(),
+             (m_status == Load_progress_log::INTERRUPTED ? "Re-executing"
+                                                         : "Executing"),
+             key().c_str(), (m_placeholder ? " (placeholder for view)" : ""));
+  }
 
   if (m_exists) {
     // BUG#35102738: do not recreate existing tables due to BUG#35154429
     log_info("%sskipping DDL script for %s, table already exists", log_id(),
              key().c_str());
-    return;
+    execute = false;
   }
 
-  if (!loader->m_options.dry_run()) {
-    // execute sql
-    execute_script(worker->reconnect_callback(), worker->session(), m_script,
-                   shcore::str_format("%sError processing table %s", log_id(),
-                                      key().c_str()),
-                   loader->m_default_sql_transforms);
+  if (loader->m_options.dry_run()) {
+    execute = false;
+  }
+
+  Dump_loader::Sql_transform transforms;
+
+  transforms.add_sql_transform(loader->m_default_sql_transforms);
+  transforms.add_sql_transform(m_transform);
+
+  if (!execute) {
+    // we need to parse the script to extract interesting parts, but as the last
+    // step of SQL transformation we clear the statements, so they don't get
+    // executed
+    transforms.add([](std::string_view, std::string *out_new_sql) {
+      out_new_sql->clear();
+      return true;
+    });
+  }
+
+  // execute sql
+  execute_script(worker->reconnect_callback(), worker->session(), m_script,
+                 shcore::str_format("%sError processing table %s", log_id(),
+                                    key().c_str()),
+                 transforms);
+
+  if (execute && m_deferred_statements.has_alters()) {
+    log_info("%sDDL script for %s: indexes removed for deferred creation",
+             log_id(), key().c_str());
   }
 }
 
-std::string Dump_loader::Worker::Table_data_task::query_comment() const {
-  std::string query_comment = "/* mysqlsh loadDump(), thread " +
-                              std::to_string(id()) + ", table " +
-                              shcore::str_replace(key(), "*/", "*\\/");
+std::string Dump_loader::Worker::Table_data_task::on_query_comment() const {
   if (chunk_index() >= 0) {
-    query_comment += ", chunk ID: " + std::to_string(chunk_index());
+    return ", chunk ID: " + std::to_string(chunk_index());
+  } else {
+    return {};
   }
-  query_comment += " */ ";
-  return query_comment;
 }
 
 bool Dump_loader::Worker::Load_data_task::execute(Worker *worker,
@@ -1885,6 +1933,61 @@ bool Dump_loader::Worker::Checksum_task::execute(Worker *worker,
   return true;
 }
 
+bool Dump_loader::Worker::Secondary_load_task::execute(Worker *worker,
+                                                       Dump_loader *loader) {
+  log_debug("%swill execute secondary load for table: %s", log_id(),
+            key().c_str());
+
+  loader->post_worker_event(worker, Worker_event::SECONDARY_LOAD_START);
+
+  if (!loader->m_options.dry_run()) {
+    const auto worker_name = worker_id(worker->id());
+
+    try {
+      const auto result =
+          sql::ar::queryf(worker->reconnect_callback(), worker->session(),
+                          query_comment() + "ALTER TABLE !.! SECONDARY_LOAD",
+                          schema(), table());
+
+      if (const auto warnings = result->get_warning_count()) {
+        current_console()->print_warning(shcore::str_format(
+            "%sSecondary load of table %s completed with %" PRIu64
+            " warning%s, see MySQL Shell log for more details.",
+            worker_name.c_str(), key().c_str(), warnings,
+            warnings > 1 ? "s" : ""));
+
+        while (const auto warning = result->fetch_one_warning()) {
+          log_warning("%sSecondary load of table %s reported: %s (code %" PRIu32
+                      "): %s",
+                      worker_name.c_str(), key().c_str(),
+                      mysqlshdk::db::to_string(warning->level), warning->code,
+                      warning->msg.c_str());
+        }
+      }
+    } catch (const mysqlshdk::db::Error &e) {
+      // WL16802-FR2.3.7: SQL errors are non-fatal
+      current_console()->print_warning(shcore::str_format(
+          "%sFailed to execute secondary load for table %s: %s",
+          worker_name.c_str(), key().c_str(), e.format().c_str()));
+      loader->post_worker_event(worker, Worker_event::SECONDARY_LOAD_ERROR);
+      return true;
+    } catch (const std::exception &e) {
+      handle_current_exception(
+          worker, loader,
+          shcore::str_format("While executing secondary load for table %s: %s",
+                             key().c_str(), e.what()));
+      return false;
+    }
+  }
+
+  log_debug("%sdone", log_id());
+
+  // signal for more work
+  loader->post_worker_event(worker, Worker_event::SECONDARY_LOAD_END);
+
+  return true;
+}
+
 Dump_loader::Worker::Worker(size_t id, Dump_loader *owner)
     : m_id(id), m_owner(owner), m_connection_id(0) {}
 
@@ -2358,9 +2461,10 @@ void Dump_loader::on_schema_end(const std::string &schema) {
         it.second->close();
 
         if (!m_options.dry_run()) {
-          auto transforms = m_default_sql_transforms;
+          Dump_loader::Sql_transform transforms;
 
-          transforms.add_execute_conditionally(
+          transforms.add_sql_transform(m_default_sql_transforms);
+          transforms.add_execution_condition(
               [this, &schema, &table](std::string_view type,
                                       const std::string &name) {
                 if (!shcore::str_caseeq(type, "TRIGGER")) return true;
@@ -2450,7 +2554,7 @@ bool Dump_loader::handle_table_data() {
   return scheduled;
 }
 
-bool Dump_loader::schedule_table_chunk(Dump_reader::Table_chunk chunk) {
+bool Dump_loader::schedule_table_chunk(Dump_reader::Table_chunk &&chunk) {
   if (!chunk.chunked) {
     chunk.index = -1;
   }
@@ -2549,6 +2653,12 @@ size_t Dump_loader::handle_worker_events(
         return "BULK_LOAD_PROGRESS";
       case Worker_event::Event::BULK_LOAD_END:
         return "BULK_LOAD_END";
+      case Worker_event::Event::SECONDARY_LOAD_START:
+        return "SECONDARY_LOAD_START";
+      case Worker_event::Event::SECONDARY_LOAD_ERROR:
+        return "SECONDARY_LOAD_ERROR";
+      case Worker_event::Event::SECONDARY_LOAD_END:
+        return "SECONDARY_LOAD_END";
     }
     return "";
   };
@@ -2685,6 +2795,26 @@ size_t Dump_loader::handle_worker_events(
         break;
       }
 
+      case Worker_event::SECONDARY_LOAD_START:
+        on_secondary_load_start(
+            event.worker->id(),
+            static_cast<const Worker::Secondary_load_task *>(
+                event.worker->current_task()));
+        break;
+
+      case Worker_event::SECONDARY_LOAD_ERROR:
+        on_secondary_load_error(
+            event.worker->id(),
+            static_cast<const Worker::Secondary_load_task *>(
+                event.worker->current_task()));
+        break;
+
+      case Worker_event::SECONDARY_LOAD_END:
+        on_secondary_load_end(event.worker->id(),
+                              static_cast<const Worker::Secondary_load_task *>(
+                                  event.worker->current_task()));
+        break;
+
       case Worker_event::READY:
         if (const auto task = event.worker->current_task()) {
           m_current_weight -= task->weight();
@@ -2760,6 +2890,16 @@ bool Dump_loader::schedule_next_task() {
   if (!handle_table_data()) {
     std::string schema;
     std::string table;
+
+    // WL16802-FR2.3.4: heatwaveLoad is set to 'none', skip secondary load
+    if (load::Heatwave_load::NONE != m_options.heatwave_load() &&
+        Dump_reader::Status::COMPLETE == m_dump->status()) {
+      // we don't monitor the location of data files, only once the dump is
+      // complete, we know for sure that all files have been written
+      if (handle_secondary_load()) {
+        return true;
+      }
+    }
 
     if (m_options.load_deferred_indexes()) {
       setup_create_indexes_progress();
@@ -2930,6 +3070,96 @@ void Dump_loader::show_summary() {
             .c_str()));
   }
 
+  if (m_dump->has_innodb_vector_store()) {
+    uint64_t vector_store_tables = 0;
+
+    switch (m_options.convert_vector_store()) {
+      case load::Convert_vector_store::CONVERT:
+      case load::Convert_vector_store::KEEP:
+        vector_store_tables = m_dump->vector_store_tables_loaded();
+        break;
+
+      case load::Convert_vector_store::SKIP:
+        vector_store_tables = m_dump->vector_store_tables_to_load();
+        break;
+
+      default:
+        break;
+    }
+
+    if (vector_store_tables || m_secondary_load_tasks_completed) {
+      auto msg = shcore::str_format("%" PRIu64
+                                    " InnoDB-based vector store tables were ",
+                                    vector_store_tables);
+
+      switch (m_options.convert_vector_store()) {
+        case load::Convert_vector_store::CONVERT: {
+          bool loaded = false;
+          bool type_mentioned = true;
+
+          if (vector_store_tables) {
+            msg += "converted to Lakehouse";
+          } else {
+            msg.clear();
+            type_mentioned = false;
+          }
+
+          if (m_secondary_load_tasks_completed) {
+            if (!msg.empty()) {
+              msg += ", ";
+            }
+
+            msg += std::to_string(m_secondary_load_tasks_completed);
+
+            if (!type_mentioned) {
+              msg += " InnoDB-based vector store tables";
+              type_mentioned = true;
+            }
+
+            msg += " were loaded into HeatWave cluster";
+            loaded = true;
+          }
+
+          if (m_secondary_load_tasks_failed) {
+            if (!msg.empty()) {
+              msg += ", ";
+            }
+
+            msg += std::to_string(m_secondary_load_tasks_failed);
+
+            if (!type_mentioned) {
+              msg += " InnoDB-based vector store tables";
+              type_mentioned = true;
+            }
+
+            msg += " failed to load";
+
+            if (!loaded) {
+              msg += " into HeatWave cluster";
+            }
+          }
+        } break;
+
+        case load::Convert_vector_store::SKIP:
+          msg += "skipped";
+          break;
+
+        case load::Convert_vector_store::KEEP:
+          msg += "loaded as regular tables";
+          break;
+
+        case load::Convert_vector_store::AUTO:
+          assert(false);
+          msg += "processed";
+          break;
+      }
+
+      msg += '.';
+
+      console->print_info(msg);
+    }
+  }
+
   if (m_total_ddl_executed) {
     console->print_info(shcore::str_format(
         "%" PRIu64 " DDL files were executed in %s.", m_total_ddl_executed,
@@ -3055,6 +3285,13 @@ void Dump_loader::open_dump(
     shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
     status = m_dump->open();
+
+    if (m_dump->redirect_dump_dir()) {
+      m_dump = std::make_unique<Dump_reader>(m_dump->redirected_dump_dir(),
+                                             m_options);
+
+      status = m_dump->open();
+    }
   }
 
   dump::common::validate_dumper_version(m_dump->dump_version());
@@ -3064,8 +3301,7 @@ void Dump_loader::open_dump(
   Version minimum_version{8, 0, 27};
 
   for (const auto &capability : m_dump->capabilities()) {
-    if (const auto id = dump::capability::to_capability(capability.id);
-        !id.has_value()) {
+    if (!capability.capability.has_value()) {
       if (minimum_version < capability.version_required) {
         minimum_version = capability.version_required;
       }
@@ -4047,7 +4283,8 @@ void Dump_loader::execute_table_ddl_tasks() {
 
   const auto thread_pool_ptr = m_dump->create_thread_pool();
   const auto pool = thread_pool_ptr.get();
-  shcore::Synchronized_queue<std::unique_ptr<Worker::Task>> worker_tasks;
+  shcore::Synchronized_queue<std::unique_ptr<Worker::Table_ddl_task>>
+      worker_tasks;
 
   const auto handle_ddl_files = [this, pool, &worker_tasks, &ddl_to_execute](
                                     const std::string &s,
@@ -4135,7 +4372,7 @@ void Dump_loader::execute_table_ddl_tasks() {
   pool->tasks_done();
 
   {
-    std::list<std::unique_ptr<Worker::Task>> table_tasks;
+    std::list<std::unique_ptr<Worker::Table_ddl_task>> table_tasks;
 
     execute_threaded([this, &pool_status, &worker_tasks, &pending_tasks,
                       &table_tasks]() {
@@ -4146,7 +4383,7 @@ void Dump_loader::execute_table_ddl_tasks() {
           break;
         }
 
-        std::unique_ptr<Worker::Task> work;
+        std::unique_ptr<Worker::Table_ddl_task> work;
 
         // don't fetch too many tasks at once, as we may starve worker threads
         auto tasks_to_fetch = m_options.threads_count();
@@ -4199,6 +4436,17 @@ void Dump_loader::execute_table_ddl_tasks() {
 
         // if there's work, schedule it
         if (work) {
+          if (!work->placeholder()) {
+            // check if engine needs to be converted to Lakehouse
+            if (auto engine_attribute =
+                    m_dump->get_vector_store_engine_attribute(work->schema(),
+                                                              work->table());
+                !engine_attribute.empty()) {
+              work->add_sql_transform(
+                  convert_vector_store_table(std::move(engine_attribute)));
+            }
+          }
+
           push_pending_task(std::move(work));
           return true;
         }
@@ -4368,6 +4616,7 @@ void Dump_loader::execute_tasks(bool testing) {
   // before this as possible
   wait_for_metadata();
 
+  handle_vector_store_dump();
   handle_schema_option();
 
   if (!m_resuming && m_options.load_ddl()) check_existing_objects();
@@ -4375,6 +4624,7 @@ void Dump_loader::execute_tasks(bool testing) {
   check_tables_without_primary_key();
 
   size_t num_idle_workers = 0;
+  m_total_tables_with_data = m_dump->tables_with_data();
 
   do {
     if (!m_init_done) {
@@ -4415,7 +4665,8 @@ void Dump_loader::execute_tasks(bool testing) {
 
       m_init_done = true;
 
-      if (!m_worker_interrupt.test() && m_options.load_data()) {
+      if (!m_worker_interrupt.test() && m_options.load_data() &&
+          m_total_tables_with_data) {
         setup_load_data_progress();
       }
     }
@@ -4426,8 +4677,6 @@ void Dump_loader::execute_tasks(bool testing) {
     }
 
     if (!m_worker_interrupt.test()) {
-      m_total_tables_with_data = m_dump->tables_with_data();
-
       // handle events from workers and schedule more chunks when a worker
       // becomes available
       num_idle_workers =
@@ -4634,15 +4883,16 @@ void Dump_loader::on_table_ddl_end(std::size_t, Worker::Table_ddl_task *task) {
 
     m_load_log->log(progress::end::Table_ddl{schema, table});
 
-    if (auto indexes = task->steal_deferred_statements();
-        indexes && !indexes->empty()) {
+    if (auto indexes = task->steal_deferred_statements(); !indexes.empty()) {
       m_indexes_to_recreate +=
-          m_dump->add_deferred_statements(schema, table, std::move(*indexes));
+          m_dump->add_deferred_statements(schema, table, std::move(indexes));
     }
 
     if (m_options.load_ddl()) {
       m_dump->set_table_exists(schema, table);
     }
+
+    m_dump->on_table_ddl_end(schema, table);
   }
 
   on_ddl_done_for_schema(schema);
@@ -4737,6 +4987,28 @@ void Dump_loader::on_bulk_load_end(std::size_t,
   log_debug("Ended bulk loading table %s (%s, %s)", format_table(chunk).c_str(),
             std::to_string(data_bytes_loaded).c_str(),
             std::to_string(file_bytes_loaded).c_str());
+}
+
+void Dump_loader::on_secondary_load_start(
+    std::size_t worker_id, const Worker::Secondary_load_task *task) {
+  // WL16802-FR2.3.5.1: write status to the log
+  m_load_log->log(progress::start::Secondary_load{
+      task->schema(), task->table(), {worker_id, task->weight()}});
+}
+
+void Dump_loader::on_secondary_load_error(
+    std::size_t, const Worker::Secondary_load_task *task) {
+  // mark the task as complete, but don't log to the progress log
+  ++m_secondary_load_tasks_failed;
+  m_dump->on_secondary_load_end(task->schema(), task->table());
+}
+
+void Dump_loader::on_secondary_load_end(
+    std::size_t, const Worker::Secondary_load_task *task) {
+  ++m_secondary_load_tasks_completed;
+  m_dump->on_secondary_load_end(task->schema(), task->table());
+  // WL16802-FR2.3.5.1: write status to the log
+  m_load_log->log(progress::end::Secondary_load{task->schema(), task->table()});
 }
 
 void Dump_loader::on_index_start(std::size_t worker_id,
@@ -4853,29 +5125,27 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
         std::regex::icase | std::regex::optimize);
 
     std::cmatch m;
-    if (std::regex_match(sql.data(), sql.data() + sql.size(), m, re)) {
-      auto modes = shcore::str_split(m[3].str(), ",");
-      std::string new_modes;
-      for (const auto &mode : modes) {
-        if (mode != "NO_AUTO_CREATE_USER")
-          new_modes.append(mode).append(1, ',');
-      }
-      if (!new_modes.empty()) new_modes.pop_back();  // strip last ,
 
-      *out_new_sql = m[1].str() + m[2].str() + new_modes + m[4].str();
-    } else {
-      *out_new_sql = sql;
+    if (!std::regex_match(sql.data(), sql.data() + sql.size(), m, re)) {
+      return false;
     }
+
+    auto modes = shcore::str_split(m[3].str(), ",");
+    std::string new_modes;
+    for (const auto &mode : modes) {
+      if (mode != "NO_AUTO_CREATE_USER") new_modes.append(mode).append(1, ',');
+    }
+    if (!new_modes.empty()) new_modes.pop_back();  // strip last ,
+
+    *out_new_sql = m[1].str() + m[2].str() + new_modes + m[4].str();
+
+    return true;
   });
 }
 
-void Dump_loader::Sql_transform::add_execute_conditionally(
+void Dump_loader::Sql_transform::add_execution_condition(
     std::function<bool(std::string_view, const std::string &)> f) {
   add([f = std::move(f)](std::string_view sql, std::string *out_new_sql) {
-    if (sql.empty()) {
-      return;
-    }
-
     bool execute = true;
 
     mysqlshdk::utils::SQL_iterator it(sql, 0, false);
@@ -4934,9 +5204,10 @@ void Dump_loader::Sql_transform::add_execute_conditionally(
     }
 
     if (execute) {
-      *out_new_sql = sql;
+      return false;
     } else {
       out_new_sql->clear();
+      return true;
     }
   });
 }
@@ -4963,15 +5234,22 @@ void Dump_loader::Sql_transform::add_rename_schema(std::string_view new_name) {
         *out_new_sql = sql.substr(0, it.position() - schema.length());
         *out_new_sql += new_name;
         *out_new_sql += sql.substr(it.position());
-        return;
+        return true;
       }
     } else if (shcore::str_caseeq(token, "USE")) {
       *out_new_sql = "USE ";
       *out_new_sql += new_name;
-      return;
+      return true;
     }
 
-    *out_new_sql = sql;
+    return false;
+  });
+}
+
+void Dump_loader::Sql_transform::add_sql_transform(
+    const Sql_transform &transform) {
+  add([&transform](std::string_view sql, std::string *out_new_sql) {
+    return transform(sql, out_new_sql);
   });
 }
 
@@ -4980,6 +5258,10 @@ void Dump_loader::handle_schema_option() {
     m_dump->replace_target_schema(m_options.target_schema());
     m_default_sql_transforms.add_rename_schema(m_options.target_schema());
   }
+}
+
+void Dump_loader::handle_vector_store_dump() {
+  m_dump->handle_vector_store_dump();
 }
 
 bool Dump_loader::should_create_pks() const {
@@ -5252,7 +5534,7 @@ void Dump_loader::push_pending_task(Task_ptr task) {
 }
 
 Dump_loader::Task_ptr Dump_loader::load_chunk_file(
-    Dump_reader::Table_chunk chunk, bool resuming,
+    Dump_reader::Table_chunk &&chunk, bool resuming,
     uint64_t bytes_to_skip) const {
   log_debug("Loading data for %s", format_table(chunk).c_str());
   assert(!chunk.schema.empty());
@@ -5269,7 +5551,7 @@ Dump_loader::Task_ptr Dump_loader::load_chunk_file(
 }
 
 Dump_loader::Task_ptr Dump_loader::bulk_load_table(
-    Dump_reader::Table_chunk chunk, bool resuming) const {
+    Dump_reader::Table_chunk &&chunk, bool resuming) const {
   log_debug("Bulk loading data for %s", format_table(chunk).c_str());
   assert(!chunk.schema.empty());
   assert(!chunk.table.empty());
@@ -5555,7 +5837,7 @@ bool Dump_loader::bulk_load_supported(
   return true;
 }
 
-bool Dump_loader::schedule_bulk_load(Dump_reader::Table_chunk chunk) {
+bool Dump_loader::schedule_bulk_load(Dump_reader::Table_chunk &&chunk) {
   // set chunk to an invalid value, so it's not printed out
   chunk.index = -1;
   // mark all chunks as consumed to prevent them from being scheduled
@@ -5689,6 +5971,83 @@ void Dump_loader::on_add_index_result(bool success, uint64_t count) {
   if (success) {
     m_indexes_completed += count;
   }
+}
+
+bool Dump_loader::handle_secondary_load() {
+  bool scheduled = false;
+  std::string schema;
+  std::string table;
+
+  do {
+    if (m_dump->next_secondary_load(&schema, &table)) {
+      scheduled = schedule_secondary_load(schema, table);
+    } else {
+      break;
+    }
+  } while (!scheduled);
+
+  if (scheduled) {
+    setup_secondary_load_progress();
+    ++m_secondary_load_tasks_scheduled;
+  } else if (!m_all_secondary_load_tasks_scheduled &&
+             m_dump->all_secondary_loads_scheduled()) {
+    m_all_secondary_load_tasks_scheduled = true;
+  }
+
+  return scheduled;
+}
+
+bool Dump_loader::schedule_secondary_load(const std::string &schema,
+                                          const std::string &table) {
+  // WL16802-FR2.3.5.1: check status of the load
+  const auto status =
+      m_load_log->status(progress::Secondary_load{schema, table});
+
+  if (status == Load_progress_log::DONE) {
+    m_dump->on_secondary_load_end(schema, table);
+  }
+
+  const auto formatted_table = format_table(schema, table);
+
+  log_debug("Secondary load for table %s (%s)", formatted_table.c_str(),
+            to_string(status).c_str());
+
+  if (!m_options.load_data() || status == Load_progress_log::DONE ||
+      !is_table_included(schema, table)) {
+    // WL16802-FR2.3.6: don't execute the secondary load if loadData is false
+    return false;
+  }
+
+  log_debug("Scheduling secondary load for table %s", formatted_table.c_str());
+
+  push_pending_task(
+      std::make_unique<Worker::Secondary_load_task>(schema, table));
+
+  return true;
+}
+
+void Dump_loader::setup_secondary_load_progress() {
+  // WL16802-FR2.3.5.2: show progress information
+  if (m_secondary_load_stage) {
+    return;
+  }
+
+  m_secondary_load_tasks_completed = 0;
+  m_secondary_load_tasks_failed = 0;
+  m_secondary_load_tasks_scheduled = 0;
+  m_all_secondary_load_tasks_scheduled = false;
+
+  dump::Progress_thread::Progress_config config;
+  config.current = [this]() {
+    return m_secondary_load_tasks_completed + m_secondary_load_tasks_failed;
+  };
+  config.total = [this]() { return m_secondary_load_tasks_scheduled; };
+  config.is_total_known = [this]() {
+    return m_all_secondary_load_tasks_scheduled;
+  };
+
+  m_secondary_load_stage = m_progress_thread.push_stage(
+      "Loading tables into HeatWave", std::move(config));
 }
 
 #if defined(__clang__)

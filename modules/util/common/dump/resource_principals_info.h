@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,37 +23,42 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "modules/util/dump/dialect_dump_writer.h"
+#ifndef MODULES_UTIL_COMMON_DUMP_RESOURCE_PRINCIPALS_INFO_H_
+#define MODULES_UTIL_COMMON_DUMP_RESOURCE_PRINCIPALS_INFO_H_
+
+#include <string>
+
+#include "mysqlshdk/libs/utils/utils_json.h"
 
 namespace mysqlsh {
 namespace dump {
-namespace detail {
+namespace common {
 
-constexpr char default_traits::lines_terminated_by[];
-constexpr char default_traits::fields_escaped_by[];
-constexpr char default_traits::fields_terminated_by[];
-constexpr char default_traits::fields_enclosed_by[];
+struct Resource_principals_info {
+  std::string bucket;
+  std::string namespace_;
+  std::string region;
 
-constexpr char json_traits::lines_terminated_by[];
-constexpr char json_traits::fields_escaped_by[];
-constexpr char json_traits::fields_terminated_by[];
-constexpr char json_traits::fields_enclosed_by[];
+  bool empty() const noexcept;
 
-constexpr char csv_traits::lines_terminated_by[];
-constexpr char csv_traits::fields_escaped_by[];
-constexpr char csv_traits::fields_terminated_by[];
-constexpr char csv_traits::fields_enclosed_by[];
+  bool valid() const noexcept;
 
-constexpr char tsv_traits::lines_terminated_by[];
-constexpr char tsv_traits::fields_escaped_by[];
-constexpr char tsv_traits::fields_terminated_by[];
-constexpr char tsv_traits::fields_enclosed_by[];
+  void set_prefix(std::string prefix);
 
-constexpr char csv_unix_traits::lines_terminated_by[];
-constexpr char csv_unix_traits::fields_escaped_by[];
-constexpr char csv_unix_traits::fields_terminated_by[];
-constexpr char csv_unix_traits::fields_enclosed_by[];
+  inline const std::string &prefix() const noexcept { return m_prefix; }
 
-}  // namespace detail
+ private:
+  std::string m_prefix;
+};
+
+void serialize(const Resource_principals_info &info,
+               shcore::JSON_dumper *dumper);
+
+Resource_principals_info resource_principals_info(
+    const shcore::json::Object &info);
+
+}  // namespace common
 }  // namespace dump
 }  // namespace mysqlsh
+
+#endif  // MODULES_UTIL_COMMON_DUMP_RESOURCE_PRINCIPALS_INFO_H_

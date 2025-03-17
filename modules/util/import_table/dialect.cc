@@ -27,6 +27,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <string_view>
 
 #include "modules/util/import_table/helpers.h"
 #include "mysqlshdk/include/scripting/types.h"
@@ -35,6 +36,15 @@
 
 namespace mysqlsh {
 namespace import_table {
+
+namespace {
+
+// characters which are escaped
+constexpr std::string_view k_escaped_chars = "ntrb0ZN";
+// List of all possible characters of a numeric value text representation.
+constexpr std::string_view k_numeric_chars = ".0123456789e+-";
+
+}  // namespace
 
 const shcore::Option_pack_def<Dialect> &Dialect::options() {
   static const auto opts =
@@ -120,6 +130,22 @@ void Dialect::validate() const {
     throw std::invalid_argument(
         "The fieldsTerminatedBy and fieldsEnclosedBy are both empty, resulting "
         "in a fixed-row format. This is currently not supported.");
+  }
+
+  // based on Query_result_export::prepare(), server issues a warning in this
+  // case
+  if (!fields_terminated_by.empty() &&
+      ((fields_enclosed_by.empty() &&
+        std::string_view::npos !=
+            k_escaped_chars.find(fields_terminated_by[0])) ||
+       (fields_optionally_enclosed &&
+        std::string_view::npos !=
+            k_numeric_chars.find(fields_terminated_by[0])))) {
+    throw std::invalid_argument(shcore::str_format(
+        "First character of the fieldsTerminatedBy string is ambiguous: %c, "
+        "please use non-empty fieldsEnclosedBy and set "
+        "fieldsOptionallyEnclosed to false.",
+        fields_terminated_by[0]));
   }
 }
 

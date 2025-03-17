@@ -12,8 +12,6 @@ import os
 import json
 import datetime
 
-oci_config_file=os.path.join(OCI_CONFIG_HOME, "config")
-
 testutil.deploy_sandbox(__mysql_sandbox_port1, "root")
 
 session1=mysql.get_session(__sandbox_uri1)
@@ -74,7 +72,7 @@ all_write_par=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite", "all-re
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{oci_region}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_7 - Failed load dump with bucket AnyObjectRead PAR without ListObjects
@@ -84,7 +82,7 @@ remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
 EXPECT_THROWS(lambda: util.load_dump(all_read_par_no_list, {"progressFile": local_progress_file}),
-  f"Error: Shell Error (54404): While 'Listing files': Could not access 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
+  f"Error: Shell Error (54404): While 'Listing files': Could not access 'https://{OS_NAMESPACE}.objectstorage.{oci_region}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/': BucketNotFound: Either the bucket named '{OS_BUCKET_NAME}' does not exist in the namespace '{OS_NAMESPACE}' or you are not authorized to access it")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_9 - Failed load dump with bucket AnyObjectWrite PAR and ListObjects
@@ -93,7 +91,7 @@ all_write_par_and_list=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObjectWrite"
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{oci_region}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> WL14645-TSFR_1_11 - Failed load dump, missing progress file
@@ -127,7 +125,7 @@ all_write_par_and_list_no_dump=create_par(OS_NAMESPACE, OS_BUCKET_NAME, "AnyObje
 remove_local_progress_file()
 
 PREPARE_PAR_IS_SECRET_TEST()
-EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{config['region']}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/random-folder/@.json': Not Found (404)")
+EXPECT_THROWS(lambda: util.load_dump(all_write_par_and_list_no_dump, {"progressFile": local_progress_file}), f"Error: Shell Error (54404): While 'Opening dump': Failed to fetch size of object 'https://{OS_NAMESPACE}.objectstorage.{oci_region}.oci.customer-oci.com/p/<secret>/n/{OS_NAMESPACE}/b/{OS_BUCKET_NAME}/o/random-folder/@.json': Not Found (404)")
 EXPECT_PAR_IS_SECRET()
 
 #@<> BUG#33332080 - load a dump which is still in progress

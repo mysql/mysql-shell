@@ -192,6 +192,7 @@ class Import_table_options : public Import_table_option_pack {
   }
 
  private:
+  // hide these methods
   using Common_options::on_set_url;
   using Common_options::set_url;
 

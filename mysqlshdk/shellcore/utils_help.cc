@@ -92,6 +92,11 @@ std::map<std::string, std::string> parse_cli_option_data(
   for (const auto &entry : data) {
     std::smatch results;
     if (std::regex_match(entry, results, k_cli_option_help_regexp)) {
+      if (options.contains(results[2])) {
+        // option was already documented, skip it
+        continue;
+      }
+
       // Result 6 indicates type description was found
       if (results[6].matched) {
         std::string full_details;

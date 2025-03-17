@@ -38,6 +38,8 @@ using mysqlshdk::utils::Version;
 
 constexpr auto k_partition_awareness_capability = "partition_awareness";
 constexpr auto k_multifile_schema_ddl_capability = "multifile_schema_ddl";
+constexpr auto k_dump_dir_redirection_capability = "dump_dir_redirection";
+constexpr auto k_innodb_vector_store_capability = "innodb_vector_store";
 
 }  // namespace
 
@@ -48,6 +50,12 @@ std::string id(Capability capability) {
 
     case Capability::MULTIFILE_SCHEMA_DDL:
       return k_multifile_schema_ddl_capability;
+
+    case Capability::DUMP_DIR_REDIRECTION:
+      return k_dump_dir_redirection_capability;
+
+    case Capability::INNODB_VECTOR_STORE:
+      return k_innodb_vector_store_capability;
   }
 
   throw std::logic_error("Should not happen");
@@ -63,6 +71,14 @@ std::string description(Capability capability) {
       return "Multifile schema DDL - schema DDL is split into multiple files, "
              "containing DDL for schema itself, events, routines and "
              "libraries.";
+
+    case Capability::DUMP_DIR_REDIRECTION:
+      return "Dump directory redirection - output directory contains a link to "
+             "another directory, where the standalone dump is stored.";
+
+    case Capability::INNODB_VECTOR_STORE:
+      return "InnoDB vector store - dump contains InnoDB-based vector store "
+             "tables.";
   }
 
   throw std::logic_error("Should not happen");
@@ -77,6 +93,10 @@ Version version_required(Capability capability) {
 
     case Capability::MULTIFILE_SCHEMA_DDL:
       return Version(9, 3, 0);
+
+    case Capability::DUMP_DIR_REDIRECTION:
+    case Capability::INNODB_VECTOR_STORE:
+      return Version(9, 4, 1);
   }
 
   throw std::logic_error("Should not happen");
@@ -87,6 +107,10 @@ std::optional<Capability> to_capability(const std::string &id) {
     return Capability::PARTITION_AWARENESS;
   } else if (k_multifile_schema_ddl_capability == id) {
     return Capability::MULTIFILE_SCHEMA_DDL;
+  } else if (k_dump_dir_redirection_capability == id) {
+    return Capability::DUMP_DIR_REDIRECTION;
+  } else if (k_innodb_vector_store_capability == id) {
+    return Capability::INNODB_VECTOR_STORE;
   } else {
     return std::nullopt;
   }

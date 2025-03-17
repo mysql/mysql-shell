@@ -12,8 +12,6 @@ import os
 import os.path
 import shutil
 
-oci_config_file=os.path.join(OCI_CONFIG_HOME, "config")
-
 testutil.deploy_sandbox(__mysql_sandbox_port1, "root")
 testutil.deploy_sandbox(__mysql_sandbox_port2, "root", {"local_infile":1})
 

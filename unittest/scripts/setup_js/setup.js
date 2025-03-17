@@ -183,7 +183,7 @@ function defined(cb) {
 }
 
 function hasOciEnvironment(context) {
-  if (['OS', 'MDS'].indexOf(context) == -1) {
+  if (['OS', 'MDS', 'MDS+LH'].indexOf(context) == -1) {
     return false
   }
 
@@ -191,8 +191,12 @@ function hasOciEnvironment(context) {
                    'OCI_COMPARTMENT_ID',
                    'OS_NAMESPACE',
                    'OS_BUCKET_NAME'];
-  if (context == 'MDS') {
+  if (context == 'MDS' || context == 'MDS+LH') {
     variables = variables.concat(['MDS_URI']);
+  }
+
+  if (context == 'MDS+LH') {
+    variables = variables.concat(['MDS_LH_URI', 'MDS_LH_BUCKET']);
   }
 
   let missing=[];
@@ -216,7 +220,6 @@ function hasAwsEnvironment() {
     }
   }
   if (missing.length) {
-    println(`Missing AWS Variables: ${missing}`);
     return false;
   }
   return true;

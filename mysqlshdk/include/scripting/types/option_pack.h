@@ -155,6 +155,33 @@ class Option_pack_def : public IOption_pack_def {
   }
 
   /**
+   * Allows defining an optional option for the pack, using a member of a member
+   * attribute as the target location for the unpacked value.
+   *
+   * @param name: name of the option.
+   * @param outer: pointer to a member which contains `var` (i.e. a struct).
+   * @param var: pointer to an attribute in `outer` (field of a struct).
+   * @param sname: short name for the option (if applicable).
+   */
+  template <typename T, typename SC, typename M>
+  Option_pack_def<C> &optional(
+      const std::string &name, M SC::*outer, T M::*var,
+      const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    add_option<T>(name, sname, option_scope, Param_flag::Optional);
+
+    m_unpack_callbacks.emplace_back(
+        [name, outer, var, extract_mode](const Option_pack_def<C> *self,
+                                         shcore::Option_unpacker *unpacker,
+                                         C *instance) {
+          self->get_optional(unpacker, extract_mode, name,
+                             &((*instance).*outer.*var));
+        });
+    return *this;
+  }
+
+  /**
    * Allows defining an optional option for the pack, using a member attribute
    * that is read as strings but mapped to enum values.
    *
@@ -240,7 +267,7 @@ class Option_pack_def : public IOption_pack_def {
    * @param sname: short name for the option (if applicable).
    * @param cmd_line: whether the option is valid for CLI integration
    *
-   * The callback must be a member function with the following sugnature:
+   * The callback must be a member function with the following signature:
    *
    * callback(const string &name, const T &value)
    *
@@ -265,6 +292,44 @@ class Option_pack_def : public IOption_pack_def {
 
           if (value.has_value()) {
             ((*instance).*callback)(std::forward<T>(*value));
+          }
+        });
+
+    return *this;
+  }
+
+  /**
+   * Allows defining an optional option for the pack, using a member function of
+   * a member attribute as a callback.
+   *
+   * @param name: name of the option.
+   * @param outer: pointer to a member which contains `callback` (i.e. a struct)
+   * @param callback: pointer to a member function to be called if the option is
+   * provided on the options being unpacked.
+   * @param sname: short name for the option (if applicable).
+   *
+   * The callback must be a member function with the following signature:
+   *
+   * callback(const T &value)
+   */
+  template <typename T, typename SC, typename M>
+  Option_pack_def<C> &optional(
+      const std::string &name, M SC::*outer, void (M::*callback)(T value),
+      const std::string &sname = "",
+      Option_extract_mode extract_mode = Option_extract_mode::CASE_INSENSITIVE,
+      Option_scope option_scope = Option_scope::GLOBAL) {
+    using TT = Type_info_t<T>;
+    add_option<TT>(name, sname, option_scope, Param_flag::Optional);
+
+    m_unpack_callbacks.emplace_back(
+        [name, outer, callback, extract_mode](const Option_pack_def<C> *self,
+                                              shcore::Option_unpacker *unpacker,
+                                              C *instance) {
+          std::optional<TT> value;
+          self->get_optional(unpacker, extract_mode, name, &value);
+
+          if (value.has_value()) {
+            ((*instance).*outer.*callback)(std::forward<T>(*value));
           }
         });
 

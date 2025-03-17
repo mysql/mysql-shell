@@ -26,6 +26,7 @@
 #ifndef MODULES_UTIL_DUMP_DUMP_OPTIONS_H_
 #define MODULES_UTIL_DUMP_DUMP_OPTIONS_H_
 
+#include <cassert>
 #include <map>
 #include <memory>
 #include <optional>
@@ -44,6 +45,7 @@
 #include "modules/util/common/common_options.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/instance_cache.h"
+#include "modules/util/dump/lakehouse_target_option.h"
 #include "modules/util/import_table/dialect.h"
 
 namespace mysqlsh {
@@ -82,6 +84,10 @@ class Dump_options : public mysqlsh::common::Common_options {
 
   void dont_rename_data_files() { m_rename_data_files = false; }
 
+  void disable_innodb_vector_store_tables_handling() {
+    m_handle_innodb_vector_store_tables = false;
+  }
+
   // getters
   const std::string &output_url() const noexcept { return url(); }
 
@@ -95,6 +101,15 @@ class Dump_options : public mysqlsh::common::Common_options {
 
   const mysqlshdk::storage::Compression_options &compression_options() const {
     return m_compression_options;
+  }
+
+  bool has_lakehouse_target() const noexcept {
+    return m_lakehouse_target.has_value();
+  }
+
+  const Lakehouse_target_option &lakehouse_target() const noexcept {
+    assert(has_lakehouse_target());
+    return *m_lakehouse_target;
   }
 
   const import_table::Dialect &dialect() const { return m_dialect; }
@@ -134,6 +149,10 @@ class Dump_options : public mysqlsh::common::Common_options {
   bool write_index_files() const { return m_write_index_files; }
 
   bool rename_data_files() const { return m_rename_data_files; }
+
+  bool handle_innodb_vector_store_tables() const {
+    return m_handle_innodb_vector_store_tables;
+  }
 
   virtual bool split() const = 0;
 
@@ -198,6 +217,10 @@ class Dump_options : public mysqlsh::common::Common_options {
   void set_partitions(const std::string &schema, const std::string &table,
                       const std::unordered_set<std::string> &partitions);
 
+  void set_lakehouse_target(Lakehouse_target_option &&storage) {
+    m_lakehouse_target = std::move(storage);
+  }
+
   bool exists(const std::string &schema) const;
 
   bool exists(const std::string &schema, const std::string &table) const;
@@ -251,6 +274,8 @@ class Dump_options : public mysqlsh::common::Common_options {
 
   bool m_rename_data_files = true;
 
+  bool m_handle_innodb_vector_store_tables = true;
+
   // schema -> table -> condition
   std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
       m_where;
@@ -265,6 +290,7 @@ class Dump_options : public mysqlsh::common::Common_options {
   bool m_is_mds = false;
   Compatibility_options m_compatibility_options;
   std::optional<mysqlshdk::utils::Version> m_target_version;
+  std::optional<Lakehouse_target_option> m_lakehouse_target;
 };
 
 }  // namespace dump

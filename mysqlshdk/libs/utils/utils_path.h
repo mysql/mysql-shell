@@ -62,7 +62,7 @@ splitdrive(const std::string &path);
 std::string SHCORE_PUBLIC dirname(const std::string &path);
 std::string SHCORE_PUBLIC basename(const std::string &path);
 
-#ifdef WIN32
+#ifdef _WIN32
 const char path_separator = '\\';
 const char pathlist_separator = ';';
 #else
@@ -207,6 +207,19 @@ std::string SHCORE_PUBLIC getcwd();
  */
 
 std::string SHCORE_PUBLIC get_canonical_path(const std::string &path);
+
+/**
+ * Provides relative path from `from` to `to`.
+ *
+ * NOTE: resultant path always uses `/` as a path separator.
+ * NOTE: both paths should be normalized before calling this function.
+ *
+ * @throws std::runtime_error if one of the paths is relative and the other is
+ *         absolute
+ * @throws std::runtime_error (Windows) if paths use different drives
+ */
+std::string SHCORE_PUBLIC get_relative_path(const std::string &from,
+                                            const std::string &to);
 
 }  // namespace path
 }  // namespace shcore

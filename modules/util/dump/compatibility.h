@@ -115,7 +115,7 @@ bool check_statement_for_sqlsecurity_clause(const std::string &statement,
                                             std::string *rewritten = nullptr);
 
 Deferred_statements check_create_table_for_indexes(
-    const std::string &statement, const std::string &table_name,
+    std::string_view statement, const std::string &table_name,
     bool fulltext_only);
 
 std::set<std::string> check_create_user_for_authentication_plugins(
@@ -125,8 +125,7 @@ bool check_create_user_for_empty_password(const std::string &create_user);
 
 std::string convert_create_user_to_create_role(const std::string &create_user);
 
-void add_pk_to_create_table(const std::string &statement,
-                            std::string *rewritten);
+void add_pk_to_create_table(std::string_view statement, std::string *rewritten);
 
 bool add_pk_to_create_table_if_missing(const std::string &statement,
                                        std::string *rewritten,
@@ -259,6 +258,16 @@ bool supports_set_any_definer_privilege(const mysqlshdk::utils::Version &v);
  * @returns true If server supports library DDL.
  */
 bool supports_library_ddl(const mysqlshdk::utils::Version &v);
+
+/**
+ * Checks if server with the given version supports conversion of InnoDB-based
+ * vector store tables to Lakehouse.
+ *
+ * @param v Version to be checked.
+ *
+ * @returns true If server supports the conversion.
+ */
+bool supports_vector_store_conversion(const mysqlshdk::utils::Version &v);
 
 /**
  * Replaces first occurrence of a keyword (case insensitive comparison) with the

@@ -1069,7 +1069,7 @@ analyze_tables_summary = "tables were analyzed in ";
 //@<> Load everything with no analyze, indexes deferred
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila", {analyzeTables: "off", deferTableIndexes:"all"});
-EXPECT_SHELL_LOG_CONTAINS("(indexes removed for deferred creation)");
+EXPECT_SHELL_LOG_CONTAINS("indexes removed for deferred creation");
 EXPECT_SHELL_LOG_CONTAINS("Building indexes for `sakila`.`store`");
 EXPECT_SHELL_LOG_CONTAINS("Building indexes for `sakila`.`inventory`");
 EXPECT_SHELL_LOG_CONTAINS("Restoring FOREIGN KEY constraints for schema `sakila`");
@@ -1130,10 +1130,10 @@ testutil.rmfile(__tmp_dir+"/ldtest/dump-sakila/load-progress*");
 WIPE_SHELL_LOG();
 util.loadDump(__tmp_dir+"/ldtest/dump-sakila");
 
-EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`film_text` (indexes removed for deferred creation)")
+EXPECT_SHELL_LOG_CONTAINS("DDL script for `sakila`.`film_text`: indexes removed for deferred creation")
 EXPECT_SHELL_LOG_CONTAINS("Building indexes for `sakila`.`film_text`");
 EXPECT_SHELL_LOG_CONTAINS("Executing DDL script for `sakila`.`city`");
-EXPECT_SHELL_LOG_NOT_CONTAINS("Executing DDL script for `sakila`.`city` (indexes removed for deferred creation)");
+EXPECT_SHELL_LOG_NOT_CONTAINS("DDL script for `sakila`.`city`: indexes removed for deferred creation");
 EXPECT_SHELL_LOG_NOT_CONTAINS("Restoring FOREIGN KEY constraints");
 
 //@<> Load DDL first (indexes recreated), then data

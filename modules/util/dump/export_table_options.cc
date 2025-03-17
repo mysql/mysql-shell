@@ -38,6 +38,7 @@ Export_table_options::Export_table_options()
     : Dump_options("util.exportTable", false) {
   disable_index_files();
   dont_rename_data_files();
+  disable_innodb_vector_store_tables_handling();
   // calling this in the constructor sets the default value
   set_compression(mysqlshdk::storage::Compression::NONE);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,7 +60,7 @@ std::string get_scheme(const std::string &uri);
  *         not match the scheme in the given URI.
  */
 std::string strip_scheme(const std::string &uri,
-                         const std::string &scheme = "");
+                         const std::string &scheme = {});
 
 /**
  * Checks if scheme matches the expected value.
@@ -71,6 +71,24 @@ std::string strip_scheme(const std::string &uri,
  * @returns true If scheme matches the expected value.
  */
 bool scheme_matches(const std::string &scheme, const char *expected);
+
+/**
+ * Appends `r` to `l`, separating them with with a `/` character. Normalizes the
+ * path, removing duplicate `/` characters. Interprets and removes `.` and `..`
+ * path segments.
+ *
+ * If `r` is empty, `l` will be terminated with `/`.
+ *
+ * @param l Left part of the path.
+ * @param r Right part of the path.
+ * @param pct_encode Whether `r` should be pct-encoded before joining.
+ *
+ * @return Joined, normalized path.
+ *
+ * @throws std::runtime_error If normalized path contains a `..` path segment.
+ */
+std::string join_uri_path(const std::string &l, const std::string &r,
+                          bool pct_encode = false);
 
 }  // namespace utils
 }  // namespace storage

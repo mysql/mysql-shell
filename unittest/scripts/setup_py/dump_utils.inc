@@ -14,9 +14,10 @@ def md5_table(session, schema, table, where = "", partitions = []):
     columns = []
     has_pri = 0 != session.run_sql("SELECT COUNT(*) FROM information_schema.statistics WHERE index_name = 'PRIMARY' AND table_schema = ? AND table_name = ?", [schema, table]).fetch_one()[0]
     for c in session.run_sql("desc !.!", [schema, table]).fetch_all():
-        columns.append(c[0])
-    query = f"SELECT @crc := sha1(concat(@crc, sha1(concat_ws('#', {', '.join(['convert(! using binary)' for c in columns])})))),@cnt := @cnt + 1 as discard from !.!"
-    params = columns + [schema, table]
+        quoted = quote_identifier(c[0])
+        columns.append(f"VECTOR_TO_STRING({quoted})" if c[1].upper().startswith('VECTOR') else quoted)
+    query = f"SELECT @crc := sha1(concat(@crc, sha1(concat_ws('#', {', '.join([f'convert({c} using binary)' for c in columns])})))),@cnt := @cnt + 1 as discard from !.!"
+    params = [schema, table]
     if partitions:
         query += f" PARTITION ({', '.join(['!' for p in partitions])})"
         params += partitions
@@ -25,8 +26,7 @@ def md5_table(session, schema, table, where = "", partitions = []):
     if where:
         query += f" WHERE {where}"
     if not has_pri:
-        query += f" ORDER BY {', '.join(['!' for c in columns])}"
-        params += columns
+        query += f" ORDER BY {', '.join(columns)}"
     session.run_sql("SET @crc = ''")
     session.run_sql("SET @cnt = 0")
     session.run_sql(query, params)
@@ -176,7 +176,7 @@ def compare_query_results(session1, session2, query, args=[], ignore_columns=[])
     r2.sort()
     EXPECT_EQ(len(r1), len(r2), query + ", args: " + str(args))
     for i in range(len(r1)):
-        EXPECT_EQ(str(r1[i]), str(r2[i]) if i < len(r2) else "<missing>")
+        EXPECT_EQ(str(r1[i]), str(r2[i]) if i < len(r2) else "<missing>", query + ", args: " + str(args) + ", row: " + str(i))
     return r1
 
 def compare_schema(session1, session2, schema, check_rows=True, check_events=True, check_triggers=True, check_stored_procedures=True):
@@ -184,8 +184,7 @@ def compare_schema(session1, session2, schema, check_rows=True, check_events=Tru
     for table, in tables:
         compare_query_results(session1, session2, "show create table `"+schema+"`.`"+table+"`")
         if check_rows:
-            columns = [c[0] for c in session1.run_sql("SELECT COLUMN_NAME FROM information_schema.columns WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? ORDER BY ORDINAL_POSITION;", [schema, table]).fetch_all()]
-            compare_query_results(session1, session2, "select {0} from !.!".format(("MD5(!)," * len(columns))[:-1]), columns + [schema, table])
+            EXPECT_EQ(md5_table(session1, schema, table), md5_table(session2, schema, table), quote_identifier(schema, table))
     views = compare_query_results(session1, session2, "select table_name from information_schema.tables where table_schema=? and table_type='VIEW' order by table_name", [schema])
     for view, in views:
         compare_query_results(session1, session2, "show create view `"+schema+"`.`"+view+"`")
@@ -825,4 +824,16 @@ multifile_schema_ddl_capability = {
     "id": "multifile_schema_ddl",
     "description": "Multifile schema DDL - schema DDL is split into multiple files, containing DDL for schema itself, events, routines and libraries.",
     "versionRequired": "9.3.0",
+}
+
+dump_dir_redirection_capability = {
+    "id": "dump_dir_redirection",
+    "description": "Dump directory redirection - output directory contains a link to another directory, where the standalone dump is stored.",
+    "versionRequired": "9.4.1",
+}
+
+innodb_vector_store_capability = {
+    "id": "innodb_vector_store",
+    "description": "InnoDB vector store - dump contains InnoDB-based vector store tables.",
+    "versionRequired": "9.4.1",
 }
