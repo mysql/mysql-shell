@@ -101,10 +101,14 @@ Dump_info dump_info(const shcore::json::Value &object) {
     info.capabilities.reserve(capabilities->size());
 
     for (const auto &capability : *capabilities) {
+      auto id = required_string(capability, "id");
+      auto opt_id = capability::to_capability(id);
+
       info.capabilities.emplace_back(Capability_info{
-          required_string(capability, "id"),
+          std::move(id),
           required_string(capability, "description"),
           Version(required_string(capability, "versionRequired")),
+          std::move(opt_id),
       });
     }
   }

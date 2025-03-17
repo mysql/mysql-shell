@@ -35,6 +35,7 @@
 #include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/util/common/dump/server_info.h"
+#include "modules/util/dump/capability.h"
 
 namespace mysqlsh {
 namespace dump {
@@ -44,6 +45,7 @@ struct Capability_info {
   std::string id;
   std::string description;
   mysqlshdk::utils::Version version_required;
+  std::optional<Capability> capability;
 };
 
 struct Dump_info {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -230,6 +230,12 @@ TEST_P(Object_storage_test, subdirectory) {
   EXPECT_TRUE(second->list().directories.empty());
   EXPECT_TRUE(third->list().directories.empty());
   EXPECT_TRUE(fourth->list().directories.empty());
+
+  // relative paths
+  const auto fourth_again = third->directory("../fourth");
+
+  expected_files = {{"nine.txt"}, {"ten.txt"}};
+  EXPECT_EQ(expected_files, fourth_again->list().files);
 
   EXPECT_NO_THROW(fourth->remove());
 }

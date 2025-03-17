@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,13 +26,12 @@
 #ifndef MODULES_UTIL_DUMP_DIALECT_DUMP_WRITER_H_
 #define MODULES_UTIL_DUMP_DIALECT_DUMP_WRITER_H_
 
-#include <memory>
-#include <string>
+#include <cctype>
+#include <cstdint>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include "mysqlshdk/libs/utils/utils_general.h"
 
 #include "modules/util/dump/dump_writer.h"
 
@@ -43,42 +42,42 @@ namespace detail {
 struct dialect_traits {};
 
 struct default_traits : public dialect_traits {
-  static constexpr char lines_terminated_by[] = "\n";
-  static constexpr char fields_escaped_by[] = "\\";
-  static constexpr char fields_terminated_by[] = "\t";
-  static constexpr char fields_enclosed_by[] = "";
+  static constexpr std::string_view lines_terminated_by = "\n";
+  static constexpr std::string_view fields_escaped_by = "\\";
+  static constexpr std::string_view fields_terminated_by = "\t";
+  static constexpr std::string_view fields_enclosed_by = "";
   static constexpr bool fields_optionally_enclosed = false;
 };
 
 struct json_traits : public dialect_traits {
-  static constexpr char lines_terminated_by[] = "\n";
-  static constexpr char fields_escaped_by[] = "";
-  static constexpr char fields_terminated_by[] = "\n";
-  static constexpr char fields_enclosed_by[] = "";
+  static constexpr std::string_view lines_terminated_by = "\n";
+  static constexpr std::string_view fields_escaped_by = "";
+  static constexpr std::string_view fields_terminated_by = "\n";
+  static constexpr std::string_view fields_enclosed_by = "";
   static constexpr bool fields_optionally_enclosed = false;
 };
 
 struct csv_traits : public dialect_traits {
-  static constexpr char lines_terminated_by[] = "\r\n";
-  static constexpr char fields_escaped_by[] = "\\";
-  static constexpr char fields_terminated_by[] = ",";
-  static constexpr char fields_enclosed_by[] = "\"";
+  static constexpr std::string_view lines_terminated_by = "\r\n";
+  static constexpr std::string_view fields_escaped_by = "\\";
+  static constexpr std::string_view fields_terminated_by = ",";
+  static constexpr std::string_view fields_enclosed_by = "\"";
   static constexpr bool fields_optionally_enclosed = true;
 };
 
 struct tsv_traits : public dialect_traits {
-  static constexpr char lines_terminated_by[] = "\r\n";
-  static constexpr char fields_escaped_by[] = "\\";
-  static constexpr char fields_terminated_by[] = "\t";
-  static constexpr char fields_enclosed_by[] = "\"";
+  static constexpr std::string_view lines_terminated_by = "\r\n";
+  static constexpr std::string_view fields_escaped_by = "\\";
+  static constexpr std::string_view fields_terminated_by = "\t";
+  static constexpr std::string_view fields_enclosed_by = "\"";
   static constexpr bool fields_optionally_enclosed = true;
 };
 
 struct csv_unix_traits : public dialect_traits {
-  static constexpr char lines_terminated_by[] = "\n";
-  static constexpr char fields_escaped_by[] = "\\";
-  static constexpr char fields_terminated_by[] = ",";
-  static constexpr char fields_enclosed_by[] = "\"";
+  static constexpr std::string_view lines_terminated_by = "\n";
+  static constexpr std::string_view fields_escaped_by = "\\";
+  static constexpr std::string_view fields_terminated_by = ",";
+  static constexpr std::string_view fields_enclosed_by = "\"";
   static constexpr bool fields_optionally_enclosed = false;
 };
 
@@ -88,8 +87,8 @@ struct csv_unix_traits : public dialect_traits {
  * a new dialect is added and any of the static asserts below are failed, the
  * whole implementation needs to be carefully analyzed.
  */
-template <class T,
-          std::enable_if_t<std::is_base_of<dialect_traits, T>::value, int> = 0>
+template <class Traits>
+  requires std::is_base_of_v<dialect_traits, Traits>
 class Dialect_dump_writer : public Dump_writer {
  public:
   Dialect_dump_writer() {
@@ -102,6 +101,13 @@ class Dialect_dump_writer : public Dump_writer {
                   "Field terminator needs to be 1 character long");
     static_assert(s_fields_enclosed_by_length <= 1,
                   "FIELDS ENCLOSED BY is a single character (can be not set)");
+    // NOTE: this is required by the Encoding_type::VECTOR, it's stored via
+    //       VECTOR_TO_STRING and contains commas; in order to skip encoding
+    //       comma cannot need to be escaped
+    static_assert(
+        s_fields_enclosed_by_length || (s_fields_terminated_by_length &&
+                                        ',' != Traits::fields_terminated_by[0]),
+        "FIELDS ENCLOSED BY is set or field terminator is not a comma");
   }
 
   Dialect_dump_writer(const Dialect_dump_writer &) = delete;
@@ -170,12 +176,17 @@ class Dialect_dump_writer : public Dump_writer {
       } else if (pre_encoded_columns.size() == metadata.size()) {
         if (pre_encoded_columns[i] == Encoding_type::BASE64)
           m_needs_escape[i] = Escape_type::BASE64;
-        else if (pre_encoded_columns[i] == Encoding_type::HEX)
+        else if (pre_encoded_columns[i] == Encoding_type::HEX ||
+                 pre_encoded_columns[i] == Encoding_type::VECTOR)
           m_needs_escape[i] = Escape_type::NONE;
       }
 
-      if (!T::fields_optionally_enclosed || is_string) {
+      if constexpr (!Traits::fields_optionally_enclosed) {
         fixed_length += 2 * s_fields_enclosed_by_length;
+      } else {
+        if (is_string) {
+          fixed_length += 2 * s_fields_enclosed_by_length;
+        }
       }
     }
 
@@ -184,7 +195,7 @@ class Dialect_dump_writer : public Dump_writer {
 
   void store_field(const mysqlshdk::db::IRow *row, uint32_t idx) {
     if (0 != idx) {
-      buffer()->append_fixed(T::fields_terminated_by[0]);
+      buffer()->append_fixed(Traits::fields_terminated_by[0]);
     }
 
     const char *data = nullptr;
@@ -217,7 +228,7 @@ class Dialect_dump_writer : public Dump_writer {
           store_base64_field(data, length);
           break;
         case Escape_type::NONE:
-          store_field<0>(data, length);
+          store_unescaped_field(data, length);
           break;
       }
       quote_field(idx);
@@ -229,18 +240,20 @@ class Dialect_dump_writer : public Dump_writer {
   }
 
   inline void store_field(const char *data, std::size_t length) {
-    store_field<s_fields_escaped_by_length>(data, length);
+    if constexpr (0 == s_fields_escaped_by_length) {
+      store_unescaped_field(data, length);
+    } else {
+      store_escaped_field(data, length);
+    }
   }
 
-  template <int N, std::enable_if_t<0 == N, int> = 0>
-  inline void store_field(const char *data, std::size_t length) {
+  inline void store_unescaped_field(const char *data, std::size_t length) {
     // if FIELDS ESCAPED BY character is not specified, write as is
     buffer()->will_write(length);
     buffer()->append(data, length);
   }
 
-  template <int N, std::enable_if_t<1 == N, int> = 0>
-  inline void store_field(const char *data, std::size_t length) {
+  inline void store_escaped_field(const char *data, std::size_t length) {
     // FIELDS ESCAPED BY character is specified, escape the string
     buffer()->will_write(2 * length);
     const auto end = data + length;
@@ -280,15 +293,15 @@ class Dialect_dump_writer : public Dump_writer {
           break;
 
         default:
-          if (c == T::fields_escaped_by[0] || c == T::fields_terminated_by[0] ||
-              c == T::lines_terminated_by[0] || should_escape(c)) {
+          if (c == Traits::fields_escaped_by[0] ||
+              c == Traits::lines_terminated_by[0] || should_escape(c)) {
             to_write = c;
           }
           break;
       }
 
       if (0 != to_write) {
-        buffer()->append(T::fields_escaped_by[0]);
+        buffer()->append(Traits::fields_escaped_by[0]);
         buffer()->append(to_write);
       } else {
         buffer()->append(c);
@@ -297,90 +310,72 @@ class Dialect_dump_writer : public Dump_writer {
   }
 
   inline bool should_escape(char c) {
-    return should_escape<s_fields_enclosed_by_length>(c);
-  }
-
-  template <int N, std::enable_if_t<0 == N, int> = 0>
-  inline bool should_escape(char) {
-    // FIELDS ENCLOSED BY character is not specified, nothing to do
-    return false;
-  }
-
-  template <int N, std::enable_if_t<1 == N, int> = 0>
-  inline bool should_escape(char c) {
-    // FIELDS ENCLOSED BY character is specified, escape it
-    return c == T::fields_enclosed_by[0];
-  }
-
-  inline void quote_field(uint32_t idx) {
-    quote_field<s_fields_enclosed_by_length>(idx);
-  }
-
-  template <int N, std::enable_if_t<0 == N, int> = 0>
-  inline void quote_field(uint32_t) {
-    // FIELDS ENCLOSED BY character is not specified, nothing to do
-  }
-
-  template <int N, std::enable_if_t<1 == N, int> = 0>
-  inline void quote_field(uint32_t idx) {
-    // FIELDS ENCLOSED BY character is specified, write it conditionally
-    if (!T::fields_optionally_enclosed || m_is_string_type[idx]) {
-      buffer()->append_fixed(T::fields_enclosed_by[0]);
+    if constexpr (0 == s_fields_enclosed_by_length) {
+      // FIELDS ENCLOSED BY character is not specified, escape first character
+      // of FIELDS TERMINATED BY
+      return c == Traits::fields_terminated_by[0];
+    } else {
+      // FIELDS ENCLOSED BY character is specified, escape it
+      return c == Traits::fields_enclosed_by[0];
     }
   }
 
-  inline void store_null() { store_null<s_fields_escaped_by_length>(); }
+  inline void quote_field(uint32_t idx) {
+    if constexpr (1 == s_fields_enclosed_by_length) {
+      // FIELDS ENCLOSED BY character is specified
+      if constexpr (!Traits::fields_optionally_enclosed) {
+        // all fields are quoted
+        buffer()->append_fixed(Traits::fields_enclosed_by[0]);
+      } else {
+        // quote conditionally
+        if (m_is_string_type[idx]) {
+          buffer()->append_fixed(Traits::fields_enclosed_by[0]);
+        }
+      }
+    }
+  }
 
-  template <int N, std::enable_if_t<0 == N, int> = 0>
   inline void store_null() {
-    // if FIELDS ESCAPED BY character is not specified, write "NULL"
-    constexpr size_t length = 4;
-    buffer()->will_write(length);
-    buffer()->append("NULL", length);
+    if constexpr (0 == s_fields_escaped_by_length) {
+      // if FIELDS ESCAPED BY character is not specified, write "NULL"
+      constexpr size_t length = 4;
+      buffer()->will_write(length);
+      buffer()->append("NULL", length);
+    } else {
+      // FIELDS ESCAPED BY character is specified, write "\N"
+      buffer()->will_write(2);
+      buffer()->append(Traits::fields_escaped_by[0]);
+      buffer()->append('N');
+    }
   }
 
-  template <int N, std::enable_if_t<1 == N, int> = 0>
-  inline void store_null() {
-    // FIELDS ESCAPED BY character is specified, write "\N"
-    buffer()->will_write(2);
-    buffer()->append(T::fields_escaped_by[0]);
-    buffer()->append('N');
-  }
-
-  inline void finish_row() { finish_row<s_lines_terminated_by_length>(); }
-
-  template <int N, std::enable_if_t<1 == N, int> = 0>
   inline void finish_row() {
-    // LINES TERMINATED BY is one character long
-    buffer()->append_fixed(T::lines_terminated_by[0]);
+    buffer()->append_fixed(Traits::lines_terminated_by[0]);
+
+    if constexpr (2 == s_lines_terminated_by_length) {
+      // LINES TERMINATED BY is two characters long
+      buffer()->append_fixed(Traits::lines_terminated_by[1]);
+    }
   }
 
-  template <int N, std::enable_if_t<2 == N, int> = 0>
-  inline void finish_row() {
-    // LINES TERMINATED BY is two characters long
-    buffer()->append_fixed(T::lines_terminated_by[0]);
-    buffer()->append_fixed(T::lines_terminated_by[1]);
-  }
+  static constexpr auto s_lines_terminated_by_length =
+      Traits::lines_terminated_by.length();
 
-  // array size includes the null termination byte
-  static constexpr size_t s_lines_terminated_by_length =
-      shcore::array_size(T::lines_terminated_by) - 1;
+  static constexpr auto s_fields_escaped_by_length =
+      Traits::fields_escaped_by.length();
 
-  static constexpr size_t s_fields_escaped_by_length =
-      shcore::array_size(T::fields_escaped_by) - 1;
+  static constexpr auto s_fields_terminated_by_length =
+      Traits::fields_terminated_by.length();
 
-  static constexpr size_t s_fields_terminated_by_length =
-      shcore::array_size(T::fields_terminated_by) - 1;
-
-  static constexpr size_t s_fields_enclosed_by_length =
-      shcore::array_size(T::fields_enclosed_by) - 1;
+  static constexpr auto s_fields_enclosed_by_length =
+      Traits::fields_enclosed_by.length();
 
   uint32_t m_num_fields;
 
   // not using vectors of bool here, as they are not very efficient on access
-  std::vector<int> m_is_string_type;
+  std::vector<uint8_t> m_is_string_type;
 
-  std::vector<int> m_is_number_type;
+  std::vector<uint8_t> m_is_number_type;
 
   std::vector<Escape_type> m_needs_escape;
 };

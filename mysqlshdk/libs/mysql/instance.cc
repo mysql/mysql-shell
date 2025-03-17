@@ -811,20 +811,7 @@ void Instance::process_result_warnings(std::string_view sql,
 
   // Get all the Warnings
   while (auto warning = result.fetch_one_warning()) {
-    std::string_view warning_level;
-
-    switch (warning->level) {
-      case db::Warning::Level::Note:
-        warning_level = "NOTE";
-        break;
-      case db::Warning::Level::Warn:
-        warning_level = "WARNING";
-        break;
-      case db::Warning::Level::Error:
-        warning_level = "ERROR";
-        break;
-    }
-
+    const auto warning_level = shcore::str_upper(db::to_string(warning->level));
     m_warnings_callback(sql, warning->code, warning_level, warning->msg);
   }
 }

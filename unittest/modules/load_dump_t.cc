@@ -62,9 +62,9 @@ TEST(Load_dump, sql_transforms_strip_sql_mode) {
     return tx(s, out);
   };
 
-  auto callr = [&tx](std::string_view s) {
+  auto callr = [&tx](std::string_view s, bool result = true) {
     std::string tmp;
-    EXPECT_TRUE(tx(s, &tmp));
+    EXPECT_EQ(result, tx(s, &tmp));
     return tmp;
   };
 
@@ -79,15 +79,13 @@ TEST(Load_dump, sql_transforms_strip_sql_mode) {
   EXPECT_EQ("SET sql_mode=''", callr("SET sql_mode=''"));
   EXPECT_EQ("/*!50003 SET sql_mode    =    '' */;",
             callr("/*!50003 SET sql_mode    =    '' */;"));
-  EXPECT_EQ("SELECT 'SET sql_mode='NO_AUTO_CREATE_USER''",
-            callr("SELECT 'SET sql_mode='NO_AUTO_CREATE_USER''"));
+  EXPECT_EQ("", callr("SELECT 'SET sql_mode='NO_AUTO_CREATE_USER''", false));
   EXPECT_EQ("SET sql_mode ='ansi_quotes'",
             callr("SET sql_mode ='ansi_quotes'"));
   EXPECT_EQ("SET sql_mode= ''", callr("SET sql_mode= ''"));
   EXPECT_EQ("/*!50003 SET sql_mode    =    '' */;",
             callr("/*!50003 SET sql_mode    =    '' */;"));
-  EXPECT_EQ("SELECT 'SET sql_mode='NO_AUTO_CREATE_USER''",
-            callr("SELECT 'SET sql_mode='NO_AUTO_CREATE_USER''"));
+  EXPECT_EQ("", callr("SELECT 'SET sql_mode='NO_AUTO_CREATE_USER''", false));
 
   // changes
   EXPECT_EQ("SET sql_mode=''", callr("SET sql_mode='NO_AUTO_CREATE_USER'"));
@@ -123,53 +121,52 @@ TEST(Load_dump, sql_transforms_strip_sql_mode) {
             "sql_mode='ANSI_QUOTES,NO_AUTO_CREATE_USER,NO_ZERO_DATE' */"));
 }
 
-TEST(Load_dump, add_execute_conditionally) {
-  const auto call = [](const Dump_loader::Sql_transform &tx,
-                       std::string_view s) {
+TEST(Load_dump, add_execution_condition) {
+  const auto call = [](const Dump_loader::Sql_transform &tx, std::string_view s,
+                       bool result) {
     std::string tmp;
-    EXPECT_TRUE(tx(s, &tmp));
+    EXPECT_EQ(result, tx(s, &tmp));
     return tmp;
   };
 
   {
     Dump_loader::Sql_transform tx;
-    tx.add_execute_conditionally(
+    tx.add_execution_condition(
         [](std::string_view, std::string_view) { return true; });
 
-    EXPECT_EQ("CREATE EVENT foo", call(tx, "CREATE EVENT foo"));
+    EXPECT_EQ("", call(tx, "CREATE EVENT foo", false));
   }
 
   {
     Dump_loader::Sql_transform tx;
-    tx.add_execute_conditionally(
+    tx.add_execution_condition(
         [](std::string_view, std::string_view) { return false; });
 
-    EXPECT_EQ("", call(tx, "CREATE EVENT foo"));
+    EXPECT_EQ("", call(tx, "CREATE EVENT foo", true));
   }
 
-  const auto EXPECT_TYPE_NAME = [](const std::string &stmt,
-                                   const std::string &type,
-                                   const std::string &name,
-                                   const bool called = true) {
-    SCOPED_TRACE("statement: " + stmt + ", type: " + type + ", name " + name +
-                 ", called: " + (called ? "true" : "false"));
+  const auto EXPECT_TYPE_NAME =
+      [](const std::string &stmt, const std::string &type,
+         const std::string &name, const bool called = true) {
+        SCOPED_TRACE("statement: " + stmt + ", type: " + type + ", name " +
+                     name + ", called: " + (called ? "true" : "false"));
 
-    bool was_called = false;
-    Dump_loader::Sql_transform tx;
+        bool was_called = false;
+        Dump_loader::Sql_transform tx;
 
-    tx.add_execute_conditionally(
-        [&was_called, &type, &name](std::string_view t, std::string_view n) {
+        tx.add_execution_condition([&was_called, &type, &name](
+                                       std::string_view t, std::string_view n) {
           EXPECT_EQ(type, t);
           EXPECT_EQ(name, n);
           was_called = true;
           return true;
         });
 
-    std::string tmp;
-    EXPECT_TRUE(tx(stmt, &tmp));
+        std::string tmp;
+        EXPECT_FALSE(tx(stmt, &tmp));
 
-    EXPECT_EQ(was_called, called);
-  };
+        EXPECT_EQ(was_called, called);
+      };
 
   EXPECT_TYPE_NAME("CREATE EVENT foo", "EVENT", "foo");
   EXPECT_TYPE_NAME("/*!50106 DROP EVENT foo */", "EVENT", "foo");
@@ -730,6 +727,10 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
           "show GLOBAL variables where `variable_name` in ('mle.memory_max')")
       .then({"Variable_name", "Value"})
       .add_row({"mle.memory_max", "0"});
+
+  mock_main_session->expect_query("SHOW STATUS LIKE 'rapid_lakehouse_health'")
+      .then({"Variable_name", "Value"})
+      .add_row({"rapid_lakehouse_health", "OFFLINE"});
 
   options.set_session(mock_main_session);
 

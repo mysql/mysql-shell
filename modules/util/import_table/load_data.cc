@@ -798,21 +798,30 @@ std::string Load_data_worker::load_data_body(
               c);
         });
 
-    query_columns = " (" + placeholders + ")";
+    query_columns = " (";
+    query_columns += placeholders;
+    query_columns += ')';
   }
 
   if (!decode_columns.empty()) {
     query_columns += " SET ";
 
     for (const auto &it : decode_columns) {
-      if (it.second == "UNHEX" || it.second == "FROM_BASE64") {
-        query_columns +=
-            shcore::sqlformat("! = " + it.second + "(@!),", it.first, it.first);
+      query_columns += shcore::quote_identifier(it.first);
+      query_columns += '=';
+
+      if (it.second == "UNHEX" || it.second == "FROM_BASE64" ||
+          it.second == "STRING_TO_VECTOR") {
+        query_columns += it.second;
+        query_columns += "(@";
+        query_columns += shcore::quote_identifier(it.first);
       } else if (!it.second.empty()) {
-        query_columns += shcore::sqlformat("! = ", it.first);
+        query_columns += '(';
         // Append "as is".
-        query_columns += "(" + it.second + "),";
+        query_columns += it.second;
       }
+
+      query_columns += "),";
     }
 
     query_columns.pop_back();  // strip the last ,

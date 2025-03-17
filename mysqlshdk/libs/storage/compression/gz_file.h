@@ -113,7 +113,7 @@ class Gz_file : public Compressed_file {
   z_stream m_stream;
   std::vector<uint8_t> m_source;
   std::optional<Mode> m_open_mode;
-  int m_clevel = 1;  // Z_DEFAULT_COMPRESSION
+  int m_clevel = 1;
 };
 
 Gz_file::Buf_view Gz_file::peek(const size_t length) {

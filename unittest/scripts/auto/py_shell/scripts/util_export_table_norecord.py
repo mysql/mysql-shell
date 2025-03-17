@@ -185,7 +185,10 @@ def TEST_LOAD(schema, table, options = {}, source_table = None):
     # add extra options
     run_options.update(options)
     # export the table
+    WIPE_STDOUT()
     EXPECT_SUCCESS(quote(schema, table), test_output_absolute, run_options)
+    import_table_code = extract_import_table_code()
+    import_table_options = json.loads(import_table_code[import_table_code.find("{") : import_table_code.rfind("}") + 1])
     # create target table
     recreate_verification_schema()
     session.run_sql("CREATE TABLE !.! LIKE !.!;", [verification_schema, verification_table, schema, source_table if source_table is not None else table])
@@ -205,24 +208,9 @@ def TEST_LOAD(schema, table, options = {}, source_table = None):
         partitions = run_options["partitions"]
         del run_options["partitions"]
     # add decoded columns
-    all_columns = get_all_columns(schema, table)
-    decoded_columns = {}
-    for column in all_columns:
-        ctype = session.run_sql("SELECT DATA_TYPE FROM information_schema.columns WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?;", [schema, table, column]).fetch_one()[0].lower()
-        if (ctype.endswith("binary") or
-            ctype.endswith("bit") or
-            ctype.endswith("blob") or
-            ctype.endswith("geometry") or
-            ctype.endswith("geomcollection") or
-            ctype.endswith("geometrycollection") or
-            ctype.endswith("linestring") or
-            ctype.endswith("point") or
-            ctype.endswith("polygon") or
-            ctype.endswith("vector")):
-                decoded_columns[column] = "FROM_BASE64"
-    if decoded_columns:
-        run_options["columns"] = all_columns
-        run_options["decodeColumns"] = decoded_columns
+    if "decodeColumns" in import_table_options:
+        run_options["columns"] = import_table_options["columns"]
+        run_options["decodeColumns"] = import_table_options["decodeColumns"]
     # load in chunks
     run_options["bytesPerChunk"] = "1k"
     # load data

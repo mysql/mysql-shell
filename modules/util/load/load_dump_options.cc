@@ -134,6 +134,12 @@ const shcore::Option_pack_def<Load_dump_options> &Load_dump_options::options() {
                     &Load_dump_options::set_handle_grant_errors)
           .optional("checksum", &Load_dump_options::m_checksum)
           .optional("disableBulkLoad", &Load_dump_options::m_disable_bulk_load)
+          .optional(load::Lakehouse_source_option::option_name(),
+                    &Load_dump_options::m_lakehouse_source)
+          .optional("convertInnoDbVectorStore",
+                    &Load_dump_options::set_convert_vector_store_option)
+          .optional("heatwaveLoad",
+                    &Load_dump_options::set_heatwave_load_option)
           .on_done(&Load_dump_options::on_unpacked_options);
 
   return opts;
@@ -268,6 +274,15 @@ void Load_dump_options::on_set_session(
 
   m_is_library_ddl_supported =
       compatibility::supports_library_ddl(m_target_server_version);
+
+  if (is_mds()) {
+    const auto result =
+        session->query("SHOW STATUS LIKE 'rapid_lakehouse_health'");
+
+    if (const auto row = result->fetch_one()) {
+      m_is_lakehouse_enabled = shcore::str_caseeq(row->get_string(1), "ONLINE");
+    }
+  }
 }
 
 void Load_dump_options::on_set_url(
@@ -321,6 +336,11 @@ void Load_dump_options::on_configure() {
   }
 
   configure_bulk_load();
+
+  // WL16802-FR2.3.3: if instance is not MHS, ignore this option
+  if (!is_mds()) {
+    set_heatwave_load(load::Heatwave_load::NONE);
+  }
 }
 
 std::string Load_dump_options::target_import_info(
@@ -333,13 +353,7 @@ std::string Load_dump_options::target_import_info(
   if (load_data()) what_to_load.push_back("Data");
   if (load_users()) what_to_load.push_back("Users");
 
-  std::string where;
-
-  if (const auto storage = storage_config(url()); storage && storage->valid()) {
-    where = storage->describe(url());
-  } else {
-    where = "'" + url() + "'";
-  }
+  const auto where = describe(url());
 
   // this is validated earlier on
   assert(!what_to_load.empty() || m_analyze_tables != Analyze_table_mode::OFF ||
@@ -637,6 +651,28 @@ void Load_dump_options::configure_bulk_load() {
 
   log_info("BULK LOAD monitoring is enabled");
   m_bulk_load_info.monitoring = true;
+}
+
+void Load_dump_options::set_convert_vector_store_option(
+    const std::string &value) {
+  try {
+    m_convert_vector_store = load::to_convert_vector_store(value);
+  } catch (const std::exception &e) {
+    throw std::invalid_argument(
+        shcore::str_format("The value of the 'convertInnoDbVectorStore' option "
+                           "must be set to one of: %s.",
+                           e.what()));
+  }
+}
+
+void Load_dump_options::set_heatwave_load_option(const std::string &value) {
+  try {
+    m_heatwave_load = load::to_heatwave_load(value);
+  } catch (const std::exception &e) {
+    throw std::invalid_argument(shcore::str_format(
+        "The value of the 'heatwaveLoad' option must be set to one of: %s.",
+        e.what()));
+  }
 }
 
 }  // namespace mysqlsh

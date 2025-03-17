@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -153,8 +153,8 @@ std::unique_ptr<IFile> Oci_par_directory::file(
 std::unique_ptr<IDirectory> Oci_par_directory::directory(
     const std::string &name) const {
   return std::make_unique<Oci_par_directory>(
-      std::make_shared<Oci_par_directory_config>(full_path().real() + name +
-                                                 "/"));
+      std::make_shared<Oci_par_directory_config>(
+          join_path(full_path().real(), name + '/')));
 }
 
 Oci_par_directory::Oci_par_directory(const Oci_par_directory_config_ptr &config)

@@ -455,17 +455,8 @@ shcore::Value ClassicResult::get_member(const std::string &prop) const {
       while (std::unique_ptr<mysqlshdk::db::Warning> warning =
                  _result->fetch_one_warning()) {
         auto warning_row = std::make_shared<mysqlsh::Row>();
-        switch (warning->level) {
-          case mysqlshdk::db::Warning::Level::Note:
-            warning_row->add_item("level", shcore::Value("Note"));
-            break;
-          case mysqlshdk::db::Warning::Level::Warn:
-            warning_row->add_item("level", shcore::Value("Warning"));
-            break;
-          case mysqlshdk::db::Warning::Level::Error:
-            warning_row->add_item("level", shcore::Value("Error"));
-            break;
-        }
+        warning_row->add_item(
+            "level", shcore::Value(mysqlshdk::db::to_string(warning->level)));
         warning_row->add_item("code", shcore::Value(warning->code));
         warning_row->add_item("message", shcore::Value(warning->msg));
 

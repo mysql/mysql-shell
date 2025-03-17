@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,6 +93,8 @@ class Ddl_dumper_options : public Dump_options {
  private:
   void on_set_url(const std::string &url, Storage_type storage,
                   const mysqlshdk::storage::Config_ptr &config) override;
+
+  void on_configure() override;
 
   void set_bytes_per_chunk(const std::string &value);
   void set_ocimds(bool value);

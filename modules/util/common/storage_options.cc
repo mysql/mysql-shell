@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -105,8 +105,6 @@ void Storage_options::on_unpacked_options() {
 
 void Storage_options::set_storage_config(mysqlshdk::storage::Config_ptr storage,
                                          Storage_type type) {
-  assert(Storage_type::Unknown != type);
-
   m_storage = std::move(storage);
   m_storage_type = type;
 }
@@ -122,6 +120,14 @@ Storage_options::storage_options() const noexcept {
   }
 
   return nullptr;
+}
+
+std::string Storage_options::describe(const std::string &url) const {
+  if (const auto storage = storage_config(url); storage && storage->valid()) {
+    return storage->describe(url);
+  } else {
+    return "'" + url + "'";
+  }
 }
 
 mysqlshdk::storage::Config_ptr Storage_options::storage_config(

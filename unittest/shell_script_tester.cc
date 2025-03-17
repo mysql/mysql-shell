@@ -1810,6 +1810,8 @@ void Shell_script_tester::set_defaults() {
 
   // Variables for MDS Tests
   def_string_var_from_env("MDS_URI");
+  def_string_var_from_env("MDS_LH_URI");
+  def_string_var_from_env("MDS_LH_BUCKET");
 
   auto set_env_if_missing = [](const char *var, const char *value) {
     if (!getenv(var)) {

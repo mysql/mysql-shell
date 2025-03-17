@@ -1146,6 +1146,10 @@ OPTIONS
             accounts with the given user name are included. By default, all
             users are included. Default: not set.
 
+--lakehouseTarget=<key>[:<type>]=<value>
+            Specifies where the data of InnoDB based vector store tables will
+            be written. Default: not set.
+
 --libraries=<bool>
             Include library objects for each dumped schema. Default: true.
 
@@ -1393,6 +1397,10 @@ OPTIONS
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
 
+--lakehouseTarget=<key>[:<type>]=<value>
+            Specifies where the data of InnoDB based vector store tables will
+            be written. Default: not set.
+
 --libraries=<bool>
             Include library objects for each dumped schema. Default: true.
 
@@ -1609,6 +1617,10 @@ OPTIONS
             List of triggers to be included in the dump in the format of
             schema.table (all triggers from the specified table) or
             schema.table.trigger (the individual trigger). Default: empty.
+
+--lakehouseTarget=<key>[:<type>]=<value>
+            Specifies where the data of InnoDB based vector store tables will
+            be written. Default: not set.
 
 --linesTerminatedBy=<str>
             This option has the same meaning as the corresponding clause for
@@ -2223,6 +2235,14 @@ OPTIONS
             Verify tables against checksums that were computed during dump.
             Default: false.
 
+--convertInnoDbVectorStore=<str>
+            "keep", "convert", "skip", "auto" (default: auto) - Specifies how
+            to handle the InnoDB based vector store tables when loading a dump,
+            "keep": tables are kept as is, "convert": tables are converted to
+            Lakehouse, error is reported if this is not possible, "skip":
+            tables are excluded from the load, "auto": tables are converted to
+            Lakehouse if possible, otherwise they are kept as is.
+
 --createInvisiblePKs=<bool>
             Automatically create an invisible Primary Key for each table which
             does not have one. By default, set to true if dump was created with
@@ -2294,6 +2314,15 @@ OPTIONS
             continues, "ignore": ignores the error and continues loading the
             account.
 
+--heatwaveLoad=<str>
+            "vector_store", "none" (default vector_store) - Specifies which
+            tables are going to be loaded into the HeatWave engine,
+            "vector_store": the InnoDB based vector store tables which were
+            converted to Lakehouse tables are loaded (see
+            convertInnoDbVectorStore option). This option is ignored if the
+            target instance is not a MySQL HeatWave instance, or when the
+            heatwaveLoad option is set to "none".
+
 --ignoreExistingObjects=<bool>
             Load the dump even if it contains user accounts or DDL objects that
             already exist in the target database. If this option is set to
@@ -2345,6 +2374,14 @@ OPTIONS
             format of 'user_name'[@'host']. If the host is not specified, all
             the accounts with the given user name are included. By default, all
             users are included. Default: not set.
+
+--lakehouseSource=<key>[:<type>]=<value>
+            Specifies where the data of InnoDB based vector store tables is
+            located. The following string sub-options are supported: par,
+            bucket, namespace, region, prefix. Either par sub-option or bucket,
+            namespace, region sub-options are required. If the lakehouseSource
+            option is not set, the location of InnoDB based vector store table
+            data is read from dump's metadata. Default: not set.
 
 --loadData=<bool>
             Loads table data from the dump. Default: true.

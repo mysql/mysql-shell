@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,13 +68,12 @@ void Export_table::summary() const {
   // information about the columns
   const auto columns = shcore::make_array();
   const auto decode = shcore::make_dict();
-  const auto mode = m_options.use_base64() ? "FROM_BASE64" : "UNHEX";
 
   for (const auto &c : m_cache->columns) {
     columns->emplace_back(c->name);
 
-    if (c->csv_unsafe) {
-      decode->emplace(c->name, mode);
+    if (auto decoded = decode_column(m_cache, c); !decoded.empty()) {
+      decode->emplace(c->name, std::move(decoded));
     }
   }
 

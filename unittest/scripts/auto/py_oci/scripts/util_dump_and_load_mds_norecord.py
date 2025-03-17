@@ -5,9 +5,6 @@
 #@<> INCLUDE oci_utils.inc
 
 #@<> Setup
-
-oci_config_file=os.path.join(OCI_CONFIG_HOME, "config")
-
 datadir = __tmp_dir + "/mdstest-datadir-%s-%s" % (__version, __mysql_sandbox_port1)
 testutil.mkdir(datadir)
 

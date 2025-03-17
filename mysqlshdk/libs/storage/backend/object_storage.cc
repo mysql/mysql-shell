@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/rest/error_codes.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlshdk {
@@ -145,7 +146,7 @@ File_list Directory::list_multipart_uploads() const {
 
 std::string Directory::join_path(const std::string &a,
                                  const std::string &b) const {
-  return a.empty() ? b : a + "/" + b;
+  return mysqlshdk::storage::utils::join_uri_path(a, b);
 }
 
 std::unique_ptr<IFile> Directory::file(const std::string &name,

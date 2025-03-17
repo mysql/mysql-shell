@@ -154,7 +154,27 @@
 #define SHERR_LOAD_LIBRARY_DDL_UNSUPPORTED_SERVER_VERSION_MSG \
   "The dump contains library DDL which requires server 9.2.0 or newer."
 
-#define SHERR_LOAD_LAST 53032
+#define SHERR_LOAD_INNODB_VECTOR_STORE_UNKNOWN_LOCATION 53033
+#define SHERR_LOAD_INNODB_VECTOR_STORE_UNKNOWN_LOCATION_MSG              \
+  "Cannot load the InnoDB based vector store tables as regular tables, " \
+  "location of their data is not known."
+
+#define SHERR_LOAD_INNODB_VECTOR_STORE_NOT_MHS 53034
+#define SHERR_LOAD_INNODB_VECTOR_STORE_NOT_MHS_MSG                     \
+  "Cannot convert the InnoDB based vector store tables to Lakehouse, " \
+  "target instance is not a HeatWave instance."
+
+#define SHERR_LOAD_INNODB_VECTOR_STORE_UNSUPPORTED_MHS 53035
+#define SHERR_LOAD_INNODB_VECTOR_STORE_UNSUPPORTED_MHS_MSG             \
+  "Cannot convert the InnoDB based vector store tables to Lakehouse, " \
+  "target HeatWave instance needs to be 9.4.1 or newer."
+
+#define SHERR_LOAD_INNODB_VECTOR_STORE_NON_OCI_LOCATION 53036
+#define SHERR_LOAD_INNODB_VECTOR_STORE_NON_OCI_LOCATION_MSG            \
+  "Cannot convert the InnoDB based vector store tables to Lakehouse, " \
+  "their data is not stored in OCI's Object Storage."
+
+#define SHERR_LOAD_LAST 53036
 
 #define SHERR_LOAD_MAX 53999
 

@@ -28,6 +28,7 @@
 #include <mysqld_error.h>
 
 #include <algorithm>
+#include <cctype>
 #include <iterator>
 #include <stdexcept>
 #include <string_view>
@@ -52,6 +53,35 @@ namespace mysqlsh {
 namespace dump {
 
 namespace {
+
+bool has_vector_store_comment(std::string_view comment) {
+  static constexpr std::string_view k_genai_options = "GENAI_OPTIONS=";
+  static constexpr std::string_view k_embed_model_id = "EMBED_MODEL_ID=";
+
+  // search for options
+  auto start = comment.find(k_genai_options);
+
+  if (std::string_view::npos == start) {
+    // not found
+    return false;
+  }
+
+  // move to the beginning of options
+  start += k_genai_options.length();
+  // get the options string
+  const auto options = comment.substr(start, comment.find(" ", start));
+  // find the model
+  const auto model = options.find(k_embed_model_id);
+
+  if (std::string_view::npos == model) {
+    // not found
+    return false;
+  }
+
+  // ensure that this is an exact match
+  return 0 == model ||
+         !std::isalpha(static_cast<unsigned char>(options[model - 1]));
+}
 
 class Profiler final {
  public:
@@ -590,6 +620,7 @@ void Instance_cache_builder::fetch_columns() {
       "IS_NULLABLE",       // NOT NULL
       "COLUMN_TYPE",       // NOT NULL
       "EXTRA",             // can be NULL in 8.0
+      "COLUMN_COMMENT",    // NOT NULL
   };
   info.table_name = "columns";
 
@@ -623,6 +654,9 @@ void Instance_cache_builder::fetch_columns() {
     column.auto_increment = extra.find("auto_increment") != std::string::npos;
     column.nullable = shcore::str_caseeq(row->get_string(5),
                                          "YES");  // IS_NULLABLE
+    column.is_innodb_vector_store_column =
+        mysqlshdk::db::Type::Vector == column.type &&
+        has_vector_store_comment(row->get_string(8));  // COLUMN_COMMENT
 
     return column;
   };
@@ -649,11 +683,20 @@ void Instance_cache_builder::fetch_columns() {
 
     for (auto &table : schema.second) {
       auto &t = s.tables.at(table.first);
+      const auto vector_store_table =
+          "InnoDB" == t.engine && "RAPID" == t.secondary_engine;
 
       t.all_columns.reserve(table.second.size());
 
       for (auto &column : table.second) {
-        t.all_columns.emplace_back(std::move(column.second));
+        auto &c = column.second;
+
+        if (vector_store_table && c.is_innodb_vector_store_column) {
+          t.is_innodb_vector_store_table = true;
+          ++m_cache.innodb_vector_store_tables;
+        }
+
+        t.all_columns.emplace_back(std::move(c));
 
         if (!t.all_columns.back().generated) {
           t.columns.emplace_back(&t.all_columns.back());
@@ -661,6 +704,8 @@ void Instance_cache_builder::fetch_columns() {
       }
     }
   }
+
+  m_cache.has_innodb_vector_store_tables = m_cache.innodb_vector_store_tables;
 
   for (auto &schema : view_columns) {
     auto &s = m_cache.schemas.at(schema.first);

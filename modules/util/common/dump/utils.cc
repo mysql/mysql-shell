@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <string>
 #include <utility>
 
+#include "mysqlshdk/libs/oci/oci_par.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -154,7 +155,7 @@ shcore::json::JSON fetch_json(std::unique_ptr<mysqlshdk::storage::IFile> file) {
 
 void write_json(std::unique_ptr<mysqlshdk::storage::IFile> file,
                 const shcore::JSON_dumper &dumper) {
-  const auto &json = dumper.str();
+  const auto &json = mysqlshdk::oci::mask_any_par(dumper.str());
   file->open(mysqlshdk::storage::Mode::WRITE);
   file->write(json.c_str(), json.length());
   file->close();

@@ -105,6 +105,7 @@
 
 extern int g_test_trace_scripts;
 extern int g_test_color_output;
+extern int g_test_script_timeout;
 extern bool g_bp;
 
 namespace tests {
@@ -380,6 +381,10 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("stopTracingSyslog", &Testutils::stop_tracing_syslog);
 
   expose("yaml", &Testutils::yaml, "value");
+
+  expose("testScriptTimeout", &Testutils::test_script_timeout);
+  expose("setTestScriptTimeout", &Testutils::set_test_script_timeout,
+         "timeout");
 }
 
 Testutils::~Testutils() { stop_tracing_syslog(); }
@@ -4898,6 +4903,38 @@ bool Testutils::clean_azure_container(const shcore::Dictionary_t &opts) {
   } else {
     return false;
   }
+}
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Provides the current test timeout.
+ *
+ * @returns Timeout in seconds.
+ */
+#if DOXYGEN_JS
+int Testutils::test_script_timeout();
+#elif DOXYGEN_PY
+int Testutils::test_script_timeout();
+#endif
+///@}
+int Testutils::test_script_timeout() const { return g_test_script_timeout; }
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Sets the test timeout.
+ *
+ * @param timeout Timeout in seconds.
+ */
+#if DOXYGEN_JS
+Undefined Testutils::set_test_script_timeout(int timeout);
+#elif DOXYGEN_PY
+None Testutils::set_test_script_timeout(int timeout);
+#endif
+///@}
+void Testutils::set_test_script_timeout(int timeout) const {
+  g_test_script_timeout = timeout;
 }
 
 }  // namespace tests

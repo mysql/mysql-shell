@@ -180,20 +180,21 @@ def has_ssh_environment():
 
 
 def has_oci_environment(context):
-    if context not in ['OS', 'MDS']:
+    if context not in ['OS', 'MDS', 'MDS+LH']:
         return False
     variables = ['OCI_CONFIG_HOME',
                  'OCI_COMPARTMENT_ID',
                  'OS_NAMESPACE',
                  'OS_BUCKET_NAME']
-    if context == 'MDS':
+    if context == 'MDS' or context == 'MDS+LH':
         variables = variables + ['MDS_URI']
+    if context == 'MDS+LH':
+        variables = variables + ['MDS_LH_URI', 'MDS_LH_BUCKET']
     missing = []
     for variable in variables:
         if variable not in globals():
             missing.append(variable)
     if (len(missing)):
-        sys.stderr.write("Missing Variables: {}".format(", ".join(missing)))
         return False
     return True
 
@@ -206,7 +207,6 @@ def has_aws_environment():
         if variable not in g:
             missing.append(variable)
     if len(missing):
-        sys.stderr.write("Missing AWS Variables: {}".format(", ".join(missing)))
         return False
     return True
 

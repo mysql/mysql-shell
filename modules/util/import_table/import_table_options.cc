@@ -200,8 +200,9 @@ void Import_table_option_pack::set_decode_columns(
   for (const auto &it : *decode_columns) {
     if (it.second.get_type() != shcore::Null) {
       auto transformation = it.second.descr();
-      if (shcore::str_caseeq(transformation, std::string{"UNHEX"}) ||
-          shcore::str_caseeq(transformation, std::string{"FROM_BASE64"})) {
+      if (shcore::str_caseeq(transformation, "UNHEX") ||
+          shcore::str_caseeq(transformation, "FROM_BASE64") ||
+          shcore::str_caseeq(transformation, "STRING_TO_VECTOR")) {
         m_decode_columns[it.first] = shcore::str_upper(transformation);
       } else {
         // Try to initially validate user input, i.e. check if

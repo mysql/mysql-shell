@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 
 #include <algorithm>
+#include <stdexcept>
 #include <string>
 #include <tuple>
 
@@ -149,6 +150,101 @@ std::string search_path_list(const std::string &name,
 
 bool SHCORE_PUBLIC is_path_separator(char c) {
   return strchr(k_valid_path_separators, c) != nullptr;
+}
+
+std::string SHCORE_PUBLIC get_relative_path(const std::string &from,
+                                            const std::string &to) {
+  if (is_absolute(from) != is_absolute(to)) {
+    throw std::runtime_error{
+        "Both paths have to be either absolute or relative: '" + from +
+        "' and '" + to + "'"};
+  }
+
+#ifdef _WIN32
+  // split the drive
+  auto from_d = splitdrive(from);
+  auto to_d = splitdrive(to);
+
+  if (from_d.first != to_d.first) {
+    throw std::runtime_error{
+        "Cannot compute relative path between different drive letters: '" +
+        from + "' and '" + to + "'"};
+  }
+
+  // normalize path
+  from_d.second = shcore::str_replace(from_d.second, pathlist_separator_s, "/");
+  to_d.second = shcore::str_replace(to_d.second, pathlist_separator_s, "/");
+
+  // get the pointers
+  auto f = from_d.second.c_str();
+  auto t = to_d.second.c_str();
+#else
+  auto f = from.c_str();
+  auto t = to.c_str();
+#endif  // _WIN32
+
+  const auto is_separator = [](const char *p) {
+    return '\0' == *p || '/' == *p;
+  };
+
+  const auto skip_separator = [](const char **p) {
+    while ('/' == **p) ++(*p);
+  };
+
+  const char *begin;
+  bool prepend_dots = true;
+
+  do {
+    // skip the separators in both paths
+    skip_separator(&f);
+    skip_separator(&t);
+
+    // we're at the beginning of next path segment
+    begin = t;
+
+    if (!*f) {
+      // this is the end of the `from` path, relative path is what we have in
+      // `begin`
+      prepend_dots = false;
+      break;
+    }
+
+    // check if both path match
+    while (!is_separator(f) && *f == *t) {
+      ++f;
+      ++t;
+    }
+    // continue as long as segments in both paths match
+  } while (is_separator(f) && is_separator(t));
+
+  std::string result;
+
+  if (prepend_dots) {
+    // for each path segment in `from` prepend '..', note that `f` might have
+    // ended while we were comparing segments, hence we always prepend at least
+    // once
+    do {
+      result += "../";
+
+      while (!is_separator(f)) {
+        ++f;
+      }
+
+      skip_separator(&f);
+    } while (*f);
+  }
+
+  // append the rest of the `to` path
+  if (!*begin) {
+    // nothing to append, remove last '/', if it's there
+    if (!result.empty()) {
+      result.pop_back();
+    }
+  } else {
+    result += begin;
+  }
+
+  return result;
 }
 
 }  // namespace path

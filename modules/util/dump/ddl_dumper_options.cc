@@ -88,6 +88,8 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("where", &Ddl_dumper_options::set_where_clause)
           .optional("partitions", &Ddl_dumper_options::set_partitions)
           .optional("checksum", &Ddl_dumper_options::m_checksum)
+          .optional("lakehouseTarget",
+                    &Ddl_dumper_options::set_lakehouse_target)
           .on_done(&Ddl_dumper_options::on_unpacked_options);
 
   return opts;
@@ -154,6 +156,13 @@ void Ddl_dumper_options::on_unpacked_options() {
         to_string(Compatibility_option::IGNORE_MISSING_PKS).c_str()));
   }
 
+  // WL16802-FR1.2.3: 'lakehouseTarget' is set, but 'ocimds' is false
+  if (has_lakehouse_target() && !mds_compatibility()) {
+    throw std::invalid_argument(
+        "The 'ocimds' option must be enabled when using the 'lakehouseTarget' "
+        "option.");
+  }
+
   m_filter_conflicts |= filters().triggers().error_on_conflicts();
 }
 
@@ -198,6 +207,16 @@ void Ddl_dumper_options::on_set_url(
   } else if (Storage_options::Storage_type::Oci_par == storage ||
              Storage_options::Storage_type::Http == storage) {
     current_console()->print_warning("The given URL is not a prefix PAR.");
+  }
+}
+
+void Ddl_dumper_options::on_configure() {
+  Dump_options::on_configure();
+
+  // WL16802-FR1.1: special handling of InnoDB vector store tables is enabled
+  // only when dumping with 'ocimds': true
+  if (!mds_compatibility()) {
+    disable_innodb_vector_store_tables_handling();
   }
 }
 

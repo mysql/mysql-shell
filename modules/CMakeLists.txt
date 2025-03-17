@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -49,8 +49,10 @@ file(GLOB api_module_SOURCES
       "util/common/dump/dump_info.cc"
       "util/common/dump/dump_version.cc"
       "util/common/dump/filtering_options.cc"
+      "util/common/dump/resource_principals_info.cc"
       "util/common/dump/server_info.cc"
       "util/common/dump/utils.cc"
+      "util/common/dump/vector_store_info.cc"
       "util/copy/copy_instance_options.cc"
       "util/copy/copy_operation.cc"
       "util/copy/copy_schemas_options.cc"
@@ -63,7 +65,6 @@ file(GLOB api_module_SOURCES
       "util/dump/ddl_dumper.cc"
       "util/dump/ddl_dumper_options.cc"
       "util/dump/decimal.cc"
-      "util/dump/dialect_dump_writer.cc"
       "util/dump/dump_instance_options.cc"
       "util/dump/dump_options.cc"
       "util/dump/dump_schemas_options.cc"
@@ -74,12 +75,16 @@ file(GLOB api_module_SOURCES
       "util/dump/export_table_options.cc"
       "util/dump/indexes.cc"
       "util/dump/instance_cache.cc"
+      "util/dump/lakehouse_target_option.cc"
       "util/dump/progress_thread.cc"
       "util/dump/schema_dumper.cc"
       "util/dump/text_dump_writer.cc"
-      "util/load/load_dump_options.cc"
+      "util/load/convert_vector_store.cc"
       "util/load/dump_loader.cc"
       "util/load/dump_reader.cc"
+      "util/load/heatwave_load.cc"
+      "util/load/lakehouse_source_option.cc"
+      "util/load/load_dump_options.cc"
       "util/import_table/chunk_file.cc"
       "util/import_table/load_data.cc"
       "util/import_table/dialect.cc"

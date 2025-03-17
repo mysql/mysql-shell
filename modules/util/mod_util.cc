@@ -1212,6 +1212,12 @@ the character set to be used for loading dump data. By default, the same
 character set used for dumping will be used (utf8mb4 if not set on dump).
 @li <b>checksum</b>: bool (default: false) - Verify tables against checksums
 that were computed during dump.
+@li <b>convertInnoDbVectorStore</b>: "keep", "convert", "skip", "auto" (default:
+auto) - Specifies how to handle the InnoDB based vector store tables when
+loading a dump, "keep": tables are kept as is, "convert": tables are converted
+to Lakehouse, error is reported if this is not possible, "skip": tables are
+excluded from the load, "auto": tables are converted to Lakehouse if possible,
+otherwise they are kept as is.
 @li <b>createInvisiblePKs</b>: bool (default taken from dump) - Automatically
 create an invisible Primary Key for each table which does not have one. By
 default, set to true if dump was created with <b>create_invisible_pks</b>
@@ -1257,6 +1263,12 @@ given user name are excluded.
 statements, "abort": throws an error and aborts the load, "drop_account":
 deletes the problematic account and continues, "ignore": ignores the error and
 continues loading the account.
+@li <b>heatwaveLoad</b>: "vector_store", "none" (default vector_store) -
+Specifies which tables are going to be loaded into the HeatWave engine,
+"vector_store": the InnoDB based vector store tables which were converted to
+Lakehouse tables are loaded (see <b>convertInnoDbVectorStore</b> option). This
+option is ignored if the target instance is not a MySQL HeatWave instance, or
+when the <b>heatwaveLoad</b> option is set to "none".
 @li <b>ignoreExistingObjects</b>: bool (default false) - Load the dump even if
 it contains user accounts or DDL objects that already exist in the target
 database. If this option is set to false, any existing object results in an
@@ -1293,6 +1305,13 @@ default, all triggers are included.
 specified users from the dump. Each user is in the format of
 'user_name'[@'host']. If the host is not specified, all the accounts with the
 given user name are included. By default, all users are included.
+@li <b>lakehouseSource</b>: dictionary (default not set) - Specifies where the
+data of InnoDB based vector store tables is located. The following string
+sub-options are supported: <b>par</b>, <b>bucket</b>, <b>namespace</b>,
+<b>region</b>, <b>prefix</b>. Either <b>par</b> sub-option or <b>bucket</b>,
+<b>namespace</b>, <b>region</b> sub-options are required. If the
+<b>lakehouseSource</b> option is not set, the location of InnoDB based vector
+store table data is read from dump's metadata.
 @li <b>loadData</b>: bool (default: true) - Loads table data from the dump.
 @li <b>loadDdl</b>: bool (default: true) - Executes DDL/SQL scripts in the
 dump.
@@ -1560,6 +1579,39 @@ automatically using the <b>create_invisible_pks</b> compatibility value.
 
 Please refer to the MySQL HeatWave Service documentation for more information
 about restrictions and compatibility.
+
+If dump created with the <b>ocimds</b> option set to true contains data of
+InnoDB tables with vector store embeddings, it's possible to convert such tables
+to Lakehouse when loading the dump (see <b>convertInnoDbVectorStore</b> option
+of util.<<<loadDump>>>()). By default, the data of these tables is stored in a
+subdirectory of the main dump directory, however this location may be modified
+using the <b>lakehouseTarget</b> option.
+
+The <b>lakehouseTarget</b> option supports the following sub-options:
+@li <b>outputUrl</b> - string (required)
+@li <b>osBucketName</b> - string (default: not set) - Name of the OCI Object
+Storage bucket to use.
+@li <b>osNamespace</b> - string (default: not set) - Specifies the namespace
+where the bucket is located.
+@li <b>ociConfigFile</b> - string (default: not set) - Use the specified OCI
+configuration file instead of the one at the default location.
+@li <b>ociProfile</b> - string (default: not set) - Use the specified OCI
+profile instead of the default one.
+@li <b>ociAuth</b> - string (default: not set) - Use the specified
+authentication method when connecting to the OCI.
+
+Allowed values of <b>outputUrl</b> sub-option:
+@li <b>[%file://]/local/path</b> - local file storage
+@li <b>oci/bucket/path</b> - OCI Object Storage, when the <b>osBucketName</b>
+sub-option is given
+@li OCI Pre-Authenticated Request to a bucket or a prefix
+
+If the <b>outputUrl</b> sub-option is set to a non-URI value (the
+<b>scheme://</b> part is not present) and the <b>osBucketName</b> sub-option is
+not given, the value of <b>outputUrl</b> sub-option specifies a location in the
+same storage as the rest of the dump, i.e. if the <b>outputUrl</b> parameter is
+set to a PAR, the <b>outputUrl</b> sub-option specifies a different prefix in
+that PAR.
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_PARAMETERS, R"*(
@@ -1669,7 +1721,9 @@ Specifies version of the destination MySQL server.
 @li <b>skipUpgradeChecks</b>: bool (default: false) - Do not execute the
 upgrade check utility. Compatibility issues related to MySQL version upgrades
 will not be checked. Use this option only when executing the Upgrade Checker
-separately.)*");
+separately.
+@li <b>lakehouseTarget</b>: dictionary (default: not set) - Specifies where the
+data of InnoDB based vector store tables will be written.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_SCHEMAS_COMMON_OPTIONS, R"*(
 @li <b>excludeTables</b>: list of strings (default: empty) - List of tables or

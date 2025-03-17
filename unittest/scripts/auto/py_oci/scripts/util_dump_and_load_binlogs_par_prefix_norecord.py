@@ -7,8 +7,6 @@
 
 #@<> entry point
 # constants
-oci_config_file = os.path.join(OCI_CONFIG_HOME, "config")
-
 local_since_dir = f"file://{default_since_dir}"
 
 # helpers

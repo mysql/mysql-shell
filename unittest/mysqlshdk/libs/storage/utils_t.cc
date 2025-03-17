@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -100,6 +100,66 @@ TEST(storage_utils, scheme_matches) {
   EXPECT_FALSE(scheme_matches("HTTPS", "file"));
   EXPECT_FALSE(scheme_matches("https", "FILE"));
   EXPECT_FALSE(scheme_matches("HTTPS", "FILE"));
+}
+
+TEST(storage_utils, join_uri_path) {
+  EXPECT_EQ("", join_uri_path("", ""));
+
+  EXPECT_EQ("a/", join_uri_path("a", ""));
+  EXPECT_EQ("b", join_uri_path("", "b"));
+
+  // normalization - . & ..
+  EXPECT_EQ("/a/g", join_uri_path("", "/a/b/c/./../../g"));
+  EXPECT_EQ("mid/6", join_uri_path("", "mid/content=5/../6"));
+  EXPECT_EQ("b", join_uri_path("", "a/../b"));
+  EXPECT_EQ("", join_uri_path("", "b/.."));
+
+  EXPECT_THROW_LIKE(join_uri_path("", ".."), std::runtime_error,
+                    "Invalid URI path: ..");
+  EXPECT_THROW_LIKE(join_uri_path("", "../a"), std::runtime_error,
+                    "Invalid URI path: ../a");
+
+  // normalization - duplicate /
+  EXPECT_EQ("a/", join_uri_path("a", "/"));
+  EXPECT_EQ("a/", join_uri_path("a/", "/"));
+  EXPECT_EQ("a/", join_uri_path("a", "//"));
+
+  EXPECT_EQ("a/b", join_uri_path("a", "b"));
+  EXPECT_EQ("a/b", join_uri_path("a/", "b"));
+  EXPECT_EQ("a/b", join_uri_path("a", "/b"));
+  EXPECT_EQ("a/b", join_uri_path("a/", "/b"));
+  EXPECT_EQ("a/b/", join_uri_path("a/", "b/"));
+  EXPECT_EQ("a/b/", join_uri_path("a/", "/b/"));
+
+  // pct-encoding
+  EXPECT_EQ("a/b%20c", join_uri_path("a", "b c", true));
+
+  // URI
+  EXPECT_EQ("https://example.com/", join_uri_path("https://example.com", ""));
+  EXPECT_EQ("https://example.com/", join_uri_path("https://example.com", "/"));
+  EXPECT_EQ("https://example.com/a", join_uri_path("https://example.com", "a"));
+
+  EXPECT_EQ("https://example.com/a/b",
+            join_uri_path("https://example.com/a", "b"));
+  EXPECT_EQ("https://example.com/a/b",
+            join_uri_path("https://example.com/a", "./b"));
+  EXPECT_EQ("https://example.com/a/b/c",
+            join_uri_path("https://example.com/a", "b/./c"));
+
+  EXPECT_EQ("https://example.com/b",
+            join_uri_path("https://example.com/a", "../b"));
+
+  EXPECT_THROW_LIKE(join_uri_path("https://example.com/a", "../../b"),
+                    std::runtime_error, "Invalid URI path: /a/../../b");
+
+  EXPECT_EQ("https://example.com/a/b",
+            join_uri_path("https://example.com/a/", "/b"));
+
+  EXPECT_EQ("https://example.com/a/b%20c",
+            join_uri_path("https://example.com/a", "b c", true));
+
+  EXPECT_EQ("https://example.com/a/c",
+            join_uri_path("https://example.com/a", "b/../c", true));
 }
 
 }  // namespace tests

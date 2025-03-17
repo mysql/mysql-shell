@@ -23,6 +23,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/shellcore/shell_cli_operation.h"
+
+#include <memory>
+#include <utility>
+
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster.h"
 #include "modules/mod_shell.h"
@@ -34,7 +39,6 @@
 #include "modules/util/mod_util.h"
 #include "mysqlshdk/include/scripting/types/cpp.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
-#include "mysqlshdk/shellcore/shell_cli_operation.h"
 #include "unittest/mysqlshdk/scripting/test_option_packs.h"
 #include "unittest/test_utils.h"
 
@@ -962,8 +966,9 @@ TEST_F(Shell_cli_operation_test, bug34887426_special_chars) {
  */
 class Test_cli_integration_api_options : public Shell_cli_operation_test {
  public:
-  std::pair<std::string, shcore::Value> get_value(shcore::Value_type type) {
-    switch (type) {
+  std::pair<std::string, shcore::Value> get_value(
+      const std::shared_ptr<shcore::Parameter> &option) {
+    switch (option->type()) {
       case shcore::String:
         return {"myString", shcore::Value("myString")};
       case shcore::Integer:
@@ -978,17 +983,27 @@ class Test_cli_integration_api_options : public Shell_cli_operation_test {
         return {"one,two,three",
                 shcore::Value(shcore::make_array("one", "two", "three"))};
       case shcore::Map:
-        return {"key=1", shcore::Value(shcore::make_dict("key", 1))};
+        if (const auto &allowed =
+                option->validator<shcore::Option_validator>()->allowed();
+            !allowed.empty()) {
+          const auto &suboption = allowed.front();
+          auto value = get_value(suboption);
+          const auto &key = allowed.front()->name;
+          return {key + "=" + value.first, shcore::Value(shcore::make_dict(
+                                               key, std::move(value.second)))};
+        } else {
+          return {"key=1", shcore::Value(shcore::make_dict("key", 1))};
+        }
       default:
         return {"", shcore::Value()};
     }
-  };
+  }
 
   template <typename T, typename... A>
   void test(const char *file, int line, A... mandatory_params) {
     for (const auto &option : T::options().options()) {
       if (option->cmd_line_enabled) {
-        auto given_expected = get_value(option->type());
+        auto given_expected = get_value(option);
 
         std::string option_def =
             "--" + option->name + "=" + std::get<0>(given_expected);

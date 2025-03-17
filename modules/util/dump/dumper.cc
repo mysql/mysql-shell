@@ -53,6 +53,9 @@
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 
+#include "mysqlshdk/libs/oci/oci_bucket_config.h"
+#include "mysqlshdk/libs/oci/oci_par.h"
+#include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
@@ -62,6 +65,7 @@
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
+#include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -367,6 +371,35 @@ bool check_if_transactions_are_ddl_safe(
   }
 
   return is_safe;
+}
+
+void append_capability_metadata(
+    const std::unordered_set<Capability> &capabilities,
+    shcore::JSON_dumper *json) {
+  json->append("capabilities");
+  json->start_array();
+
+  for (const auto &c : capabilities) {
+    json->start_object();
+
+    json->append("id", capability::id(c));
+    json->append("description", capability::description(c));
+    json->append("versionRequired", capability::version_required(c).get_base());
+
+    json->end_object();
+  }
+
+  json->end_array();
+}
+
+inline bool is_encoding_needed(Dump_writer::Encoding_type encoding) {
+  return Dump_writer::Encoding_type::NONE != encoding;
+}
+
+void ensure_prefix_par(std::string *s) {
+  if (mysqlshdk::oci::PAR_type::GENERAL == mysqlshdk::oci::parse_par(*s)) {
+    *s += '/';
+  }
 }
 
 }  // namespace
@@ -686,6 +719,46 @@ class Dumper::Multi_file_writer_controller : public Dump_writer_controller {
   std::unordered_map<std::string, Dump_write_result> m_file_stats;
 };
 
+void Dumper::Output_config::init(
+    const import_table::Dialect &d, mysqlshdk::storage::Compression c,
+    const mysqlshdk::storage::Compression_options &co) {
+  dialect = d;
+  compression = c;
+  compression_options = co;
+
+  if (import_table::Dialect::default_() == d) {
+    writer_creator = []() { return std::make_unique<Default_dump_writer>(); };
+    data_file_extension = "tsv";
+  } else if (import_table::Dialect::json() == d) {
+    writer_creator = []() { return std::make_unique<Json_dump_writer>(); };
+    data_file_extension = "json";
+  } else if (import_table::Dialect::csv() == d) {
+    writer_creator = []() { return std::make_unique<Csv_dump_writer>(); };
+    data_file_extension = "csv";
+  } else if (import_table::Dialect::tsv() == d) {
+    writer_creator = []() { return std::make_unique<Tsv_dump_writer>(); };
+    data_file_extension = "tsv";
+  } else if (import_table::Dialect::csv_unix() == d) {
+    writer_creator = []() { return std::make_unique<Csv_unix_dump_writer>(); };
+    data_file_extension = "csv";
+  } else {
+    writer_creator = [this]() {
+      return std::make_unique<Text_dump_writer>(dialect);
+    };
+    data_file_extension = "txt";
+  }
+
+  data_file_extension += mysqlshdk::storage::get_extension(c);
+}
+
+void Dumper::Output_config::create_directory() {
+  if (!dir->exists()) {
+    dir->create();
+  }
+}
+
+void Dumper::Output_config::fini() { dir.reset(); }
+
 class Dumper::Table_worker final {
  public:
   enum class Exception_strategy { ABORT, CONTINUE };
@@ -838,48 +911,83 @@ class Dumper::Table_worker final {
     return Dumper::query(session(), sql);
   }
 
+  Dump_writer::Encoding_type encode_column(
+      const mysqlsh::dump::Instance_cache::Table *table,
+      const mysqlsh::dump::Instance_cache::Column *column,
+      std::string *query) const {
+    const auto encoding = m_dumper->encoding_type(table, column);
+    const auto encoding_needed = is_encoding_needed(encoding);
+
+    if (encoding_needed) {
+      std::string_view function;
+
+      switch (encoding) {
+        case Dump_writer::Encoding_type::BASE64:
+          function = "TO_BASE64";
+          break;
+
+        case Dump_writer::Encoding_type::HEX:
+          function = "HEX";
+          break;
+
+        case Dump_writer::Encoding_type::VECTOR:
+          function = "VECTOR_TO_STRING";
+          break;
+
+        case Dump_writer::Encoding_type::NONE:
+          assert(false);
+          break;
+      }
+
+      *query += function;
+      *query += '(';
+    }
+
+    *query += column->quoted_name;
+
+    if (encoding_needed) {
+      *query += ')';
+    }
+
+    return encoding;
+  }
+
   std::string prepare_query(
       const Table_data_task &table,
       std::vector<Dump_writer::Encoding_type> *out_pre_encoded_columns) const {
-    const auto base64 = m_dumper->m_options.use_base64();
+    out_pre_encoded_columns->reserve(table.info->columns.size());
+
     std::string query = "SELECT " + m_dumper->optimizer_hints(table.info);
 
     for (const auto &column : table.info->columns) {
-      if (column->csv_unsafe) {
-        query += (base64 ? "TO_BASE64(" : "HEX(") + column->quoted_name + ")";
-
-        out_pre_encoded_columns->push_back(
-            base64 ? Dump_writer::Encoding_type::BASE64
-                   : Dump_writer::Encoding_type::HEX);
-      } else {
-        query += column->quoted_name;
-
-        out_pre_encoded_columns->push_back(Dump_writer::Encoding_type::NONE);
-      }
-
-      query += ",";
+      out_pre_encoded_columns->emplace_back(
+          encode_column(table.info, column, &query));
+      query += ',';
     }
 
     // remove last comma
     query.pop_back();
 
-    query += " FROM " + table.quoted_name;
+    query += " FROM ";
+    query += table.quoted_name;
 
     if (!table.partitions.empty()) {
-      query += " PARTITION (" +
-               shcore::str_join(
-                   table.partitions.begin(), table.partitions.end(), ",",
-                   [](const auto &p) { return p.info->quoted_name; }) +
-               ")";
+      query += " PARTITION (";
+      query += shcore::str_join(
+          table.partitions.begin(), table.partitions.end(), ",",
+          [](const auto &p) { return p.info->quoted_name; });
+      query += ')';
     }
 
     query += where(table);
 
     if (table.index.info) {
-      query += " ORDER BY " + table.index.info->columns_sql();
+      query += " ORDER BY ";
+      query += table.index.info->columns_sql();
     }
 
-    query += " " + m_dumper->get_query_comment(table, "dumping");
+    query += ' ';
+    query += m_dumper->get_query_comment(table, "dumping");
 
     return query;
   }
@@ -958,12 +1066,14 @@ class Dumper::Table_worker final {
     data_task.schema = table.schema;
     data_task.info = table.info;
     data_task.index = table.index;
+    data_task.output_config = table.output_config;
     data_task.partitions = table.partitions;
     data_task.extra_filter = table.extra_filter;
     data_task.chunk = chunk;
 
     if (!filename.empty()) {
-      data_task.controller = m_dumper->table_dump_controller(filename);
+      data_task.controller =
+          m_dumper->table_dump_controller(table.output_config, filename);
     }
 
     return data_task;
@@ -971,7 +1081,8 @@ class Dumper::Table_worker final {
 
   void create_and_push_whole_table_data_task(const Table_task &table) const {
     Table_data_task data_task = create_table_data_task(
-        table, m_dumper->get_table_data_filename(table.basename));
+        table, common::get_table_data_filename(
+                   table.basename, table.output_config->data_file_extension));
 
     data_task.id = "whole table";
 
@@ -983,8 +1094,8 @@ class Dumper::Table_worker final {
     Table_data_task data_task = create_table_data_task(table, {});
 
     data_task.id = "whole table split in chunks";
-    data_task.controller =
-        m_dumper->table_dump_multi_file_controller(table.basename);
+    data_task.controller = m_dumper->table_dump_multi_file_controller(
+        table.output_config, table.basename);
 
     m_dumper->push_table_data_task(std::move(data_task));
   }
@@ -996,7 +1107,9 @@ class Dumper::Table_worker final {
                                              bool last_chunk) const {
     Table_data_task data_task = create_table_data_task(
         table,
-        m_dumper->get_table_data_filename(table.basename, idx, last_chunk),
+        common::get_table_data_filename(
+            table.basename, table.output_config->data_file_extension, idx,
+            last_chunk),
         idx);
 
     data_task.id = "chunk " + id;
@@ -1673,7 +1786,7 @@ class Dumper::Table_worker final {
   void dump_schema_ddl_impl(const Schema_info &schema) const {
     const auto dumper = m_dumper->schema_dumper(session());
 
-    if (m_dumper->m_capability_set.is_set(Capability::MULTIFILE_SCHEMA_DDL)) {
+    if (m_dumper->uses_multifile_schema_ddl()) {
       m_dumper->write_ddl(*m_dumper->dump_schema(dumper.get(), schema.name),
                           common::get_schema_filename(schema.basename));
 
@@ -1906,20 +2019,20 @@ Dumper::Dumper(const Dump_options &options)
       m_output_file->close();
     }
   } else {
-    m_output_dir = m_options.make_directory(m_options.output_url());
+    m_dump_config.dir = m_options.make_directory(m_options.output_url());
 
-    if (m_output_dir->exists()) {
-      if (!m_output_dir->is_empty()) {
+    if (dump_dir()->exists()) {
+      if (!dump_dir()->is_empty()) {
         const auto files =
-            mysqlshdk::storage::sort(m_output_dir->list(true).files);
+            mysqlshdk::storage::sort(dump_dir()->list(true).files);
 
         std::vector<std::string> file_data;
-        const auto full_path = m_output_dir->full_path();
+        const auto full_path = dump_dir()->full_path();
 
         for (const auto &file : files) {
           file_data.push_back(shcore::str_format(
               "%s [size %zu]",
-              m_output_dir->join_path(full_path.masked(), file.name()).c_str(),
+              dump_dir()->join_path(full_path.masked(), file.name()).c_str(),
               file.size()));
         }
 
@@ -1930,49 +2043,26 @@ Dumper::Dumper(const Dump_options &options)
             shcore::str_join(file_data, "\n  ").c_str());
 
         const auto config = m_options.storage_config(m_options.output_url());
+        const auto masked_url =
+            mysqlshdk::oci::mask_any_par(m_options.output_url());
 
         if (config && config->valid()) {
           throw std::invalid_argument(
               "Cannot proceed with the dump, " + config->description() +
               " already contains files with the specified prefix '" +
-              m_options.output_url() + "'.");
+              masked_url + "'.");
         } else {
           throw std::invalid_argument(
               "Cannot proceed with the dump, the specified directory '" +
-              m_options.output_url() +
-              "' already exists at the target location " + full_path.masked() +
-              " and is not empty.");
+              masked_url + "' already exists at the target location " +
+              full_path.masked() + " and is not empty.");
         }
       }
     }
   }
 
-  if (import_table::Dialect::default_() == m_options.dialect()) {
-    m_writer_creator = []() { return std::make_unique<Default_dump_writer>(); };
-    m_table_data_extension = "tsv";
-  } else if (import_table::Dialect::json() == m_options.dialect()) {
-    m_writer_creator = []() { return std::make_unique<Json_dump_writer>(); };
-    m_table_data_extension = "json";
-  } else if (import_table::Dialect::csv() == m_options.dialect()) {
-    m_writer_creator = []() { return std::make_unique<Csv_dump_writer>(); };
-    m_table_data_extension = "csv";
-  } else if (import_table::Dialect::tsv() == m_options.dialect()) {
-    m_writer_creator = []() { return std::make_unique<Tsv_dump_writer>(); };
-    m_table_data_extension = "tsv";
-  } else if (import_table::Dialect::csv_unix() == m_options.dialect()) {
-    m_writer_creator = []() {
-      return std::make_unique<Csv_unix_dump_writer>();
-    };
-    m_table_data_extension = "csv";
-  } else {
-    m_writer_creator = [&dialect = m_options.dialect()]() {
-      return std::make_unique<Text_dump_writer>(dialect);
-    };
-    m_table_data_extension = "txt";
-  }
-
-  m_table_data_extension +=
-      mysqlshdk::storage::get_extension(m_options.compression());
+  m_dump_config.init(m_options.dialect(), m_options.compression(),
+                     m_options.compression_options());
 
   if (m_options.compatibility_options().is_set(
           Compatibility_option::STRIP_DEFINERS) &&
@@ -1988,6 +2078,8 @@ Dumper::Dumper(const Dump_options &options)
   if (m_options.checksum()) {
     m_checksum = std::make_unique<common::Checksums>();
   }
+
+  m_mmap_options = mysqlshdk::storage::mmap_options();
 }
 
 void Dumper::run() {
@@ -2794,6 +2886,39 @@ void Dumper::create_schema_tasks() {
     m_used_capabilities.emplace(Capability::MULTIFILE_SCHEMA_DDL);
   }
 
+  if (m_options.handle_innodb_vector_store_tables()) {
+    if (m_cache.has_innodb_vector_store_tables) {
+      // WL16802-FR1.1.6: use the vector store-related capability
+      m_used_capabilities.emplace(Capability::INNODB_VECTOR_STORE);
+
+      // WL16802-FR1.1.1: if dump has InnoDB-based vector store tables, but user
+      // did not provide lakehouseTarget option, we dump into two
+      // subdirectories, one holding just the data of vector store tables, and
+      // this one, holding the full dump
+      if (!m_options.has_lakehouse_target()) {
+        m_redirected_dump_dir = "dump";
+      }
+    } else {
+      // WL16802-FR1.2.4: if there are no InnoDB-based vector store tables to be
+      // dumped, but `lakehouseTarget` was given, print a note
+      if (m_options.has_lakehouse_target()) {
+        current_console()->print_note(
+            "No InnoDB-based vector store tables included in the dump, "
+            "'lakehouseTarget' option ignored.");
+      }
+    }
+  } else {
+    // WL16802-FR3: if vector store handling is disabled but MDS compatibility
+    // checks are enabled, then this is a copy operation, print a warning that
+    // auto conversion is not supported
+    if (m_options.mds_compatibility() &&
+        m_cache.has_innodb_vector_store_tables) {
+      current_console()->print_warning(
+          "Copy utilities currently do not support automatic conversion of "
+          "InnoDB-based vector store tables to Lakehouse.");
+    }
+  }
+
   for (const auto capability : m_used_capabilities) {
     m_capability_set.set(capability);
   }
@@ -3041,7 +3166,7 @@ void Dumper::initialize_dump() {
   }
 
   create_output_directory();
-  write_metadata();
+  write_dump_started_metadata();
 }
 
 void Dumper::finalize_dump() {
@@ -3055,11 +3180,27 @@ void Dumper::finalize_dump() {
 }
 
 void Dumper::create_output_directory() {
-  const auto dir = directory();
-
-  if (dir && !dir->exists()) {
-    dir->create();
+  if (!dump_dir()) {
+    return;
   }
+
+  m_dump_config.create_directory();
+
+  if (uses_dump_dir_redirection()) {
+    write_dump_redirected_metadata();
+
+    // change output directory
+    m_redirected_output_url =
+        dump_dir()->join_path(m_options.output_url(), m_redirected_dump_dir);
+    ensure_prefix_par(&m_redirected_output_url);
+
+    m_dump_config.dir = dump_dir()->directory(m_redirected_dump_dir);
+
+    // make sure that the redirected output directory exists
+    m_dump_config.create_directory();
+  }
+
+  setup_vector_store_directory();
 }
 
 void Dumper::close_output_directory() {
@@ -3074,8 +3215,145 @@ void Dumper::close_output_directory() {
     }
   });
 
-  m_output_dir.reset();
+  close_vector_store_directory();
+  m_dump_config.fini();
 }
+
+void Dumper::setup_vector_store_directory() {
+  if (!uses_innodb_vector_store()) {
+    return;
+  }
+
+  using Storage_type = mysqlsh::common::Storage_options::Storage_type;
+
+  bool relative_path = true;
+  std::string output_url;
+  Storage_type storage_type = Storage_type::Unknown;
+  mysqlshdk::storage::Config_ptr storage_config;
+
+  if (m_options.has_lakehouse_target()) {
+    const auto &target = m_options.lakehouse_target();
+
+    if (Storage_type::Local == target.storage_type() &&
+        mysqlshdk::storage::utils::get_scheme(target.output_url()).empty()) {
+      // WL16802-FR1.2.1.3: if storage type is local, then the value of
+      // `lakehouseTarget.outputUrl` doesn't have a scheme or has a 'file://'
+      // scheme and `lakehouseTarget` doesn't have any of the remote options; in
+      // such case we use the same storage as the whole dump
+
+      // identify the storage used by the dump
+      storage_config =
+          m_options.storage_config(m_options.output_url(), &storage_type);
+
+      if (Storage_type::Oci_prefix_par == storage_type) {
+        // this is a prefix PAR, we need to construct PAR with the new prefix
+        const auto par_config =
+            std::dynamic_pointer_cast<const mysqlshdk::oci::IPAR_config>(
+                storage_config);
+
+        assert(par_config);
+
+        output_url = par_config->par().par_url() + target.output_url();
+      } else {
+        // in any other case, we get the URL from `lakehouseTarget` and use
+        // dump's storage config
+        output_url = target.output_url();
+      }
+    } else {
+      // WL16802-FR1.2.5: use storage provided via `lakehouseTarget`
+      output_url = target.output_url();
+      m_vector_store_config.dir = target.output();
+      m_vector_store_output_description = target.describe_output_url();
+      storage_type = target.storage_type();
+      storage_config = target.storage_config();
+      relative_path = false;
+    }
+  } else {
+    // WL16802-FR1.1: user did not provide the storage option, dump to a
+    // subdirectory
+    output_url = dump_dir()->join_path(m_options.output_url(), "vector-store");
+  }
+
+  if (!vector_store_dir()) {
+    ensure_prefix_par(&output_url);
+
+    m_vector_store_config.dir = m_options.make_directory(output_url);
+    m_vector_store_output_description = m_options.describe(output_url);
+    storage_config = m_options.storage_config(output_url, &storage_type);
+  }
+
+  if (relative_path) {
+    // if relative path is available, loader will be able load the InnoDB-based
+    // vector store tables with no conversion
+    m_vector_store_info.relative_path = shcore::path::get_relative_path(
+        dump_dir()->full_path().real(), vector_store_dir()->full_path().real());
+  }
+
+  // if vector data is stored in a PAR or a bucket, loader will be able to
+  // convert InnoDB-based vector store tables to Lakehouse even if
+  // 'lakehouseSource' is not given
+  if (Storage_type::Oci_os == storage_type) {
+    const auto oci_config =
+        std::dynamic_pointer_cast<const mysqlshdk::oci::Oci_bucket_config>(
+            storage_config);
+
+    assert(oci_config);
+
+    m_vector_store_info.resource_principals.bucket = oci_config->bucket_name();
+    m_vector_store_info.resource_principals.namespace_ =
+        oci_config->oci_namespace();
+    m_vector_store_info.resource_principals.region =
+        oci_config->credentials_provider()->region();
+    m_vector_store_info.resource_principals.set_prefix(std::move(output_url));
+  } else if (Storage_type::Oci_prefix_par == storage_type) {
+    const auto par_config =
+        std::dynamic_pointer_cast<const mysqlshdk::oci::IPAR_config>(
+            storage_config);
+
+    assert(par_config);
+
+    const auto &par = par_config->par();
+
+    m_vector_store_info.resource_principals.bucket = par.bucket();
+    m_vector_store_info.resource_principals.namespace_ = par.namespace_();
+    m_vector_store_info.resource_principals.region = par.region();
+    m_vector_store_info.resource_principals.set_prefix(par.object_prefix() +
+                                                       par.object_name());
+  }
+
+  // WL16802-FR1.1.3: csv-unix dialect
+  // WL16802-FR1.1.4: gzip compression, if dump is compressed
+  m_vector_store_config.init(import_table::Dialect::csv_unix(),
+                             compressed()
+                                 ? mysqlshdk::storage::Compression::GZIP
+                                 : mysqlshdk::storage::Compression::NONE,
+                             {});
+
+  // create vector store directory
+  m_vector_store_config.create_directory();
+
+  if (!m_vector_store_config.dir->is_empty()) {
+    // BUG#38219104 - error out if vector store directory is not empty
+    const auto masked_url = mysqlshdk::oci::mask_any_par(output_url);
+
+    if (storage_config && storage_config->valid()) {
+      throw std::invalid_argument(
+          "Invalid value of 'lakehouseTarget' option, " +
+          storage_config->description() +
+          " already contains files with the specified prefix '" + masked_url +
+          "'.");
+    } else {
+      throw std::invalid_argument(
+          "Invalid value of 'lakehouseTarget' option, the specified directory "
+          "'" +
+          masked_url + "' already exists at the target location " +
+          m_vector_store_config.dir->full_path().masked() +
+          " and is not empty.");
+    }
+  }
+}
+
+void Dumper::close_vector_store_directory() { m_vector_store_config.fini(); }
 
 void Dumper::create_worker_sessions() {
   for (std::size_t i = 0; i < m_options.threads(); ++i) {
@@ -3174,7 +3452,7 @@ void Dumper::dump_global_ddl() const {
 
   {
     // file with the DDL setup
-    const auto output = make_file(common::k_preamble_sql_file);
+    const auto output = make_dump_file(common::k_preamble_sql_file);
     output->open(Mode::WRITE);
 
     dumper->write_comment(output.get());
@@ -3184,7 +3462,7 @@ void Dumper::dump_global_ddl() const {
 
   {
     // post DDL file (cleanup)
-    const auto output = make_file(common::k_postamble_sql_file);
+    const auto output = make_dump_file(common::k_postamble_sql_file);
     output->open(Mode::WRITE);
 
     dumper->write_comment(output.get());
@@ -3224,7 +3502,7 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
     return;
   }
 
-  const auto output = make_file(file);
+  const auto output = make_dump_file(file);
   output->open(Mode::WRITE);
 
   const auto &content = in_memory.content();
@@ -3481,6 +3759,12 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
   task.partitions = table.partitions;
   task.extra_filter = m_options.where(schema.name, table.name);
 
+  if (uses_innodb_vector_store() && table.info->is_innodb_vector_store_table) {
+    task.output_config = &m_vector_store_config;
+  } else {
+    task.output_config = &m_dump_config;
+  }
+
   on_create_table_task(task.schema, task.name, task.info);
 
   return task;
@@ -3496,6 +3780,7 @@ Dumper::Table_task Dumper::create_table_task(const Schema_info &schema,
   task.basename = view.basename;
   task.info = view.info;
   task.extra_filter = m_options.where(schema.name, view.name);
+  task.output_config = &m_dump_config;
 
   on_create_table_task(task.schema, task.name, task.info);
 
@@ -3665,35 +3950,40 @@ void Dumper::push_checksum_task(Checksum_task &&task) {
 }
 
 std::unique_ptr<Dumper::Dump_writer_controller> Dumper::table_dump_controller(
-    const std::string &filename) const {
+    const Output_config *config, const std::string &filename) const {
   if (m_options.use_single_file()) {
-    return std::make_unique<Single_file_writer_controller>(m_writer_creator(),
-                                                           m_output_file.get());
+    return std::make_unique<Single_file_writer_controller>(
+        config->writer_creator(), m_output_file.get());
   } else {
     return std::make_unique<Default_writer_controller>(
-        m_writer_creator(),
-        [this](const std::string &name) {
-          return mysqlshdk::storage::make_file(make_file(name, true),
-                                               m_options.compression(),
-                                               m_options.compression_options());
+        config->writer_creator(),
+        [this, config](const std::string &name) {
+          return mysqlshdk::storage::make_file(
+              make_data_file(config, name, true), config->compression,
+              config->compression_options);
         },
         m_options.write_index_files()
-            ? [this](const std::string &name) { return make_file(name); }
+            ? [this, config](
+                  const std::string
+                      &name) { return make_data_file(config, name, false); }
             : Dump_writer_controller::Create_file{},
         filename,
         // We only use the .dumping extension in case of the local files. In
         // case of the remote ones, file is not actually created until the whole
         // data is uploaded, so it's not visible to the loader. This allows to
         // avoid renaming the file, which in some cases is costly.
-        m_options.rename_data_files() && directory()->is_local());
+        m_options.rename_data_files() && config->dir->is_local());
   }
 }
 
 std::unique_ptr<Dumper::Dump_writer_controller>
-Dumper::table_dump_multi_file_controller(const std::string &basename) const {
+Dumper::table_dump_multi_file_controller(const Output_config *config,
+                                         const std::string &basename) const {
   return std::make_unique<Multi_file_writer_controller>(
-      [this](const std::string &name) { return table_dump_controller(name); },
-      basename, m_table_data_extension, m_options.bytes_per_chunk());
+      [this, config](const std::string &name) {
+        return table_dump_controller(config, name);
+      },
+      basename, config->data_file_extension, m_options.bytes_per_chunk());
 }
 
 void Dumper::finish_writing(const std::string &schema, const std::string &table,
@@ -3704,12 +3994,40 @@ void Dumper::finish_writing(const std::string &schema, const std::string &table,
   m_table_data_stats[schema][table] += controller->total_stats();
 }
 
-void Dumper::write_metadata() const {
+void Dumper::write_dump_redirected_metadata() const {
   if (m_options.is_export_only()) {
     return;
   }
 
-  write_dump_started_metadata();
+  shcore::JSON_dumper json{true};
+
+  json.start_object();
+
+  json.append("dumper", std::string("mysqlsh ") + shcore::get_long_version());
+  json.append("version", common::k_dumper_version);
+  json.append("origin", name());
+
+  {
+    // empty list of schemas
+    json.append("schemas");
+    json.start_array();
+    json.end_array();
+  }
+
+  {
+    // empty map of basenames
+    json.append("basenames");
+    json.start_object();
+    json.end_object();
+  }
+
+  append_capability_metadata({Capability::DUMP_DIR_REDIRECTION}, &json);
+
+  json.append("redirectedDumpDir", m_redirected_dump_dir);
+
+  json.end_object();
+
+  common::write_json(make_dump_file(common::k_root_metadata_file), json);
 }
 
 void Dumper::write_dump_started_metadata() const {
@@ -3818,31 +4136,22 @@ void Dumper::write_dump_started_metadata() const {
     json.end_array();
   }
 
-  {
-    // list of used capabilities
-    json.append("capabilities");
-    json.start_array();
-
-    for (const auto &c : m_used_capabilities) {
-      json.start_object();
-
-      json.append("id", capability::id(c));
-      json.append("description", capability::description(c));
-      json.append("versionRequired",
-                  capability::version_required(c).get_base());
-
-      json.end_object();
-    }
-
-    json.end_array();
-  }
+  // list of used capabilities
+  append_capability_metadata(m_used_capabilities, &json);
 
   json.append("checksum", m_options.checksum());
+
+  if (uses_innodb_vector_store()) {
+    json.append("hasVectorStoreTables", true);
+    json.append("vectorStore");
+    common::serialize(m_vector_store_info, &json);
+  }
+
   json.append("begin", m_progress_thread.duration().started_at());
 
   json.end_object();
 
-  common::write_json(make_file(common::k_root_metadata_file), json);
+  common::write_json(make_dump_file(common::k_root_metadata_file), json);
 }
 
 void Dumper::write_dump_finished_metadata() const {
@@ -3904,7 +4213,7 @@ void Dumper::write_dump_finished_metadata() const {
     }
   }
 
-  write_json(make_file(common::k_done_metadata_file), &doc);
+  write_json(make_dump_file(common::k_done_metadata_file), &doc);
 }
 
 void Dumper::write_checksum_metadata() const {
@@ -3912,7 +4221,7 @@ void Dumper::write_checksum_metadata() const {
     return;
   }
 
-  m_checksum->serialize(make_file(common::k_checksums_metadata_file));
+  m_checksum->serialize(make_dump_file(common::k_checksums_metadata_file));
 }
 
 void Dumper::write_schema_metadata(
@@ -3935,8 +4244,7 @@ void Dumper::write_schema_metadata(
   doc.AddMember(StringRef("includesViewsDdl"), m_options.dump_ddl(), a);
   doc.AddMember(StringRef("includesData"), m_options.dump_data(), a);
 
-  doc.AddMember(StringRef("multifileDdl"),
-                m_capability_set.is_set(Capability::MULTIFILE_SCHEMA_DDL), a);
+  doc.AddMember(StringRef("multifileDdl"), uses_multifile_schema_ddl(), a);
 
   {
     // list of tables
@@ -4040,8 +4348,9 @@ void Dumper::write_schema_metadata(
     doc.AddMember(StringRef("basenames"), std::move(basenames), a);
   }
 
-  write_json(make_file(common::get_schema_filename(schema.basename, "json")),
-             &doc);
+  write_json(
+      make_dump_file(common::get_schema_filename(schema.basename, "json")),
+      &doc);
 }
 
 void Dumper::write_table_metadata(
@@ -4072,10 +4381,8 @@ void Dumper::write_table_metadata(
     for (const auto &c : table.info->columns) {
       cols.PushBack(refs(c->name), a);
 
-      if (c->csv_unsafe) {
-        decode.AddMember(
-            refs(c->name),
-            StringRef(m_options.use_base64() ? "FROM_BASE64" : "UNHEX"), a);
+      if (const auto decoded = decode_column(table.info, c); !decoded.empty()) {
+        decode.AddMember(refs(c->name), {decoded.c_str(), a}, a);
       }
     }
 
@@ -4089,15 +4396,18 @@ void Dumper::write_table_metadata(
                       refs(m_options.character_set()), a);
 
     options.AddMember(StringRef("fieldsTerminatedBy"),
-                      refs(m_options.dialect().fields_terminated_by), a);
+                      refs(table.output_config->dialect.fields_terminated_by),
+                      a);
     options.AddMember(StringRef("fieldsEnclosedBy"),
-                      refs(m_options.dialect().fields_enclosed_by), a);
+                      refs(table.output_config->dialect.fields_enclosed_by), a);
     options.AddMember(StringRef("fieldsOptionallyEnclosed"),
-                      m_options.dialect().fields_optionally_enclosed, a);
+                      table.output_config->dialect.fields_optionally_enclosed,
+                      a);
     options.AddMember(StringRef("fieldsEscapedBy"),
-                      refs(m_options.dialect().fields_escaped_by), a);
+                      refs(table.output_config->dialect.fields_escaped_by), a);
     options.AddMember(StringRef("linesTerminatedBy"),
-                      refs(m_options.dialect().lines_terminated_by), a);
+                      refs(table.output_config->dialect.lines_terminated_by),
+                      a);
 
     doc.AddMember(StringRef("options"), std::move(options), a);
   }
@@ -4138,11 +4448,14 @@ void Dumper::write_table_metadata(
                 m_options.dump_data() && should_dump_data(table), a);
   doc.AddMember(StringRef("includesDdl"), m_options.dump_ddl(), a);
 
-  doc.AddMember(StringRef("extension"), refs(m_table_data_extension), a);
+  doc.AddMember(StringRef("extension"),
+                refs(table.output_config->data_file_extension), a);
   doc.AddMember(StringRef("chunking"), m_options.split(), a);
   doc.AddMember(
       StringRef("compression"),
-      {mysqlshdk::storage::to_string(m_options.compression()).c_str(), a}, a);
+      {mysqlshdk::storage::to_string(table.output_config->compression).c_str(),
+       a},
+      a);
 
   {
     Value primary{Type::kArrayType};
@@ -4187,8 +4500,13 @@ void Dumper::write_table_metadata(
     }
   }
 
-  write_json(make_file(common::get_table_data_filename(table.basename, "json")),
-             &doc);
+  if (uses_innodb_vector_store() && table.info->is_innodb_vector_store_table) {
+    doc.AddMember(StringRef("isVectorStoreTable"), true, a);
+  }
+
+  write_json(
+      make_dump_file(common::get_table_data_filename(table.basename, "json")),
+      &doc);
 }
 
 void Dumper::summarize() const {
@@ -4214,6 +4532,29 @@ void Dumper::summarize() const {
         m_options.target_version().get_base().c_str()));
   }
 
+  if (uses_innodb_vector_store() &&
+      !compatibility::supports_vector_store_conversion(
+          m_options.target_version())) {
+    console->print_warning(shcore::str_format(
+        "The dump contains InnoDB-based vector store tables, however the "
+        "'targetVersion' option is set to %s, where automatic conversion to "
+        "Lakehouse is not supported.",
+        m_options.target_version().get_base().c_str()));
+  }
+
+  if (uses_dump_dir_redirection()) {
+    console->print_status("Main dump directory: " +
+                          m_options.describe(m_options.output_url()));
+    console->print_status("Dump location: " +
+                          m_options.describe(m_redirected_output_url));
+  }
+
+  if (uses_innodb_vector_store()) {
+    // WL16802-FR1.1.2: print location of the vector store data
+    console->print_status("Vector store location: " +
+                          m_vector_store_output_description);
+  }
+
   if (m_options.dump_data()) {
     console->print_status("Dump duration: " +
                           m_data_dump_stage->duration().to_string());
@@ -4229,7 +4570,19 @@ void Dumper::summarize() const {
 
   if (!m_options.is_export_only()) {
     console->print_status("Schemas dumped: " + std::to_string(m_total_schemas));
-    console->print_status("Tables dumped: " + std::to_string(m_total_tables));
+
+    {
+      std::string msg = "Tables dumped: ";
+      msg += std::to_string(m_total_tables);
+
+      if (uses_innodb_vector_store()) {
+        msg += ", including ";
+        msg += std::to_string(m_cache.innodb_vector_store_tables);
+        msg += " InnoDB-based vector store tables";
+      }
+
+      console->print_status(msg);
+    }
   }
 
   if (m_options.dump_data()) {
@@ -4284,17 +4637,6 @@ void Dumper::emergency_shutdown() {
 void Dumper::kill_workers() {
   emergency_shutdown();
   wait_for_all_tasks();
-}
-
-std::string Dumper::get_table_data_filename(const std::string &basename) const {
-  return common::get_table_data_filename(basename, m_table_data_extension);
-}
-
-std::string Dumper::get_table_data_filename(const std::string &basename,
-                                            const std::size_t idx,
-                                            const bool last_chunk) const {
-  return common::get_table_data_filename(basename, m_table_data_extension, idx,
-                                         last_chunk);
 }
 
 void Dumper::initialize_throughput_progress() {
@@ -4396,15 +4738,17 @@ std::string Dumper::throughput() const {
                        : "");
 }
 
-mysqlshdk::storage::IDirectory *Dumper::directory() const {
-  return m_output_dir.get();
+std::unique_ptr<mysqlshdk::storage::IFile> Dumper::make_dump_file(
+    const std::string &filename) const {
+  return dump_dir()->file(filename);
 }
 
-std::unique_ptr<mysqlshdk::storage::IFile> Dumper::make_file(
-    const std::string &filename, bool use_mmap) const {
-  mysqlshdk::storage::File_options options;
-  if (use_mmap) options = mysqlshdk::storage::mmap_options();
-  return directory()->file(filename, options);
+std::unique_ptr<mysqlshdk::storage::IFile> Dumper::make_data_file(
+    const Output_config *config, const std::string &filename,
+    bool use_mmap) const {
+  const auto &file_options =
+      use_mmap ? m_mmap_options : mysqlshdk::storage::File_options{};
+  return config->dir->file(filename, file_options);
 }
 
 std::string Dumper::get_basename(const std::string &basename) {
@@ -4962,6 +5306,47 @@ std::string Dumper::optimizer_hints(const Instance_cache::Table *info) const {
   } else {
     return {};
   }
+}
+
+Dump_writer::Encoding_type Dumper::encoding_type(
+    const Instance_cache::Table *table,
+    const Instance_cache::Column *column) const {
+  if (column->csv_unsafe) {
+    // due to BUG#38166093, storing a vector column using VECTOR_TO_STRING() may
+    // lead to a loss of precision and cause checksum errors, we only use this
+    // encoding when dumping InnoDB-based vector store data
+    if (uses_innodb_vector_store() && table->is_innodb_vector_store_table &&
+        column->is_innodb_vector_store_column) {
+      return Dump_writer::Encoding_type::VECTOR;
+    } else {
+      return m_options.use_base64() ? Dump_writer::Encoding_type::BASE64
+                                    : Dump_writer::Encoding_type::HEX;
+    }
+  } else {
+    return Dump_writer::Encoding_type::NONE;
+  }
+}
+
+std::string Dumper::decode_column(const Instance_cache::Table *table,
+                                  const Instance_cache::Column *column) const {
+  switch (encoding_type(table, column)) {
+    case Dump_writer::Encoding_type::BASE64:
+      return "FROM_BASE64";
+
+    case Dump_writer::Encoding_type::HEX:
+      return "UNHEX";
+
+    case Dump_writer::Encoding_type::VECTOR:
+      // TODO(pawel): just 'STRING_TO_VECTOR' once dumper's version changes
+      return shcore::str_format("STRING_TO_VECTOR(@%s)",
+                                column->quoted_name.c_str());
+
+    case Dump_writer::Encoding_type::NONE:
+      // no need to decode the column
+      return {};
+  }
+
+  throw std::logic_error{"Dumper::decode_column()"};
 }
 
 }  // namespace dump

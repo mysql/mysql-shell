@@ -5,11 +5,11 @@ function md5_table(session, schema, table, where = "", partitions = []) {
     const columns = [];
     const has_pri = 0 != session.runSql("SELECT COUNT(*) FROM information_schema.statistics WHERE index_name = 'PRIMARY' AND table_schema = ? AND table_name = ?", [schema, table]).fetchOne()[0];
     for (const c of session.runSql("desc !.!", [schema, table]).fetchAll()) {
-        columns.push(c[0]);
+        const quoted = quote_identifier(c[0]);
+        columns.push(c[1].toUpperCase().startsWith('VECTOR') ? `VECTOR_TO_STRING(${quoted})` : quoted);
     }
-    var query = `SELECT @crc := sha1(concat(@crc, sha1(concat_ws('#', ${columns.map((c) => 'convert(! using binary)').join(', ')})))),@cnt := @cnt + 1 as discard from !.!`;
+    var query = `SELECT @crc := sha1(concat(@crc, sha1(concat_ws('#', ${columns.map((c) => `convert(${c} using binary)`).join(', ')})))),@cnt := @cnt + 1 as discard from !.!`;
     const params = [];
-    params.push(...columns);
     params.push(schema, table);
     if (partitions.length) {
         query += ` PARTITION (${partitions.map((p) => '!').join(', ')})`;
@@ -23,8 +23,7 @@ function md5_table(session, schema, table, where = "", partitions = []) {
         query += where;
     }
     if (!has_pri) {
-        query += ` ORDER BY ${columns.map((c) => '!').join(', ')}`;
-        params.push(...columns);
+        query += ` ORDER BY ${columns.join(', ')}`;
     }
     session.runSql("SET @crc = ''");
     session.runSql("SET @cnt = 0");

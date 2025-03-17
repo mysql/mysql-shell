@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -462,6 +462,56 @@ TEST(utils_path, is_absolute) {
   EXPECT_FALSE(is_absolute("./fólders/fiłęs"));
   EXPECT_FALSE(is_absolute("../foldęrs/fiłęs"));
 #endif  // !_WIN32
+}
+
+TEST(utils_path, get_relative_path) {
+  EXPECT_EQ("", get_relative_path("", ""));
+
+  EXPECT_EQ("..", get_relative_path("a", ""));
+  EXPECT_EQ("b", get_relative_path("", "b"));
+
+  EXPECT_EQ("../b", get_relative_path("a", "b"));
+
+  EXPECT_EQ("../b", get_relative_path("aa", "b"));
+  EXPECT_EQ("../bb", get_relative_path("a", "bb"));
+  EXPECT_EQ("../bb", get_relative_path("aa", "bb"));
+
+  EXPECT_EQ("../ab", get_relative_path("a", "ab"));
+  EXPECT_EQ("../ab", get_relative_path("aa", "ab"));
+  EXPECT_EQ("../a", get_relative_path("aa", "a"));
+
+  EXPECT_EQ("..", get_relative_path("a/b", "a"));
+  EXPECT_EQ("c", get_relative_path("a", "a/c"));
+
+  EXPECT_EQ("../c", get_relative_path("a/b", "a/c"));
+
+  EXPECT_EQ("../c", get_relative_path("a/bb", "a/c"));
+  EXPECT_EQ("../cc", get_relative_path("a/b", "a/cc"));
+  EXPECT_EQ("../cc", get_relative_path("a/bb", "a/cc"));
+
+  EXPECT_EQ("../bc", get_relative_path("a/b", "a/bc"));
+  EXPECT_EQ("../bc", get_relative_path("a/bb", "a/bc"));
+  EXPECT_EQ("../b", get_relative_path("a/bb", "a/b"));
+
+  EXPECT_THROW(get_relative_path("/", ""), std::runtime_error);
+  EXPECT_THROW(get_relative_path("/", "b"), std::runtime_error);
+  EXPECT_THROW(get_relative_path("", "/"), std::runtime_error);
+  EXPECT_THROW(get_relative_path("a", "/"), std::runtime_error);
+
+  EXPECT_EQ("../../..", get_relative_path("/a/b/c", "/"));
+  EXPECT_EQ("../..", get_relative_path("/a/b/c", "/a"));
+  EXPECT_EQ("..", get_relative_path("/a/b/c", "/a/b"));
+  EXPECT_EQ("", get_relative_path("/a/b/c", "/a/b/c"));
+  EXPECT_EQ("c", get_relative_path("/a/b", "/a/b/c"));
+  EXPECT_EQ("b/c", get_relative_path("/a", "/a/b/c"));
+  EXPECT_EQ("a/b/c", get_relative_path("/", "/a/b/c"));
+
+  EXPECT_EQ("../../../d", get_relative_path("/a/b/c", "/d"));
+  EXPECT_EQ("../../d", get_relative_path("/a/b/c", "/a/d"));
+  EXPECT_EQ("../d", get_relative_path("/a/b/c", "/a/b/d"));
+  EXPECT_EQ("../c", get_relative_path("/a/b/d", "/a/b/c"));
+  EXPECT_EQ("../b/c", get_relative_path("/a/d", "/a/b/c"));
+  EXPECT_EQ("../a/b/c", get_relative_path("/d", "/a/b/c"));
 }
 
 }  // namespace path

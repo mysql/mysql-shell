@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,15 +25,21 @@
 
 #include "modules/util/dump/text_dump_writer.h"
 
+#include <string_view>
 #include <utility>
 
 namespace mysqlsh {
 namespace dump {
 
-static constexpr const char *k_numeric_types_alphabet = "0123456789-.";
-static constexpr const char *k_hex_types_alphabet = "0123456789abcdefABCDEF";
-static constexpr const char *k_base64_types_alphabet =
+namespace {
+
+constexpr std::string_view k_numeric_types_alphabet = ".0123456789e+-";
+constexpr std::string_view k_vector_types_alphabet = ".0123456789e+-[],";
+constexpr std::string_view k_hex_types_alphabet = "0123456789abcdefABCDEF";
+constexpr std::string_view k_base64_types_alphabet =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/=";
+
+}  // namespace
 
 Text_dump_writer::Text_dump_writer(const import_table::Dialect &dialect)
     : m_dialect(dialect), m_escaped_characters() {
@@ -50,20 +56,24 @@ Text_dump_writer::Text_dump_writer(const import_table::Dialect &dialect)
   if (m_escape) {
     m_escape_char = m_dialect.fields_escaped_by[0];
 
-    // escape if character is:
+    // documentation of LOAD DATA says that character needs to be escaped if
+    // it's:
     // - FIELDS ESCAPED BY character
     // - FIELDS ENCLOSED BY character
     // - the first character of the FIELDS TERMINATED BY or LINES TERMINATED BY
-    //   values
+    //   values, if the ENCLOSED BY character is empty or unspecified
+    // however when it skips the rows, it looks for row boundaries without
+    // parsing the lines and instead it searches for an unescaped character of
+    // LINES TERMINATED BY; this means that this character needs to be escaped
     size_t idx = 0;
     m_escaped_characters[idx++] = m_escape_char;
 
-    if (!m_dialect.fields_enclosed_by.empty()) {
+    if (m_dialect.fields_enclosed_by.empty()) {
+      if (!m_dialect.fields_terminated_by.empty()) {
+        m_escaped_characters[idx++] = m_dialect.fields_terminated_by[0];
+      }
+    } else {
       m_escaped_characters[idx++] = m_dialect.fields_enclosed_by[0];
-    }
-
-    if (!m_dialect.fields_terminated_by.empty()) {
-      m_escaped_characters[idx++] = m_dialect.fields_terminated_by[0];
     }
 
     if (!m_dialect.lines_terminated_by.empty()) {
@@ -71,12 +81,25 @@ Text_dump_writer::Text_dump_writer(const import_table::Dialect &dialect)
     }
 
     for (size_t i = 0; i < idx; i++) {
-      if (strchr(k_numeric_types_alphabet, m_escaped_characters[i]))
+      if (std::string_view::npos !=
+          k_numeric_types_alphabet.find(m_escaped_characters[i])) {
         m_numbers_need_escape = Escape_type::FULL;
-      if (strchr(k_hex_types_alphabet, m_escaped_characters[i]))
+      }
+
+      if (std::string_view::npos !=
+          k_vector_types_alphabet.find(m_escaped_characters[i])) {
+        m_vectors_need_escape = Escape_type::FULL;
+      }
+
+      if (std::string_view::npos !=
+          k_hex_types_alphabet.find(m_escaped_characters[i])) {
         m_hex_need_escape = Escape_type::FULL;
-      if (strchr(k_base64_types_alphabet, m_escaped_characters[i]))
+      }
+
+      if (std::string_view::npos !=
+          k_base64_types_alphabet.find(m_escaped_characters[i])) {
         m_base64_need_escape = Escape_type::FULL;
+      }
     }
   }
 
@@ -152,6 +175,8 @@ void Text_dump_writer::read_metadata(
           m_needs_escape[i] = m_base64_need_escape;
         else if (pre_encoded_columns[i] == Encoding_type::HEX)
           m_needs_escape[i] = m_hex_need_escape;
+        else if (pre_encoded_columns[i] == Encoding_type::VECTOR)
+          m_needs_escape[i] = m_vectors_need_escape;
       }
     }
 

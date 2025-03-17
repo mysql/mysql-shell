@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -362,13 +362,37 @@ struct Bulk_load {
   }
 };
 
+struct Secondary_load {
+  static constexpr entry::Operation op{"SECONDARY-LOAD"};
+
+  entry::Schema schema;
+  entry::Table table;
+
+  std::string key() const {
+    std::string k;
+
+    k.reserve(op.value.length() + 2 + schema.value.length() + 3 +
+              table.value.length() + 1);
+
+    k += op.value;
+    k += ":`";
+    k += schema.value;
+    k += "`:`";
+    k += table.value;
+    k += '`';
+
+    return k;
+  }
+};
+
 template <typename T>
 concept Status_entry =
     std::is_base_of_v<Gtid_update, T> || std::is_base_of_v<Schema_ddl, T> ||
     std::is_base_of_v<Table_ddl, T> || std::is_base_of_v<Triggers_ddl, T> ||
     std::is_base_of_v<Table_indexes, T> ||
     std::is_base_of_v<Analyze_table, T> || std::is_base_of_v<Table_chunk, T> ||
-    std::is_base_of_v<Table_subchunk, T> || std::is_base_of_v<Bulk_load, T>;
+    std::is_base_of_v<Table_subchunk, T> || std::is_base_of_v<Bulk_load, T> ||
+    std::is_base_of_v<Secondary_load, T>;
 
 namespace start {
 
@@ -403,13 +427,17 @@ struct Bulk_load : public progress::Bulk_load {
   entry::Task task;
 };
 
+struct Secondary_load : public progress::Secondary_load {
+  entry::Task task;
+};
+
 template <typename T>
 concept Entry =
     std::is_same_v<T, Gtid_update> || std::is_same_v<T, Schema_ddl> ||
     std::is_same_v<T, Table_ddl> || std::is_same_v<T, Triggers_ddl> ||
     std::is_same_v<T, Table_indexes> || std::is_same_v<T, Analyze_table> ||
     std::is_same_v<T, Table_chunk> || std::is_same_v<T, Table_subchunk> ||
-    std::is_same_v<T, Bulk_load>;
+    std::is_same_v<T, Bulk_load> || std::is_same_v<T, Secondary_load>;
 
 }  // namespace start
 
@@ -454,13 +482,15 @@ struct Bulk_load : public progress::Bulk_load {
   entry::Rows rows;
 };
 
+struct Secondary_load : public progress::Secondary_load {};
+
 template <typename T>
 concept Entry =
     std::is_same_v<T, Gtid_update> || std::is_same_v<T, Schema_ddl> ||
     std::is_same_v<T, Table_ddl> || std::is_same_v<T, Triggers_ddl> ||
     std::is_same_v<T, Table_indexes> || std::is_same_v<T, Analyze_table> ||
     std::is_same_v<T, Table_chunk> || std::is_same_v<T, Table_subchunk> ||
-    std::is_same_v<T, Bulk_load>;
+    std::is_same_v<T, Bulk_load> || std::is_same_v<T, Secondary_load>;
 
 }  // namespace end
 
@@ -821,6 +851,17 @@ class Load_progress_log final {
     append(json, entry.data_bytes);
     append(json, entry.file_bytes);
     append(json, entry.rows);
+  }
+
+  static void append(Dumper *json, const progress::Secondary_load &entry) {
+    append(json, entry.schema);
+    append(json, entry.table);
+  }
+
+  static void append(Dumper *json,
+                     const progress::start::Secondary_load &entry) {
+    append(json, static_cast<const progress::Secondary_load &>(entry));
+    append(json, entry.task);
   }
 
   static void append(Dumper *, const Server_uuid &) {}

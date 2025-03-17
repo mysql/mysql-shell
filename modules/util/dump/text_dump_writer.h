@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,15 +86,16 @@ class Text_dump_writer : public Dump_writer {
   bool m_double_enclosed_by = false;
 
   Escape_type m_numbers_need_escape = Escape_type::NONE;
+  Escape_type m_vectors_need_escape = Escape_type::NONE;
   Escape_type m_hex_need_escape = Escape_type::NONE;
   Escape_type m_base64_need_escape = Escape_type::BASE64;
 
   uint32_t m_num_fields;
 
   // not using vectors of bool here, as they are not very efficient on access
-  std::vector<int> m_is_string_type;
+  std::vector<uint8_t> m_is_string_type;
 
-  std::vector<int> m_is_number_type;
+  std::vector<uint8_t> m_is_number_type;
 
   std::vector<Escape_type> m_needs_escape;
 };

@@ -41,6 +41,7 @@
 
 #include "modules/util/common/dump/checksums.h"
 #include "modules/util/common/dump/dump_info.h"
+#include "modules/util/common/dump/vector_store_info.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/progress_thread.h"
 #include "modules/util/import_table/dialect.h"
@@ -220,6 +221,8 @@ class Dump_reader {
   bool next_table_checksum(
       const dump::common::Checksums::Checksum_data **out_checksum);
 
+  bool next_secondary_load(std::string *out_schema, std::string *out_table);
+
   bool data_available() const;
 
   bool data_pending() const;
@@ -227,6 +230,8 @@ class Dump_reader {
   bool work_available() const;
 
   bool all_data_verification_scheduled() const;
+
+  bool all_secondary_loads_scheduled() const;
 
   size_t total_file_size() const { return m_contents.total_file_size; }
   size_t total_data_size() const { return m_contents.total_data_size; }
@@ -267,6 +272,8 @@ class Dump_reader {
 
   size_t tables_with_data() const { return m_tables_and_partitions_to_load; }
 
+  size_t tables_to_secondary_load() const;
+
   enum class Status {
     INVALID,  // No dump or not enough data to start loading yet
     DUMPING,  // Dump is not done yet
@@ -296,7 +303,13 @@ class Dump_reader {
 
   void on_table_metadata_parsed(const Table_info &info);
 
-  uint64_t tables_to_load() { return m_tables_to_load; }
+  uint64_t tables_to_load() const { return m_tables_to_load; }
+
+  uint64_t vector_store_tables_to_load() const {
+    return m_vector_store_tables_to_load;
+  }
+
+  uint64_t vector_store_tables_loaded() const;
 
   bool has_partitions() const { return m_dump_has_partitions; }
 
@@ -317,12 +330,16 @@ class Dump_reader {
 
   void on_table_loaded(const Table_chunk &chunk);
 
+  void on_table_ddl_end(const std::string &schema, const std::string &table);
+
   void on_index_end(const std::string &schema, const std::string &table);
 
   void on_analyze_end(const std::string &schema, const std::string &table);
 
   void on_checksum_end(std::string_view schema, std::string_view table,
                        std::string_view partition);
+
+  void on_secondary_load_end(std::string_view schema, std::string_view table);
 
   bool table_exists(std::string_view schema, std::string_view table,
                     const std::shared_ptr<mysqlshdk::db::ISession> &session);
@@ -340,10 +357,33 @@ class Dump_reader {
     return m_contents.dump.capabilities;
   }
 
+  inline bool redirect_dump_dir() const noexcept {
+    return m_contents.redirect_dump_dir;
+  }
+
+  std::unique_ptr<mysqlshdk::storage::IDirectory> redirected_dump_dir()
+      const noexcept {
+    return m_dir->directory(m_contents.redirected_dump_dir);
+  }
+
   bool has_library_ddl() const noexcept;
+
+  inline bool has_innodb_vector_store() const noexcept {
+    return m_contents.has_innodb_vector_store;
+  }
+
+  inline const dump::common::Vector_store_info &innodb_vector_store()
+      const noexcept {
+    return m_contents.innodb_vector_store;
+  }
 
   void exclude_routines_with_missing_dependencies(
       const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
+  void handle_vector_store_dump();
+
+  std::string get_vector_store_engine_attribute(std::string_view schema,
+                                                std::string_view table) const;
 
   struct Object_info {
     const Object_info *parent;
@@ -454,6 +494,7 @@ class Dump_reader {
     bool has_sql = true;
     volatile bool md_done = false;
     bool sql_seen = false;
+    bool sql_loaded = false;
 
     shcore::Dictionary_t options = nullptr;
     compatibility::Deferred_statements::Index_info indexes;
@@ -464,6 +505,10 @@ class Dump_reader {
     bool analyze_finished = true;
     std::vector<Object_info> triggers;
     bool has_triggers = false;
+    bool is_innodb_vector_store = false;
+    bool secondary_load = false;
+    bool secondary_load_scheduled = true;
+    bool secondary_load_completed = true;
 
     std::vector<Table_data_info> data_info;
 
@@ -487,6 +532,10 @@ class Dump_reader {
     bool all_data_verified() const;
 
     bool all_data_verification_scheduled() const;
+
+    bool is_secondary_load_completed() const {
+      return !secondary_load || secondary_load_completed;
+    }
   };
 
   struct Routine_info : public Object_info {
@@ -565,6 +614,12 @@ class Dump_reader {
 
     dump::common::Dump_info dump;
 
+    bool redirect_dump_dir = false;
+    std::string redirected_dump_dir;
+
+    bool has_innodb_vector_store = false;
+    dump::common::Vector_store_info innodb_vector_store;
+
     bool create_invisible_pks = false;
     bool force_non_standard_fks = false;
     bool table_only = false;
@@ -599,12 +654,12 @@ class Dump_reader {
         mysqlshdk::storage::IDirectory *dir,
         const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
+    void rescan_data(const Files &files, Dump_reader *reader);
+
    private:
     void rescan_metadata(mysqlshdk::storage::IDirectory *dir,
                          const Files &files, Dump_reader *reader,
                          dump::Progress_thread *progress_thread);
-
-    void rescan_data(const Files &files, Dump_reader *reader);
   };
 
  private:
@@ -653,7 +708,10 @@ class Dump_reader {
                                   std::string (Schema_info::*method)()
                                       const) const;
 
+  void validate_vector_store_options();
+
   std::unique_ptr<mysqlshdk::storage::IDirectory> m_dir;
+  std::unique_ptr<mysqlshdk::storage::IDirectory> m_vector_store_dir;
 
   const Load_dump_options &m_options;
 
@@ -669,6 +727,9 @@ class Dump_reader {
 
   // tables and partitions which have data to be loaded
   std::atomic<uint64_t> m_tables_and_partitions_to_load{0};
+
+  // vector store tables to be loaded
+  std::atomic<uint64_t> m_vector_store_tables_to_load{0};
 
   bool m_dump_has_partitions = false;
 

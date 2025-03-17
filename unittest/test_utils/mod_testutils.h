@@ -412,6 +412,10 @@ class Testutils : public mysqlsh::Extensible_object {
 
   std::string yaml(const shcore::Value &v) const;
 
+  int test_script_timeout() const;
+
+  void set_test_script_timeout(int timeout) const;
+
  private:
   // Testing stuff
   bool is_replaying();

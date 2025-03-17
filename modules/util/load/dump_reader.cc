@@ -38,10 +38,13 @@
 #include "modules/util/common/dump/server_info.h"
 #include "modules/util/common/dump/utils.h"
 #include "modules/util/common/utils.h"
+#include "modules/util/dump/capability.h"
+#include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/schema_dumper.h"
 #include "modules/util/load/load_errors.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/mysql/utils.h"
+#include "mysqlshdk/libs/oci/oci_par.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
@@ -184,6 +187,39 @@ Dump_reader::Status Dump_reader::open() {
     m_contents.force_non_standard_fks =
         std::find(options.begin(), options.end(), "force_non_standard_fks") !=
         options.end();
+  }
+
+  {
+    const auto &capabilities = m_contents.dump.capabilities;
+
+    m_contents.redirect_dump_dir =
+        std::find_if(capabilities.begin(), capabilities.end(),
+                     [](const auto &c) {
+                       return c.capability.has_value() &&
+                              mysqlsh::dump::Capability::DUMP_DIR_REDIRECTION ==
+                                  *c.capability;
+                     }) != capabilities.end();
+
+    m_contents.has_innodb_vector_store =
+        std::find_if(capabilities.begin(), capabilities.end(),
+                     [](const auto &c) {
+                       return c.capability.has_value() &&
+                              mysqlsh::dump::Capability::INNODB_VECTOR_STORE ==
+                                  *c.capability;
+                     }) != capabilities.end();
+  }
+
+  if (m_contents.redirect_dump_dir) {
+    m_contents.redirected_dump_dir =
+        shcore::json::required(md, "redirectedDumpDir", false);
+    // dump was redirected to another directory, this is not a valid dump,
+    // loader has to load it from that directory
+    return Status::INVALID;
+  }
+
+  if (m_contents.has_innodb_vector_store) {
+    m_contents.innodb_vector_store = dump::common::vector_store_info(
+        shcore::json::required_object(md, "vectorStore"));
   }
 
   // deprecated entry
@@ -600,8 +636,20 @@ bool Dump_reader::next_table_chunk(
     }
 
     out_chunk->compression = (*iter)->table->compression;
-    out_chunk->file = mysqlshdk::storage::make_file(m_dir->file(info->name()),
-                                                    out_chunk->compression);
+
+    {
+      auto dir = m_dir.get();
+
+      if (m_vector_store_dir && (*iter)->table->is_innodb_vector_store) {
+        // if m_vector_store_dir is set and we're here, we're loading a vector
+        // store dump with 'convertInnoDbVectorStore' set to 'keep'
+        dir = m_vector_store_dir.get();
+      }
+
+      out_chunk->file = mysqlshdk::storage::make_file(dir->file(info->name()),
+                                                      out_chunk->compression);
+    }
+
     out_chunk->file_size = info->size();
     out_chunk->data_size = data_size_in_file(info->name());
     out_chunk->options = (*iter)->table->options;
@@ -624,6 +672,8 @@ bool Dump_reader::next_deferred_index(
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
       if ((!m_options.load_data() || table.second->all_data_loaded()) &&
+          (!m_options.load_data() ||
+           table.second->is_secondary_load_completed()) &&
           !table.second->indexes_scheduled) {
         table.second->indexes_scheduled = true;
         *out_schema = schema.second->name;
@@ -641,7 +691,9 @@ bool Dump_reader::next_table_analyze(std::string *out_schema,
                                      std::vector<Histogram> *out_histograms) {
   for (auto &schema : m_contents.schemas) {
     for (auto &table : schema.second->tables) {
-      if ((!m_options.load_data() || table.second->all_data_loaded()) &&
+      if ((!m_options.load_data() ||
+           (table.second->all_data_loaded() &&
+            table.second->is_secondary_load_completed())) &&
           table.second->indexes_created && !table.second->analyze_scheduled) {
         table.second->analyze_scheduled = true;
         *out_schema = schema.second->name;
@@ -663,12 +715,38 @@ bool Dump_reader::next_table_checksum(
       if (table.second->indexes_created && table.second->analyze_finished) {
         for (auto &partition : table.second->data_info) {
           if (!partition.checksums.empty() &&
-              (!m_options.load_data() || partition.data_loaded())) {
+              (!m_options.load_data() ||
+               (partition.data_loaded() &&
+                table.second->is_secondary_load_completed()))) {
             *out_checksum = partition.checksums.front();
             partition.checksums.pop_front();
             return true;
           }
         }
+      }
+    }
+  }
+
+  return false;
+}
+
+bool Dump_reader::next_secondary_load(std::string *out_schema,
+                                      std::string *out_table) {
+  assert(out_schema);
+  assert(out_table);
+
+  if (!has_innodb_vector_store()) {
+    return false;
+  }
+
+  for (auto &schema : m_contents.schemas) {
+    for (auto &table : schema.second->tables) {
+      if (!table.second->is_secondary_load_completed() &&
+          !table.second->secondary_load_scheduled) {
+        table.second->secondary_load_scheduled = true;
+        *out_schema = schema.second->name;
+        *out_table = table.second->name;
+        return true;
       }
     }
   }
@@ -697,7 +775,9 @@ bool Dump_reader::data_pending() const {
 bool Dump_reader::work_available() const {
   for (const auto &schema : m_contents.schemas) {
     for (const auto &table : schema.second->tables) {
-      if ((m_options.load_data() && !table.second->all_data_scheduled()) ||
+      if ((m_options.load_data() &&
+           (!table.second->all_data_scheduled() ||
+            !table.second->secondary_load_scheduled)) ||
           !table.second->indexes_scheduled ||
           !table.second->analyze_scheduled ||
           !table.second->all_data_verified()) {
@@ -756,10 +836,13 @@ void Dump_reader::compute_filtered_data_size() {
 
     if (s != m_contents.table_data_size.end()) {
       for (const auto &table : schema.second->tables) {
-        const auto t = s->second.find(table.second->name);
+        if (!table.second->data_info.empty() &&
+            table.second->data_info[0].has_data) {
+          const auto t = s->second.find(table.second->name);
 
-        if (t != s->second.end()) {
-          m_filtered_data_size += t->second;
+          if (t != s->second.end()) {
+            m_filtered_data_size += t->second;
+          }
         }
       }
     }
@@ -769,6 +852,7 @@ void Dump_reader::compute_filtered_data_size() {
 // Scan directory for new files and adds them to the pending file list
 void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
   Files files;
+  Files vector_store_files;
 
   {
     dump::Progress_thread::Stage *stage = nullptr;
@@ -788,13 +872,21 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
     }
 
     files = std::move(m_dir->list().files);
+
+    if (m_vector_store_dir) {
+      vector_store_files = std::move(m_vector_store_dir->list().files);
+    }
   }
 
   log_debug("Finished listing files, starting rescan");
-
   m_contents.rescan(m_dir.get(), files, this, progress_thread);
-
   log_debug("Rescan done");
+
+  if (!vector_store_files.empty()) {
+    log_debug("Scanning for vector store data");
+    m_contents.rescan_data(vector_store_files, this);
+    log_debug("Vector store data scan done");
+  }
 
   if (m_dump_status != Status::COMPLETE &&
       files.find({dump::common::k_done_metadata_file}) != files.end()) {
@@ -912,6 +1004,8 @@ void Dump_reader::validate_options() {
           "Checksum information is not going to be verified, dryRun enabled.");
     }
   }
+
+  validate_vector_store_options();
 }
 
 std::string Dump_reader::Table_info::script_name() const {
@@ -1065,6 +1159,8 @@ void Dump_reader::Table_info::update_metadata(const std::string &data,
       data_info.emplace_back(std::move(di));
     }
   }
+
+  is_innodb_vector_store = md->get_bool("isVectorStoreTable", false);
 
   reader->on_table_metadata_parsed(*this);
   md_done = true;
@@ -1734,12 +1830,22 @@ void Dump_reader::on_table_metadata_parsed(const Table_info &info) {
   const auto partitions = info.data_info.size();
   assert(partitions > 0);
 
-  if (info.data_info[0].has_data) {
-    ++m_tables_to_load;
-    m_tables_and_partitions_to_load += partitions;
+  if (info.is_innodb_vector_store) {
+    ++m_vector_store_tables_to_load;
+  }
 
-    if (partitions > 1) {
-      m_dump_has_partitions = true;
+  // we update these stats only if we're going to actually load the data into
+  // this table; if table is a vector store table, we're going to do that only
+  // when it's not going to be converted to Lakehouse (or skipped)
+  if (!info.is_innodb_vector_store ||
+      load::Convert_vector_store::KEEP == m_options.convert_vector_store()) {
+    if (info.data_info[0].has_data) {
+      ++m_tables_to_load;
+      m_tables_and_partitions_to_load += partitions;
+
+      if (partitions > 1) {
+        m_dump_has_partitions = true;
+      }
     }
   }
 
@@ -1803,6 +1909,11 @@ void Dump_reader::on_table_loaded(const Table_chunk &chunk) {
   tdi->chunks_loaded = tdi->available_chunks.size();
 }
 
+void Dump_reader::on_table_ddl_end(const std::string &schema,
+                                   const std::string &table) {
+  find_table(schema, table, "DDL was loaded")->sql_loaded = true;
+}
+
 void Dump_reader::on_index_end(const std::string &schema,
                                const std::string &table) {
   find_table(schema, table, "indexes were created")->indexes_created = true;
@@ -1818,6 +1929,12 @@ void Dump_reader::on_checksum_end(std::string_view schema,
                                   std::string_view partition) {
   ++find_partition(schema, table, partition, "checksum was verified")
         ->checksums_verified;
+}
+
+void Dump_reader::on_secondary_load_end(std::string_view schema,
+                                        std::string_view table) {
+  find_table(schema, table, "secondary load was finished")
+      ->secondary_load_completed = true;
 }
 
 const Dump_reader::Schema_info *Dump_reader::find_schema(
@@ -2162,6 +2279,367 @@ void Dump_reader::exclude_routines_with_missing_dependencies(
       }
     }
   }
+}
+
+void Dump_reader::validate_vector_store_options() {
+  const auto console = current_console();
+
+  if (!has_innodb_vector_store()) {
+    // WL16802-FR2.1.3: print a note if option is set, but dump does not have
+    // vector store tables
+    if (m_options.has_convert_vector_store_option()) {
+      console->print_note(
+          "The 'convertInnoDbVectorStore' option is set, but dump does not "
+          "contain InnoDB based vector store tables.");
+    }
+
+    // WL16802-FR2.2.2: print a note if option is set, but dump does not have
+    // vector store tables
+    if (m_options.has_lakehouse_source_option()) {
+      console->print_note(
+          "The 'lakehouseSource' option is set, but dump does not contain "
+          "InnoDB based vector store tables.");
+    }
+
+    if (m_options.has_heatwave_load_option()) {
+      console->print_note(
+          "The 'heatwaveLoad' option is set, but dump does not contain InnoDB "
+          "based vector store tables.");
+    }
+
+    // other checks are not needed
+    return;
+  }
+
+  // WL16802-FR2.1.4: if set to AUTO, choose the appropriate mode
+  if (load::Convert_vector_store::AUTO == m_options.convert_vector_store()) {
+    load::Convert_vector_store mode = load::Convert_vector_store::KEEP;
+
+    // WL16802-FR2.1.4.1-4: if instance is MHS, has supported version, and the
+    // location of vector store data in OCI is known, convert tables to
+    // lakehouse
+    if (m_options.is_mds() &&
+        compatibility::supports_vector_store_conversion(
+            m_options.target_server_version()) &&
+        (m_options.has_lakehouse_source_option() ||
+         m_contents.innodb_vector_store.resource_principals.valid())) {
+      mode = load::Convert_vector_store::CONVERT;
+    }
+
+    log_info(
+        "The 'convertInnoDbVectorStore' option has been automatically set to: "
+        "'%s'",
+        load::to_string(mode).c_str());
+
+    const_cast<Load_dump_options &>(m_options).set_convert_vector_store(mode);
+  }
+
+  if (load::Convert_vector_store::KEEP == m_options.convert_vector_store()) {
+    // we can only load the vector store data if metadata contains its location
+    if (!m_contents.innodb_vector_store.relative_path.has_value()) {
+      if (m_options.load_data()) {
+        console->print_error(
+            "The dump contains InnoDB based vector store tables, but the "
+            "location of their data is not known, cannot load them as regular "
+            "tables. Set the 'convertInnoDbVectorStore' to 'skip' to ignore "
+            "them and continue with the load operation.");
+        THROW_ERROR(SHERR_LOAD_INNODB_VECTOR_STORE_UNKNOWN_LOCATION);
+      }
+    } else {
+      // WL16802-FR2.1.6: keep vector store tables as is
+      if (!m_contents.innodb_vector_store.relative_path->empty()) {
+        m_vector_store_dir =
+            m_dir->directory(*m_contents.innodb_vector_store.relative_path);
+      } else {
+        // relative path is empty, vector store data is in the same location as
+        // the main dump
+      }
+    }
+  } else if (load::Convert_vector_store::CONVERT ==
+             m_options.convert_vector_store()) {
+    // WL16802-FR2.1.7.1: throw when user wants to covert to Lakehouse, but
+    // target instance is not MHS
+    if (!m_options.is_mds()) {
+      THROW_ERROR(SHERR_LOAD_INNODB_VECTOR_STORE_NOT_MHS);
+    }
+
+    // WL16802-FR2.1.7.2: throw when MHS version is not supported
+    if (!compatibility::supports_vector_store_conversion(
+            m_options.target_server_version())) {
+      THROW_ERROR(SHERR_LOAD_INNODB_VECTOR_STORE_UNSUPPORTED_MHS);
+    }
+
+    // WL16802-FR2.1.7.3: throw when user wants to covert to Lakehouse, but
+    // vector store data is not in OS
+    if (!(m_options.has_lakehouse_source_option() ||
+          m_contents.innodb_vector_store.resource_principals.valid())) {
+      console->print_error(
+          "The dump contains InnoDB based vector store tables, their data is "
+          "not available in OCI's Object Storage, cannot convert them to "
+          "Lakehouse tables. Set the 'lakehouseSource' to a valid value to "
+          "continue with the load operation.");
+      THROW_ERROR(SHERR_LOAD_INNODB_VECTOR_STORE_NON_OCI_LOCATION);
+    }
+
+    // WL16802-FR2.3.5.3: Lakehouse is not configured, don't load the data
+    if (load::Heatwave_load::VECTOR_STORE == m_options.heatwave_load() &&
+        !m_options.is_lakehouse_enabled()) {
+      console->print_warning(
+          "The dump contains InnoDB based vector store tables, but target "
+          "instance doesn't have the Lakehouse storage configured. Data will "
+          "not be loaded into these tables.");
+
+      const_cast<Load_dump_options &>(m_options).set_heatwave_load(
+          load::Heatwave_load::NONE);
+    }
+  }
+
+  if (load::Convert_vector_store::CONVERT != m_options.convert_vector_store() &&
+      m_options.has_heatwave_load_option() &&
+      load::Heatwave_load::VECTOR_STORE == m_options.heatwave_load()) {
+    console->print_note(
+        "The dump contains InnoDB based vector store tables which are not "
+        "going to be converted to Lakehouse. The 'heatwaveLoad' option is "
+        "ignored.");
+  }
+}
+
+void Dump_reader::handle_vector_store_dump() {
+  if (!has_innodb_vector_store()) {
+    return;
+  }
+
+  if (load::Convert_vector_store::SKIP == m_options.convert_vector_store()) {
+    // WL16802-FR2.1.5: don't load vector store tables
+    const auto exclude_table = [this](const std::string &schema,
+                                      const std::string &table) {
+      const_cast<Load_dump_options &>(m_options).filters().tables().exclude(
+          schema, table);
+    };
+
+    std::vector<std::reference_wrapper<std::string>> table_names;
+
+    // iterate through tables, remove the ones which are using vector store
+    for (auto &schema : m_contents.schemas) {
+      table_names.clear();
+
+      for (const auto &table : schema.second->tables) {
+        if (table.second->is_innodb_vector_store) {
+          table_names.emplace_back(table.second->name);
+        }
+      }
+
+      for (const auto &name : table_names) {
+        // make sure that this table is excluded from further processing
+        exclude_table(schema.first, name);
+        // remove the table metadata
+        schema.second->tables.erase(name);
+      }
+    }
+
+    // update the size estimates
+    compute_filtered_data_size();
+  } else if (load::Convert_vector_store::CONVERT ==
+             m_options.convert_vector_store()) {
+    // WL16802-FR2.1.7: convert vector store tables
+    // WL16802-FR2.3.5: tables are being converted, load them into HeatWave if
+    // heatwaveLoad is set to 'vector_store'
+    const auto secondary_load =
+        load::Heatwave_load::VECTOR_STORE == m_options.heatwave_load();
+
+    // iterate through tables, mark the ones which are using vector store as not
+    // having any data
+    for (auto &schema : m_contents.schemas) {
+      for (auto &table : schema.second->tables) {
+        auto &t = table.second;
+
+        if (t->is_innodb_vector_store) {
+          for (auto &data_info : t->data_info) {
+            data_info.has_data = false;
+          }
+
+          t->secondary_load = secondary_load;
+          t->secondary_load_scheduled = !secondary_load;
+          t->secondary_load_completed = !secondary_load;
+        }
+      }
+    }
+
+    // update the size estimates
+    compute_filtered_data_size();
+  }
+}
+
+namespace {
+
+std::string escape_regex(std::string_view s) {
+  static constexpr std::string_view k_regex_metachars = R"(\^|.$?*+()[]{})";
+
+  std::string result;
+  result.reserve(s.length());
+
+  for (const auto c : s) {
+    if (std::string_view::npos != k_regex_metachars.find(c)) {
+      result += '\\';
+    }
+
+    result += c;
+  }
+
+  return result;
+}
+
+}  // namespace
+
+std::string Dump_reader::get_vector_store_engine_attribute(
+    std::string_view schema, std::string_view table) const {
+  if (!has_innodb_vector_store() ||
+      load::Convert_vector_store::CONVERT != m_options.convert_vector_store()) {
+    return {};
+  }
+
+  const auto t = find_table(schema, table, "engine attributes are checked");
+
+  if (!t->is_innodb_vector_store) {
+    return {};
+  }
+
+  if (t->options->get_bool("fieldsOptionallyEnclosed")) {
+    throw std::runtime_error(shcore::str_format(
+        "Cannot convert table `%s`.`%s` to Lakehouse, data files are using "
+        "dialect where fields are optionally enclosed with '%s', this is not "
+        "supported.",
+        std::string{schema}.c_str(), std::string{table}.c_str(),
+        t->options->get_string("fieldsEnclosedBy").c_str()));
+  }
+
+  // WL16802-FR2.1.7.4: construct a Lakehouse file definition entry pointing to
+  // vector store data of this table
+
+  shcore::JSON_dumper json;
+  json.start_object();  // global
+
+  json.append("file");
+  json.start_array();   // file
+  json.start_object();  // file
+
+  std::string prefix;
+
+  if (!m_options.lakehouse_source().par().empty()) {
+    mysqlshdk::oci::PAR_structure par;
+    mysqlshdk::oci::parse_par(m_options.lakehouse_source().par(), &par);
+
+    assert(mysqlshdk::oci::PAR_type::PREFIX == par.type());
+
+    json.append("par", par.par_url());
+    prefix = par.object_prefix();
+  } else {
+    // WL16802-FR2.2.4: if lakehouseSource option is not given, location is read
+    // from metadata
+    const auto &rp = m_options.lakehouse_source().resource_principals().valid()
+                         ? m_options.lakehouse_source().resource_principals()
+                         : m_contents.innodb_vector_store.resource_principals;
+
+    assert(rp.valid());
+
+    json.append("bucket", rp.bucket);
+    json.append("namespace", rp.namespace_);
+    json.append("region", rp.region);
+
+    prefix = rp.prefix();
+  }
+
+  json.append("pattern", '^' + escape_regex(prefix) +
+                             escape_regex(t->basename) + "@[@]?\\d+\\." +
+                             escape_regex(t->data_info[0].extension) + '$');
+  json.append("allow_missing_files", false);
+  // this needs to be false, otherwise it's not possible to use BASE64 encoding
+  json.append("is_strict_mode", false);
+
+  json.end_object();  // file
+  json.end_array();   // file
+
+  json.append("dialect");
+  json.start_object();  // dialect
+
+  json.append("field_delimiter", t->options->get_string("fieldsTerminatedBy"));
+  json.append("record_delimiter", t->options->get_string("linesTerminatedBy"));
+  json.append("escape_character", t->options->get_string("fieldsEscapedBy"));
+  json.append("quotation_marks", t->options->get_string("fieldsEnclosedBy"));
+
+  json.append("encoding", t->options->get_string("characterSet"));
+
+  switch (t->compression) {
+    case mysqlshdk::storage::Compression::GZIP:
+      json.append("compression", "gzip");
+      break;
+
+    case mysqlshdk::storage::Compression::NONE:
+      break;
+
+    default:
+      throw std::runtime_error(shcore::str_format(
+          "Cannot convert table `%s`.`%s` to Lakehouse, data files are "
+          "compressed with unsupported compression '%s'.",
+          std::string{schema}.c_str(), std::string{table}.c_str(),
+          mysqlshdk::storage::to_string(t->compression).c_str()));
+  }
+
+  json.end_object();  // dialect
+
+  json.end_object();  // global
+
+  return json.str();
+}
+
+size_t Dump_reader::tables_to_secondary_load() const {
+  uint64_t result = 0;
+
+  if (has_innodb_vector_store()) {
+    result += vector_store_tables_to_load();
+  }
+
+  return result;
+}
+
+uint64_t Dump_reader::vector_store_tables_loaded() const {
+  if (!has_innodb_vector_store()) {
+    return 0;
+  }
+
+  uint64_t result = 0;
+
+  for (const auto &schema : m_contents.schemas) {
+    for (const auto &table : schema.second->tables) {
+      const auto &t = table.second;
+
+      if (t->is_innodb_vector_store && t->sql_loaded) {
+        ++result;
+      }
+    }
+  }
+
+  return result;
+}
+
+bool Dump_reader::all_secondary_loads_scheduled() const {
+  if (!has_innodb_vector_store()) {
+    return true;
+  }
+
+  if (Status::COMPLETE != m_dump_status) {
+    return false;
+  }
+
+  for (const auto &schema : m_contents.schemas) {
+    for (const auto &table : schema.second->tables) {
+      if (!table.second->secondary_load_scheduled) {
+        return false;
+      }
+    }
+  }
+
+  return true;
 }
 
 }  // namespace mysqlsh

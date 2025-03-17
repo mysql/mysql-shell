@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,7 @@ namespace oci {
 namespace {
 
 #define PAR_REGEX \
-  R"((https:\/\/(?:[^\.]+\.)?objectstorage\.[^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((?:.*)\/)?(.*))"
+  R"((https:\/\/(?:[^\.]+\.)?objectstorage\.([^\.]+)\.[^\/]+)\/p\/(.+)\/n\/(.+)\/b\/(.*)\/o\/((?:.*)\/)?(.*))"
 
 const std::regex k_par_parser(PAR_REGEX);
 const std::regex k_full_par_parser("^" PAR_REGEX "$");
@@ -53,11 +53,12 @@ constexpr auto k_par_secret = "<secret>";
 namespace par_tokens {
 
 const size_t ENDPOINT = 1;
-const size_t PAR_ID = 2;
-const size_t NAMESPACE = 3;
-const size_t BUCKET = 4;
-const size_t PREFIX = 5;
-const size_t BASENAME = 6;
+const size_t REGION = 2;
+const size_t PAR_ID = 3;
+const size_t NAMESPACE = 4;
+const size_t BUCKET = 5;
+const size_t PREFIX = 6;
+const size_t BASENAME = 7;
 
 }  // namespace par_tokens
 
@@ -181,20 +182,21 @@ PAR_type parse_par(const std::string &url, PAR_structure *data) {
 
     if (data) {
       data->m_endpoint = results[par_tokens::ENDPOINT];
+      data->m_region = results[par_tokens::REGION];
       const auto par_id = results[par_tokens::PAR_ID].str();
-      const auto ns_name = results[par_tokens::NAMESPACE].str();
-      const auto bucket = results[par_tokens::BUCKET].str();
+      data->m_namespace = results[par_tokens::NAMESPACE].str();
+      data->m_bucket = results[par_tokens::BUCKET].str();
       data->m_object_prefix =
           shcore::pctdecode(results[par_tokens::PREFIX].str());
       data->m_object_name = std::move(object_name);
 
       data->m_object_path = shcore::str_format(
-          "/p/%s/n/%s/b/%s/o/%s%s", par_id.c_str(), ns_name.c_str(),
-          bucket.c_str(), data->object_prefix().c_str(),
+          "/p/%s/n/%s/b/%s/o/%s%s", par_id.c_str(), data->namespace_().c_str(),
+          data->bucket().c_str(), data->object_prefix().c_str(),
           data->object_name().c_str());
-      data->m_par_url =
-          shcore::str_format("%s/p/%s/n/%s/b/%s/o/", data->endpoint().c_str(),
-                             par_id.c_str(), ns_name.c_str(), bucket.c_str());
+      data->m_par_url = shcore::str_format(
+          "%s/p/%s/n/%s/b/%s/o/", data->endpoint().c_str(), par_id.c_str(),
+          data->namespace_().c_str(), data->bucket().c_str());
       data->m_full_url =
           data->par_url() +
           db::uri::pctencode_path(data->object_prefix() + data->object_name());
