@@ -60,7 +60,7 @@ namespace shcore {
 namespace polyglot {
 
 Polyglot_context::Polyglot_context(Object_registry *registry, Language type) {
-  m_common_context.initialize();
+  m_common_context.initialize({});
   m_language = get_language(type);
   assert(m_language);
   m_language->initialize();

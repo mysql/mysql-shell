@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_api_clean.h"
 
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 #include "mysqlshdk/scripting/polyglot/native_wrappers/polyglot_collectable.h"
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_error.h"
@@ -63,20 +64,24 @@ size_t parse_callback_args(poly_thread thread, poly_callback_info args,
   void *tmp_data = nullptr;
   void **target_data = data ? data : &tmp_data;
 
-  if (const auto rc =
-          poly_get_callback_info(thread, args, &argc, nullptr, target_data);
-      rc != poly_ok) {
-    throw std::runtime_error(Polyglot_error(thread, rc).message());
-  }
-
-  if (argc != 0 && argv != nullptr) {
-    argv->resize(argc);
-
-    if (const auto rc = poly_get_callback_info(thread, args, &argc, &(*argv)[0],
-                                               target_data);
+  try {
+    if (const auto rc =
+            poly_get_callback_info(thread, args, &argc, nullptr, target_data);
         rc != poly_ok) {
       throw std::runtime_error(Polyglot_error(thread, rc).message());
     }
+
+    if (argc != 0 && argv != nullptr) {
+      argv->resize(argc);
+
+      if (const auto rc = poly_get_callback_info(thread, args, &argc,
+                                                 &(*argv)[0], target_data);
+          rc != poly_ok) {
+        throw std::runtime_error(Polyglot_error(thread, rc).message());
+      }
+    }
+  } catch (const Polyglot_generic_error &error) {
+    throw std::runtime_error(error.message());
   }
 
   return argc;
@@ -160,6 +165,13 @@ double to_double(poly_thread thread, poly_value obj) {
   return value;
 }
 
+bool to_boolean(poly_thread thread, poly_value obj) {
+  bool value = false;
+  throw_if_error(poly_value_as_boolean, thread, obj, &value);
+
+  return value;
+}
+
 poly_value poly_string(poly_thread thread, poly_context context,
                        std::string_view data) {
   return poly_string(thread, context, data.data(), data.length());
@@ -235,7 +247,11 @@ std::vector<std::string> get_member_keys(poly_thread thread,
 }
 
 void throw_callback_exception(poly_thread thread, const char *error) {
-  throw_if_error(poly_throw_exception, thread, error);
+  try {
+    throw_if_error(poly_throw_exception, thread, error);
+  } catch (const std::exception &err) {
+    log_error("Error while throwing exception on C callback: %s", err.what());
+  }
 }
 
 poly_value get_member(poly_thread thread, poly_value object,

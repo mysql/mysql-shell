@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,17 +41,6 @@ void Shell_polyglot_common_context::flush() {}
 
 void Shell_polyglot_common_context::log(const char *bytes, size_t length) {
   log_debug("Polyglot: %.*s", static_cast<int>(length), bytes);
-}
-
-polyglot::Garbage_collector::Config Shell_polyglot_common_context::gc_config() {
-  polyglot::Garbage_collector::Config config;
-
-  // Perform Garbage Collection in 10 seconds intervals if at least 10
-  // statements were executed
-  config.interval = 10;
-  config.statements = 10;
-
-  return config;
 }
 
 }  // namespace shcore
