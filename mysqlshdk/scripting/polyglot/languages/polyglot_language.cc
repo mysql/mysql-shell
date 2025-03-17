@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -102,15 +102,27 @@ Scoped_global::~Scoped_global() {
   }
 }
 
-Polyglot_language::Polyglot_language(Polyglot_common_context *common_context)
-    : m_common_context{common_context} {}
+Polyglot_language::Polyglot_language(Polyglot_common_context *common_context,
+                                     const std::string &debug_port)
+    : m_common_context{common_context}, m_debug_port{debug_port} {}
+
+void Polyglot_language::enable_debug() {
+  throw_if_error(poly_context_builder_option, thread(), m_context_builder,
+                 "inspect", m_debug_port.c_str());
+
+  throw_if_error(poly_context_builder_option, thread(), m_context_builder,
+                 "inspect.Suspend", "false");
+
+  throw_if_error(poly_context_builder_option, thread(), m_context_builder,
+                 "inspect.WaitAttached", "false");
+}
 
 void Polyglot_language::init_context_builder() {
   m_context_builder = NULL;
   throw_if_error(poly_create_context_builder, thread(), nullptr, 0,
                  &m_context_builder);
 
-  auto engine = m_common_context->engine();
+  auto engine = !m_debug_port.empty() ? nullptr : m_common_context->engine();
 
   if (engine) {
     throw_if_error(poly_context_builder_engine, m_thread, m_context_builder,
@@ -134,7 +146,8 @@ void Polyglot_language::initialize(const std::shared_ptr<IFile_system> &fs) {
   if (const auto rc =
           poly_attach_thread(m_common_context->isolate(), &m_thread);
       rc != poly_ok) {
-    throw Polyglot_error(thread(), rc);
+    throw Polyglot_generic_error(
+        shcore::str_format("error attaching thread to isolate: %d", rc));
   }
 
   m_scope = std::make_unique<Polyglot_scope>(thread());
@@ -144,6 +157,11 @@ void Polyglot_language::initialize(const std::shared_ptr<IFile_system> &fs) {
   init_context_builder();
 
   {
+    // If there's no file system and debug should be enabled, we should do it
+    // here, otherwise we need to wait until the file system is set
+    if (!m_debug_port.empty() && !m_file_system) {
+      enable_debug();
+    }
     poly_context context;
     throw_if_error(poly_context_builder_build, thread(), m_context_builder,
                    &context);
@@ -162,8 +180,9 @@ void Polyglot_language::initialize(const std::shared_ptr<IFile_system> &fs) {
   // The context builder is initialized and a context is created (lines above
   // this comment). If a custom file system is specified then the
   // set_file_system function will update the context builder to specify the
-  // proxy file system and a new context will be created, to finally update the
-  // context in the file system to the one that will be used in the language.
+  // proxy file system and a new context will be created, to finally update
+  // the context in the file system to the one that will be used in the
+  // language.
   if (m_file_system) {
     set_file_system();
   }
@@ -172,9 +191,11 @@ void Polyglot_language::initialize(const std::shared_ptr<IFile_system> &fs) {
     Polyglot_scope context_creation_scope(thread());
 
     poly_value globals;
-    throw_if_error(poly_context_get_bindings, thread(), context(),
-                   get_language_id(), &globals);
-
+    if (const auto rc = poly_context_get_bindings(thread(), context(),
+                                                  get_language_id(), &globals);
+        rc != poly_ok) {
+      throw Polyglot_generic_error("error getting context bindings");
+    }
     m_globals = std::make_shared<Polyglot_object>(m_types.get(), thread(),
                                                   context(), globals, "");
   }
@@ -184,19 +205,16 @@ void Polyglot_language::finalize() {
   m_globals.reset();
   m_types->dispose();
 
+  shcore::Scoped_callback cleanup{[this]() {
+    m_context.reset();
+    m_storage->clear();
+    m_scope->close();
+  }};
+
   if (const auto rc = poly_context_close(thread(), context(), true);
       rc != poly_ok) {
-    log_error("polyglot error while closing the context: %s",
-              Polyglot_error(thread(), rc).format().c_str());
+    throw Polyglot_error(thread(), rc);
   }
-
-  m_context.reset();
-
-  m_storage->clear();
-  m_scope->close();
-
-  m_common_context->garbage_collector().notify(
-      Garbage_collector::Event::TERMINATED_LANGUAGE);
 
   m_common_context->clean_collectables();
 }
@@ -221,10 +239,28 @@ int64_t Polyglot_language::eval(const std::string &source,
                         source.empty() ? k_origin_shell : source.c_str(),
                         code_str.c_str(), result);
 
-  m_common_context->garbage_collector().notify(
-      Garbage_collector::Event::EXECUTED_STATEMENT);
-
   return ret_val;
+}
+
+poly_value Polyglot_language::create_source(const std::string &path) const {
+  poly_value source;
+  shcore::polyglot::throw_if_error(poly_create_source, thread(),
+                                   get_language_id(), path.c_str(), &source);
+
+  return source;
+}
+
+std::pair<Value, bool> Polyglot_language::debug(const std::string &path) {
+  poly_value source = create_source(path);
+
+  poly_value result;
+  if (const auto rc =
+          poly_context_eval_source(thread(), context(), source, &result);
+      rc != poly_ok) {
+    throw Polyglot_error(thread(), rc);
+  }
+
+  return {convert(result), false};
 }
 
 std::pair<Value, bool> Polyglot_language::execute(const std::string &code_str,
@@ -322,8 +358,9 @@ void Polyglot_language::terminate() {
 
   throw_if_error(poly_context_interrupt, i_thread, context());
 
-  if (poly_ok != poly_detach_thread(i_thread)) {
-    throw Polyglot_generic_error("Error detaching thread on terminate handler");
+  if (const auto rc = poly_detach_thread(i_thread); rc != poly_ok) {
+    throw Polyglot_generic_error(shcore::str_format(
+        "Error detaching thread on terminate handler: %d", rc));
   }
 }
 
@@ -352,8 +389,11 @@ poly_context Polyglot_language::copy_global_context() const {
                  &new_context);
 
   poly_value new_globals;
-  throw_if_error(poly_context_get_bindings, thread(), new_context,
-                 get_language_id(), &new_globals);
+  if (const auto rc = poly_context_get_bindings(
+          thread(), new_context, get_language_id(), &new_globals);
+      rc != poly_ok) {
+    throw Polyglot_generic_error("error getting context bindings");
+  }
 
   auto members = m_globals->get_members();
   for (const auto &member : members) {
@@ -423,6 +463,10 @@ void Polyglot_language::set_file_system() {
 
   throw_if_error(poly_context_builder_set_file_system, thread(),
                  m_context_builder, poly_fs);
+
+  if (!m_debug_port.empty()) {
+    enable_debug();
+  }
 
   poly_context context;
   throw_if_error(poly_context_builder_build, thread(), m_context_builder,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,7 +130,10 @@ class Polyglot_native_wrapper {
       assert(data);
       const auto collectable = static_cast<ICollectable *>(data);
 
-      collectable->registry()->remove(collectable);
+      auto registry = collectable->registry();
+      if (registry) {
+        registry->remove(collectable);
+      }
     }
 
     return nullptr;
@@ -214,23 +217,25 @@ class Polyglot_native_wrapper {
     std::vector<poly_value> argv;
     void *data = nullptr;
     poly_value value = nullptr;
-    if (get_args_and_data(thread, args, Config::name, &data, Config::argc,
-                          &argv)) {
-      assert(data);
-      const auto collectable = static_cast<Collectable_t *>(data);
-      const auto language = collectable->language();
-      try {
-        value = language->convert(Config::callback(
-            collectable->data(), language->convert_args(argv)));
-      } catch (const Exception &exc) {
-        language->throw_exception_object(exc.error());
-      } catch (const Polyglot_error &exc) {
-        language->throw_exception_object(exc);
-      } catch (const Graalvm_exception &exc) {
-        language->throw_graalvm_exception(exc);
-      } catch (const std::exception &e) {
-        throw_callback_exception(thread, e.what());
+    try {
+      if (get_args_and_data(thread, args, Config::name, &data, Config::argc,
+                            &argv)) {
+        assert(data);
+        const auto collectable = static_cast<Collectable_t *>(data);
+        const auto language = collectable->language();
+        try {
+          value = language->convert(Config::callback(
+              collectable->data(), language->convert_args(argv)));
+        } catch (const Exception &exc) {
+          language->throw_exception_object(exc.error());
+        } catch (const Polyglot_error &exc) {
+          language->throw_exception_object(exc);
+        } catch (const Graalvm_exception &exc) {
+          language->throw_graalvm_exception(exc);
+        }
       }
+    } catch (const std::exception &e) {
+      throw_callback_exception(thread, e.what());
     }
     return value;
   }
@@ -249,22 +254,24 @@ class Polyglot_native_wrapper {
     std::vector<poly_value> argv;
     void *data = nullptr;
     poly_value value = nullptr;
-    if (get_args_and_data(thread, args, Config::name, &data, Config::argc,
-                          &argv)) {
-      assert(data);
-      const auto collectable = static_cast<Collectable_t *>(data);
-      const auto language = collectable->language();
-      try {
-        value = Config::callback(language, collectable->data(), argv);
-      } catch (const Exception &exc) {
-        language->throw_exception_object(exc.error());
-      } catch (const Polyglot_error &exc) {
-        language->throw_exception_object(exc);
-      } catch (const Graalvm_exception &exc) {
-        language->throw_graalvm_exception(exc);
-      } catch (const std::exception &e) {
-        throw_callback_exception(thread, e.what());
+    try {
+      if (get_args_and_data(thread, args, Config::name, &data, Config::argc,
+                            &argv)) {
+        assert(data);
+        const auto collectable = static_cast<Collectable_t *>(data);
+        const auto language = collectable->language();
+        try {
+          value = Config::callback(language, collectable->data(), argv);
+        } catch (const Exception &exc) {
+          language->throw_exception_object(exc.error());
+        } catch (const Polyglot_error &exc) {
+          language->throw_exception_object(exc);
+        } catch (const Graalvm_exception &exc) {
+          language->throw_graalvm_exception(exc);
+        }
       }
+    } catch (const std::exception &e) {
+      throw_callback_exception(thread, e.what());
     }
     return value;
   }

@@ -53,7 +53,6 @@ if (HAVE_JIT_EXECUTOR)
       polyglot/polyglot_type_conversion.cc
       polyglot/languages/polyglot_language.cc
       polyglot/languages/polyglot_common_context.cc
-      polyglot/languages/polyglot_garbage_collector.cc
       polyglot/polyglot_context.cc
       polyglot/shell_polyglot_common_context.cc
       polyglot/shell_javascript.cc

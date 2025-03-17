@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,7 +60,7 @@ class Polyglot_generic_error : public std::exception {
 
  protected:
   Polyglot_generic_error() = default;
-  void set_message(const std::string &msg) { m_message = msg; }
+  virtual void set_message(const std::string &msg) { m_message = msg; }
 
  private:
   std::string m_message;
@@ -77,10 +77,12 @@ class Polyglot_generic_error : public std::exception {
 class Polyglot_error : public Polyglot_generic_error {
  public:
   Polyglot_error(poly_thread thread, int64_t rc);
+  Polyglot_error(poly_thread thread, poly_exception exc);
 
   std::string format(bool include_location = false) const;
 
   bool is_interrupted() const { return m_interrupted; }
+  bool is_resource_exhausted() const { return m_resource_exhausted; }
   bool is_syntax_error() const;
 
   shcore::Dictionary_t data() const;
@@ -97,6 +99,7 @@ class Polyglot_error : public Polyglot_generic_error {
 
   void initialize(poly_thread thread, poly_exception exc);
   void initialize(poly_thread thread);
+  void set_message(const std::string &msg) override;
 
   std::optional<std::string> m_type;
   std::optional<size_t> m_line;
@@ -106,6 +109,7 @@ class Polyglot_error : public Polyglot_generic_error {
   std::optional<std::string> m_source;
   std::vector<std::string> m_backtrace;
   bool m_interrupted = false;
+  bool m_resource_exhausted = false;
 };
 
 template <typename F, typename... Args>
