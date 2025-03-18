@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -208,109 +208,127 @@ Polyglot_error::Polyglot_error(poly_thread thread, int64_t rc) {
   }
 }
 
+Polyglot_error::Polyglot_error(poly_thread thread, poly_exception exc) {
+  initialize(thread, exc);
+}
+
 void Polyglot_error::initialize(poly_thread thread, poly_exception exc) {
-  if (bool interrupted{false};
-      poly_ok == poly_exception_is_interrupted(thread, exc, &m_interrupted) &&
-      interrupted) {
-    m_interrupted = true;
+  if (bool result{false};
+      poly_ok == poly_exception_is_resource_exhausted(thread, exc, &result) &&
+      result) {
+    m_resource_exhausted = true;
+    return;
   }
 
-  if (!m_interrupted) {
-    int column = -1;
-    std::string src_line;
-    auto msg = get_poly_exception_message(thread, exc, &column, &src_line,
-                                          &m_backtrace);
+  if (bool result{false};
+      poly_ok == poly_exception_is_interrupted(thread, exc, &result) &&
+      result) {
+    m_interrupted = true;
+    return;
+  }
 
-    if (column != -1) {
-      m_column = column;
-      m_source_line = src_line;
+  int column = -1;
+  std::string src_line;
+  auto msg =
+      get_poly_exception_message(thread, exc, &column, &src_line, &m_backtrace);
+
+  if (column != -1) {
+    m_column = column;
+    m_source_line = src_line;
+  }
+
+  // Retrieve the exception data coming in the error message
+  parse_and_translate(msg);
+
+  // Sometimes, backtrace comes with the error message, in other cases it
+  // comes apart, we need to handle both cases
+  if (m_backtrace.empty()) {
+    m_backtrace = get_exception_stack_trace(thread, exc);
+  }
+
+  // If the initial message did not come with line (and source??) we locate
+  // them on the first backtrace line
+  if (!m_line.has_value() && !m_backtrace.empty()) {
+    parse_and_translate(m_backtrace[0]);
+
+    // If the first line provided the location, it gets deleted
+    if (m_line.has_value()) {
+      m_backtrace.erase(m_backtrace.begin());
+    }
+  }
+
+  if (message().empty()) {
+    set_message(msg);
+  }
+
+  // If an exception object is found, this would be the real initial
+  // exception, so we override whatever data contained in it
+
+  if (bool has_object = false;
+      poly_ok == poly_exception_has_object(thread, exc, &has_object) &&
+      has_object) {
+    poly_value error_obj = nullptr;
+
+    if (poly_ok != poly_exception_get_object(thread, exc, &error_obj)) {
+      throw Polyglot_generic_error(
+          "Error trying to retrieve an exception object");
     }
 
-    // Retrieve the exception data coming in the error message
-    parse_and_translate(msg);
-
-    // Sometimes, backtrace comes with the error message, in other cases it
-    // comes apart, we need to handle both cases
-    if (m_backtrace.empty()) {
-      m_backtrace = get_exception_stack_trace(thread, exc);
+    poly_value error_cause = nullptr;
+    if (std::string class_name;
+        is_object(thread, error_obj, &class_name) && class_name == "Error") {
+      get_member(thread, error_obj, "cause", &error_cause);
     }
 
-    // If the initial message did not come with line (and source??) we locate
-    // them on the first backtrace line
-    if (!m_line.has_value() && !m_backtrace.empty()) {
-      parse_and_translate(m_backtrace[0]);
-
-      // If the first line provided the location, it gets deleted
-      if (m_line.has_value()) {
-        m_backtrace.erase(m_backtrace.begin());
+    auto data = make_dict();
+    if (error_cause &&
+        Polyglot_map_wrapper::unwrap(thread, error_cause, &data)) {
+      if (data->has_key(k_key_message)) {
+        set_message(data->get_string(k_key_message));
       }
-    }
 
-    if (message().empty()) {
-      set_message(msg);
-    }
-
-    // If an exception object is found, this would be the real initial
-    // exception, so we override whatever data contained in it
-
-    if (bool has_object = false;
-        poly_ok == poly_exception_has_object(thread, exc, &has_object) &&
-        has_object) {
-      poly_value error_obj = nullptr;
-
-      if (poly_ok != poly_exception_get_object(thread, exc, &error_obj)) {
-        throw Polyglot_generic_error(
-            "Error trying to retrieve an exception object");
+      if (data->has_key(k_key_type)) {
+        m_type = data->get_string(k_key_type);
       }
 
-      poly_value error_cause = nullptr;
-      if (std::string class_name;
-          is_object(thread, error_obj, &class_name) && class_name == "Error") {
-        get_member(thread, error_obj, "cause", &error_cause);
+      if (data->has_key(k_key_source)) {
+        m_source = data->get_string(k_key_source);
       }
 
-      auto data = make_dict();
-      if (error_cause &&
-          Polyglot_map_wrapper::unwrap(thread, error_cause, &data)) {
-        if (data->has_key(k_key_message)) {
-          set_message(data->get_string(k_key_message));
-        }
-
-        if (data->has_key(k_key_type)) {
-          m_type = data->get_string(k_key_type);
-        }
-
-        if (data->has_key(k_key_source)) {
-          m_source = data->get_string(k_key_source);
-        }
-
-        if (data->has_key(k_key_code)) {
-          auto code = data->get_int(k_key_code);
-          if (code > 0) {
-            m_code = code;
-          }
-        }
-
-        if (data->has_key(k_key_line)) {
-          m_line = data->get_uint(k_key_line);
-        }
-
-        if (data->has_key(k_key_column)) {
-          m_column = data->get_uint(k_key_column);
-        }
-
-        if (data->has_key(k_key_source_line)) {
-          m_source_line = data->get_string(k_key_source_line);
-        }
-
-        if (data->has_key(k_key_backtrace)) {
-          m_backtrace.clear();
-          for (const auto &frame : *data->at(k_key_backtrace).as_array()) {
-            m_backtrace.push_back(frame.as_string());
-          }
+      if (data->has_key(k_key_code)) {
+        auto code = data->get_int(k_key_code);
+        if (code > 0) {
+          m_code = code;
         }
       }
+
+      if (data->has_key(k_key_line)) {
+        m_line = data->get_uint(k_key_line);
+      }
+
+      if (data->has_key(k_key_column)) {
+        m_column = data->get_uint(k_key_column);
+      }
+
+      if (data->has_key(k_key_source_line)) {
+        m_source_line = data->get_string(k_key_source_line);
+      }
+
+      if (data->has_key(k_key_backtrace)) {
+        m_backtrace.clear();
+        for (const auto &frame : *data->at(k_key_backtrace).as_array()) {
+          m_backtrace.push_back(frame.as_string());
+        }
+      }
     }
+  }
+}
+
+void Polyglot_error::set_message(const std::string &msg) {
+  Polyglot_generic_error::set_message(msg);
+
+  if ("Garbage-collected heap size exceeded." == msg) {
+    m_resource_exhausted = true;
   }
 }
 

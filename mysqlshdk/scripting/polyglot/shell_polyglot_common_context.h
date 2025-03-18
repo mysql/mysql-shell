@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,6 @@
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_api_clean.h"
 
 #include "mysqlshdk/scripting/polyglot/languages/polyglot_common_context.h"
-#include "mysqlshdk/scripting/polyglot/languages/polyglot_garbage_collector.h"
 
 namespace shcore {
 
@@ -46,7 +45,6 @@ class Shell_polyglot_common_context : public polyglot::Polyglot_common_context {
   void fatal_error() override;
   void flush() override;
   void log(const char *bytes, size_t length) override;
-  polyglot::Garbage_collector::Config gc_config() override;
 };
 
 }  // namespace shcore
