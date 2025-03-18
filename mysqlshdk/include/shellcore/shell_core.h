@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -151,6 +151,9 @@ class SHCORE_PUBLIC Shell_language {
     return true;
   }
 
+  virtual bool debug_allowed() const { return false; }
+  virtual int debug(const std::string & /*path*/) { return 0; }
+
   Shell_command_handler *command_handler() { return &_shell_command_handler; }
 
  protected:
@@ -210,6 +213,9 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   std::string get_handled_input() override;
   int process_stream(std::istream &stream, const std::string &source) override;
   Input_state input_state();
+
+  bool debug_allowed() override;
+  int debug(const std::string &path) override;
 
   virtual void execute_module(const std::string &module_name,
                               const std::vector<std::string> &argv);

@@ -68,10 +68,11 @@ Polyglot_context::Polyglot_context(Object_registry *registry, Language type) {
 }
 
 std::shared_ptr<Polyglot_language> Polyglot_context::get_language(
-    Language type) {
+    Language type, const std::string &debug_port, bool wait_attached) {
 #ifdef HAVE_JS
   if (type == Language::JAVASCRIPT) {
-    return std::make_shared<Shell_javascript>(&m_common_context);
+    return std::make_shared<Shell_javascript>(&m_common_context, debug_port,
+                                              wait_attached);
   }
 #endif
   return {};
@@ -192,6 +193,28 @@ void Polyglot_context::set_argv(const std::vector<std::string> &argv) {
   args->clear();
   for (auto &arg : argv) {
     args->push_back(Value(arg));
+  }
+}
+
+std::pair<Value, bool> Polyglot_context::debug(Object_registry * /*registry*/,
+                                               Language type,
+                                               const std::string &path) {
+  const auto &options = mysqlsh::current_shell_options()->get();
+  auto language = get_language(type, options.js_options.debug_port,
+                               options.js_options.wait_attached);
+  assert(language);
+
+  try {
+    language->initialize();
+
+    m_language->copy_global_context(language.get());
+    // set_global("globals", Value(registry->_registry));
+
+    return language->debug(path);
+  } catch (const Polyglot_error &error) {
+    throw Exception::scripting_error(error.format(false));
+  } catch (const Polyglot_generic_error &error) {
+    throw Exception::scripting_error(error.what());
   }
 }
 

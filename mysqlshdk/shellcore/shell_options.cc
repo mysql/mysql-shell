@@ -864,9 +864,22 @@ Shell_options::Shell_options(
           }
           storage.connection_data.set(mysqlshdk::db::kAuthMethod, value);
         })
-    (cmdline("--disable-plugins"), "Diable loading user plugins.",
+    (cmdline("--js-debug-port=<value>"), "Starts a debug server to debug a "
+    "JavaScript file on the indicated port.",
+    [this](const std::string&option, const char* value) {
+      try {
+        shcore::opts::convert<int>(value, shcore::opts::Source::Command_line);
+        storage.js_options.debug_port = value;
+      } catch (const std::invalid_argument&) {
+        throw std::invalid_argument(shcore::str_format("Invalid value for %s: %s",
+          option.c_str(), value));
+      }
+    })
+    (cmdline("--js-debug-wait-attached"), "Waits for a debug client to get "
+    "attached to a JavaScript debug server.",
+    assign_value(&storage.js_options.wait_attached, true))
+    (cmdline("--disable-plugins"), "Disable loading user plugins.",
     assign_value(&storage.disable_user_plugins, true));
-;
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.execute_dba_statement, "",

@@ -110,6 +110,11 @@ class Shell_options final : public shcore::Options {
     std::string pwd;
     mysqlshdk::ssh::Ssh_connection_options uri_data;
   };
+
+  struct Js_options {
+    std::string debug_port;
+    bool wait_attached;
+  };
   struct Storage {
     shcore::IShell_core::Mode initial_mode = shcore::IShell_core::Mode::None;
     std::string run_file;
@@ -191,6 +196,7 @@ class Shell_options final : public shcore::Options {
     // Indicates the Shell trunning for the GUI
     bool gui_mode = false;
     bool disable_user_plugins = false;
+    Js_options js_options;
 
     // TODO(anyone): Expose the option
     enum class Progress_reporting {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,6 +65,9 @@ class Shell_polyglot : public Shell_language {
 
   bool load_plugin(const Plugin_definition &plugin) override;
 
+  bool debug_allowed() const override { return true; }
+  int debug(const std::string &path) override;
+
  private:
   void abort() noexcept;
   void handle_input(std::string &code, bool flush);
@@ -79,6 +82,7 @@ class Shell_polyglot : public Shell_language {
   // which will be only activated in 2 scenarios:
   // - When an interruption occurs while handling input
   // - When finalizing the Shell_polyglot
+  polyglot::Language m_type;
   std::shared_ptr<polyglot::Polyglot_context> m_polyglot;
   std::function<void(shcore::Value, bool)> m_result_processor;
   std::mutex m_interrupt_handler_mutex;

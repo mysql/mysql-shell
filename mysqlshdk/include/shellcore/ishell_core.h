@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,6 +73,9 @@ class SHCORE_PUBLIC IShell_core {
   virtual std::string get_handled_input() = 0;
   virtual int process_stream(std::istream &stream,
                              const std::string &source) = 0;
+
+  virtual bool debug_allowed() = 0;
+  virtual int debug(const std::string &path) = 0;
 
   // Development Session Handling
   virtual std::shared_ptr<mysqlsh::ShellBaseSession> set_dev_session(

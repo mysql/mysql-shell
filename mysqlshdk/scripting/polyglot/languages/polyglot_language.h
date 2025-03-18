@@ -163,7 +163,8 @@ class Polyglot_language
   };
 
   explicit Polyglot_language(Polyglot_common_context *common_context,
-                             const std::string &debug_port = "");
+                             const std::string &debug_port = "",
+                             bool wait_attached = false);
 
   Polyglot_language(const Polyglot_language &) = delete;
   Polyglot_language &operator=(const Polyglot_language &) = delete;
@@ -287,7 +288,7 @@ class Polyglot_language
   /**
    * Creates a copy of the global context
    */
-  poly_context copy_global_context() const;
+  poly_context copy_global_context(Polyglot_language *target = nullptr) const;
 
   poly_value poly_string(const std::string &data) const;
   std::string to_string(poly_value obj) const;
@@ -340,6 +341,7 @@ class Polyglot_language
 
  protected:
   std::string m_debug_port;
+  bool m_wait_attached = false;
 
  private:
   std::unique_ptr<Polyglot_scope> m_scope;

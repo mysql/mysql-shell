@@ -605,6 +605,12 @@ int Base_shell::process_file(const std::string &path,
       return ret_val;
     }
 
+    if (!options().js_options.debug_port.empty() && _shell->debug_allowed()) {
+      _shell->set_argv(argv);
+
+      return _shell->debug(file);
+    }
+
 #ifdef _WIN32
     std::ifstream s(shcore::utf8_to_wide(file));
 #else
