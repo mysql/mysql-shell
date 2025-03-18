@@ -252,7 +252,11 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    session, it should be one of: AUTO,
                                    FROM_CAPABILITIES, FALLBACK, MYSQL41, PLAIN,
                                    SHA256_MEMORY.
-  --disable-plugins                Diable loading user plugins.
+  --js-debug-port=<value>          Starts a debug server to debug a JavaScript
+                                   file on the indicated port.
+  --js-debug-wait-attached         Waits for a debug client to get attached to
+                                   a JavaScript debug server.
+  --disable-plugins                Disable loading user plugins.
   --dba=enableXProtocol            Enable the X protocol in the target server.
                                    Requires a connection using classic session.
                                    Deprecated.

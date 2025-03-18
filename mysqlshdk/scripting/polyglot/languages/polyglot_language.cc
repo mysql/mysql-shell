@@ -103,8 +103,11 @@ Scoped_global::~Scoped_global() {
 }
 
 Polyglot_language::Polyglot_language(Polyglot_common_context *common_context,
-                                     const std::string &debug_port)
-    : m_common_context{common_context}, m_debug_port{debug_port} {}
+                                     const std::string &debug_port,
+                                     bool wait_attached)
+    : m_common_context{common_context},
+      m_debug_port{debug_port},
+      m_wait_attached{wait_attached} {}
 
 void Polyglot_language::enable_debug() {
   throw_if_error(poly_context_builder_option, thread(), m_context_builder,
@@ -114,7 +117,7 @@ void Polyglot_language::enable_debug() {
                  "inspect.Suspend", "false");
 
   throw_if_error(poly_context_builder_option, thread(), m_context_builder,
-                 "inspect.WaitAttached", "false");
+                 "inspect.WaitAttached", (m_wait_attached ? "true" : "false"));
 }
 
 void Polyglot_language::init_context_builder() {
@@ -383,14 +386,22 @@ poly_value Polyglot_language::wrap_callback(poly_callback callback,
  * or stored till JS context exists (in order to preserve execution
  * environment).
  */
-poly_context Polyglot_language::copy_global_context() const {
-  poly_context new_context;
-  throw_if_error(poly_context_builder_build, thread(), m_context_builder,
-                 &new_context);
+poly_context Polyglot_language::copy_global_context(
+    Polyglot_language *target) const {
+  poly_context new_context = nullptr;
+
+  poly_context *target_context_ptr = &new_context;
+  if (target) {
+    auto target_const_context = target->context();
+    target_context_ptr = &target_const_context;
+  } else {
+    throw_if_error(poly_context_builder_build, thread(), m_context_builder,
+                   target_context_ptr);
+  }
 
   poly_value new_globals;
   if (const auto rc = poly_context_get_bindings(
-          thread(), new_context, get_language_id(), &new_globals);
+          thread(), *target_context_ptr, get_language_id(), &new_globals);
       rc != poly_ok) {
     throw Polyglot_generic_error("error getting context bindings");
   }
@@ -405,7 +416,7 @@ poly_context Polyglot_language::copy_global_context() const {
                    poly_member);
   }
 
-  return new_context;
+  return *target_context_ptr;
 }
 
 poly_context Polyglot_language::context() const { return m_context.get(); }

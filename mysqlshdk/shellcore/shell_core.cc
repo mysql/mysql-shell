@@ -123,6 +123,12 @@ void Shell_core::set_argv(const std::vector<std::string> &args) {
   return _langs[_mode]->set_argv(args);
 }
 
+bool Shell_core::debug_allowed() { return _langs[_mode]->debug_allowed(); }
+
+int Shell_core::debug(const std::string &path) {
+  return _langs[_mode]->debug(path);
+}
+
 /*
  * process_stream will process the content of an opened stream until EOF is
  * found.

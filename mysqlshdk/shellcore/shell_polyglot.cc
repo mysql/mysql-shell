@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +50,7 @@ const char *to_string(polyglot::Language language) {
 
 Shell_polyglot::Shell_polyglot(Shell_core *shcore, polyglot::Language type)
     : Shell_language(shcore),
+      m_type{type},
       m_polyglot{std::make_shared<polyglot::Polyglot_context>(
           shcore->registry(), type)} {
   // Starts and sleeps the polyglot interruption handler thread
@@ -101,6 +102,18 @@ void Shell_polyglot::handle_input(std::string &code, Input_state &state) {
 void Shell_polyglot::flush_input(const std::string &code) {
   std::string code_copy{code};
   handle_input(code_copy, true);
+}
+
+int Shell_polyglot::debug(const std::string &path) {
+  Value result;
+  bool got_error = true;
+
+  std::tie(result, got_error) =
+      m_polyglot->debug(_owner->registry(), m_type, path);
+
+  m_result_processor(result, got_error);
+
+  return 0;
 }
 
 void Shell_polyglot::handle_input(std::string &code, bool flush) {

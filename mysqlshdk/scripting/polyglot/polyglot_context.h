@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,6 +57,9 @@ class Polyglot_context {
   void set_global(const std::string &name, const Value &value);
   Value get_global(const std::string &name);
 
+  std::pair<Value, bool> debug(Object_registry *registry, Language type,
+                               const std::string &path);
+
   std::pair<Value, bool> execute(const std::string &code,
                                  const std::string &source = "");
   std::pair<Value, bool> execute_interactive(const std::string &code,
@@ -87,7 +90,9 @@ class Polyglot_context {
   FRIEND_TEST(JavaScript, object_to_js);
 #endif
 
-  std::shared_ptr<Polyglot_language> get_language(Language type);
+  std::shared_ptr<Polyglot_language> get_language(
+      Language type, const std::string &debug_port = "",
+      bool wait_attached = false);
 
   Value convert(poly_value value) const;
   poly_value convert(const Value &value) const;
