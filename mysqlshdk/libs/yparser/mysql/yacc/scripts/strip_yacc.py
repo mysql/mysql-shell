@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024, Oracle and/or its affiliates.
+# Copyright (c) 2024, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -29,8 +29,9 @@ import sys
 
 def strip_actions(data, outf, api_prefix, strip_yyundef):
     def peek(data):
+        pos = data.tell()
         c = data.read(1)
-        data.seek(data.tell() - 1)
+        data.seek(pos)
         return c
 
     header = f"""
