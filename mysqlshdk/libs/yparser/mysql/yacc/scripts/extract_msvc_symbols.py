@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024, Oracle and/or its affiliates.
+# Copyright (c) 2024, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -27,7 +27,7 @@ import re
 import subprocess
 
 # external symbol defined in a section
-external_symbol = re.compile("^.+SECT.+External\s+\|\s+(\S+).*$")
+external_symbol = re.compile("^.+SECT.+External\\s+\\|\\s+(\\S+).*$")
 
 def mangled_symbols(lib):
     p = subprocess.Popen(['dumpbin', '/symbols', lib], encoding="ascii", stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -58,7 +58,7 @@ selected_symbols = set([
     "s_dummy_target@MEM_ROOT",
 ])
 
-symbol_name = re.compile("\?(.+?)@@.*")
+symbol_name = re.compile("\\?(.+?)@@.*")
 
 def use_symbol(mangled):
     m = symbol_name.search(mangled)
