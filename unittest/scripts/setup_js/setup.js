@@ -389,7 +389,7 @@ function isAuthMethodSupported(context, uri=__mysqluripwd) {
   try {
     ensure_plugin_enabled(plugin, s);
   } catch (error) {
-    plugin_supported = error.code == PLUGIN_ALREADY_EXISTS;
+    plugin_supported = get_exception_code(error) == PLUGIN_ALREADY_EXISTS;
     if (!plugin_supported) {
       shell.log('warning', `Unable to get ${plugin} installed: Error ${error.code}: ${error.message}`)
     }
@@ -1104,9 +1104,17 @@ function get_exception_message(exception) {
       return exception.cause.message;
     }
   }
-  return exception.message
+  return exception.message;
 }
 
+function get_exception_code(exception){
+  if (exception.cause != undefined) {
+    if (exception.cause.code != undefined) {
+      return exception.cause.code;
+    }
+  }
+  return exception.code;
+}
 
 function EXPECT_THROWS(func, etext) {
   if (typeof(etext) != "string" && typeof(etext) != "object") {

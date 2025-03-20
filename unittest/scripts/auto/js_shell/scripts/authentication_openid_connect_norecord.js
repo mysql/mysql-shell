@@ -28,7 +28,7 @@ try {
 
     if (openid_available) {
         // setup
-        session.runSql(`SET GLOBAL authentication_openid_connect_configuration='file://${cnfg_path}'`);
+        session.runSql('SET GLOBAL authentication_openid_connect_configuration=?', [`file://${cnfg_path}`]);
         session.runSql(`CREATE USER '${OPENID_CONNECT_USER}' IDENTIFIED WITH authentication_openid_connect BY '{"identity_provider":"${OPENID_CONNECT_PROVIDER}","user":"${OPENID_CONNECT_SUBJECT}"}';`);
         session.runSql("CREATE USER 'other_user' IDENTIFIED BY 'mypwd'");
         session.runSql(`GRANT ALL PRIVILEGES ON *.* TO '${OPENID_CONNECT_USER}'`);
