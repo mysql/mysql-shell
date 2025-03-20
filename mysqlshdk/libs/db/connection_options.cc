@@ -502,7 +502,7 @@ void Connection_options::set(const std::string &name,
       } catch (...) {
         throw std::invalid_argument(
             "The value of '"s + kWebauthnClientDeviceIndex +
-            "' must be an integer equal or larger than 0."s);
+            "' must be an integer equal to or greater than 0."s);
       }
     }
     m_extra_options.set(name, value, Set_mode::CREATE);

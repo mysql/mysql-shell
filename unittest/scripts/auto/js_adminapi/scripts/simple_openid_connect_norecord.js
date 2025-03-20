@@ -67,7 +67,7 @@ session3 = mysql.getSession(__sandbox_uri3);
 EXPECT_NO_THROWS(function() {
     const sessions = [session1, session2, session3];
     sessions.forEach(session => {
-        session.runSql(`SET PERSIST authentication_openid_connect_configuration='file://${cnfg_path}'`);
+        session.runSql('SET PERSIST authentication_openid_connect_configuration=?', [`file://${cnfg_path}`]);
         session.runSql("SET sql_log_bin = 0");
         session.runSql(`CREATE USER '${OPENID_CONNECT_USER}' IDENTIFIED WITH authentication_openid_connect BY '{"identity_provider":"${OPENID_CONNECT_PROVIDER}","user":"${OPENID_CONNECT_SUBJECT}"}';`);
         session.runSql(`GRANT ALL PRIVILEGES ON *.* TO '${OPENID_CONNECT_USER}' WITH GRANT OPTION;`);
