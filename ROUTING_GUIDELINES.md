@@ -29,9 +29,11 @@ This cookbook provides recipes for creating and managing Routing Guidelines with
 
 ## Recipe 1: Cluster: Default Routing Guideline
 
-In this setup, we'll create a default Routing Guideline for an InnoDB Cluster. The AdminAPI populates the guideline with default values, according to the topology type, which represent Router's default behavior on that topology.
+In this setup, we'll create a default Routing Guideline for an InnoDB Cluster.
 
-In this setup, we'll create a default Routing Guidelines for an InnoDB Cluster which was configured with the defaults. The guideline represents a basic setup where write operations are directed to the Primary member and read operations are distributed across Secondary nodes (if available) or the Primary node as a fallback. This setup provides a balanced approach that suits many common applications.
+When no custom guideline is provided, the AdminAPI generates a default configuration based on the topology type. This default reflects MySQL Router's default behavior for that topology.
+
+For InnoDB Cluster, the default guideline routes write operations to the Primary member and read operations to Secondary members, if available, falling back to the Primary when needed. This setup offers a balanced and resilient approach, suitable for many common workloads.
 
 ### Step 1: Create the guideline
 
@@ -113,7 +115,7 @@ Example JSON output:
             "name": "ro"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -248,8 +250,8 @@ cluster.list_routers()
             "rwPort": "6446",
             "rwSplitPort": "6450",
             "rwXPort": "6448",
-            "supportedRoutingGuidelinesVersion": "1.0",
-            "version": "9.2.0"
+            "supportedRoutingGuidelinesVersion": "1.1",
+            "version": "9.3.0"
         },
         "domus::my_router2": {
             "currentRoutingGuideline": null,
@@ -261,8 +263,8 @@ cluster.list_routers()
             "rwPort": "6446",
             "rwSplitPort": "6450",
             "rwXPort": "6448",
-            "supportedRoutingGuidelinesVersion": "1.0",
-            "version": "9.2.0"
+            "supportedRoutingGuidelinesVersion": "1.1",
+            "version": "9.3.0"
         }
     }
 }
@@ -475,7 +477,7 @@ guideline = {
             "name": "compliance_based"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -501,7 +503,6 @@ rg.set_destination_option("EU_Regions", "match", "$.server.address IN ('eu-west-
 
 // Disable the 'compliance_based' route temporarily
 rg.set_route_option("compliance_based", "enabled", False);
-
 ```
 
 In this example:
@@ -584,7 +585,7 @@ Save the following JSON configuration in a file, e.g., load_balancing_guideline.
             "name": "rw"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -671,7 +672,7 @@ Application-specific and schema-based routing allows routing guidelines to direc
             "name": "data_schema_routing"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -737,7 +738,7 @@ MySQL Version Specific Routing is useful when certain applications or sessions n
             "name": "ro_traffic_to_8_0_39"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -807,7 +808,7 @@ Custom tag-based and performance-based routing enables traffic routing based on 
             "name": "admin_finance_traffic"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -909,7 +910,7 @@ In environments with distinct stages such as testing, staging, and production, r
             "name": "session_affinity"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -1035,7 +1036,7 @@ Client characteristics routing allows traffic to be directed based on specific a
             "name": "testing_traffic"
         }
     ],
-    "version": "1.0"
+    "version": "1.1"
 }
 ```
 
@@ -1043,14 +1044,14 @@ Client characteristics routing allows traffic to be directed based on specific a
 
 With the Comprehensive_ConnectAttrs_Routing in place:
 
-  - linux_traffic: Routes sessions where the "_os" connection attribute is "Linux" to servers running on Linux, distributing connections in a round-robin fashion.
+  - linux_traffic: Routes sessions where the "_os" connection attribute is "Linux" to servers running on Linux ("Linux_Servers"), distributing connections in a round-robin fashion.
 
-  - x86_64_traffic: Routes sessions with the "_platform" attribute set to "x86_64" to x86_64-servers, using a first-available strategy.
+  - x86_64_traffic: Routes sessions with the "_platform" attribute set to "x86_64" to "x86_64_Servers", using a first-available strategy.
 
-  - backup_traffic: Routes sessions coming from "mysqldump" (connectAttrs.program_name = 'mysqldump') to the Backup servers.
+  - backup_traffic: Routes sessions coming from "mysqldump" (connectAttrs.program_name = 'mysqldump') to the "Backup_Servers".
 
-  - Commercial Traffic: Routes sessions using the 'audit' schema to servers designated as Commercial_Servers.
+  - Commercial Traffic: Routes sessions using the 'audit' schema to servers designated as "Commercial_Servers".
 
-  - Testing Traffic: Routes specific test sessions ($.session.user = 'test_user') to servers tagged as testing resources.
+  - Testing Traffic: Routes specific test sessions ($.session.user = 'test_user') to servers tagged for testing ("Testing_Servers").
 
 This guideline provides flexibility to route traffic based on client-specific attributes, enabling targeted resource allocation and optimization for diverse client characteristics.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -415,7 +415,7 @@ splitting connections.
 @li $.router.localCluster: Name of the cluster configured as local to the
 Router.
 @li $.router.hostname: Hostname where the Router is running.
-@li $.router.address: IP address on which the Router is listening.
+@li $.router.bindAddress: IP address on which the Router is listening.
 @li $.router.tags: A key-value object containing user-defined tags stored in
 the topology's metadata for that Router instance.
 @li $.router.routeName: Name of the Routing plugin used by the Router.
@@ -513,7 +513,7 @@ splitting connections.
 @li $.router.localCluster: Name of the cluster configured as local to the
 Router.
 @li $.router.hostname: Hostname where Router is running.
-@li $.router.address: IP address on which the Router is listening.
+@li $.router.bindAddress: IP address on which the Router is listening.
 @li $.router.tags: A key-value object containing user-defined tags stored in
 the topology's metadata for that Router instance.
 @li $.router.routeName: Name of the Routing plugin used by the Router.
@@ -702,7 +702,7 @@ servers of the target topology that match the destinations and routes.
 It also identifies all destinations not referenced by any route.
 
 Destinations that rely on expressions involving the
-target router port or address (e.g., '$.router.port' or '$.router.address')
+target router port or address (e.g., '$.router.port' or '$.router.bindAddress')
 may produce results that differ from actual behavior in MySQL Router. Since
 this function evaluates the guideline outside the context of the router,
 these expressions are not matched against live router runtime data and may
@@ -744,11 +744,13 @@ void RoutingGuideline::show(
 
 REGISTER_HELP_FUNCTION(rename, RoutingGuideline);
 REGISTER_HELP_FUNCTION_TEXT(ROUTINGGUIDELINE_RENAME, R"*(
-Rename the target Routing Guideline.
+Renames the target Routing Guideline.
 
-This functions allows changing the name of an existing Routing Guideline.
+@param name The new name to assign to the Routing Guideline.
 
-@returns Nothing
+@returns Nothing.
+
+This command renames the target Routing Guideline.
 )*");
 
 /**
