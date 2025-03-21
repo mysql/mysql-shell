@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -252,6 +252,8 @@ class Base_cluster_impl {
   std::shared_ptr<Routing_guideline_impl> import_routing_guideline(
       std::shared_ptr<Base_cluster_impl> self, const std::string &file_path,
       const shcore::Option_pack_ref<Import_routing_guideline_options> &options);
+
+  virtual std::vector<Router_metadata> get_routers() const;
 
  public:
   /*

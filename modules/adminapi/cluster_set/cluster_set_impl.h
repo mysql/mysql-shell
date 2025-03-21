@@ -186,6 +186,8 @@ class Cluster_set_impl : public Base_cluster_impl,
       const mysqlshdk::mysql::IInstance &donor,
       const mysqlshdk::mysql::IInstance &recipient) const;
 
+  std::vector<Router_metadata> get_routers() const override;
+
  protected:
   void _set_option(const std::string &option,
                    const shcore::Value &value) override;

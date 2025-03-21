@@ -820,6 +820,10 @@ void Cluster_set_impl::ensure_compatible_clone_donor(
   Base_cluster_impl::check_compatible_clone_donor(donor, recipient);
 }
 
+std::vector<Router_metadata> Cluster_set_impl::get_routers() const {
+  return get_metadata_storage()->get_clusterset_routers(get_id());
+}
+
 shcore::Value Cluster_set_impl::create_replica_cluster(
     const std::string &instance_def, const std::string &cluster_name,
     Recovery_progress_style progress_style,
