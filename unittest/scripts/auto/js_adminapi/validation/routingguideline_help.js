@@ -153,8 +153,8 @@ FUNCTIONS
       removeRoute(name)
             Remove a route from the Routing Guideline.
 
-      rename()
-            Rename the target Routing Guideline.
+      rename(name)
+            Renames the target Routing Guideline.
 
       routes()
             List routes defined for the Routing Guideline.
@@ -276,7 +276,7 @@ DESCRIPTION
       - $.router.localCluster: Name of the cluster configured as local to the
         Router.
       - $.router.hostname: Hostname where the Router is running.
-      - $.router.address: IP address on which the Router is listening.
+      - $.router.bindAddress: IP address on which the Router is listening.
       - $.router.tags: A key-value object containing user-defined tags stored
         in the topology's metadata for that Router instance.
       - $.router.routeName: Name of the Routing plugin used by the Router.
@@ -351,7 +351,7 @@ DESCRIPTION
       - $.router.localCluster: Name of the cluster configured as local to the
         Router.
       - $.router.hostname: Hostname where Router is running.
-      - $.router.address: IP address on which the Router is listening.
+      - $.router.bindAddress: IP address on which the Router is listening.
       - $.router.tags: A key-value object containing user-defined tags stored
         in the topology's metadata for that Router instance.
       - $.router.routeName: Name of the Routing plugin used by the Router.
@@ -466,9 +466,9 @@ DESCRIPTION
       routes. It also identifies all destinations not referenced by any route.
 
       Destinations that rely on expressions involving the target router port or
-      address (e.g., '$.router.port' or '$.router.address') may produce results
-      that differ from actual behavior in MySQL Router. Since this function
-      evaluates the guideline outside the context of the router, these
+      address (e.g., '$.router.port' or '$.router.bindAddress') may produce
+      results that differ from actual behavior in MySQL Router. Since this
+      function evaluates the guideline outside the context of the router, these
       expressions are not matched against live router runtime data and may not
       reflect the router's operational reality. On that case, the option
       'router' must be set to specify the Router instance that should be used
@@ -480,15 +480,19 @@ DESCRIPTION
 
 //@<OUT> rename
 NAME
-      rename - Rename the target Routing Guideline.
+      rename - Renames the target Routing Guideline.
 
 SYNTAX
-      <RoutingGuideline>.rename()
+      <RoutingGuideline>.rename(name)
+
+WHERE
+      name: The new name to assign to the Routing Guideline.
+
+RETURNS
+      Nothing.
 
 DESCRIPTION
-      This functions allows changing the name of an existing Routing Guideline.
-
-      @returns Nothing
+      This command renames the target Routing Guideline.
 
 //@<OUT> setDestinationOption
 NAME
