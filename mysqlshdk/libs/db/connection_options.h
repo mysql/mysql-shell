@@ -65,9 +65,8 @@ inline constexpr int k_default_mysql_x_port = 33060;
 inline constexpr int k_max_auth_factors = 3;
 class SHCORE_PUBLIC Connection_options : public IConnection {
  public:
-  explicit Connection_options(
-      utils::nullable_options::Comparison_mode mode =
-          utils::nullable_options::Comparison_mode::CASE_INSENSITIVE);
+  Connection_options();
+  explicit Connection_options(utils::nullable_options::Comparison_mode mode);
   explicit Connection_options(
       const std::string &uri,
       utils::nullable_options::Comparison_mode mode =

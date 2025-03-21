@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,8 +36,6 @@
 #include "modules/devapi/base_resultset.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/mysql/row.h"
-#include "scripting/types.h"
-#include "scripting/types_cpp.h"
 
 namespace mysqlsh {
 namespace mysql {

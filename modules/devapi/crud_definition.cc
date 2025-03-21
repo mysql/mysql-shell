@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,6 +40,7 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/utils/atomic_flag.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "shellcore/interrupt_handler.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_string.h"

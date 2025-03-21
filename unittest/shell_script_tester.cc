@@ -46,6 +46,7 @@
 #include "utils/utils_lexing.h"
 #include "utils/utils_path.h"
 #include "utils/utils_string.h"
+#include "utils/version.h"
 
 using namespace shcore;
 
@@ -1721,27 +1722,20 @@ void Shell_script_tester::set_defaults() {
                             var_prefix.c_str());
   exec_and_out_equals(code);
 
-  code = shcore::str_format("%s__mysh_full_version = '" MYSH_FULL_VERSION "'",
-                            var_prefix.c_str());
+  code =
+      shcore::str_format("%s__mysh_version = '%s'", var_prefix.c_str(),
+                         mysqlshdk::utils::k_shell_version.get_base().c_str());
   exec_and_out_equals(code);
 
-  code = shcore::str_format("%s__mysh_version = '" MYSH_VERSION "'",
-                            var_prefix.c_str());
+  code =
+      shcore::str_format("%s__mysh_version_full = '%s'", var_prefix.c_str(),
+                         mysqlshdk::utils::k_shell_version.get_full().c_str());
   exec_and_out_equals(code);
 
-  code = shcore::str_format(
-      "%s__mysh_version_no_extra = '%s'", var_prefix.c_str(),
-      mysqlshdk::utils::Version(MYSH_VERSION).get_base().c_str());
+  code =
+      shcore::str_format("%s__mysh_version_num = %" PRIu32, var_prefix.c_str(),
+                         mysqlshdk::utils::k_shell_version.numeric());
   exec_and_out_equals(code);
-
-  {
-    auto sh_version_num =
-        static_cast<int64_t>(mysqlshdk::utils::Version(MYSH_VERSION).numeric());
-
-    code = shcore::str_format("%s__mysh_version_num = %" PRId64,
-                              var_prefix.c_str(), sh_version_num);
-    exec_and_out_equals(code);
-  }
 
   code = shcore::str_format("%s__version = '%s'", var_prefix.c_str(),
                             _target_server_version.get_base().c_str());

@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,6 @@
 #include "gtest_clean.h"
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 
 #include "shell_script_tester.h"
 #include "shellcore/shell_core.h"

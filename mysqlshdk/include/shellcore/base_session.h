@@ -36,7 +36,7 @@
 #include <unordered_map>
 
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/cpp.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
 
@@ -124,7 +124,8 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
 
   virtual std::string get_ssl_cipher() const = 0;
 
-  virtual void set_option(const char *UNUSED(option), int UNUSED(value)) {}
+  virtual void set_option([[maybe_unused]] const char *option,
+                          [[maybe_unused]] int value) {}
   virtual uint64_t get_connection_id() const { return 0; }
   virtual std::string query_one_string(const std::string &query,
                                        int field = 0) = 0;

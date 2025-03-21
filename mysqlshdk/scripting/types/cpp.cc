@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,13 +23,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/cpp.h"
 
 #include <algorithm>
 #include <limits>
 #include <tuple>
 
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -49,8 +48,7 @@ namespace shcore {
 
 namespace {
 std::tuple<bool, std::vector<std::string>> process_keyword_args(
-    const shcore::Cpp_function::Raw_signature &cand,
-    const shcore::Dictionary_t &kwds) {
+    const shcore::Raw_signature &cand, const shcore::Dictionary_t &kwds) {
   std::set<std::string> kwd_names;
   std::set<std::string> params;
 
@@ -78,22 +76,6 @@ std::tuple<bool, std::vector<std::string>> process_keyword_args(
   return std::make_tuple(remaining_as_kwargs, std::move(diff));
 }
 }  // namespace
-
-Cpp_function::Raw_signature Cpp_function::gen_signature(
-    const std::vector<std::pair<std::string, Value_type>> &args) {
-  Raw_signature sig;
-  for (auto &i : args) {
-    Param_flag flag = Param_flag::Mandatory;
-    std::string name = i.first;
-    if (i.first[0] == '?') {
-      name = i.first.substr(1);
-      flag = Param_flag::Optional;
-    }
-
-    sig.push_back(std::make_shared<Parameter>(name, i.second, flag));
-  }
-  return sig;
-}
 
 std::tuple<bool, int, shcore::Exception> Cpp_function::match_signatures(
     const Raw_signature &cand, const std::vector<Value_type> &wanted,
@@ -240,16 +222,15 @@ std::tuple<bool, int, shcore::Exception> Cpp_function::match_signatures(
 
 using FunctionEntry = std::pair<std::string, std::shared_ptr<Cpp_function>>;
 
-std::map<std::string, Cpp_function::Metadata> Cpp_object_bridge::mdtable;
+std::map<std::string, Function_metadata> Cpp_object_bridge::mdtable;
 std::mutex Cpp_object_bridge::s_mtx;
 
-Cpp_function::Metadata &Cpp_object_bridge::get_metadata(
-    const std::string &name) {
+Function_metadata &Cpp_object_bridge::get_metadata(const std::string &name) {
   return mdtable[name];
 }
 
 void Cpp_object_bridge::set_metadata(
-    Cpp_function::Metadata &meta, const std::string &name, Value_type rtype,
+    Function_metadata &meta, const std::string &name, Value_type rtype,
     const std::vector<std::pair<std::string, Value_type>> &ptypes,
     const std::string &pcodes) {
   bool found_optional = false;
@@ -265,53 +246,6 @@ void Cpp_object_bridge::set_metadata(
   }
   meta.set(name, rtype, ptypes, pcodes);
 }
-
-void Cpp_function::Metadata::set_name(const std::string &name_) {
-  auto index = name_.find("|");
-  if (index == std::string::npos) {
-    name[LowerCamelCase] = get_member_name(name_, LowerCamelCase);
-    name[LowerCaseUnderscores] = get_member_name(name_, LowerCaseUnderscores);
-  } else {
-    name[LowerCamelCase] = name_.substr(0, index);
-    name[LowerCaseUnderscores] = name_.substr(index + 1);
-  }
-}
-
-void Cpp_function::Metadata::set(
-    const std::string &name_, Value_type rtype,
-    const std::vector<std::pair<std::string, Value_type>> &ptypes,
-    const std::string &pcodes) {
-  set_name(name_);
-
-  signature = Cpp_function::gen_signature(ptypes);
-
-  param_types = ptypes;
-  param_codes = pcodes;
-  return_type = rtype;
-}
-
-void Cpp_function::Metadata::set(
-    const std::string &name_, Value_type rtype, const Raw_signature &params,
-    const std::vector<std::pair<std::string, Value_type>> &ptypes,
-    const std::string &pcodes) {
-  set_name(name_);
-
-  signature = params;
-
-  for (const auto &param : signature) {
-    std::string param_name = param->name;
-
-    if (param->flag == Param_flag::Optional) param_name = "?" + param_name;
-
-    param_types.push_back(std::make_pair(param_name, param->type()));
-  }
-
-  param_types = ptypes;
-  param_codes = pcodes;
-  return_type = rtype;
-}
-
-void Cpp_function::Metadata::cli(bool enable) { cli_enabled = enable; }
 
 Cpp_object_bridge::Cpp_object_bridge() {
   expose("help", &Cpp_object_bridge::help, "?item")->cli(false);
@@ -475,9 +409,9 @@ bool Cpp_object_bridge::has_method(const std::string &name) const {
   return method_index != _funcs.end();
 }
 
-Cpp_function::Metadata *Cpp_object_bridge::expose(
+Function_metadata *Cpp_object_bridge::expose(
     const std::string &name, const shcore::Function_base_ref &func,
-    const Cpp_function::Raw_signature &parameters) {
+    const Raw_signature &parameters) {
   assert(func);
   assert(!name.empty());
 
@@ -519,7 +453,7 @@ Cpp_function::Metadata *Cpp_object_bridge::expose(
 
   std::string mangled_name = class_name() + "::" + name + ":" + pcodes;
 
-  Cpp_function::Metadata &md = get_metadata(mangled_name);
+  Function_metadata &md = get_metadata(mangled_name);
   if (md.name[0].empty()) {
     md.set(name, func->return_type(), parameters, ptypes, pcodes);
   }
@@ -543,7 +477,7 @@ Cpp_function::Metadata *Cpp_object_bridge::expose(
   return &md;
 }
 
-const Cpp_function::Metadata *Cpp_object_bridge::get_function_metadata(
+const Function_metadata *Cpp_object_bridge::get_function_metadata(
     const std::string &name, bool cli_enabled) {
   auto range = _funcs.equal_range(name);
 
@@ -821,8 +755,8 @@ std::string Cpp_object_bridge::help(const std::string &item) {
   return help.get_help(pattern, mask);
 }
 
-void Cpp_object_bridge::detect_overload_conflicts(
-    const std::string &name, const Cpp_function::Metadata &md) {
+void Cpp_object_bridge::detect_overload_conflicts(const std::string &name,
+                                                  const Function_metadata &md) {
   const auto &function_sig = md.signature;
   auto range = _funcs.equal_range(name);
   for (auto it = range.first; it != range.second; ++it) {
@@ -858,7 +792,7 @@ void Cpp_object_bridge::detect_overload_conflicts(
 
 //-------
 
-Cpp_function::Cpp_function(const Metadata *meta, const Function &func)
+Cpp_function::Cpp_function(const Function_metadata *meta, const Function &func)
     : _func(func), _meta(meta) {}
 
 // TODO(rennox) legacy, delme once add_method is no longer needed
@@ -926,7 +860,7 @@ Cpp_function::Cpp_function(
   }
   _meta_tmp.param_types = args;
   _meta_tmp.param_codes = get_param_codes(args);
-  _meta_tmp.signature = Cpp_function::gen_signature(args);
+  _meta_tmp.signature = generate_signature(args);
   _meta = &_meta_tmp;
 }
 
@@ -945,7 +879,8 @@ const std::vector<std::pair<std::string, Value_type>> &Cpp_function::signature()
 
 Value_type Cpp_function::return_type() const { return _meta->return_type; }
 
-bool Cpp_function::operator==(const Function_base &UNUSED(other)) const {
+bool Cpp_function::operator==(
+    [[maybe_unused]] const Function_base &other) const {
   throw Exception::logic_error("Cannot compare function objects");
   return false;
 }
@@ -1075,131 +1010,6 @@ std::string Parameter_context::str() const {
   ctx_data.erase(ctx_data.size() - 2);  // remove last ", "
 
   return ctx_data;
-}
-
-bool Parameter_validator::valid_type(const Parameter &param,
-                                     Value_type type) const {
-  return is_compatible_type(type, param.type());
-}
-
-void Parameter_validator::validate(const Parameter &param, const Value &data,
-                                   Parameter_context *context) const {
-  if (!m_enabled) return;
-  try {
-    // NOTE: Skipping validation for Undefined parameters that are optional as
-    // they will use the default value
-    if (param.flag == Param_flag::Optional &&
-        data.get_type() == Value_type::Undefined)
-      return;
-
-    if (!valid_type(param, data.get_type()))
-      throw std::invalid_argument("Invalid type");
-
-    // The call to check_type only verifies the kConvertible matrix there:
-    // - A string is convertible to integer, bool and float
-    // - A Null us convertible to object, array and dictionary
-    // We do this validation to make sure the conversion is really valid
-    if (data.get_type() == shcore::String) {
-      if (param.type() == shcore::Integer)
-        data.as_int();
-      else if (param.type() == shcore::Bool)
-        data.as_bool();
-      else if (param.type() == shcore::Float)
-        data.as_double();
-    }
-  } catch (...) {
-    auto error =
-        shcore::str_format("%s is expected to be %s", context->str().c_str(),
-                           shcore::type_description(param.type()).c_str());
-    throw shcore::Exception::type_error(error);
-  }
-}
-
-void Object_validator::validate(const Parameter &param, const Value &data,
-                                Parameter_context *context) const {
-  if (!m_enabled) return;
-  // NOTE: Skipping validation for Undefined parameters that are optional as
-  // they will use the default value
-  if (param.flag == Param_flag::Optional &&
-      data.get_type() == Value_type::Undefined)
-    return;
-  Parameter_validator::validate(param, data, context);
-
-  if (m_allowed_ref->empty()) return;
-
-  const auto object = data.as_object();
-
-  if (!object) {
-    throw shcore::Exception::type_error(shcore::str_format(
-        "%s is expected to be an object", context->str().c_str()));
-  }
-
-  if (std::find(std::begin(m_allowed), std::end(m_allowed),
-                object->class_name()) == std::end(m_allowed)) {
-    auto allowed_str = shcore::str_join(m_allowed, ", ");
-
-    if (m_allowed.size() == 1)
-      throw shcore::Exception::type_error(
-          shcore::str_format("%s is expected to be a '%s' object",
-                             context->str().c_str(), allowed_str.c_str()));
-
-    throw shcore::Exception::argument_error(
-        shcore::str_format("%s is expected to be one of '%s'",
-                           context->str().c_str(), allowed_str.c_str()));
-  }
-}
-
-void String_validator::validate(const Parameter &param, const Value &data,
-                                Parameter_context *context) const {
-  if (!m_enabled) return;
-  // NOTE: Skipping validation for Undefined parameters that are optional as
-  // they will use the default value
-  if (param.flag == Param_flag::Optional &&
-      data.get_type() == Value_type::Undefined)
-    return;
-  Parameter_validator::validate(param, data, context);
-
-  if (m_allowed_ref->empty()) return;
-
-  if (std::find(std::begin(*m_allowed_ref), std::end(*m_allowed_ref),
-                data.as_string()) == std::end(*m_allowed_ref)) {
-    auto error = shcore::str_format(
-        "%s only accepts the following values: %s.", context->str().c_str(),
-        shcore::str_join(*m_allowed_ref, ", ").c_str());
-    throw shcore::Exception::argument_error(error);
-  }
-}
-
-void Option_validator::validate(const Parameter &param, const Value &data,
-                                Parameter_context *context) const {
-  if (!m_enabled) return;
-  // NOTE: Skipping validation for Undefined parameters that are optional as
-  // they will use the default value
-  if (param.flag == Param_flag::Optional &&
-      data.get_type() == Value_type::Undefined)
-    return;
-  Parameter_validator::validate(param, data, context);
-
-  if (m_allowed_ref->empty()) return;
-
-  Option_unpacker unpacker(data.as_map());
-
-  for (const auto &item : *m_allowed_ref) {
-    shcore::Value value;
-    if (item->flag == Param_flag::Mandatory) {
-      unpacker.required(item->name.c_str(), &value);
-    } else {
-      unpacker.optional(item->name.c_str(), &value);
-    }
-
-    if (value) {
-      context->levels.push_back({"option '" + item->name + "'", {}});
-      item->validate(value, context);
-      context->levels.pop_back();
-    }
-  }
-
-  unpacker.end("at " + context->str());
 }
 
 void Parameter::validate(const Value &data, Parameter_context *context) const {

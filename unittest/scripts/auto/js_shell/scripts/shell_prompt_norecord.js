@@ -156,7 +156,7 @@ EXPECT_THROWS(function() {
 //@<> TEST option of wrong type
 EXPECT_THROWS(function() {
     shell.prompt("Select an option", {type:"select", options:['One', 2, 'Three'], defaultValue:4});
-}, "Argument #2: Option 'options' String expected, but value is Integer");
+}, "Argument #2: Option 'options' is expected to be an array of strings");
 
 //@<> TEST empty options
 // WL14872-TSFR_5_4

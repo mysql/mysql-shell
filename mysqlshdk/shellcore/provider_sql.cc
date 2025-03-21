@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,7 +60,7 @@ using Names = mysqlshdk::Sql_completion_result::Names;
 
 namespace {
 
-const Version k_current_version{MYSH_VERSION};
+const Version &k_current_version = mysqlshdk::utils::k_shell_version;
 
 struct Instance {
   class Object {

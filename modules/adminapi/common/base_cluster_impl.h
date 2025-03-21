@@ -203,11 +203,11 @@ class Base_cluster_impl {
                                   const shcore::Value &value);
 
   virtual shcore::Dictionary_t router_options(
-      const shcore::Option_pack_ref<Router_options_options> &options);
+      const Router_options_options &options);
 
-  virtual shcore::Value execute(
-      const std::string &cmd, const shcore::Value &instances,
-      const shcore::Option_pack_ref<Execute_options> &options) = 0;
+  virtual shcore::Value execute(const std::string &cmd,
+                                const shcore::Value &instances,
+                                const Execute_options &options) = 0;
 
   /**
    * Get the tags for a specific Cluster/ReplicaSet
@@ -222,7 +222,7 @@ class Base_cluster_impl {
   std::shared_ptr<Routing_guideline_impl> create_routing_guideline(
       std::shared_ptr<Base_cluster_impl> self, const std::string &name,
       shcore::Dictionary_t json,
-      const shcore::Option_pack_ref<Create_routing_guideline_options> &options);
+      const Create_routing_guideline_options &options);
 
   std::string get_router_option(const std::string &option) const;
 
@@ -250,7 +250,7 @@ class Base_cluster_impl {
 
   std::shared_ptr<Routing_guideline_impl> import_routing_guideline(
       std::shared_ptr<Base_cluster_impl> self, const std::string &file_path,
-      const shcore::Option_pack_ref<Import_routing_guideline_options> &options);
+      const Import_routing_guideline_options &options);
 
   virtual std::vector<Router_metadata> get_routers() const;
 

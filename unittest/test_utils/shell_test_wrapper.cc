@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -163,13 +163,11 @@ void Shell_test_wrapper::enable_testutil() {
                                        Shell_test_env::get_path_to_mysqlsh()));
   _testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text,
-             const shcore::Option_pack_ref<shcore::prompt::Prompt_options>
-                 &options) {
+             const shcore::prompt::Prompt_options &options) {
         output_handler.prompts.push_back({prompt, text, options});
       },
       [this](const std::string &prompt, const std::string &pass,
-             const shcore::Option_pack_ref<shcore::prompt::Prompt_options>
-                 &options) {
+             const shcore::prompt::Prompt_options &options) {
         output_handler.passwords.push_back({prompt, pass, options});
       },
       [this](bool eat_one) -> std::string {

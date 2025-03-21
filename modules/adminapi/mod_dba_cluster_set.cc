@@ -343,15 +343,14 @@ Cluster ClusterSet::create_replica_cluster(InstanceDef instance,
 #endif
 shcore::Value ClusterSet::create_replica_cluster(
     const std::string &instance_def, const std::string &cluster_name,
-    shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
-        options) {
+    const clusterset::Create_replica_cluster_options &options) {
   assert_valid("createReplicaCluster");
 
   return execute_with_pool(
       [&]() {
         return impl()->create_replica_cluster(instance_def, cluster_name,
-                                              options->get_recovery_progress(),
-                                              *options);
+                                              options.get_recovery_progress(),
+                                              options);
       },
       false);
 }
@@ -415,12 +414,11 @@ None ClusterSet::remove_cluster(str cluster_name, dict options);
 #endif
 void ClusterSet::remove_cluster(
     const std::string &cluster_name,
-    const shcore::Option_pack_ref<clusterset::Remove_cluster_options>
-        &options) {
+    const clusterset::Remove_cluster_options &options) {
   assert_valid("removeCluster");
 
   return execute_with_pool(
-      [&]() { impl()->remove_cluster(cluster_name, *options); }, false);
+      [&]() { impl()->remove_cluster(cluster_name, options); }, false);
 }
 
 // Documentation of the status function
@@ -471,14 +469,13 @@ String ClusterSet::status(Dictionary options);
 #elif DOXYGEN_PY
 str ClusterSet::status(dict options);
 #endif
-shcore::Value ClusterSet::status(
-    const shcore::Option_pack_ref<clusterset::Status_options> &options) {
+shcore::Value ClusterSet::status(const clusterset::Status_options &options) {
   assert_valid("status");
 
   return execute_with_pool(
       [&]() {
         impl()->connect_primary();
-        return shcore::Value(impl()->status(options->extended));
+        return shcore::Value(impl()->status(options.extended));
       },
       false);
 }
@@ -576,11 +573,10 @@ Undefined ClusterSet::dissolve(Dictionary options) {}
 None ClusterSet::dissolve(dict options) {}
 #endif
 
-void ClusterSet::dissolve(
-    const shcore::Option_pack_ref<clusterset::Dissolve_options> &options) {
+void ClusterSet::dissolve(const clusterset::Dissolve_options &options) {
   assert_valid("dissolve");
 
-  execute_with_pool([&]() { impl()->dissolve(*options); }, false);
+  execute_with_pool([&]() { impl()->dissolve(options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(setPrimaryCluster, ClusterSet);
@@ -649,12 +645,11 @@ None ClusterSet::set_primary_cluster(str clusterName, dict options);
 #endif
 void ClusterSet::set_primary_cluster(
     const std::string &cluster_name,
-    const shcore::Option_pack_ref<clusterset::Set_primary_cluster_options>
-        &options) {
+    const clusterset::Set_primary_cluster_options &options) {
   assert_valid("setPrimaryCluster");
 
   return execute_with_pool(
-      [&]() { impl()->set_primary_cluster(cluster_name, *options); }, false);
+      [&]() { impl()->set_primary_cluster(cluster_name, options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(forcePrimaryCluster, ClusterSet);
@@ -748,12 +743,11 @@ None ClusterSet::force_primary_cluster(str clusterName, dict options);
 #endif
 void ClusterSet::force_primary_cluster(
     const std::string &cluster_name,
-    const shcore::Option_pack_ref<clusterset::Force_primary_cluster_options>
-        &options) {
+    const clusterset::Force_primary_cluster_options &options) {
   assert_valid("forcePrimaryCluster");
 
   return execute_with_pool(
-      [&]() { impl()->force_primary_cluster(cluster_name, *options); }, false);
+      [&]() { impl()->force_primary_cluster(cluster_name, options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(rejoinCluster, ClusterSet);
@@ -809,12 +803,11 @@ None ClusterSet::rejoin_cluster(str clusterName, dict options);
 #endif
 void ClusterSet::rejoin_cluster(
     const std::string &cluster_name,
-    const shcore::Option_pack_ref<clusterset::Rejoin_cluster_options>
-        &options) {
+    const clusterset::Rejoin_cluster_options &options) {
   assert_valid("rejoinCluster");
 
   return execute_with_pool(
-      [&]() { impl()->rejoin_cluster(cluster_name, *options); }, false);
+      [&]() { impl()->rejoin_cluster(cluster_name, options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(options, ClusterSet);

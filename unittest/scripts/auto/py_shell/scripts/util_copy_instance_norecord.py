@@ -153,7 +153,7 @@ EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "create_invisible_pks" ], "d
 if __version_num < 80025:
     target_version = "8.0.25"
 elif __version_num > __mysh_version_num:
-    target_version = __mysh_version_no_extra
+    target_version = __mysh_version
 else:
     target_version = __version
 

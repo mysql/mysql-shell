@@ -36,8 +36,6 @@
 #include <iterator>
 
 #include "modules/util/common/dump/utils.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/storage/utils.h"
@@ -69,8 +67,7 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
 }
 
 const mysqlshdk::utils::Version &Dump_options::current_version() {
-  static const auto k_current_version = mysqlshdk::utils::Version(MYSH_VERSION);
-  return k_current_version;
+  return mysqlshdk::utils::k_shell_version;
 }
 
 void Dump_options::on_start_unpack(const shcore::Dictionary_t &options) {

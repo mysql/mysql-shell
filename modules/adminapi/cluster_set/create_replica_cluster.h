@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,8 +63,7 @@ class Create_replica_cluster : public Command_interface {
   shcore::Value execute() override;
 
  private:
-  shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options>
-  prepare_create_cluster_options();
+  mysqlsh::dba::Create_cluster_options prepare_create_cluster_options();
 
   std::shared_ptr<Cluster_impl> create_cluster_object(
       const mysqlshdk::mysql::Auth_options &repl_credentials,

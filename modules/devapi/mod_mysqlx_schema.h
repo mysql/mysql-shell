@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -36,7 +36,6 @@
 #include "modules/devapi/base_database_object.h"
 #include "modules/mod_common.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 
 namespace shcore {
 class Proxy_object;

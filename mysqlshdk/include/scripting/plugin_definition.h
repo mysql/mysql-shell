@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,16 +23,21 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _TYPES_COMMON_H_
-#define _TYPES_COMMON_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_PLUGIN_DEFINITION_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_PLUGIN_DEFINITION_H_
 
-// TODO: This definition should be removed from here
-// The one on mysqlshdk_exports.h should be used for symbol exports
-#define TYPES_COMMON_PUBLIC
+#include <string>
 
-#ifdef No_mysqlshtypes
-#undef TYPES_COMMON_PUBLIC
-#define TYPES_COMMON_PUBLIC SHCORE_PUBLIC
-#endif
+namespace shcore {
 
-#endif
+// A plugin file contains the path, and bool indicating whether it is
+// A 1st level plugin (true) or a child plugin (false)
+struct Plugin_definition {
+  Plugin_definition(const std::string f, bool m) : file(f), main(m) {}
+  std::string file;
+  bool main;
+};
+
+}  // namespace shcore
+
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_PLUGIN_DEFINITION_H_

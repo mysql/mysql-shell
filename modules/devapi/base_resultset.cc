@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,12 +32,9 @@
 
 #include "modules/devapi/base_constants.h"
 #include "modules/mod_utils.h"
-#include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/lang_base.h"
 #include "mysqlshdk/include/scripting/obj_date.h"
 #include "mysqlshdk/include/scripting/object_factory.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/shell_core.h"
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"  // TODO(alfredo) - move this to modules/
 #include "mysqlshdk/include/shellcore/utils_help.h"
@@ -302,8 +299,8 @@ shcore::Dictionary_t Row::as_object() {
   return ret_val;
 }
 
-std::string &Row::append_descr(std::string &s_out, int indent,
-                               int UNUSED(quote_strings)) const {
+std::string &Row::append_descr(std::string &s_out, [[maybe_unused]] int indent,
+                               [[maybe_unused]] int quote_strings) const {
   std::string nl = (indent >= 0) ? "\n" : "";
   s_out += "[";
   for (size_t index = 0; index < value_array.size(); index++) {
@@ -338,7 +335,9 @@ std::string &Row::append_repr(std::string &s_out) const {
   return append_descr(s_out);
 }
 
-bool Row::operator==(const Object_bridge &UNUSED(other)) const { return false; }
+bool Row::operator==([[maybe_unused]] const Object_bridge &other) const {
+  return false;
+}
 
 REGISTER_HELP_FUNCTION(getField, Row);
 REGISTER_HELP_FUNCTION_TEXT(ROW_GETFIELD, R"*(

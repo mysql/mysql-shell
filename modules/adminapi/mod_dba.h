@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,8 +44,7 @@
 #include "modules/adminapi/mod_dba_replica_set.h"
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "modules/mod_common.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
+#include "mysqlshdk/include/scripting/types/cpp.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_options.h"
@@ -135,55 +134,43 @@ class SHCORE_PUBLIC Dba : public shcore::Cpp_object_bridge,
  public:  // Exported public methods
   shcore::Value check_instance_configuration(
       const std::optional<Connection_options> &instance_def = {},
-      const shcore::Option_pack_ref<Check_instance_configuration_options>
-          &options = {});
+      const Check_instance_configuration_options &options = {});
   // create and start
-  void deploy_sandbox_instance(
-      int port,
-      const shcore::Option_pack_ref<Deploy_sandbox_options> &options = {});
-  void stop_sandbox_instance(
-      int port,
-      const shcore::Option_pack_ref<Stop_sandbox_options> &options = {});
-  void delete_sandbox_instance(
-      int port,
-      const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
-  void kill_sandbox_instance(
-      int port,
-      const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
-  void start_sandbox_instance(
-      int port,
-      const shcore::Option_pack_ref<Common_sandbox_options> &options = {});
+  void deploy_sandbox_instance(int port,
+                               const Deploy_sandbox_options &options = {});
+  void stop_sandbox_instance(int port,
+                             const Stop_sandbox_options &options = {});
+  void delete_sandbox_instance(int port,
+                               const Common_sandbox_options &options = {});
+  void kill_sandbox_instance(int port,
+                             const Common_sandbox_options &options = {});
+  void start_sandbox_instance(int port,
+                              const Common_sandbox_options &options = {});
 
   void configure_instance(
       const std::optional<Connection_options> &instance_def = {},
-      const shcore::Option_pack_ref<Configure_cluster_instance_options>
-          &options = {});
+      const Configure_cluster_instance_options &options = {});
 
   void configure_replica_set_instance(
       const std::optional<Connection_options> &instance_def = {},
-      const shcore::Option_pack_ref<Configure_replicaset_instance_options>
-          &options = {});
+      const Configure_replicaset_instance_options &options = {});
 
-  shcore::Value create_cluster(
-      const std::string &cluster_name,
-      const shcore::Option_pack_ref<Create_cluster_options> &options = {});
-  void upgrade_metadata(
-      const shcore::Option_pack_ref<Upgrade_metadata_options> &options);
+  shcore::Value create_cluster(const std::string &cluster_name,
+                               const Create_cluster_options &options = {});
+  void upgrade_metadata(const Upgrade_metadata_options &options);
 
   std::shared_ptr<Cluster> get_cluster(
       const std::optional<std::string> &cluster_name = {}) const;
-  void drop_metadata_schema(
-      const shcore::Option_pack_ref<Drop_metadata_schema_options> &options);
+  void drop_metadata_schema(const Drop_metadata_schema_options &options);
 
   std::shared_ptr<Cluster> reboot_cluster_from_complete_outage(
       const std::optional<std::string> &cluster_name = {},
-      const shcore::Option_pack_ref<Reboot_cluster_options> &options = {});
+      const Reboot_cluster_options &options = {});
 
   // ReplicaSets
 
-  shcore::Value create_replica_set(
-      const std::string &full_rs_name,
-      const shcore::Option_pack_ref<Create_replicaset_options> &options);
+  shcore::Value create_replica_set(const std::string &full_rs_name,
+                                   const Create_replicaset_options &options);
 
   std::shared_ptr<ReplicaSet> get_replica_set();
   std::shared_ptr<Replica_set_impl> get_replica_set(

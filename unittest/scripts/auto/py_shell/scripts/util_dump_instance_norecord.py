@@ -382,11 +382,11 @@ def TEST_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Array, but is String".format(option), test_output_relative, { option: "dummy" })
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Array, but is Map".format(option), test_output_relative, { option: {} })
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Array, but is Bool".format(option), test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Null".format(option), test_output_relative, { option: [ None ] })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: [ 5 ] })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: [ -5 ] })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Map".format(option), test_output_relative, { option: [ {} ] })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Bool".format(option), test_output_relative, { option: [ False ] })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be an array of strings".format(option), test_output_relative, { option: [ None ] })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be an array of strings".format(option), test_output_relative, { option: [ 5 ] })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be an array of strings".format(option), test_output_relative, { option: [ -5 ] })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be an array of strings".format(option), test_output_relative, { option: [ {} ] })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be an array of strings".format(option), test_output_relative, { option: [ False ] })
 
 def TEST_MAP_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Integer".format(option), test_output_relative, { option: 5 })
@@ -394,11 +394,11 @@ def TEST_MAP_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is String".format(option), test_output_relative, { option: "dummy" })
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Array".format(option), test_output_relative, { option: [] })
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Bool".format(option), test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Null".format(option), test_output_relative, { option: { "key": None } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": 5 } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": -5 } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Map".format(option), test_output_relative, { option: { "key": {} } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Bool".format(option), test_output_relative, { option: { "key": False } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of strings".format(option), test_output_relative, { option: { "key": None } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of strings".format(option), test_output_relative, { option: { "key": 5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of strings".format(option), test_output_relative, { option: { "key": -5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of strings".format(option), test_output_relative, { option: { "key": {} } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of strings".format(option), test_output_relative, { option: { "key": False } })
 
 def TEST_MAP_OF_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Integer".format(option), test_output_relative, { option: 5 })
@@ -406,14 +406,14 @@ def TEST_MAP_OF_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is String".format(option), test_output_relative, { option: "dummy" })
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Array".format(option), test_output_relative, { option: [] })
     EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be of type Map, but is Bool".format(option), test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Integer".format(option), test_output_relative, { option: { "key": 5 } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Integer".format(option), test_output_relative, { option: { "key": -5 } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Map".format(option), test_output_relative, { option: { "key": {} } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' Array expected, but value is Bool".format(option), test_output_relative, { option: { "key": False } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": [ 5 ] } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Integer".format(option), test_output_relative, { option: { "key": [ -5 ] } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Map".format(option), test_output_relative, { option: { "key": [ {} ] } })
-    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' String expected, but value is Bool".format(option), test_output_relative, { option: { "key": [ False ] } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": 5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": -5 } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": {} } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": False } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": [ 5 ] } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": [ -5 ] } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": [ {} ] } })
+    EXPECT_FAIL("TypeError", "Argument #2: Option '{0}' is expected to be a map of arrays of strings".format(option), test_output_relative, { option: { "key": [ False ] } })
 
 def get_load_columns(options):
     decode = options["decodeColumns"] if "decodeColumns" in options else {}
@@ -4149,11 +4149,11 @@ EXPECT_FAIL("ValueError", "Argument #2: Invalid value of the 'targetVersion' opt
 
 #@<> WL15887-TSFR_1_2_1 - wrong values - greater
 for i in range(3):
-    version = __mysh_version_no_extra.split(".")
+    version = __mysh_version.split(".")
     version[i] = str(int(version[i]) + 1)
     version = ".".join(version)
     if i < 2:
-        EXPECT_FAIL("ValueError", f"Argument #2: Target MySQL version '{version}' is newer than the maximum version '{'.'.join(__mysh_version_no_extra.split('.')[:2])}.*' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": version, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+        EXPECT_FAIL("ValueError", f"Argument #2: Target MySQL version '{version}' is newer than the maximum version '{'.'.join(__mysh_version.split('.')[:2])}.*' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": version, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
     else:
         # BUG#38107377 - patch version is not checked
         EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": version, "dryRun": True, "users": False, "showProgress": False })
@@ -4164,11 +4164,11 @@ EXPECT_FAIL("ValueError", "Argument #2: Target MySQL version '7.9.26' is older t
 
 #@<> WL15887 - valid values
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": "8.0.25", "dryRun": True, "users": False, "showProgress": False })
-EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": __mysh_version_no_extra, "dryRun": True, "users": False, "showProgress": False })
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": __mysh_version, "dryRun": True, "users": False, "showProgress": False })
 
 #@<> WL15887-TSFR_1_4_1 - implict value of targetVersion
 EXPECT_SUCCESS([ schema_name ], test_output_relative, { "ocimds": True, "dryRun": True, "users": False, "showProgress": False })
-EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {__mysh_version_no_extra}")
+EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {__mysh_version}")
 
 # WL15887-TSFR_2_1 - implict value of targetVersion, warnings
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning())
@@ -4184,7 +4184,7 @@ EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_view
 EXPECT_STDOUT_CONTAINS(f"""
 NOTE: One or more objects with the DEFINER clause were found.
 
-      The 'targetVersion' option was not set and compatibility was checked with the MySQL HeatWave Service {__mysh_version_no_extra}.
+      The 'targetVersion' option was not set and compatibility was checked with the MySQL HeatWave Service {__mysh_version}.
       Loading the dump will fail if it is loaded into an DB System instance that does not support the SET_ANY_DEFINER privilege, which was introduced in 8.2.0.
 """)
 
@@ -4193,7 +4193,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     account = f"`{account}`@`localhost`"
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_event, "Event", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_function, "Function", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_procedure, "Procedure", account).error())
@@ -4204,7 +4204,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
 setup_db(test_user_account)
 
 #@<> WL15887-TSFR_3_2_1 - valid account
-EXPECT_SUCCESS([ schema_name ], test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "users": False, "showProgress": False })
+EXPECT_SUCCESS([ schema_name ], test_output_relative, { "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "users": False, "showProgress": False })
 
 # no warnings about DEFINER=
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning())
@@ -4225,7 +4225,7 @@ EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning())
 for account in [ account_name, "`invalid-account`@`localhost`" ]:
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "includeUsers": [ test_user_account ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "includeUsers": [ test_user_account ], "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "includeSchemas": [ schema_name ], "users": True, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_event, "Event", account).warning())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_function, "Function", account).warning())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_procedure, "Procedure", account).warning())
@@ -4236,14 +4236,14 @@ for account in [ account_name, "`invalid-account`@`localhost`" ]:
 setup_db(test_user_account)
 
 #@<> WL15887-TSFR_4_1 - note about strip_definers
-EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_definers" ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "users": False, "showProgress": False })
-EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version_no_extra}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
+EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_definers" ], "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "users": False, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
 
 #@<> WL15887-TSFR_5_1 - user/role with SET_ANY_DEFINER {VER(>=8.2.0)}
 for account in account_names:
     session.run_sql(f"GRANT SET_ANY_DEFINER ON *.* TO {account}")
     WIPE_OUTPUT()
-    EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_restricted_grants" ], "includeUsers": [ account ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "users": True, "showProgress": False })
+    EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_restricted_grants" ], "includeUsers": [ account ], "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "users": True, "showProgress": False })
     EXPECT_STDOUT_NOT_CONTAINS("SET_ANY_DEFINER")
     session.run_sql(f"REVOKE SET_ANY_DEFINER ON *.* FROM {account}")
 
@@ -4251,7 +4251,7 @@ for account in account_names:
 for account in account_names:
     session.run_sql(f"GRANT SET_USER_ID ON *.* TO {account}")
     WIPE_OUTPUT()
-    EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_restricted_grants" ], "includeUsers": [ account ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "users": True, "showProgress": False })
+    EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_restricted_grants" ], "includeUsers": [ account ], "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "users": True, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(strip_restricted_grants_set_user_id_replaced(account).fixed())
     session.run_sql(f"REVOKE SET_USER_ID ON *.* FROM {account}")
 
@@ -4449,7 +4449,7 @@ session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 #@<> BUG#36701854 - dumps from a server with a greater minor version are allowed, but a warning is printed {VER(>=8.0.0) and not __dbug_off}
 testutil.dbug_set("+d,dumper_newer_server_version")
 
-newer_version = __mysh_version_no_extra.split(".")
+newer_version = __mysh_version.split(".")
 newer_version[1] = str(int(newer_version[1]) + 1)
 newer_version[2] = "0"
 newer_version = ".".join(newer_version)
@@ -4463,7 +4463,7 @@ testutil.dbug_set("")
 #@<> BUG#37866205 - dumps from a server with a greater major version are disallowed {not __dbug_off}
 testutil.dbug_set("+d,dumper_unsupported_server_version")
 
-unsupported_version = __mysh_version_no_extra.split(".")
+unsupported_version = __mysh_version.split(".")
 unsupported_version[0] = str(int(unsupported_version[0]) + 1)
 unsupported_version[1] = "0"
 unsupported_version[2] = "0"

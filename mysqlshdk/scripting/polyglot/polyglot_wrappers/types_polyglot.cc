@@ -27,7 +27,6 @@
 
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_api_clean.h"
 
-#include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/naming_style.h"
 #include "mysqlshdk/include/scripting/object_factory.h"
 #include "mysqlshdk/scripting/polyglot/languages/polyglot_language.h"
@@ -47,9 +46,9 @@ Polyglot_object::Polyglot_object(const Polyglot_type_bridger *type_bridger,
 
 std::string Polyglot_object::class_name() const { return m_class_name; }
 
-std::string &Polyglot_object::append_descr(std::string &s_out,
-                                           int UNUSED(indent),
-                                           int UNUSED(quote_strings)) const {
+std::string &Polyglot_object::append_descr(
+    std::string &s_out, [[maybe_unused]] int indent,
+    [[maybe_unused]] int quote_strings) const {
   return s_out.append("<" + class_name() + ">");
 }
 
@@ -83,20 +82,23 @@ std::vector<std::string> Polyglot_object::get_members() const {
   return keys;
 }
 
-bool Polyglot_object::operator==(const Object_bridge &UNUSED(other)) const {
+bool Polyglot_object::operator==(
+    [[maybe_unused]] const Object_bridge &other) const {
   return false;
 }
 
-bool Polyglot_object::operator!=(const Object_bridge &UNUSED(other)) const {
+bool Polyglot_object::operator!=(
+    [[maybe_unused]] const Object_bridge &other) const {
   return false;
 }
 
-Value Polyglot_object::get_property(const std::string &UNUSED(prop)) const {
+Value Polyglot_object::get_property(
+    [[maybe_unused]] const std::string &prop) const {
   return Value();
 }
 
-void Polyglot_object::set_property(const std::string &UNUSED(prop),
-                                   Value UNUSED(value)) {}
+void Polyglot_object::set_property([[maybe_unused]] const std::string &prop,
+                                   [[maybe_unused]] Value value) {}
 
 Value Polyglot_object::get_member(const std::string &prop) const {
   try {
@@ -139,13 +141,17 @@ void Polyglot_object::set_poly_member(const std::string &prop,
 
 bool Polyglot_object::is_indexed() const { return false; }
 
-Value Polyglot_object::get_member(size_t UNUSED(index)) const { return {}; }
+Value Polyglot_object::get_member([[maybe_unused]] size_t index) const {
+  return {};
+}
 
-void Polyglot_object::set_member(size_t UNUSED(index), Value UNUSED(value)) {}
+void Polyglot_object::set_member([[maybe_unused]] size_t index,
+                                 [[maybe_unused]] Value value) {}
 
 size_t Polyglot_object::length() const { return 0; }
 
-bool Polyglot_object::has_method(const std::string &UNUSED(name)) const {
+bool Polyglot_object::has_method(
+    [[maybe_unused]] const std::string &name) const {
   return false;
 }
 
@@ -241,12 +247,14 @@ Value_type Polyglot_function::return_type() const {
   return Undefined;
 }
 
-bool Polyglot_function::operator==(const Function_base &UNUSED(other)) const {
+bool Polyglot_function::operator==(
+    [[maybe_unused]] const Function_base &other) const {
   // TODO:
   return false;
 }
 
-bool Polyglot_function ::operator!=(const Function_base &UNUSED(other)) const {
+bool Polyglot_function ::operator!=(
+    [[maybe_unused]] const Function_base &other) const {
   // TODO:
   return false;
 }

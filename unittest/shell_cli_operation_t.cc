@@ -32,9 +32,7 @@
 #include "modules/util/dump/dump_tables_options.h"
 #include "modules/util/import_table/import_table_options.h"
 #include "modules/util/mod_util.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/cpp.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/shellcore/shell_cli_operation.h"
 #include "unittest/mysqlshdk/scripting/test_option_packs.h"
@@ -64,12 +62,10 @@ class CLI_integration_tester : public shcore::Cpp_object_bridge {
   }
   void test_list_params(const shcore::Array_t & /*one*/,
                         const shcore::Array_t & /*two*/ = shcore::Array_t()) {}
-  void test_dictionary(
-      const shcore::Option_pack_ref<tests::Sample_options> & /*one*/) {}
+  void test_dictionary(const tests::Sample_options & /*one*/) {}
   void test_dictionary_no_options(const shcore::Dictionary_t & /*one*/) {}
-  void test_dictionaries(
-      const shcore::Option_pack_ref<tests::Sample_options> & /*one*/,
-      const shcore::Option_pack_ref<tests::Sample_options> & /*two*/) {}
+  void test_dictionaries(const tests::Sample_options & /*one*/,
+                         const tests::Sample_options & /*two*/) {}
   void test_type_validation(int /*myInt*/, const std::string & /*myString*/,
                             const std::vector<std::string> & /*myList*/,
                             double /*myNamedDouble*/, bool /*myNamedBool*/,

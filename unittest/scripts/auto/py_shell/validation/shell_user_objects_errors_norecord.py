@@ -38,7 +38,7 @@
 
 
 #@member definition 'details' must be an array of strings
-||TypeError: Option 'details' String expected, but value is Integer
+||TypeError: Option 'details' is expected to be an array of strings
 
 
 #@function definition does not accept other attributes
@@ -102,7 +102,7 @@
 
 
 #@A parameter definition requires just strings on details
-||TypeError: Option 'details' String expected, but value is Integer
+||TypeError: Option 'details' is expected to be an array of strings
 
 
 #@<OUT> Non object parameters do not accept 'class' or 'classes' attributes
@@ -172,7 +172,7 @@ Invalid options at boolean parameter 'sample': values
 
 
 #@String parameter 'values' must be an array of strings
-||TypeError: Option 'values' String expected, but value is Integer
+||TypeError: Option 'values' is expected to be an array of strings
 
 #@ Object parameter 'class' must be a string
 ||TypeError: Option 'class' is expected to be of type String, but is Integer
@@ -184,7 +184,7 @@ Invalid options at boolean parameter 'sample': values
 ||TypeError: Option 'classes' is expected to be of type Array, but is Integer
 
 #@ Object parameter 'classes' must be an array of strings
-||TypeError: Option 'classes' String expected, but value is Integer
+||TypeError: Option 'classes' is expected to be an array of strings
 
 #@ Object parameter 'classes' can not be an empty array
 ||ValueError: An empty array is not valid for the classes option.
@@ -223,7 +223,7 @@ Invalid options at boolean parameter 'sample': values
 
 
 #@Parameter option definition 'details' must be array of strings
-||TypeError: Option 'details' String expected, but value is Integer
+||TypeError: Option 'details' is expected to be an array of strings
 
 
 #@Parameter option definition, duplicates are not allowed
@@ -278,7 +278,7 @@ Invalid options at boolean parameter 'sample': values
 
 
 #@Registering global, invalid definition, details should be array of strings
-||TypeError: Option 'details' String expected, but value is Integer
+||TypeError: Option 'details' is expected to be an array of strings
 
 
 #@Registering global, invalid definition, other attributes not accepted

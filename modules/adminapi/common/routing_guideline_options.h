@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,9 +26,7 @@
 #ifndef MODULES_ADMINAPI_COMMON_ROUTING_GUIDELINE_OPTIONS_H_
 #define MODULES_ADMINAPI_COMMON_ROUTING_GUIDELINE_OPTIONS_H_
 
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 
 namespace mysqlsh::dba {
 

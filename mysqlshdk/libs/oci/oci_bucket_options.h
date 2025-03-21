@@ -32,7 +32,7 @@
 #include <string_view>
 #include <vector>
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/libs/storage/backend/object_storage_options.h"
 
 namespace mysqlshdk {

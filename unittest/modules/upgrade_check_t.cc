@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,12 +87,13 @@ namespace mysqlsh {
 namespace upgrade_checker {
 
 using mysqlshdk::db::Connection_options;
+using mysqlshdk::utils::k_shell_version;
 
 class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
  public:
   MySQL_upgrade_check_test()
-      : info(upgrade_info(_target_server_version, Version(MYSH_VERSION))),
-        config(create_config(_target_server_version, Version(MYSH_VERSION))) {}
+      : info(upgrade_info(_target_server_version, k_shell_version)),
+        config(create_config(_target_server_version, k_shell_version)) {}
 
  protected:
   virtual void SetUp() {
@@ -534,7 +535,7 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
 
     info.server_version = before_version(version);
     if (all_variables) {
-      info.target_version = Version(MYSH_VERSION);
+      info.target_version = k_shell_version;
     } else {
       info.target_version = version;
     }
@@ -816,7 +817,7 @@ TEST_F(MySQL_upgrade_check_test, upgrade_info_validation) {
 }
 
 TEST_F(MySQL_upgrade_check_test, checklist_generation) {
-  Version current(MYSH_VERSION);
+  const auto &current = k_shell_version;
   Version prev = before_version(current);
 
   EXPECT_NO_THROW(Upgrade_check_registry::create_checklist(
@@ -1187,7 +1188,7 @@ TEST_F(MySQL_upgrade_check_test, syntax_check_from_5_7) {
   SKIP_IF_NOT_BETWEEN(Version(5, 7, 0), Version(5, 7, 255));
 
   auto check =
-      get_syntax_check(upgrade_info(Version(5, 7, 44), Version(MYSH_VERSION)));
+      get_syntax_check(upgrade_info(Version(5, 7, 44), k_shell_version));
   EXPECT_NO_ISSUES(check.get());
 
   PrepareTestDatabase("testdb");
@@ -2195,7 +2196,7 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
   }
 
   info.server_version = Version(8, 0, 26);
-  info.target_version = Version(MYSH_VERSION);
+  info.target_version = k_shell_version;
 
   auto check = get_sys_vars_check(info);
 
@@ -2296,7 +2297,7 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_new_defaults) {
 
   // Uses a version that will discard all the registered variables
   info.server_version = Version(8, 0, 0);
-  info.target_version = Version(MYSH_VERSION);
+  info.target_version = k_shell_version;
 
   auto check = get_sys_vars_check(info);
 
@@ -2866,13 +2867,13 @@ TEST_F(MySQL_upgrade_check_test, corner_cases_of_upgrade_check) {
   EXPECT_NO_THROW(util.check_for_server_upgrade(Connection_options()));
 
   // Using default session with options dictionary
-  shcore::Option_pack_ref<Upgrade_check_options> op;
-  op->target_version = mysqlshdk::utils::Version(8, 0, 18);
+  Upgrade_check_options op;
+  op.target_version = mysqlshdk::utils::Version(8, 0, 18);
   EXPECT_NO_THROW(util.check_for_server_upgrade(Connection_options(), op));
 }
 
 TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
-  SKIP_IF_NOT_5_7_UP_TO(Version(MYSH_VERSION));
+  SKIP_IF_NOT_5_7_UP_TO(k_shell_version);
 
   Util util(_interactive_shell->shell_context().get());
 
@@ -2880,8 +2881,8 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
   reset_shell();
 
   // valid mysql 5.7 superuser
-  shcore::Option_pack_ref<Upgrade_check_options> options;
-  options->output_format = "JSON";
+  Upgrade_check_options options;
+  options.output_format = "JSON";
   auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   try {
     util.check_for_server_upgrade(connection_options, options);
@@ -2976,10 +2977,9 @@ TEST_F(MySQL_upgrade_check_test, JSON_output_format) {
 }
 
 TEST_F(MySQL_upgrade_check_test, server_version_not_supported) {
-  Version shell_version(MYSH_VERSION);
   // session established with 8.0 server
   if (_target_server_version < Version(8, 0, 0) ||
-      _target_server_version < shell_version)
+      _target_server_version < k_shell_version)
     SKIP_TEST(
         "This test requires running against MySQL server version 8.0, equal "
         "or greater than the shell version");
@@ -3774,15 +3774,15 @@ TEST_F(MySQL_upgrade_check_test, no_database_selected_corrupted_check) {
 // WL#15973-TSFR_1_1
 // WL#15973-TSFR_2
 TEST_F(MySQL_upgrade_check_test, deprecated_auth_method_json_check) {
-  SKIP_IF_NOT_5_7_UP_TO(Version(MYSH_VERSION));
+  SKIP_IF_NOT_5_7_UP_TO(k_shell_version);
 
   Util util(_interactive_shell->shell_context().get());
 
   // clear stdout/stderr garbage
   reset_shell();
 
-  shcore::Option_pack_ref<Upgrade_check_options> options;
-  options->output_format = "JSON";
+  Upgrade_check_options options;
+  options.output_format = "JSON";
   auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   try {
     util.check_for_server_upgrade(connection_options, options);
@@ -4416,7 +4416,7 @@ TEST_F(MySQL_upgrade_check_test, privileges_check_enabled) {
 
 TEST_F(MySQL_upgrade_check_test, privileges_check) {
   // Uses a version that will discard all the registered variables
-  info.server_version = Version(MYSH_VERSION);
+  info.server_version = k_shell_version;
   info.target_version = after_version(info.server_version);
 
   auto check = get_invalid_privileges_check(info);
@@ -4542,8 +4542,8 @@ TEST_F(MySQL_upgrade_check_test, options_filter_json) {
   // clear stdout/stderr garbage
   reset_shell();
 
-  shcore::Option_pack_ref<Upgrade_check_options> options;
-  options->output_format = "JSON";
+  Upgrade_check_options options;
+  options.output_format = "JSON";
   auto connection_options = mysqlshdk::db::Connection_options(_mysql_uri);
   try {
     util.check_for_server_upgrade(connection_options, options);
@@ -5078,7 +5078,7 @@ TEST_F(MySQL_upgrade_check_test, sysvar_source_version_tests) {
            }) != check->get_checks().end();
   };
 
-  info.target_version = Version(MYSH_VERSION);
+  info.target_version = k_shell_version;
 
   // WL16262-TSFR_1_1_2
   {

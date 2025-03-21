@@ -55,6 +55,7 @@
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/base_session.h"
 #include "shellcore/interrupt_handler.h"
@@ -1152,7 +1153,7 @@ void Command_line_shell::command_loop() {
 
 void Command_line_shell::print_banner() {
   std::string welcome_msg("MySQL Shell ");
-  welcome_msg += MYSH_FULL_VERSION;
+  welcome_msg += mysqlshdk::utils::k_shell_version.get_full();
   welcome_msg += "\n\n";
   welcome_msg += "Copyright (c) 2016, " PACKAGE_YEAR
                  ", Oracle and/or its affiliates.\n"
@@ -1167,7 +1168,7 @@ void Command_line_shell::print_banner() {
 void Command_line_shell::print_cmd_line_helper() {
   // clang-format off
   std::string help_msg("MySQL Shell ");
-  help_msg += MYSH_FULL_VERSION;
+  help_msg += mysqlshdk::utils::k_shell_version.get_full();
   println(help_msg);
   println("");
   // Splitting line in two so the git hook does not complain

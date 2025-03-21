@@ -32,10 +32,10 @@
 #include <utility>
 #include <vector>
 
+#include "mysqlshdk/include/scripting/plugin_definition.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_options.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
-#include "scripting/common.h"
 #include "shellcore/ishell_core.h"
 #include "shellcore/shell_notifications.h"
 
@@ -92,7 +92,7 @@ class SHCORE_PUBLIC Shell_command_handler {
   bool m_use_help;
 
  public:
-  Shell_command_handler(bool use_help = true) : m_use_help(use_help){};
+  Shell_command_handler(bool use_help = true) : m_use_help(use_help) {}
   bool process(const std::string &command_line, IShell_core::Mode mode);
   size_t process_inline(const std::string &command, IShell_core::Mode mode);
   void add_command(const std::string &triggers, const std::string &help_tag,
@@ -131,9 +131,9 @@ class SHCORE_PUBLIC Shell_language {
   virtual void clear_input() { m_input_state = Input_state::Ok; }
   virtual std::string get_continued_input_context() = 0;
 
-  virtual void execute_module(
-      const std::string &UNUSED(file_name),
-      const std::vector<std::string> &) { /* Does Nothing by default */
+  virtual void execute_module([[maybe_unused]] const std::string &file_name,
+                              const std::vector<std::string> &) {
+    /* Does Nothing by default */
   }
 
   Input_state input_state() const { return m_input_state; }
@@ -147,7 +147,7 @@ class SHCORE_PUBLIC Shell_language {
    *
    * @param plugin - the information of the plugin to be loaded.
    */
-  virtual bool load_plugin(const Plugin_definition &UNUSED(plugin)) {
+  virtual bool load_plugin([[maybe_unused]] const Plugin_definition &plugin) {
     return true;
   }
 

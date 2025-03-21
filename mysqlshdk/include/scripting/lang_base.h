@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,15 +23,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _LANG_BASE_H_
-#define _LANG_BASE_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_LANG_BASE_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_LANG_BASE_H_
 
 #include <string>
 #include <system_error>
-
-#include "scripting/common.h"
-#include "scripting/types.h"
-#include "scripting/types_common.h"
 
 #include "mysqlshdk/shellcore/shell_prompt_options.h"
 
@@ -49,7 +45,7 @@ enum class Prompt_result {
   CTRL_D = -1  // EOF / Abort / Cancel
 };
 
-class TYPES_COMMON_PUBLIC Interpreter_print_handler {
+class Interpreter_print_handler {
  public:
   // true -> print request was handled and other handlers should not be called
   using Print_function = bool (*)(void *, const char *);
@@ -90,8 +86,7 @@ class TYPES_COMMON_PUBLIC Interpreter_print_handler {
   Print_function m_print_diag = nullptr;
 };
 
-class TYPES_COMMON_PUBLIC Interpreter_delegate
-    : public Interpreter_print_handler {
+class Interpreter_delegate : public Interpreter_print_handler {
  public:
   using Prompt_function =
       Prompt_result (*)(void *, const char *,
@@ -126,4 +121,4 @@ class TYPES_COMMON_PUBLIC Interpreter_delegate
 
 }  // namespace shcore
 
-#endif
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_LANG_BASE_H_

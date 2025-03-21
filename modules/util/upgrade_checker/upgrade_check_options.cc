@@ -29,12 +29,10 @@
 
 #include "modules/util/upgrade_checker/common.h"
 #include "modules/util/upgrade_checker/upgrade_check_registry.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_filtering.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
@@ -69,7 +67,7 @@ const shcore::Option_pack_def<Upgrade_check_options>
 }
 
 mysqlshdk::utils::Version Upgrade_check_options::get_target_version() const {
-  return target_version.value_or(mysqlshdk::utils::Version(MYSH_VERSION));
+  return target_version.value_or(mysqlshdk::utils::k_shell_version);
 }
 
 void Upgrade_check_options::set_target_version(const std::string &value) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -85,48 +85,41 @@ class SHCORE_PUBLIC Util : public Extensible_object {
   void check_for_server_upgrade(
       const std::optional<mysqlshdk::db::Connection_options>
           &connection_options = {},
-      const shcore::Option_pack_ref<upgrade_checker::Upgrade_check_options>
-          &options = {});
+      const upgrade_checker::Upgrade_check_options &options = {});
 
 #if DOXYGEN_JS
   Undefined importJson(String file, Dictionary options);
 #elif DOXYGEN_PY
   None import_json(str file, dict options);
 #endif
-  void import_json(
-      const std::string &file,
-      const shcore::Option_pack_ref<Import_json_options> &options = {});
+  void import_json(const std::string &file,
+                   const Import_json_options &options = {});
 
 #if DOXYGEN_JS
   Undefined importTable(List urls, Dictionary options);
 #elif DOXYGEN_PY
   None import_table(list urls, dict options);
 #endif
-  void import_table_file(
-      const std::string &filename,
-      const shcore::Option_pack_ref<import_table::Import_table_option_pack>
-          &options);
+  void import_table_file(const std::string &filename,
+                         const import_table::Import_table_option_pack &options);
   void import_table_files(
       const std::vector<std::string> &filenames,
-      const shcore::Option_pack_ref<import_table::Import_table_option_pack>
-          &options);
+      const import_table::Import_table_option_pack &options);
 
 #if DOXYGEN_JS
   Undefined loadDump(String url, Dictionary options);
 #elif DOXYGEN_PY
   None load_dump(str url, dict options);
 #endif
-  void load_dump(const std::string &url,
-                 const shcore::Option_pack_ref<Load_dump_options> &options);
+  void load_dump(const std::string &url, Load_dump_options &&options);
 
 #if DOXYGEN_JS
   Undefined exportTable(String table, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None export_table(str table, str outputUrl, dict options);
 #endif
-  void export_table(
-      const std::string &table, const std::string &file,
-      const shcore::Option_pack_ref<dump::Export_table_options> &options);
+  void export_table(const std::string &table, const std::string &file,
+                    dump::Export_table_options &&options);
 
 #if DOXYGEN_JS
   Undefined dumpTables(String schema, List tables, String outputUrl,
@@ -134,28 +127,27 @@ class SHCORE_PUBLIC Util : public Extensible_object {
 #elif DOXYGEN_PY
   None dump_tables(str schema, list tables, str outputUrl, dict options);
 #endif
-  void dump_tables(
-      const std::string &schema, const std::vector<std::string> &tables,
-      const std::string &directory,
-      const shcore::Option_pack_ref<dump::Dump_tables_options> &options);
+  void dump_tables(const std::string &schema,
+                   const std::vector<std::string> &tables,
+                   const std::string &directory,
+                   dump::Dump_tables_options &&options);
 
 #if DOXYGEN_JS
   Undefined dumpSchemas(List schemas, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None dump_schemas(list schemas, str outputUrl, dict options);
 #endif
-  void dump_schemas(
-      const std::vector<std::string> &schemas, const std::string &directory,
-      const shcore::Option_pack_ref<dump::Dump_schemas_options> &options);
+  void dump_schemas(const std::vector<std::string> &schemas,
+                    const std::string &directory,
+                    dump::Dump_schemas_options &&options);
 
 #if DOXYGEN_JS
   Undefined dumpInstance(String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None dump_instance(str outputUrl, dict options);
 #endif
-  void dump_instance(
-      const std::string &directory,
-      const shcore::Option_pack_ref<dump::Dump_instance_options> &options);
+  void dump_instance(const std::string &directory,
+                     dump::Dump_instance_options &&options);
 
 #if DOXYGEN_JS
   Undefined copyInstance(ConnectionData connectionData, Dictionary options);
@@ -164,7 +156,7 @@ class SHCORE_PUBLIC Util : public Extensible_object {
 #endif
   void copy_instance(
       const mysqlshdk::db::Connection_options &connection_options,
-      const shcore::Option_pack_ref<copy::Copy_instance_options> &options = {});
+      copy::Copy_instance_options &&options = {});
 
 #if DOXYGEN_JS
   Undefined copySchemas(List schemas, ConnectionData connectionData,
@@ -172,10 +164,9 @@ class SHCORE_PUBLIC Util : public Extensible_object {
 #elif DOXYGEN_PY
   None copy_schemas(list schemas, ConnectionData connectionData, dict options);
 #endif
-  void copy_schemas(
-      const std::vector<std::string> &schemas,
-      const mysqlshdk::db::Connection_options &connection_options,
-      const shcore::Option_pack_ref<copy::Copy_schemas_options> &options = {});
+  void copy_schemas(const std::vector<std::string> &schemas,
+                    const mysqlshdk::db::Connection_options &connection_options,
+                    copy::Copy_schemas_options &&options = {});
 
 #if DOXYGEN_JS
   Undefined copyTables(String schema, List tables,
@@ -184,28 +175,26 @@ class SHCORE_PUBLIC Util : public Extensible_object {
   None copy_tables(str schema, list tables, ConnectionData connectionData,
                    dict options);
 #endif
-  void copy_tables(
-      const std::string &schema, const std::vector<std::string> &tables,
-      const mysqlshdk::db::Connection_options &connection_options,
-      const shcore::Option_pack_ref<copy::Copy_tables_options> &options = {});
+  void copy_tables(const std::string &schema,
+                   const std::vector<std::string> &tables,
+                   const mysqlshdk::db::Connection_options &connection_options,
+                   copy::Copy_tables_options &&options = {});
 
 #if DOXYGEN_JS
   Undefined dumpBinlogs(String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
   None dump_binlogs(str outputUrl, dict options);
 #endif
-  void dump_binlogs(
-      const std::string &url,
-      const shcore::Option_pack_ref<binlog::Dump_binlogs_options> &options);
+  void dump_binlogs(const std::string &url,
+                    binlog::Dump_binlogs_options &&options);
 
 #if DOXYGEN_JS
   Undefined loadBinlogs(String url, Dictionary options);
 #elif DOXYGEN_PY
   None load_binlogs(str url, dict options);
 #endif
-  void load_binlogs(
-      const std::string &url,
-      const shcore::Option_pack_ref<binlog::Load_binlogs_options> &options);
+  void load_binlogs(const std::string &url,
+                    binlog::Load_binlogs_options &&options);
 
  private:
   std::shared_ptr<mysqlshdk::db::ISession> global_session() const;

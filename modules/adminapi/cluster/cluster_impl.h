@@ -37,7 +37,6 @@
 #include "mysql/instance.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/cluster/api_options.h"
@@ -131,7 +130,7 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value list_routers(bool only_upgrade_required) override;
 
   shcore::Dictionary_t router_options(
-      const shcore::Option_pack_ref<Router_options_options> &options) override;
+      const Router_options_options &options) override;
   void set_routing_option(const std::string &option,
                           const shcore::Value &value);
   void set_routing_option(const std::string &router, const std::string &option,
@@ -145,9 +144,8 @@ class Cluster_impl final : public Base_cluster_impl,
   void set_primary_instance(
       const Connection_options &instance_def,
       const cluster::Set_primary_instance_options &options);
-  shcore::Value execute(
-      const std::string &cmd, const shcore::Value &instances,
-      const shcore::Option_pack_ref<Execute_options> &options) override;
+  shcore::Value execute(const std::string &cmd, const shcore::Value &instances,
+                        const Execute_options &options) override;
   void reset_recovery_password(std::optional<bool> force,
                                const bool interactive);
   void fence_all_traffic();

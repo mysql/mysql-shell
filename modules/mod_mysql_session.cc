@@ -31,8 +31,6 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/obj_date.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/utils/utils.h"

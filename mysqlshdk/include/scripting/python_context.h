@@ -23,8 +23,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _PYTHON_CONTEXT_H_
-#define _PYTHON_CONTEXT_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_CONTEXT_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_CONTEXT_H_
 
 // keep the include order as is, otherwise we hit the Python issue 10910 (macOS)
 
@@ -32,7 +32,6 @@
 
 #include "scripting/lang_base.h"
 #include "scripting/types.h"
-#include "scripting/types_common.h"
 #include "utils/utils_file.h"
 
 #include <cassert>
@@ -40,14 +39,16 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "mysqlshdk/include/scripting/plugin_definition.h"
 #include "scripting/python_type_conversion.h"
 
 namespace shcore {
 
-class TYPES_COMMON_PUBLIC Python_context {
+class Python_context {
  public:
-  Python_context(bool redirect_stdio);
+  explicit Python_context(bool redirect_stdio);
   ~Python_context();
 
   static Python_context *get();
@@ -216,8 +217,6 @@ class TYPES_COMMON_PUBLIC Python_context {
   py::Store _shell_function_class;
 };
 
-// The static member _instance needs to be in a class not exported (no
-// TYPES_COMMON_PUBLIC), otherwise MSVC complains with C2491.
 class Python_init_singleton final {
  public:
   Python_init_singleton(const Python_init_singleton &py) = delete;
@@ -242,6 +241,7 @@ class Python_init_singleton final {
   static unsigned int s_cnt;
   bool m_local_initialization;
 };
+
 }  // namespace shcore
 
-#endif
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_CONTEXT_H_

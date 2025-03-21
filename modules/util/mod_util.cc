@@ -167,8 +167,7 @@ None Util::check_for_server_upgrade(dict options);
 
 void Util::check_for_server_upgrade(
     const std::optional<mysqlshdk::db::Connection_options> &connection_options,
-    const shcore::Option_pack_ref<upgrade_checker::Upgrade_check_options>
-        &options) {
+    const upgrade_checker::Upgrade_check_options &options) {
   mysqlshdk::db::Connection_options connection;
 
   if (connection_options.has_value()) {
@@ -176,13 +175,13 @@ void Util::check_for_server_upgrade(
   }
 
   if (connection.has_data()) {
-    if (options->password.has_value()) {
+    if (options.password.has_value()) {
       if (connection.has_password()) connection.clear_password();
-      connection.set_password(*options->password);
+      connection.set_password(*options.password);
     }
   } else {
     if (!_shell_core.get_dev_session()) {
-      if (!options->list_checks) {
+      if (!options.list_checks) {
         throw shcore::Exception::argument_error(
             "Please connect the shell to the MySQL server to be checked or "
             "specify the server URI as a parameter.");
@@ -192,7 +191,7 @@ void Util::check_for_server_upgrade(
     }
   }
 
-  upgrade_checker::Upgrade_check_config config{*options};
+  upgrade_checker::Upgrade_check_config config{options};
   std::unique_ptr<mysqlshdk::mysql::User_privileges> privileges;
 
   if (connection.has_data()) {
@@ -326,9 +325,8 @@ Undefined Util::importJson(String file, Dictionary options);
 None Util::import_json(str file, dict options);
 #endif
 
-void Util::import_json(
-    const std::string &file,
-    const shcore::Option_pack_ref<Import_json_options> &options) {
+void Util::import_json(const std::string &file,
+                       const Import_json_options &options) {
   auto shell_session = _shell_core.get_dev_session();
 
   if (!shell_session) {
@@ -354,8 +352,8 @@ void Util::import_json(
 
   Prepare_json_import prepare{xsession};
 
-  if (!options->schema.empty()) {
-    prepare.schema(options->schema);
+  if (!options.schema.empty()) {
+    prepare.schema(options.schema);
   } else if (!shell_session->get_current_schema().empty()) {
     prepare.schema(shell_session->get_current_schema());
   } else {
@@ -366,20 +364,20 @@ void Util::import_json(
 
   prepare.path(file);
 
-  if (!options->table.empty()) {
-    prepare.table(options->table);
+  if (!options.table.empty()) {
+    prepare.table(options.table);
   }
 
-  if (!options->table_column.empty()) {
-    prepare.column(options->table_column);
+  if (!options.table_column.empty()) {
+    prepare.column(options.table_column);
   }
 
-  if (!options->collection.empty()) {
-    if (!options->table_column.empty()) {
+  if (!options.collection.empty()) {
+    if (!options.table_column.empty()) {
       throw std::invalid_argument(
           "tableColumn cannot be used with collection.");
     }
-    prepare.collection(options->collection);
+    prepare.collection(options.collection);
   }
 
   // Validate provided parameters and build Json_importer object.
@@ -396,7 +394,7 @@ void Util::import_json(
   });
 
   try {
-    importer.load_from(options->doc_reader);
+    importer.load_from(options.doc_reader);
   } catch (...) {
     importer.print_stats();
     throw;
@@ -1069,19 +1067,17 @@ None Util::import_table(list urls, dict options);
 #endif
 void Util::import_table_file(
     const std::string &filename,
-    const shcore::Option_pack_ref<import_table::Import_table_option_pack>
-        &options) {
+    const import_table::Import_table_option_pack &options) {
   import_table_files({filename}, options);
 }
 
 void Util::import_table_files(
     const std::vector<std::string> &files,
-    const shcore::Option_pack_ref<import_table::Import_table_option_pack>
-        &options) {
+    const import_table::Import_table_option_pack &options) {
   using import_table::Import_table;
   using mysqlshdk::utils::format_bytes;
 
-  import_table::Import_table_options opt(*options);
+  import_table::Import_table_options opt(options);
 
   opt.set_filenames(files);
   opt.set_session(global_session());
@@ -1409,19 +1405,16 @@ Undefined Util::loadDump(String url, Dictionary options) {}
 #elif DOXYGEN_PY
 None Util::load_dump(str url, dict options) {}
 #endif
-void Util::load_dump(
-    const std::string &url,
-    const shcore::Option_pack_ref<Load_dump_options> &options) {
+void Util::load_dump(const std::string &url, Load_dump_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.loadDump()"};
 
-  Load_dump_options opt = *options;
-  opt.set_url(url);
-  opt.set_session(session);
-  opt.validate_and_configure();
+  options.set_url(url);
+  options.set_session(session);
+  options.validate_and_configure();
 
-  Dump_loader loader(opt);
+  Dump_loader loader(options);
 
   shcore::Interrupt_handler intr_handler(
       [&loader]() {
@@ -1431,7 +1424,7 @@ void Util::load_dump(
       [&loader]() { loader.interruption_notification(); });
 
   auto console = mysqlsh::current_console();
-  console->print_info(opt.target_import_info());
+  console->print_info(options.target_import_info());
 
   loader.run();
 }
@@ -1886,22 +1879,20 @@ Undefined Util::exportTable(String table, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
 None Util::export_table(str table, str outputUrl, dict options);
 #endif
-void Util::export_table(
-    const std::string &table, const std::string &file,
-    const shcore::Option_pack_ref<dump::Export_table_options> &options) {
+void Util::export_table(const std::string &table, const std::string &file,
+                        dump::Export_table_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.exportTable()"};
 
   using mysqlsh::dump::Export_table;
 
-  mysqlsh::dump::Export_table_options opts = *options;
-  opts.set_table(table);
-  opts.set_url(file);
-  opts.set_session(session);
-  opts.validate_and_configure();
+  options.set_table(table);
+  options.set_url(file);
+  options.set_session(session);
+  options.validate_and_configure();
 
-  Export_table dumper{opts};
+  Export_table dumper{options};
 
   shcore::Interrupt_handler intr_handler(
       [&dumper]() {
@@ -1986,24 +1977,23 @@ Undefined Util::dumpTables(String schema, List tables, String outputUrl,
 #elif DOXYGEN_PY
 None Util::dump_tables(str schema, list tables, str outputUrl, dict options);
 #endif
-void Util::dump_tables(
-    const std::string &schema, const std::vector<std::string> &tables,
-    const std::string &directory,
-    const shcore::Option_pack_ref<dump::Dump_tables_options> &options) {
+void Util::dump_tables(const std::string &schema,
+                       const std::vector<std::string> &tables,
+                       const std::string &directory,
+                       dump::Dump_tables_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.dumpTables()"};
 
   using mysqlsh::dump::Dump_tables;
 
-  mysqlsh::dump::Dump_tables_options opts = *options;
-  opts.set_schema(schema);
-  opts.set_tables(tables);
-  opts.set_url(directory);
-  opts.set_session(session);
-  opts.validate_and_configure();
+  options.set_schema(schema);
+  options.set_tables(tables);
+  options.set_url(directory);
+  options.set_session(session);
+  options.validate_and_configure();
 
-  Dump_tables dumper{opts};
+  Dump_tables dumper{options};
 
   shcore::Interrupt_handler intr_handler(
       [&dumper]() {
@@ -2058,22 +2048,21 @@ Undefined Util::dumpSchemas(List schemas, String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
 None Util::dump_schemas(list schemas, str outputUrl, dict options);
 #endif
-void Util::dump_schemas(
-    const std::vector<std::string> &schemas, const std::string &directory,
-    const shcore::Option_pack_ref<dump::Dump_schemas_options> &options) {
+void Util::dump_schemas(const std::vector<std::string> &schemas,
+                        const std::string &directory,
+                        dump::Dump_schemas_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.dumpSchemas()"};
 
   using mysqlsh::dump::Dump_schemas;
 
-  mysqlsh::dump::Dump_schemas_options opts = *options;
-  opts.set_schemas(schemas);
-  opts.set_url(directory);
-  opts.set_session(session);
-  opts.validate_and_configure();
+  options.set_schemas(schemas);
+  options.set_url(directory);
+  options.set_session(session);
+  options.validate_and_configure();
 
-  Dump_schemas dumper{opts};
+  Dump_schemas dumper{options};
 
   shcore::Interrupt_handler intr_handler(
       [&dumper]() {
@@ -2149,21 +2138,19 @@ Undefined Util::dumpInstance(String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
 None Util::dump_instance(str outputUrl, dict options);
 #endif
-void Util::dump_instance(
-    const std::string &directory,
-    const shcore::Option_pack_ref<dump::Dump_instance_options> &options) {
+void Util::dump_instance(const std::string &directory,
+                         dump::Dump_instance_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.dumpInstance()"};
 
   using mysqlsh::dump::Dump_instance;
 
-  mysqlsh::dump::Dump_instance_options opts = *options;
-  opts.set_url(directory);
-  opts.set_session(session);
-  opts.validate_and_configure();
+  options.set_url(directory);
+  options.set_session(session);
+  options.validate_and_configure();
 
-  Dump_instance dumper{opts};
+  Dump_instance dumper{options};
 
   shcore::Interrupt_handler intr_handler(
       [&dumper]() {
@@ -2365,15 +2352,14 @@ None Util::copy_instance(ConnectionData connectionData, dict options);
 #endif
 void Util::copy_instance(
     const mysqlshdk::db::Connection_options &connection_options,
-    const shcore::Option_pack_ref<copy::Copy_instance_options> &options) {
+    copy::Copy_instance_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copyInstance()"};
 
-  auto copy_options = *options;
-  copy_options.dump_options()->set_session(session);
+  options.dump_options()->set_session(session);
 
-  copy::copy<mysqlsh::dump::Dump_instance>(connection_options, &copy_options);
+  copy::copy<mysqlsh::dump::Dump_instance>(connection_options, &options);
 }
 
 REGISTER_HELP_FUNCTION(copySchemas, util);
@@ -2414,16 +2400,15 @@ None Util::copy_schemas(list schemas, ConnectionData connectionData,
 void Util::copy_schemas(
     const std::vector<std::string> &schemas,
     const mysqlshdk::db::Connection_options &connection_options,
-    const shcore::Option_pack_ref<copy::Copy_schemas_options> &options) {
+    copy::Copy_schemas_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copySchemas()"};
 
-  auto copy_options = *options;
-  copy_options.dump_options()->set_schemas(schemas);
-  copy_options.dump_options()->set_session(session);
+  options.dump_options()->set_schemas(schemas);
+  options.dump_options()->set_session(session);
 
-  copy::copy<mysqlsh::dump::Dump_schemas>(connection_options, &copy_options);
+  copy::copy<mysqlsh::dump::Dump_schemas>(connection_options, &options);
 }
 
 REGISTER_HELP_FUNCTION(copyTables, util);
@@ -2466,17 +2451,16 @@ None Util::copy_tables(str schema, list tables, ConnectionData connectionData,
 void Util::copy_tables(
     const std::string &schema, const std::vector<std::string> &tables,
     const mysqlshdk::db::Connection_options &connection_options,
-    const shcore::Option_pack_ref<copy::Copy_tables_options> &options) {
+    copy::Copy_tables_options &&options) {
   const auto session = global_session();
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copyTables()"};
 
-  auto copy_options = *options;
-  copy_options.dump_options()->set_schema(schema);
-  copy_options.dump_options()->set_tables(tables);
-  copy_options.dump_options()->set_session(session);
+  options.dump_options()->set_schema(schema);
+  options.dump_options()->set_tables(tables);
+  options.dump_options()->set_session(session);
 
-  copy::copy<mysqlsh::dump::Dump_tables>(connection_options, &copy_options);
+  copy::copy<mysqlsh::dump::Dump_tables>(connection_options, &options);
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> Util::global_session() const {
@@ -2577,20 +2561,18 @@ Undefined Util::dumpBinlogs(String outputUrl, Dictionary options);
 #elif DOXYGEN_PY
 None Util::dump_binlogs(str outputUrl, dict options);
 #endif
-void Util::dump_binlogs(
-    const std::string &url,
-    const shcore::Option_pack_ref<binlog::Dump_binlogs_options> &options) {
+void Util::dump_binlogs(const std::string &url,
+                        binlog::Dump_binlogs_options &&options) {
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.dumpBinlogs()"};
 
   const auto session = global_session();
 
-  auto opts = *options;
-  opts.set_url(url);
-  opts.set_session(session);
-  opts.validate_and_configure();
+  options.set_url(url);
+  options.set_session(session);
+  options.validate_and_configure();
 
-  binlog::Binlog_dumper dumper{opts};
+  binlog::Binlog_dumper dumper{options};
 
   shcore::Interrupt_handler intr_handler(
       [&dumper]() {
@@ -2661,20 +2643,18 @@ Undefined Util::loadBinlogs(String url, Dictionary options);
 #elif DOXYGEN_PY
 None Util::load_binlogs(str url, dict options);
 #endif
-void Util::load_binlogs(
-    const std::string &url,
-    const shcore::Option_pack_ref<binlog::Load_binlogs_options> &options) {
+void Util::load_binlogs(const std::string &url,
+                        binlog::Load_binlogs_options &&options) {
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.loadBinlogs()"};
 
   const auto session = global_session();
 
-  auto opts = *options;
-  opts.set_url(url);
-  opts.set_session(session);
-  opts.validate_and_configure();
+  options.set_url(url);
+  options.set_session(session);
+  options.validate_and_configure();
 
-  binlog::Binlog_loader loader{opts};
+  binlog::Binlog_loader loader{options};
 
   shcore::Interrupt_handler intr_handler(
       [&loader]() {

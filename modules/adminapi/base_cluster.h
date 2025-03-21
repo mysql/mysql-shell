@@ -34,7 +34,7 @@
 #include "modules/mod_shell_result.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
+#include "scripting/types/cpp.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -49,8 +49,7 @@ class Base_cluster : public shcore::Cpp_object_bridge {
   shcore::Value get_member(const std::string &prop) const override;
 
  public:  // Router management
-  shcore::Dictionary_t list_routers(
-      const shcore::Option_pack_ref<List_routers_options> &options);
+  shcore::Dictionary_t list_routers(const List_routers_options &options);
 
   void set_routing_option(const std::string &option,
                           const shcore::Value &value);
@@ -58,17 +57,15 @@ class Base_cluster : public shcore::Cpp_object_bridge {
   void set_routing_option(const std::string &router, const std::string &option,
                           const shcore::Value &value);
 
-  shcore::Dictionary_t router_options(
-      const shcore::Option_pack_ref<Router_options_options> &options);
+  shcore::Dictionary_t router_options(const Router_options_options &options);
 
-  shcore::Value execute(
-      const std::string &cmd, const shcore::Value &instances,
-      const shcore::Option_pack_ref<Execute_options> &options);
+  shcore::Value execute(const std::string &cmd, const shcore::Value &instances,
+                        const Execute_options &options);
 
  public:  // Routing Guidelines
   std::shared_ptr<RoutingGuideline> create_routing_guideline(
       const std::string &name, shcore::Dictionary_t json,
-      const shcore::Option_pack_ref<Create_routing_guideline_options> &options);
+      const Create_routing_guideline_options &options);
 
   std::shared_ptr<RoutingGuideline> get_routing_guideline(
       const std::string &name) const;
@@ -79,16 +76,14 @@ class Base_cluster : public shcore::Cpp_object_bridge {
 
   std::shared_ptr<RoutingGuideline> import_routing_guideline(
       const std::string &file_path,
-      const shcore::Option_pack_ref<Import_routing_guideline_options> &options);
+      const Import_routing_guideline_options &options);
 
  public:  // User management
-  void setup_admin_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
+  void setup_admin_account(const std::string &user,
+                           const Setup_account_options &options);
 
-  void setup_router_account(
-      const std::string &user,
-      const shcore::Option_pack_ref<Setup_account_options> &options);
+  void setup_router_account(const std::string &user,
+                            const Setup_account_options &options);
 
  protected:
   bool m_invalidated = false;

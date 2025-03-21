@@ -52,6 +52,7 @@
 #include "mysqlshdk/include/shellcore/ishell_core.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/ssh/ssh_connection_options.h"
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {

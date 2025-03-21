@@ -36,9 +36,6 @@
 #include <utility>
 #include <vector>
 
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
-
 #include "modules/adminapi/common/instance_pool.h"
 #include "modules/adminapi/common/metadata_storage.h"
 #include "mysqlshdk/include/shellcore/console.h"

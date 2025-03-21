@@ -35,7 +35,7 @@
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh {

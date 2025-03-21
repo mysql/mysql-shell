@@ -25,6 +25,8 @@
 
 #include "mysqlshdk/libs/db/session.h"
 
+#include "mysqlshdk/libs/utils/logger.h"
+
 #include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 

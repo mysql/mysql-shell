@@ -166,11 +166,11 @@ def TEST_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Array, but is String".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: "dummy" })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Array, but is Map".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: {} })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Array, but is Bool".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Null".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ None ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ 5 ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ -5 ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Map".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ {} ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Bool".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ False ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ None ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ 5 ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ -5 ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ {} ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), quote(types_schema, types_schema_tables[0]), test_output_relative, { option: [ False ] })
 
 def get_all_columns(schema, table):
     columns = []

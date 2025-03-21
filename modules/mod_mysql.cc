@@ -33,8 +33,6 @@
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_utils.h"
 #include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/parser/mysql_parser_utils.h"

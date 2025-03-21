@@ -355,7 +355,7 @@ DESCRIPTION
 ||Invalid options at function definition: extra (ArgumentError)
 ||Option 'brief' is expected to be of type String, but is Integer (TypeError)
 ||Option 'details' is expected to be of type Array, but is Integer (TypeError)
-||Option 'details' String expected, but value is Integer (TypeError)
+||Option 'details' is expected to be an array of strings (TypeError)
 ||Option 'parameters' is expected to be of type Array, but is Integer (TypeError)
 ||Invalid definition at parameter #1 (ArgumentError)
 
@@ -375,12 +375,12 @@ DESCRIPTION
 //@ Registration errors, string parameters
 ||Invalid options at string parameter 'sample': class, classes, options (ArgumentError)
 ||Option 'values' is expected to be of type Array, but is Integer (TypeError)
-||Option 'values' String expected, but value is Integer (TypeError)
+||Option 'values' is expected to be an array of strings (TypeError)
 
 //@ Registration errors, object parameters
 ||Invalid options at object parameter 'sample': options, values (ArgumentError)
 ||Option 'class' is expected to be of type String, but is Integer (TypeError)
-||Option 'classes' String expected, but value is Integer (TypeError)
+||Option 'classes' is expected to be an array of strings (TypeError)
 
 //@ Registration errors, dictionary parameters
 ||Invalid options at dictionary parameter 'sample': class, classes, values (ArgumentError)
@@ -391,4 +391,3 @@ DESCRIPTION
 ||The function name 'my function' is not a valid identifier. (ArgumentError)
 ||parameter #1 is not a valid identifier: 'a sample'. (ArgumentError)
 ||parameter 'sample', option #1 is not a valid identifier: 'an invalid name'. (ArgumentError)
-

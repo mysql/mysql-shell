@@ -175,7 +175,7 @@ DESCRIPTION
 ||Option 'details' is expected to be of type Array, but is Map (TypeError)
 
 //@ The 'details' array holds an invalid type
-||Option 'details' String expected, but value is Integer (TypeError)
+||Option 'details' is expected to be an array of strings (TypeError)
 
 //@ The 'options' key is set to undefined
 ||Option 'options' is expected to be of type Array, but is Undefined (TypeError)
@@ -293,7 +293,7 @@ DESCRIPTION
 ||Option 'details' is expected to be of type Array, but is Map (TypeError)
 
 //@ The options['details'] key holds an invalid type
-||Option 'details' String expected, but value is Integer (TypeError)
+||Option 'details' is expected to be an array of strings (TypeError)
 
 //@ WL11263_TSF9_13 - The 'type' key is set to undefined
 ||Option 'type' is expected to be of type String, but is Undefined (TypeError)
@@ -355,7 +355,7 @@ DESCRIPTION
 ||Option 'values' is expected to be of type Array, but is Map (TypeError)
 
 //@ The 'values' list holds invalid type
-||Option 'values' String expected, but value is Map (TypeError)
+||Option 'values' is expected to be an array of strings (TypeError)
 
 //@ The 'values' list cannot be defined for an 'integer' type
 ||Invalid options at integer option 'invalid_option': values (ArgumentError)
@@ -3321,7 +3321,7 @@ right: eight
 ||Option 'args' is expected to be of type Array, but is String (TypeError)
 
 //@ 'examples': 'args': is set to an array of invalid types
-||Option 'args' String expected, but value is Bool (TypeError)
+||Option 'args' is expected to be an array of strings (TypeError)
 
 //@ 'examples': 'options': is set to undefined
 ||Option 'options' is expected to be of type Map, but is Undefined (TypeError)
@@ -3330,7 +3330,7 @@ right: eight
 ||Option 'options' is expected to be of type Map, but is String (TypeError)
 
 //@ 'examples': 'options': is set to a map of invalid types
-||Option 'options' String expected, but value is Integer (TypeError)
+||Option 'options' is expected to be a map of strings (TypeError)
 
 //@ 'examples': 'args': invalid number of arguments, expected 0, given 1
 ||Report expects 0 arguments, example has: 1 (ArgumentError)

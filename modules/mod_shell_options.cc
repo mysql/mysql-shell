@@ -25,8 +25,6 @@
 
 #include "modules/mod_shell_options.h"
 #include "modules/mysqlxtest_utils.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"

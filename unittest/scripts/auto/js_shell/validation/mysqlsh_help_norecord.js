@@ -1,5 +1,5 @@
 //@<OUT> Shell Help
-MySQL Shell <<<__mysh_full_version>>>
+MySQL Shell <<<__mysh_version_full>>>
 
 Copyright (c) 2016, <<<__package_year>>>, Oracle and/or its affiliates.
 Oracle is a registered trademark of Oracle Corporation and/or its affiliates.

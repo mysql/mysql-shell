@@ -40,7 +40,6 @@
 #include "gtest_clean.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "shellcore/base_session.h"
 #include "shellcore/shell_core.h"
@@ -201,11 +200,11 @@ class Shell_test_output_handler {
     prompts.push_back({std::string("*"), line, {}});
   }
 
-  std::list<std::tuple<std::string, std::string,
-                       shcore::Option_pack_ref<shcore::prompt::Prompt_options>>>
+  std::list<
+      std::tuple<std::string, std::string, shcore::prompt::Prompt_options>>
       prompts;
-  std::list<std::tuple<std::string, std::string,
-                       shcore::Option_pack_ref<shcore::prompt::Prompt_options>>>
+  std::list<
+      std::tuple<std::string, std::string, shcore::prompt::Prompt_options>>
       passwords;
 
   void set_internal(bool value) { m_internal = value; }

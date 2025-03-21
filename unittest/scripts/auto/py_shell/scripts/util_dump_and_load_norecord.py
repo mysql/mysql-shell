@@ -54,11 +54,11 @@ def TEST_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: "dummy" }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is String")
     EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: {} }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is Map")
     EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: False }), f"TypeError: Argument #2: Option '{option}' is expected to be of type Array, but is Bool")
-    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ None ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Null")
-    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ 5 ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Integer")
-    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ -5 ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Integer")
-    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ {} ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Map")
-    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ False ] }), f"TypeError: Argument #2: Option '{option}' String expected, but value is Bool")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ None ] }), f"TypeError: Argument #2: Option '{option}' is expected to be an array of strings")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ 5 ] }), f"TypeError: Argument #2: Option '{option}' is expected to be an array of strings")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ -5 ] }), f"TypeError: Argument #2: Option '{option}' is expected to be an array of strings")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ {} ] }), f"TypeError: Argument #2: Option '{option}' is expected to be an array of strings")
+    EXPECT_THROWS(lambda: util.load_dump(dump_dir, { option: [ False ] }), f"TypeError: Argument #2: Option '{option}' is expected to be an array of strings")
 
 prepare(__mysql_sandbox_port1)
 session1 = mysql.get_session(__sandbox_uri1)
@@ -3185,7 +3185,7 @@ dump_dir = os.path.join(outdir, "wl_15887")
 
 # dump
 shell.connect(__sandbox_uri1)
-EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "targetVersion": __mysh_version_no_extra, "ddlOnly": True, "showProgress": False }), "Dump should not fail")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "targetVersion": __mysh_version, "ddlOnly": True, "showProgress": False }), "Dump should not fail")
 
 # setup
 testutil.dbug_set("+d,dump_loader_force_mds")
@@ -3196,11 +3196,11 @@ wipeout_server(session)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "showProgress": False }), "Load should not fail")
 
 # verification
-if __mysh_version_no_extra == __version:
+if __mysh_version == __version:
     # version match, no warning
     EXPECT_STDOUT_NOT_CONTAINS("'targetVersion'")
 else:
-    EXPECT_STDOUT_CONTAINS(f"Destination MySQL version is different than the value of the 'targetVersion' option set when the dump was created: {__mysh_version_no_extra}")
+    EXPECT_STDOUT_CONTAINS(f"Destination MySQL version is different than the value of the 'targetVersion' option set when the dump was created: {__mysh_version}")
 
 # cleanup
 testutil.dbug_set("")

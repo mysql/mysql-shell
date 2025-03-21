@@ -2108,9 +2108,9 @@ void Cluster_set_impl::dissolve(const clusterset::Dissolve_options &options) {
   Topology_executor<clusterset::Dissolve>{*this}.run(options);
 }
 
-shcore::Value Cluster_set_impl::execute(
-    const std::string &cmd, const shcore::Value &instances,
-    const shcore::Option_pack_ref<Execute_options> &options) {
+shcore::Value Cluster_set_impl::execute(const std::string &cmd,
+                                        const shcore::Value &instances,
+                                        const Execute_options &options) {
   {
     auto conds = Command_conditions::Builder::gen_clusterset("execute")
                      .primary_not_required()
@@ -2129,9 +2129,9 @@ shcore::Value Cluster_set_impl::execute(
       api_locks.push_back(cluster->get_lock_shared());
   }
 
-  return Topology_executor<Execute>{*this, options->dry_run}.run(
-      cmd, Execute::convert_to_instances_def(instances, false),
-      options->exclude, std::chrono::seconds{options->timeout});
+  return Topology_executor<Execute>{*this, options.dry_run}.run(
+      cmd, Execute::convert_to_instances_def(instances, false), options.exclude,
+      std::chrono::seconds{options.timeout});
 }
 
 shcore::Value Cluster_set_impl::options() {

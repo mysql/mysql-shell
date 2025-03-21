@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,8 +42,8 @@ namespace mysqlshdk {
 namespace ssh {
 
 namespace {
-int on_socket_event(socket_t UNUSED(fd), int UNUSED(revents),
-                    void *UNUSED(userdata)) {
+int on_socket_event([[maybe_unused]] socket_t fd, [[maybe_unused]] int revents,
+                    [[maybe_unused]] void *userdata) {
   // the return should be:
   //  0 success
   // -1 the internal ssh_poll_handle was removed/freed and should be removed

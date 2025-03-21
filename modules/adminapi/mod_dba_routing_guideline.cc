@@ -163,9 +163,9 @@ shcore::Value RoutingGuideline::get_member(const std::string &prop) const {
   return shcore::Cpp_object_bridge::get_member(prop);
 }
 
-std::string &RoutingGuideline::append_descr(std::string &s_out,
-                                            int UNUSED(indent),
-                                            int UNUSED(quote_strings)) const {
+std::string &RoutingGuideline::append_descr(
+    std::string &s_out, [[maybe_unused]] int indent,
+    [[maybe_unused]] int quote_strings) const {
   s_out.append("<")
       .append(class_name())
       .append(+":")
@@ -441,9 +441,9 @@ Undefined RoutingGuideline::addDestination(String name, String match,
 #elif DOXYGEN_PY
 None RoutingGuideline::add_destination(str name, str match, dict options) {}
 #endif
-void RoutingGuideline::add_destination(
-    const std::string &name, const std::string &match,
-    const shcore::Option_pack_ref<Add_destination_options> &options) {
+void RoutingGuideline::add_destination(const std::string &name,
+                                       const std::string &match,
+                                       const Add_destination_options &options) {
   assert_valid("addDestination");
 
   return execute_with_pool(
@@ -457,7 +457,7 @@ void RoutingGuideline::add_destination(
 
         impl()->owner()->check_preconditions(conds);
 
-        impl()->add_destination(name, match, options->dry_run);
+        impl()->add_destination(name, match, options.dry_run);
       },
       false);
 }
@@ -588,10 +588,10 @@ Undefined RoutingGuideline::addRoute(String name, String match,
 None RoutingGuideline::add_route(str name, str match, list destinations,
                                  dict options) {}
 #endif
-void RoutingGuideline::add_route(
-    const std::string &name, const std::string &source_matcher,
-    const shcore::Array_t &destinations,
-    const shcore::Option_pack_ref<Add_route_options> &options) {
+void RoutingGuideline::add_route(const std::string &name,
+                                 const std::string &source_matcher,
+                                 const shcore::Array_t &destinations,
+                                 const Add_route_options &options) {
   assert_valid("addRoute");
 
   return execute_with_pool(
@@ -605,9 +605,9 @@ void RoutingGuideline::add_route(
 
         impl()->owner()->check_preconditions(conds);
 
-        impl()->add_route(name, source_matcher, destinations, options->enabled,
-                          options->connection_sharing_allowed, options->order,
-                          options->dry_run);
+        impl()->add_route(name, source_matcher, destinations, options.enabled,
+                          options.connection_sharing_allowed, options.order,
+                          options.dry_run);
       },
       false);
 }
@@ -725,8 +725,7 @@ void RoutingGuideline::show(Dictionary options) {}
 #elif DOXYGEN_PY
 void RoutingGuideline::show(dict options) {}
 #endif
-void RoutingGuideline::show(
-    const shcore::Option_pack_ref<Show_options> &options) const {
+void RoutingGuideline::show(const Show_options &options) const {
   assert_valid("show");
 
   return execute_with_pool(

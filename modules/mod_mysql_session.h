@@ -37,7 +37,6 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/base_session.h"
 #include "shellcore/ishell_core.h"
 

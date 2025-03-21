@@ -2938,9 +2938,9 @@ void Cluster_impl::set_primary_instance(
   op_set_primary_instance.execute();
 }
 
-shcore::Value Cluster_impl::execute(
-    const std::string &cmd, const shcore::Value &instances,
-    const shcore::Option_pack_ref<Execute_options> &options) {
+shcore::Value Cluster_impl::execute(const std::string &cmd,
+                                    const shcore::Value &instances,
+                                    const Execute_options &options) {
   {
     auto conds = Command_conditions::Builder::gen_cluster("execute")
                      .target_instance(TargetType::InnoDBCluster,
@@ -2954,9 +2954,9 @@ shcore::Value Cluster_impl::execute(
 
   auto c_lock = get_lock_shared();
 
-  return Topology_executor<Execute>{*this, options->dry_run}.run(
-      cmd, Execute::convert_to_instances_def(instances, false),
-      options->exclude, std::chrono::seconds{options->timeout});
+  return Topology_executor<Execute>{*this, options.dry_run}.run(
+      cmd, Execute::convert_to_instances_def(instances, false), options.exclude,
+      std::chrono::seconds{options.timeout});
 }
 
 mysqlshdk::utils::Version Cluster_impl::get_lowest_instance_version(
@@ -4363,7 +4363,7 @@ mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock(
 }
 
 shcore::Dictionary_t Cluster_impl::router_options(
-    const shcore::Option_pack_ref<Router_options_options> &options) {
+    const Router_options_options &options) {
   if (is_cluster_set_member()) {
     current_console()->print_error(shcore::str_format(
         "Cluster '%s' is a member of ClusterSet '%s', use "

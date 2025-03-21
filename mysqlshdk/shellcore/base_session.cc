@@ -28,8 +28,6 @@
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_session.h"
 #include "mysqlshdk/include/scripting/obj_date.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/sql_handler.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"

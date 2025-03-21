@@ -41,8 +41,9 @@ shcore::Value Base_cluster::get_member(const std::string &prop) const {
   return shcore::Cpp_object_bridge::get_member(prop);
 }
 
-std::string &Base_cluster::append_descr(std::string &s_out, int UNUSED(indent),
-                                        int UNUSED(quote_strings)) const {
+std::string &Base_cluster::append_descr(
+    std::string &s_out, [[maybe_unused]] int indent,
+    [[maybe_unused]] int quote_strings) const {
   s_out.append("<")
       .append(class_name())
       .append(+":")
@@ -63,22 +64,21 @@ bool Base_cluster::operator==(const Object_bridge &other) const {
 }
 
 shcore::Dictionary_t Base_cluster::list_routers(
-    const shcore::Option_pack_ref<List_routers_options> &options) {
+    const List_routers_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("listRouters");
 
   auto ret_val = execute_with_pool(
       [&]() {
-        return base_impl()->list_routers(options->only_upgrade_required);
+        return base_impl()->list_routers(options.only_upgrade_required);
       },
       false);
 
   return ret_val.as_map();
 }
 
-void Base_cluster::setup_admin_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
+void Base_cluster::setup_admin_account(const std::string &user,
+                                       const Setup_account_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("setupAdminAccount");
 
@@ -87,13 +87,12 @@ void Base_cluster::setup_admin_account(
   std::tie(username, host) = validate_account_name(user);
 
   return execute_with_pool(
-      [&]() { base_impl()->setup_admin_account(username, host, *options); },
+      [&]() { base_impl()->setup_admin_account(username, host, options); },
       false);
 }
 
-void Base_cluster::setup_router_account(
-    const std::string &user,
-    const shcore::Option_pack_ref<Setup_account_options> &options) {
+void Base_cluster::setup_router_account(const std::string &user,
+                                        const Setup_account_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("setupRouterAccount");
 
@@ -102,7 +101,7 @@ void Base_cluster::setup_router_account(
   std::tie(username, host) = validate_account_name(user);
 
   return execute_with_pool(
-      [&]() { base_impl()->setup_router_account(username, host, *options); },
+      [&]() { base_impl()->setup_router_account(username, host, options); },
       false);
 }
 
@@ -124,16 +123,16 @@ void Base_cluster::set_routing_option(const std::string &router,
 }
 
 shcore::Dictionary_t Base_cluster::router_options(
-    const shcore::Option_pack_ref<Router_options_options> &options) {
+    const Router_options_options &options) {
   assert_valid("routerOptions");
 
   return execute_with_pool(
       [&]() { return base_impl()->router_options(options); }, false);
 }
 
-shcore::Value Base_cluster::execute(
-    const std::string &cmd, const shcore::Value &instances,
-    const shcore::Option_pack_ref<Execute_options> &options) {
+shcore::Value Base_cluster::execute(const std::string &cmd,
+                                    const shcore::Value &instances,
+                                    const Execute_options &options) {
   assert_valid("execute");
 
   return execute_with_pool(
@@ -142,7 +141,7 @@ shcore::Value Base_cluster::execute(
 
 std::shared_ptr<RoutingGuideline> Base_cluster::create_routing_guideline(
     const std::string &name, shcore::Dictionary_t json,
-    const shcore::Option_pack_ref<Create_routing_guideline_options> &options) {
+    const Create_routing_guideline_options &options) {
   assert_valid("createRoutingGuideline");
 
   return execute_with_pool(
@@ -187,7 +186,7 @@ std::shared_ptr<ShellResult> Base_cluster::routing_guidelines() const {
 
 std::shared_ptr<RoutingGuideline> Base_cluster::import_routing_guideline(
     const std::string &file_path,
-    const shcore::Option_pack_ref<Import_routing_guideline_options> &options) {
+    const Import_routing_guideline_options &options) {
   assert_valid("importRoutingGuideline");
 
   return execute_with_pool(

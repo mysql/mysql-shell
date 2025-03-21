@@ -30,7 +30,6 @@
 #include <string>
 
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
 #include "modules/adminapi/base_cluster.h"
@@ -149,24 +148,16 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void assert_valid(const std::string &option_name) const override;
 
   void add_instance(const Connection_options &instance_def,
-                    const shcore::Option_pack_ref<cluster::Add_instance_options>
-                        &options = {});
-  void rejoin_instance(
-      const Connection_options &instance_def,
-      const shcore::Option_pack_ref<cluster::Rejoin_instance_options> &options =
-          {});
-  void remove_instance(
-      const Connection_options &instance_def,
-      const shcore::Option_pack_ref<cluster::Remove_instance_options> &options =
-          {});
-  shcore::Value get_replicaset(const shcore::Argument_list &args);
+                    const cluster::Add_instance_options &options = {});
+  void rejoin_instance(const Connection_options &instance_def,
+                       const cluster::Rejoin_instance_options &options = {});
+  void remove_instance(const Connection_options &instance_def,
+                       const cluster::Remove_instance_options &options = {});
   shcore::Value describe(void);
-  shcore::Value status(
-      const shcore::Option_pack_ref<cluster::Status_options> &options);
-  void dissolve(const shcore::Option_pack_ref<Force_options> &options);
-  void rescan(const shcore::Option_pack_ref<cluster::Rescan_options> &options);
-  void reset_recovery_accounts_password(
-      const shcore::Option_pack_ref<Force_options> &options);
+  shcore::Value status(const cluster::Status_options &options);
+  void dissolve(const Force_options &options);
+  void rescan(const cluster::Rescan_options &options);
+  void reset_recovery_accounts_password(const Force_options &options);
   void force_quorum_using_partition_of(const Connection_options &instance_def);
   void disconnect();
 
@@ -178,11 +169,9 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   void switch_to_multi_primary_mode(void);
   void set_primary_instance(
       const Connection_options &instance_def,
-      const shcore::Option_pack_ref<cluster::Set_primary_instance_options>
-          &options = {});
+      const cluster::Set_primary_instance_options &options = {});
 
-  shcore::Value options(
-      const shcore::Option_pack_ref<cluster::Options_options> &options);
+  shcore::Value options(const cluster::Options_options &options);
 
   void set_option(const std::string &option, const shcore::Value &value);
 
@@ -197,14 +186,12 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   // Read-Replicas
   void add_replica_instance(
       const std::string &instance_def,
-      const shcore::Option_pack_ref<cluster::Add_replica_instance_options>
-          &options = {});
+      const cluster::Add_replica_instance_options &options = {});
 
   // ClusterSet
   shcore::Value create_cluster_set(
       const std::string &domain_name,
-      const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
-          &options);
+      const clusterset::Create_cluster_set_options &options);
 
   std::shared_ptr<ClusterSet> get_cluster_set() const;
 

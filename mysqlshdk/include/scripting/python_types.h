@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,17 +23,19 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _TYPES_PYTHON_H_
-#define _TYPES_PYTHON_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_TYPES_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_TYPES_H_
 
 // python_context.h has to be included first
 
 #include "mysqlshdk/include/scripting/python_context.h"
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/cpp.h"
 
 namespace shcore {
 
@@ -82,4 +84,4 @@ class SHCORE_PUBLIC Python_function final : public Function_base {
 
 }  // namespace shcore
 
-#endif
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_TYPES_H_

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,7 +35,6 @@
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "modules/mod_shell_result.h"
 #include "mysql/instance.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/utils_json.h"
 
@@ -104,16 +103,14 @@ class RoutingGuideline : public std::enable_shared_from_this<RoutingGuideline>,
   shcore::Dictionary_t as_json() const;
   std::shared_ptr<ShellResult> destinations() const;
   std::shared_ptr<ShellResult> routes() const;
-  void add_destination(
-      const std::string &name, const std::string &match,
-      const shcore::Option_pack_ref<Add_destination_options> &options);
-  void add_route(
-      const std::string &name, const std::string &source_matcher,
-      const shcore::Array_t &destinations,
-      const shcore::Option_pack_ref<Add_route_options> &options = {});
+  void add_destination(const std::string &name, const std::string &match,
+                       const Add_destination_options &options);
+  void add_route(const std::string &name, const std::string &source_matcher,
+                 const shcore::Array_t &destinations,
+                 const Add_route_options &options = {});
   void remove_destination(const std::string &name);
   void remove_route(const std::string &name);
-  void show(const shcore::Option_pack_ref<Show_options> &options = {}) const;
+  void show(const Show_options &options = {}) const;
   void rename(const std::string &name);
   void set_destination_option(const std::string &destination_name,
                               const std::string &option,

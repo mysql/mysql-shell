@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/plugin_definition.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/scripting/polyglot/shell_polyglot_common_context.h"
 #include "mysqlshdk/scripting/polyglot/utils/polyglot_store.h"

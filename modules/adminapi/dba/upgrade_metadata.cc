@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,7 +37,6 @@
 #include "mysqlshdk/include/shellcore/shell_resultset_dumper.h"
 #include "mysqlshdk/libs/mysql/utils.h"
 #include "mysqlshdk/libs/utils/array_result.h"
-#include "mysqlshdk/libs/utils/compiler.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 
@@ -293,7 +292,7 @@ void Upgrade_metadata::prepare_rolling_upgrade() {
             // NOTE: This fallback is required, after unregistering the
             // listed routers it will refresh the list if needed (implicit
             // retry)
-            FALLTHROUGH;
+            [[fallthrough]];
           case 'R':
           case 'r':
             DBUG_EXECUTE_IF("dba_EMULATE_ROUTER_UNREGISTER", {

@@ -33,7 +33,6 @@
 #include "mysqlshdk/include/scripting/python_object_wrapper.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
-#include "scripting/common.h"
 #include "scripting/module_registry.h"
 #include "utils/utils_file.h"
 #include "utils/utils_general.h"
@@ -1138,7 +1137,8 @@ py::Store Python_context::get_shell_function_class() const {
   return _shell_function_class;
 }
 
-PyObject *Python_context::shell_print(PyObject *UNUSED(self), PyObject *args,
+PyObject *Python_context::shell_print([[maybe_unused]] PyObject *self,
+                                      PyObject *args,
                                       const std::string &stream) {
   if (!Python_context::get_and_check()) return nullptr;
 

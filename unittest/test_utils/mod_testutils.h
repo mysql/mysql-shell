@@ -38,7 +38,6 @@
 #include "modules/mod_extensible_object.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
-#include "scripting/types_cpp.h"
 #include "src/mysqlsh/cmdline_shell.h"
 
 namespace tests {
@@ -201,9 +200,8 @@ class Testutils : public mysqlsh::Extensible_object {
                                    bool delete_if_expired = true);
   static std::string get_mysqld_version(const std::string &mysqld_path);
 
-  using Input_fn = std::function<void(
-      const std::string &, const std::string &,
-      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &)>;
+  using Input_fn = std::function<void(const std::string &, const std::string &,
+                                      const shcore::prompt::Prompt_options &)>;
 
   using Output_fn = std::function<std::string(bool)>;
   using Simple_callback = std::function<void()>;
@@ -386,14 +384,10 @@ class Testutils : public mysqlsh::Extensible_object {
   // Sets the text to return next time an interactive prompt is shown.
   // if expected_prompt_text is not "", it will match the prompt text and fail
   // the test if it is different
-  void expect_prompt(
-      const std::string &prompt, const std::string &text,
-      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
-          {});
-  void expect_password(
-      const std::string &prompt, const std::string &text,
-      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
-          {});
+  void expect_prompt(const std::string &prompt, const std::string &text,
+                     const shcore::prompt::Prompt_options &options = {});
+  void expect_password(const std::string &prompt, const std::string &text,
+                       const shcore::prompt::Prompt_options &options = {});
   void assert_no_prompts();
   void wipe_all_output();
 

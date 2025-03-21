@@ -29,6 +29,8 @@
 #include <stack>
 #include <string>
 
+#include "mysqlshdk/libs/utils/version.h"
+
 #include "gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 #include "unittest/test_utils/shell_test_env.h"
@@ -609,7 +611,8 @@ TEST(utils_general, get_long_version) {
   }
 
   const auto version = get_long_version();
-  EXPECT_THAT(version, ::testing::HasSubstr(MYSH_FULL_VERSION));
+  EXPECT_THAT(version, ::testing::HasSubstr(
+                           mysqlshdk::utils::k_shell_version.get_full()));
   EXPECT_THAT(version, ::testing::HasSubstr(SYSTEM_TYPE));
   EXPECT_THAT(version, ::testing::HasSubstr(MACHINE_TYPE));
   EXPECT_THAT(version, ::testing::HasSubstr(LIBMYSQL_VERSION));
