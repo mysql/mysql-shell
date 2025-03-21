@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,11 +33,10 @@
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/scripting/polyglot/polyglot_context.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "scripting/object_registry.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
+#include "scripting/types/cpp.h"
 #include "test_utils.h"
 #include "utils/utils_string.h"
 
@@ -55,8 +54,9 @@ class Test_object : public shcore::Cpp_object_bridge {
 
   virtual std::string class_name() const { return "Test"; }
 
-  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1,
-                                    int UNUSED(quote_strings) = 0) const {
+  virtual std::string &append_descr(
+      std::string &s_out, [[maybe_unused]] int indent = -1,
+      [[maybe_unused]] int quote_strings = 0) const {
     s_out.append(str_format("<Test:%d>", _value));
     return s_out;
   }
@@ -112,8 +112,9 @@ class Maparray : public shcore::Cpp_object_bridge {
   bool is_indexed() const override { return true; }
   std::string class_name() const override { return "MapArray"; }
 
-  std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1,
-                            int UNUSED(quote_strings) = 0) const override {
+  std::string &append_descr(
+      std::string &s_out, [[maybe_unused]] int indent = -1,
+      [[maybe_unused]] int quote_strings = 0) const override {
     s_out.append(str_format("<MapArray>"));
     return s_out;
   }
@@ -132,7 +133,7 @@ class Maparray : public shcore::Cpp_object_bridge {
   }
 
   //! Implements equality operator
-  bool operator==(const Object_bridge &UNUSED(other)) const override {
+  bool operator==([[maybe_unused]] const Object_bridge &other) const override {
     return false;
   }
 

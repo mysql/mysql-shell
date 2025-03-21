@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,8 +31,7 @@
 #include <vector>
 
 #include "modules/mod_common.h"
-#include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
@@ -76,9 +75,9 @@ struct Clone_options {
 };
 
 struct Join_cluster_clone_options : public Clone_options {
-  explicit Join_cluster_clone_options(
-      Unpack_target t = Unpack_target::JOIN_CLUSTER)
-      : Clone_options(t) {}
+  Join_cluster_clone_options()
+      : Join_cluster_clone_options(Unpack_target::JOIN_CLUSTER) {}
+  explicit Join_cluster_clone_options(Unpack_target t) : Clone_options(t) {}
   static const shcore::Option_pack_def<Join_cluster_clone_options> &options();
 };
 

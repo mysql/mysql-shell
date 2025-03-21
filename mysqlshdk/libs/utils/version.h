@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -128,7 +128,7 @@ class Version {
   int parse_token(std::string_view data);
 };
 
-inline const Version k_shell_version = Version(MYSH_VERSION);
+inline const Version k_shell_version = Version(MYSH_VERSION EXTRA_NAME_SUFFIX);
 
 /**
  * Provides the difference between major versions of source and target. This

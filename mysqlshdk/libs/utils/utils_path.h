@@ -31,7 +31,8 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-#include "scripting/common.h"
+
+#include "mysqlshdk/include/mysqlshdk_export.h"
 
 namespace shcore {
 namespace path {

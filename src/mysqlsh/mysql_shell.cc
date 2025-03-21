@@ -52,6 +52,7 @@
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "mysqlshdk/shellcore/credential_manager.h"
 #include "mysqlshdk/shellcore/shell_console.h"
 #include "shellcore/interrupt_handler.h"
@@ -1464,13 +1465,15 @@ bool Mysql_shell::cmd_disconnect(const std::vector<std::string> &args) {
   return true;
 }
 
-bool Mysql_shell::cmd_quit(const std::vector<std::string> &UNUSED(args)) {
+bool Mysql_shell::cmd_quit(
+    [[maybe_unused]] const std::vector<std::string> &args) {
   get_options()->set_interactive(false);
 
   return true;
 }
 
-bool Mysql_shell::cmd_warnings(const std::vector<std::string> &UNUSED(args)) {
+bool Mysql_shell::cmd_warnings(
+    [[maybe_unused]] const std::vector<std::string> &args) {
   get_options()->set(SHCORE_SHOW_WARNINGS, shcore::Value::True());
 
   println("Show warnings enabled.");
@@ -1478,7 +1481,8 @@ bool Mysql_shell::cmd_warnings(const std::vector<std::string> &UNUSED(args)) {
   return true;
 }
 
-bool Mysql_shell::cmd_nowarnings(const std::vector<std::string> &UNUSED(args)) {
+bool Mysql_shell::cmd_nowarnings(
+    [[maybe_unused]] const std::vector<std::string> &args) {
   get_options()->set(SHCORE_SHOW_WARNINGS, shcore::Value::False());
 
   println("Show warnings disabled.");
@@ -1486,9 +1490,10 @@ bool Mysql_shell::cmd_nowarnings(const std::vector<std::string> &UNUSED(args)) {
   return true;
 }
 
-bool Mysql_shell::cmd_status(const std::vector<std::string> &UNUSED(args)) {
+bool Mysql_shell::cmd_status(
+    [[maybe_unused]] const std::vector<std::string> &args) {
   std::string version_msg("MySQL Shell version ");
-  version_msg += MYSH_FULL_VERSION;
+  version_msg += mysqlshdk::utils::k_shell_version.get_full();
   version_msg += "\n";
   println(version_msg);
   auto session = _shell->get_dev_session();

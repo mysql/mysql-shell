@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,10 +29,7 @@
 #include "db/mysqlx/mysqlxclient_clean.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/devapi/protobuf_bridge.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlxtest_utils.h"
-#include "scripting/common.h"
 #include "shellcore/utils_help.h"
 
 using namespace std::placeholders;

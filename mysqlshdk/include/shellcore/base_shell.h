@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,6 @@
 #include "mysqlshdk/shellcore/provider_script.h"
 #include "mysqlshdk/shellcore/provider_sql.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/completer.h"
 #include "shellcore/scoped_contexts.h"
 #include "shellcore/shell_core.h"

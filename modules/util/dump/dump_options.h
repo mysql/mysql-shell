@@ -36,7 +36,7 @@
 #include <utility>
 
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/storage/compressed_file.h"
 #include "mysqlshdk/libs/utils/version.h"

@@ -28,7 +28,6 @@
 #include <string>
 #include <tuple>
 
-#include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"

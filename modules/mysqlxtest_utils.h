@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,12 +26,10 @@
 // MySQL DB access module, for use by plugins and others
 // For the module that implements interactive DB functionality see mod_db
 
-#ifndef _MOD_MYSQLXTEST_UTILS_H_
-#define _MOD_MYSQLXTEST_UTILS_H_
+#ifndef MODULES_MYSQLXTEST_UTILS_H_
+#define MODULES_MYSQLXTEST_UTILS_H_
 
 #include "mysqlshdk/libs/db/session.h"
-#include "scripting/common.h"
-#include "scripting/types_cpp.h"
 
 /*
  * Helper function to ensure the exceptions generated on the mysqlx_connector
@@ -77,4 +75,4 @@
     }                                                           \
   }
 
-#endif
+#endif  // MODULES_MYSQLXTEST_UTILS_H_

@@ -1232,8 +1232,9 @@ std::optional<std::string> unescape_glob(const std::string_view pattern) {
 }
 
 const char *get_long_version() {
-  return "Ver " MYSH_FULL_VERSION " for " SYSTEM_TYPE " on " MACHINE_TYPE
-         " - for MySQL " LIBMYSQL_VERSION " (" MYSQL_COMPILATION_COMMENT ")";
+  return "Ver " MYSH_VERSION EXTRA_NAME_SUFFIX " for " SYSTEM_TYPE
+         " on " MACHINE_TYPE " - for MySQL " LIBMYSQL_VERSION
+         " (" MYSQL_COMPILATION_COMMENT ")";
 }
 
 #ifdef _WIN32

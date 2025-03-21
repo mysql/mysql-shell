@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,7 +34,7 @@
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/cluster_types.h"
 #include "modules/adminapi/common/group_replication_options.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
 namespace mysqlsh::dba::replicaset {
@@ -43,10 +43,10 @@ struct Recovery_progress_option {
   static const shcore::Option_pack_def<Recovery_progress_option> &options();
 
   void set_recovery_progress(int value);
-  Recovery_progress_style get_recovery_progress();
+  Recovery_progress_style get_recovery_progress() const;
 
  private:
-  std::optional<Recovery_progress_style> m_recovery_progress;
+  mutable std::optional<Recovery_progress_style> m_recovery_progress;
 };
 
 struct Rejoin_instance_options : public Recovery_progress_option,

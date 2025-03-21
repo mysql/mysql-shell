@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -146,8 +146,9 @@ Value Constant::get_constant(const std::string &module,
   return ret_val;
 }
 
-std::string &Constant::append_descr(std::string &s_out, int UNUSED(indent),
-                                    int UNUSED(quote_strings)) const {
+std::string &Constant::append_descr(std::string &s_out,
+                                    [[maybe_unused]] int indent,
+                                    [[maybe_unused]] int quote_strings) const {
   s_out.append("<" + _group + "." + _id);
 
   if (_data.get_type() == shcore::String) {

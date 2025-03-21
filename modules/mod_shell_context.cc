@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,15 +31,15 @@
 namespace mysqlsh {
 
 Delegate_wrapper::Delegate_wrapper(
-    const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks)
+    const Shell_context_wrapper_options &callbacks)
     : Interpreter_delegate(this, &Delegate_wrapper::deleg_print,
                            &Delegate_wrapper::deleg_prompt,
                            &Delegate_wrapper::deleg_print_error,
                            &Delegate_wrapper::deleg_print_diag) {
-  m_deleg_print_func = callbacks->deleg_print_func();
-  m_deleg_error_func = callbacks->deleg_error_func();
-  m_deleg_diag_func = callbacks->deleg_diag_func();
-  m_deleg_prompt_func = callbacks->deleg_prompt_func();
+  m_deleg_print_func = callbacks.deleg_print_func();
+  m_deleg_error_func = callbacks.deleg_error_func();
+  m_deleg_diag_func = callbacks.deleg_diag_func();
+  m_deleg_prompt_func = callbacks.deleg_prompt_func();
 }
 
 shcore::Value Delegate_wrapper::call_delegate(
@@ -180,11 +180,11 @@ REGISTER_HELP(SHELLCONTEXTWRAPPER_BRIEF,
               "the shell context object through <<<getShell>>>().");
 
 Shell_context_wrapper::Shell_context_wrapper(
-    const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks,
+    const Shell_context_wrapper_options &callbacks,
     const std::shared_ptr<Shell_options> &opts) {
   if (!mysqlshdk::utils::in_main_thread()) {
     m_logger = std::make_shared<Scoped_logger>(shcore::Logger::create_instance(
-        callbacks->log_file().c_str(), opts.get()->get().log_to_stderr,
+        callbacks.log_file().c_str(), opts.get()->get().log_to_stderr,
         opts.get()->get().log_level));
     m_log_sql = std::make_shared<Scoped_log_sql>(
         std::make_shared<shcore::Log_sql>(*(opts.get())));

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 #include "src/mysqlsh/cmdline_shell.h"
 #include "unittest/test_utils.h"
 
@@ -192,7 +193,7 @@ TEST(Cmdline_shell, help) {
   capture.clear();
   shell.print_banner();
   std::string expected =
-      "MySQL Shell " MYSH_FULL_VERSION
+      "MySQL Shell " + mysqlshdk::utils::k_shell_version.get_full() +
       "\n\n"
       "Copyright (c) 2016, " PACKAGE_YEAR
       ", Oracle and/or its affiliates.\n"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,12 +25,11 @@
 
 #include "mysqlshdk/libs/parser/code-completion/mysql_code_completion_api.h"
 
+#include <cassert>
 #include <set>
 #include <stdexcept>
 #include <utility>
 
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "mysqlshdk/libs/parser/code-completion/mysql_code_completion_context.h"
@@ -40,7 +39,7 @@ namespace mysqlshdk {
 
 using utils::Version;
 
-const Version k_current_version{MYSH_VERSION};
+const Version &k_current_version = utils::k_shell_version;
 
 const shcore::Option_pack_def<Auto_complete_sql_options>
     &Auto_complete_sql_options::options() {

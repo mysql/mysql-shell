@@ -28,8 +28,6 @@
 #include <algorithm>
 #include <cassert>
 
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/utils/utils_filtering.h"
 #include "mysqlshdk/libs/utils/utils_general.h"

@@ -54,7 +54,7 @@ class Routing_guideline_impl {
   static std::shared_ptr<Routing_guideline_impl> create(
       const std::shared_ptr<Base_cluster_impl> &owner, const std::string &name,
       shcore::Dictionary_t json,
-      const shcore::Option_pack_ref<Create_routing_guideline_options> &options);
+      const Create_routing_guideline_options &options);
 
   static std::shared_ptr<Routing_guideline_impl> load(
       const std::shared_ptr<Base_cluster_impl> &owner, const std::string &name);
@@ -66,7 +66,7 @@ class Routing_guideline_impl {
   static std::shared_ptr<Routing_guideline_impl> import(
       const std::shared_ptr<Base_cluster_impl> &owner,
       const std::string &file_path,
-      const shcore::Option_pack_ref<Import_routing_guideline_options> &options);
+      const Import_routing_guideline_options &options);
 
   std::shared_ptr<Base_cluster_impl> owner() const { return m_owner; }
 
@@ -100,7 +100,7 @@ class Routing_guideline_impl {
 
   void remove_route(const std::string &name);
 
-  void show(const shcore::Option_pack_ref<Show_options> &options) const;
+  void show(const Show_options &options) const;
 
   void rename(const std::string &name);
 

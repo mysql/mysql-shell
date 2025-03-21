@@ -22,16 +22,18 @@
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 set(SCRIPTING_SOURCES
-    common.cc
     naming_style.cc
     obj_date.cc
     object_factory.cc
     object_registry.cc
     proxy_object.cc
     types.cc
-    types_cpp.cc
+    types/cpp.cc
+    types/function_metadata.cc
+    types/unpacker.cc
+    types/validator.cc
     shexcept.cc
-    type_info/custom.cc)
+)
 
 
 if (HAVE_JIT_EXECUTOR)
@@ -92,7 +94,7 @@ endif()
 if(HAVE_PYTHON)
   include_directories("${PYTHON_INCLUDE_DIRS}")
   set(PYTHON_SCRIPTING_SOURCES
-    types_python.cc
+    python_types.cc
     python_array_wrapper.cc
     python_context.cc
     python_function_wrapper.cc

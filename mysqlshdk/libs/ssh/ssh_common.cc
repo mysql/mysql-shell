@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,7 +68,7 @@ ssh_threads_callbacks_struct *ssh_threads_get_std_threads(void) {
 }
 
 void libssh_log_callback(int priority, const char *function, const char *buffer,
-                         void *UNUSED(userdata)) {
+                         [[maybe_unused]] void *userdata) {
   // There's a chance that the logger will try to log
   // before actually the logger will be ready.
   // and what's worse we can do nothing with it, so the only solution is to just

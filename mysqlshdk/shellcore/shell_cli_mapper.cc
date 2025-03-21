@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1035,7 +1035,7 @@ Cli_option *Shell_cli_mapper::cli_option(const std::string &name) {
 }
 
 void Shell_cli_mapper::set_metadata(const std::string &object_class,
-                                    const Cpp_function::Metadata &metadata) {
+                                    const Function_metadata &metadata) {
   m_object_class = object_class;
   m_metadata = &metadata;
 

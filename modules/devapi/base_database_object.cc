@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,9 +68,9 @@ void DatabaseObject::init() {
       "data");
 }
 
-std::string &DatabaseObject::append_descr(std::string &s_out,
-                                          int UNUSED(indent),
-                                          int UNUSED(quote_strings)) const {
+std::string &DatabaseObject::append_descr(
+    std::string &s_out, [[maybe_unused]] int indent,
+    [[maybe_unused]] int quote_strings) const {
   s_out.append(1, '<')
       .append(class_name())
       .append(1, ':')

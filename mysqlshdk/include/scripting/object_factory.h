@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,13 +22,18 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _OBJECT_FACTORY_H_
-#define _OBJECT_FACTORY_H_
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_OBJECT_FACTORY_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_OBJECT_FACTORY_H_
 
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "mysqlshdk/include/mysqlshdk_export.h"
 #include "scripting/types.h"
-#include "scripting/types_common.h"
 
 namespace shcore {
+
 class SHCORE_PUBLIC Object_factory {
  public:
   typedef std::shared_ptr<Object_bridge> (*Factory_function)(
@@ -62,5 +67,7 @@ struct Object_bridge_register {
                                              &ObjectBridgeClass::create);
   }
 };
+
 }  // namespace shcore
-#endif  //_OBJECT_FACTORY_H_
+
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_OBJECT_FACTORY_H_

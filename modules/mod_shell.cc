@@ -486,13 +486,12 @@ String Shell::prompt(String message, Dictionary options) {}
 #elif DOXYGEN_PY
 str Shell::prompt(str message, dict options) {}
 #endif
-std::string Shell::prompt(
-    const std::string &message,
-    const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options) {
+std::string Shell::prompt(const std::string &message,
+                          const shcore::prompt::Prompt_options &options) {
   std::string ret_val;
 
   // Performs the actual prompt
-  auto result = mysqlsh::current_console()->prompt(message, *options, &ret_val);
+  auto result = mysqlsh::current_console()->prompt(message, options, &ret_val);
 
   if (result == shcore::Prompt_result::Cancel) {
     throw shcore::cancelled("Cancelled");
@@ -1109,7 +1108,7 @@ file. If the file cannot be created, and exception will be thrown.
 ShellContextWrapper Shell::create_context(dict options) {}
 #endif
 std::shared_ptr<Shell_context_wrapper> Shell::create_context(
-    const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks) {
+    const Shell_context_wrapper_options &callbacks) {
   if (mysqlshdk::utils::in_main_thread())
     throw shcore::Exception::logic_error(
         "This function cannot be called from the main thread");
@@ -2265,9 +2264,8 @@ dict Shell::auto_complete_sql(str statement, dict options) {}
 #endif
 shcore::Dictionary_t Shell::auto_complete_sql(
     const std::string &statement,
-    const shcore::Option_pack_ref<mysqlshdk::Auto_complete_sql_options>
-        &options) const {
-  return mysqlshdk::auto_complete_sql(statement, *options);
+    const mysqlshdk::Auto_complete_sql_options &options) const {
+  return mysqlshdk::auto_complete_sql(statement, options);
 }
 
 REGISTER_HELP_FUNCTION(registerSqlHandler, shell);

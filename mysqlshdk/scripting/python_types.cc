@@ -23,8 +23,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "scripting/types_python.h"
-#include "scripting/common.h"
+#include "scripting/python_types.h"
+
 #include "scripting/object_factory.h"
 
 using namespace shcore;
@@ -91,12 +91,14 @@ Value_type Python_function::return_type() const {
   return Undefined;
 }
 
-bool Python_function::operator==(const Function_base &UNUSED(other)) const {
+bool Python_function::operator==(
+    [[maybe_unused]] const Function_base &other) const {
   // TODO:
   return false;
 }
 
-bool Python_function::operator!=(const Function_base &UNUSED(other)) const {
+bool Python_function::operator!=(
+    [[maybe_unused]] const Function_base &other) const {
   // TODO:
   return false;
 }

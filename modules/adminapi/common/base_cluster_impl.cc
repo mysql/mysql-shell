@@ -1550,7 +1550,7 @@ void Base_cluster_impl::set_routing_option(const std::string &router,
 }
 
 shcore::Dictionary_t Base_cluster_impl::router_options(
-    const shcore::Option_pack_ref<Router_options_options> &options) {
+    const Router_options_options &options) {
   {
     Command_conditions conds;
     switch (get_type()) {
@@ -1588,14 +1588,14 @@ shcore::Dictionary_t Base_cluster_impl::router_options(
   }
 
   return mysqlsh::dba::router_options(get_metadata_storage().get(), get_type(),
-                                      get_id(), get_name(), *options);
+                                      get_id(), get_name(), options);
 }
 
 std::shared_ptr<Routing_guideline_impl>
 Base_cluster_impl::create_routing_guideline(
     std::shared_ptr<Base_cluster_impl> self, const std::string &name,
     shcore::Dictionary_t json,
-    const shcore::Option_pack_ref<Create_routing_guideline_options> &options) {
+    const Create_routing_guideline_options &options) {
   {
     Command_conditions conds;
     switch (get_type()) {
@@ -2005,7 +2005,7 @@ std::unique_ptr<mysqlshdk::db::IResult> Base_cluster_impl::routing_guidelines(
 std::shared_ptr<Routing_guideline_impl>
 Base_cluster_impl::import_routing_guideline(
     std::shared_ptr<Base_cluster_impl> self, const std::string &file_path,
-    const shcore::Option_pack_ref<Import_routing_guideline_options> &options) {
+    const Import_routing_guideline_options &options) {
   {
     Command_conditions conds;
     switch (get_type()) {

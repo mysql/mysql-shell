@@ -98,9 +98,8 @@ class Cluster_set_impl : public Base_cluster_impl,
   shcore::Value describe();
   void dissolve(const clusterset::Dissolve_options &options);
 
-  shcore::Value execute(
-      const std::string &cmd, const shcore::Value &instances,
-      const shcore::Option_pack_ref<Execute_options> &options) override;
+  shcore::Value execute(const std::string &cmd, const shcore::Value &instances,
+                        const Execute_options &options) override;
 
   shcore::Value options();
 

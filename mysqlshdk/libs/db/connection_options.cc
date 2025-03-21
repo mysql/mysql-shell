@@ -91,6 +91,10 @@ std::string to_string(Transport_type type) {
   return "Unknown";
 }
 
+Connection_options::Connection_options()
+    : Connection_options(
+          utils::nullable_options::Comparison_mode::CASE_INSENSITIVE) {}
+
 Connection_options::Connection_options(Comparison_mode mode)
     : IConnection("connection", mode),
       m_ssl_options(m_mode),

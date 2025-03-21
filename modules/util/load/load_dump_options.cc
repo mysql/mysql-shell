@@ -38,8 +38,6 @@
 #include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/load/load_errors.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/aws/s3_bucket_config.h"
 #include "mysqlshdk/libs/mysql/instance.h"

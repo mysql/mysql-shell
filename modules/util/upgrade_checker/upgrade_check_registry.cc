@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,87 +69,86 @@ const Target_flags Upgrade_check_registry::k_target_flags_default =
 
 namespace {
 
-bool UNUSED_VARIABLE(register_old_temporal) =
+[[maybe_unused]] bool register_old_temporal =
     Upgrade_check_registry::register_check(std::bind(&get_old_temporal_check),
                                            Target::INNODB_INTERNALS, "8.0.11");
 
-bool UNUSED_VARIABLE(register_reserved) =
+[[maybe_unused]] bool register_reserved =
     Upgrade_check_registry::register_check(&get_reserved_keywords_check,
                                            Target::OBJECT_DEFINITIONS, "8.0.11",
                                            "8.0.14", "8.0.17", "8.0.31");
 
-bool UNUSED_VARIABLE(register_utf8mb3) = Upgrade_check_registry::register_check(
+[[maybe_unused]] bool register_utf8mb3 = Upgrade_check_registry::register_check(
     std::bind(&get_utf8mb3_check), Target::OBJECT_DEFINITIONS, "8.0.11");
 
-bool UNUSED_VARIABLE(register_mysql_schema) =
+[[maybe_unused]] bool register_mysql_schema =
     Upgrade_check_registry::register_check(std::bind(&get_mysql_schema_check),
                                            Target::OBJECT_DEFINITIONS,
                                            "8.0.11");
 
 // Zerofill is still available in 8.0.11
-// bool UNUSED_VARIABLE(register_zerofill) =
+// [[maybe_unused]] bool register_zerofill =
 // Upgrade_check_registry::register_check(
 //    std::bind(&get_zerofill_check), "8.0.11");
 //}
 
-bool UNUSED_VARIABLE(register_nonnative_partitioning) =
+[[maybe_unused]] bool register_nonnative_partitioning =
     Upgrade_check_registry::register_check(
         std::bind(&get_nonnative_partitioning_check), Target::ENGINES,
         "8.0.11");
 
-bool UNUSED_VARIABLE(register_foreign_key) =
+[[maybe_unused]] bool register_foreign_key =
     Upgrade_check_registry::register_check(
         std::bind(&get_foreign_key_length_check), Target::OBJECT_DEFINITIONS,
         "8.0.11");
 
-bool UNUSED_VARIABLE(register_maxdb) = Upgrade_check_registry::register_check(
+[[maybe_unused]] bool register_maxdb = Upgrade_check_registry::register_check(
     std::bind(&get_maxdb_sql_mode_flags_check), Target::OBJECT_DEFINITIONS,
     "8.0.11");
 
-bool UNUSED_VARIABLE(register_sqlmode) = Upgrade_check_registry::register_check(
+[[maybe_unused]] bool register_sqlmode = Upgrade_check_registry::register_check(
     std::bind(&get_obsolete_sql_mode_flags_check), Target::OBJECT_DEFINITIONS,
     "8.0.11");
 
-bool UNUSED_VARIABLE(register_enum_set_element_length_check) =
+[[maybe_unused]] bool register_enum_set_element_length_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_enum_set_element_length_check),
         Target::OBJECT_DEFINITIONS, "8.0.11");
 
-bool UNUSED_VARIABLE(register_sharded_tablespaces) =
+[[maybe_unused]] bool register_sharded_tablespaces =
     Upgrade_check_registry::register_check(
         &get_partitioned_tables_in_shared_tablespaces_check,
         Target::TABLESPACES, "8.0.11", "8.0.13");
 
-bool UNUSED_VARIABLE(circular_directory_check) =
+[[maybe_unused]] bool circular_directory_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_circular_directory_check), Target::TABLESPACES,
         "8.0.17");
 
-bool UNUSED_VARIABLE(register_removed_functions) =
+[[maybe_unused]] bool register_removed_functions =
     Upgrade_check_registry::register_check(
         std::bind(&get_removed_functions_check), Target::OBJECT_DEFINITIONS,
         "8.0.11");
 
-bool UNUSED_VARIABLE(register_groupby_syntax_check) =
+[[maybe_unused]] bool register_groupby_syntax_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_groupby_asc_syntax_check), Target::OBJECT_DEFINITIONS,
         "8.0.13");
 
-bool UNUSED_VARIABLE(register_sys_vars_check) =
+[[maybe_unused]] bool register_sys_vars_check =
     Upgrade_check_registry::register_check(get_sys_vars_check,
                                            Target::SYSTEM_VARIABLES);
 
-bool UNUSED_VARIABLE(register_zero_dates_check) =
-    Upgrade_check_registry::register_check(std::bind(&get_zero_dates_check),
-                                           Target::OBJECT_DEFINITIONS,
-                                           "8.0.11");
+[[maybe_unused]] bool register_zero_dates_check =
+    Upgrade_check_registry::register_check(
+        std::bind(&get_zero_dates_check), Target::OBJECT_DEFINITIONS, "8.0.11");
 
-bool UNUSED_VARIABLE(register_schema_inconsistency_check) =
+[[maybe_unused]] bool register_schema_inconsistency_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_schema_inconsistency_check), Target::INNODB_INTERNALS,
         "8.0.11");
 
-bool UNUSED_VARIABLE(register_fts_tablename_check) =
+[[maybe_unused]] bool register_fts_tablename_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_fts_in_tablename_check), Target::OBJECT_DEFINITIONS,
         [](const Upgrade_info &info) {
@@ -162,11 +161,11 @@ bool UNUSED_VARIABLE(register_fts_tablename_check) =
 
 // clang-format on
 
-bool UNUSED_VARIABLE(register_engine_mixup_check) =
+[[maybe_unused]] bool register_engine_mixup_check =
     Upgrade_check_registry::register_check(std::bind(&get_engine_mixup_check),
                                            Target::ENGINES, "8.0.11");
 
-bool UNUSED_VARIABLE(register_old_geometry_check) =
+[[maybe_unused]] bool register_old_geometry_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_old_geometry_types_check), Target::INNODB_INTERNALS,
         [](const Upgrade_info &info) {
@@ -175,7 +174,7 @@ bool UNUSED_VARIABLE(register_old_geometry_check) =
         },
         "When upgrading to a version between 8.0.11 and 8.0.23");
 
-bool UNUSED_VARIABLE(register_check_table) =
+[[maybe_unused]] bool register_check_table =
     Upgrade_check_registry::register_check(std::bind(&get_table_command_check),
                                            Target::INNODB_INTERNALS);
 
@@ -189,39 +188,39 @@ bool register_manual_checks() {
   return true;
 }
 
-bool UNUSED_VARIABLE(reg_manual_checks) = register_manual_checks();
+[[maybe_unused]] bool reg_manual_checks = register_manual_checks();
 
-bool UNUSED_VARIABLE(register_changed_functions_generated_columns) =
+[[maybe_unused]] bool register_changed_functions_generated_columns =
     Upgrade_check_registry::register_check(
         std::bind(&get_changed_functions_generated_columns_check),
         Target::OBJECT_DEFINITIONS, "5.7.0", "8.0.28");
 
-bool UNUSED_VARIABLE(register_columns_which_cannot_have_defaults) =
+[[maybe_unused]] bool register_columns_which_cannot_have_defaults =
     Upgrade_check_registry::register_check(
         std::bind(&get_columns_which_cannot_have_defaults_check),
         Target::OBJECT_DEFINITIONS, "8.0.12");
 
-bool UNUSED_VARIABLE(register_get_invalid_57_names_check) =
+[[maybe_unused]] bool register_get_invalid_57_names_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_invalid_57_names_check), Target::OBJECT_DEFINITIONS,
         "8.0.0");
 
-bool UNUSED_VARIABLE(register_get_orphaned_objects_check) =
+[[maybe_unused]] bool register_get_orphaned_objects_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_orphaned_objects_check), Target::OBJECT_DEFINITIONS,
         "8.0.0");
 
-bool UNUSED_VARIABLE(register_get_dollar_sign_name_check) =
+[[maybe_unused]] bool register_get_dollar_sign_name_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_dollar_sign_name_check), Target::OBJECT_DEFINITIONS,
         "8.0.31");
 
-bool UNUSED_VARIABLE(register_get_index_too_large_check) =
+[[maybe_unused]] bool register_get_index_too_large_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_index_too_large_check), Target::OBJECT_DEFINITIONS,
         "8.0.0");
 
-bool UNUSED_VARIABLE(register_get_empty_dot_table_syntax_check) =
+[[maybe_unused]] bool register_get_empty_dot_table_syntax_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_empty_dot_table_syntax_check),
         Target::OBJECT_DEFINITIONS, "8.0.0");
@@ -237,7 +236,7 @@ bool UNUSED_VARIABLE(register_get_empty_dot_table_syntax_check) =
  *  - maxdbSqlModeFlags
  *  - obsoleteSqlModeFlags
  */
-bool UNUSED_VARIABLE(register_syntax) = Upgrade_check_registry::register_check(
+[[maybe_unused]] bool register_syntax = Upgrade_check_registry::register_check(
     &get_syntax_check, Target::OBJECT_DEFINITIONS,
     [](const Upgrade_info &info) {
       if (info.server_version.get_major() == info.target_version.get_major() &&
@@ -249,12 +248,12 @@ bool UNUSED_VARIABLE(register_syntax) = Upgrade_check_registry::register_check(
     "When the major.minor version of the source and target servers is "
     "different.");
 
-bool UNUSED_VARIABLE(register_get_invalid_engine_foreign_key_check) =
+[[maybe_unused]] bool register_get_invalid_engine_foreign_key_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_invalid_engine_foreign_key_check),
         Target::OBJECT_DEFINITIONS, "8.0.0");
 
-bool UNUSED_VARIABLE(register_get_foreign_key_references_check) =
+[[maybe_unused]] bool register_get_foreign_key_references_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_foreign_key_references_check),
         Target::OBJECT_DEFINITIONS,
@@ -263,45 +262,45 @@ bool UNUSED_VARIABLE(register_get_foreign_key_references_check) =
         },
         "When the target server is equal or above 8.4.0.");
 
-bool UNUSED_VARIABLE(register_auth_method_usage_check) =
+[[maybe_unused]] bool register_auth_method_usage_check =
     Upgrade_check_registry::register_check(&get_auth_method_usage_check,
                                            Target::AUTHENTICATION_PLUGINS);
 
-bool UNUSED_VARIABLE(register_plugin_usage_check) =
+[[maybe_unused]] bool register_plugin_usage_check =
     Upgrade_check_registry::register_check(&get_plugin_usage_check,
                                            Target::PLUGINS);
 
-bool UNUSED_VARIABLE(register_get_deprecated_default_auth_check) =
+[[maybe_unused]] bool register_get_deprecated_default_auth_check =
     Upgrade_check_registry::register_check(&get_deprecated_default_auth_check,
                                            Target::SYSTEM_VARIABLES, "8.0.0",
                                            "8.1.0", "8.2.0");
 
-bool UNUSED_VARIABLE(register_get_deprecated_router_auth_method_check) =
+[[maybe_unused]] bool register_get_deprecated_router_auth_method_check =
     Upgrade_check_registry::register_check(
         &get_deprecated_router_auth_method_check,
         Target::AUTHENTICATION_PLUGINS, "8.0.0", "8.1.0", "8.2.0");
 
-bool UNUSED_VARIABLE(
-    register_get_deprecated_partition_temporal_delimiter_check) =
-    Upgrade_check_registry::register_check(
-        std::bind(&get_deprecated_partition_temporal_delimiter_check),
-        Target::OBJECT_DEFINITIONS, "8.0.29");
+[[maybe_unused]] bool
+    register_get_deprecated_partition_temporal_delimiter_check =
+        Upgrade_check_registry::register_check(
+            std::bind(&get_deprecated_partition_temporal_delimiter_check),
+            Target::OBJECT_DEFINITIONS, "8.0.29");
 
-bool UNUSED_VARIABLE(register_get_column_definition_check) =
+[[maybe_unused]] bool register_get_column_definition_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_column_definition_check), Target::OBJECT_DEFINITIONS,
         "8.4.0");
 
-bool UNUSED_VARIABLE(register_invalid_privileges_check) =
+[[maybe_unused]] bool register_invalid_privileges_check =
     Upgrade_check_registry::register_check(&get_invalid_privileges_check,
                                            Target::PRIVILEGES, "8.4.0");
 
-bool UNUSED_VARIABLE(register_gget_partitions_with_prefix_keys_check) =
+[[maybe_unused]] bool register_gget_partitions_with_prefix_keys_check =
     Upgrade_check_registry::register_check(
         &get_partitions_with_prefix_keys_check, Target::OBJECT_DEFINITIONS,
         "8.4.0");
 
-bool UNUSED_VARIABLE(register_get_spatial_index_check) =
+[[maybe_unused]] bool register_get_spatial_index_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_spatial_index_check), Target::OBJECT_DEFINITIONS,
         [](const Upgrade_info &info) {

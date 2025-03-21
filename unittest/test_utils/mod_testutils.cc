@@ -52,7 +52,6 @@
 #include <unistd.h>
 #endif
 
-#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -3234,9 +3233,9 @@ Undefined Testutils::expectPrompt(String prompt, String answer,
 None Testutils::expect_prompt(str prompt, str answer, dict options);
 #endif
 ///@}
-void Testutils::expect_prompt(
-    const std::string &prompt, const std::string &text,
-    const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options) {
+void Testutils::expect_prompt(const std::string &prompt,
+                              const std::string &text,
+                              const shcore::prompt::Prompt_options &options) {
   _feed_prompt(prompt, text, options);
 }
 
@@ -3299,9 +3298,9 @@ Undefined Testutils::expectPassword(String prompt, String password);
 None Testutils::expect_password(str prompt, str password);
 #endif
 ///@}
-void Testutils::expect_password(
-    const std::string &prompt, const std::string &text,
-    const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options) {
+void Testutils::expect_password(const std::string &prompt,
+                                const std::string &text,
+                                const shcore::prompt::Prompt_options &options) {
   _feed_password(prompt, text, options);
 }
 

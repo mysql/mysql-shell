@@ -43,8 +43,6 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/scripting/object_factory.h"
 #include "mysqlshdk/include/scripting/proxy_object.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"  // for options
 #include "mysqlshdk/include/shellcore/interrupt_handler.h"
 #include "mysqlshdk/include/shellcore/shell_core.h"

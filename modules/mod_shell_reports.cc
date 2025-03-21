@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 #include "modules/reports/thread.h"
 #include "modules/reports/threads.h"
 #include "modules/reports/utils.h"
+#include "mysqlshdk/include/scripting/types/function_metadata.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/options.h"
@@ -358,14 +359,14 @@ class Native_report_function : public shcore::Cpp_function {
     m_metadata.param_types = {{"session", shcore::Value_type::Object},
                               {"?argv", shcore::Value_type::Array},
                               {"?options", shcore::Value_type::Map}};
-    m_metadata.signature = gen_signature(m_metadata.param_types);
+    m_metadata.signature = generate_signature(m_metadata.param_types);
     m_metadata.return_type = shcore::Value_type::Map;
   }
 
   ~Native_report_function() override = default;
 
  private:
-  shcore::Cpp_function::Metadata m_metadata;
+  shcore::Function_metadata m_metadata;
 };
 
 std::string list_formatter(const shcore::Array_t &a,

@@ -552,8 +552,7 @@ void Routing_guideline_impl::remove_route(const std::string &name) {
   current_console()->print_info("Route successfully removed.");
 }
 
-void Routing_guideline_impl::show(
-    const shcore::Option_pack_ref<Show_options> &options) const {
+void Routing_guideline_impl::show(const Show_options &options) const {
   auto console = mysqlsh::current_console();
 
   shcore::Array_t routes = m_guideline_doc->get_array("routes");
@@ -567,7 +566,7 @@ void Routing_guideline_impl::show(
     std::smatch match;
 
     if (std::regex_search(match_expr, match, router_var) &&
-        !options->router.has_value()) {
+        !options.router.has_value()) {
       console->print_error(shcore::str_format(
           "The Routing Guideline contains destinations configured to use "
           "router-specific variables (e.g., '%s'), but the 'router' option "
@@ -594,25 +593,25 @@ void Routing_guideline_impl::show(
 
   // Classify topology
   auto [classified_destinations, unused_servers] =
-      classify_topology(options->router.value_or(""));
+      classify_topology(options.router.value_or(""));
 
   std::optional<Router_metadata> router_md_opt;
   std::unique_ptr<Router_configuration_schema> router_options_parsed;
 
-  if (options->router.has_value()) {
+  if (options.router.has_value()) {
     auto routers_md = m_owner->get_routers();
 
     auto it = std::find_if(
         routers_md.begin(), routers_md.end(), [&](const auto &router_md) {
           return shcore::str_format("%s::%s", router_md.hostname.c_str(),
                                     router_md.name.c_str()) ==
-                 options->router.value();
+                 options.router.value();
         });
 
     if (it == routers_md.end()) {
       throw shcore::Exception(
           shcore::str_format("Router '%s' not found in the metadata.",
-                             options->router.value().c_str()),
+                             options.router.value().c_str()),
           SHERR_DBA_ROUTING_GUIDELINE_ROUTER_NOT_FOUND);
     }
 
@@ -624,7 +623,7 @@ void Routing_guideline_impl::show(
                                                             m_owner->get_id());
     router_options_parsed =
         std::make_unique<Router_configuration_schema>(shcore::Value(
-            router_options_md.as_map()->get_map(options->router.value())));
+            router_options_md.as_map()->get_map(options.router.value())));
   }
 
   // Helper to resolve endpoint information
@@ -700,9 +699,9 @@ void Routing_guideline_impl::show(
   // Print Routes
   std::string base_label = "Routes";
   std::string routes_header =
-      options->router.has_value()
+      options.router.has_value()
           ? shcore::str_format("%s for '%s'", base_label.c_str(),
-                               options->router.value().c_str())
+                               options.router.value().c_str())
           : base_label;
   console->print_info(routes_header);
   console->print_info(std::string(routes_header.length(), '-'));
@@ -717,7 +716,7 @@ void Routing_guideline_impl::show(
                                            unescape_tags(match_expr).c_str()));
 
     // Only resolve endpoints if the 'router' option is provided
-    if (options->router.has_value()) {
+    if (options.router.has_value()) {
       auto endpoint_info = resolve_endpoint(match_expr);
       if (endpoint_info.has_value()) {
         console->print_info("    + Endpoints:");
@@ -1395,14 +1394,14 @@ Routing_guideline_impl::Routing_guideline_impl(
 std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::create(
     const std::shared_ptr<Base_cluster_impl> &owner, const std::string &name,
     shcore::Dictionary_t json,
-    const shcore::Option_pack_ref<Create_routing_guideline_options> &options) {
+    const Create_routing_guideline_options &options) {
   auto console = mysqlsh::current_console();
 
   // Validate the options
   {
     // 'force' can only be used to override the current guideline with one
     // passed via 'json'
-    if (options->get_force() && !json) {
+    if (options.get_force() && !json) {
       throw shcore::Exception(
           "The 'json' option is required when 'force' is enabled",
           SHERR_DBA_ROUTING_GUIDELINE_MISSING_GUIDELINE_OPTION);
@@ -1418,7 +1417,7 @@ std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::create(
 
   // Check if a Guideline with that name already exists. Skip if forced is
   // used and keep the same it if needed
-  guideline_impl->ensure_unique_or_reuse(owner, options->get_force());
+  guideline_impl->ensure_unique_or_reuse(owner, options.get_force());
 
   if (json) {
     guideline_impl->parse(json);
@@ -1426,7 +1425,7 @@ std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::create(
     console->print_info("Creating Default Routing Guideline...");
 
     // Set as default guideline.
-    if (!options->get_force()) guideline_impl->set_as_default();
+    if (!options.get_force()) guideline_impl->set_as_default();
 
     auto topology_type = owner->get_type();
     auto read_only_targets = owner->get_read_only_targets_option();
@@ -1485,7 +1484,7 @@ std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::load(
 std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::import(
     const std::shared_ptr<Base_cluster_impl> &owner,
     const std::string &file_path,
-    const shcore::Option_pack_ref<Import_routing_guideline_options> &options) {
+    const Import_routing_guideline_options &options) {
   auto console = mysqlsh::current_console();
 
   auto read_json_file = [&](const std::string &full_path) {
@@ -1548,14 +1547,14 @@ std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::import(
   guideline_impl->parse(shcore::Value::parse(parsed_document).as_map());
 
   // Handle options: 'force' or 'rename' (mutually exclusive)
-  if (!options->rename.has_value()) {
+  if (!options.rename.has_value()) {
     // Check if a Guideline with that name already exists. Skip if 'force' is
     // used and keep the same if needed
-    guideline_impl->ensure_unique_or_reuse(owner, options->get_force());
+    guideline_impl->ensure_unique_or_reuse(owner, options.get_force());
   } else {
     // Rename the guideline but first check if a guideline with the new name
     // already exists
-    const auto &new_name = *options->rename;
+    const auto &new_name = *options.rename;
 
     if (owner->has_guideline(new_name)) {
       throw shcore::Exception::argument_error(shcore::str_format(

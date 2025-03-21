@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,11 +23,13 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "scripting/types_cpp.h"
-#include "shellcore/ishell_core.h"
+#ifndef MODULES_MOD_SYS_H_
+#define MODULES_MOD_SYS_H_
 
-#ifndef _MODULES_MOD_SYS_H_
-#define _MODULES_MOD_SYS_H_
+#include <string>
+
+#include "scripting/types/cpp.h"
+#include "shellcore/ishell_core.h"
 
 namespace mysqlsh {
 /**
@@ -36,7 +38,7 @@ namespace mysqlsh {
  */
 class SHCORE_PUBLIC Sys : public shcore::Cpp_object_bridge {
  public:
-  Sys(shcore::IShell_core *owner);
+  explicit Sys(shcore::IShell_core *owner);
   virtual ~Sys();
 
   virtual std::string class_name() const { return "Sys"; };
@@ -58,4 +60,4 @@ class SHCORE_PUBLIC Sys : public shcore::Cpp_object_bridge {
 };
 }  // namespace mysqlsh
 
-#endif
+#endif  // MODULES_MOD_SYS_H_

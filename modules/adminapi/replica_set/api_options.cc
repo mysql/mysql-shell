@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,7 +62,8 @@ void Recovery_progress_option::set_recovery_progress(int value) {
   }
 }
 
-Recovery_progress_style Recovery_progress_option::get_recovery_progress() {
+Recovery_progress_style Recovery_progress_option::get_recovery_progress()
+    const {
   if (!m_recovery_progress.has_value()) {
     m_recovery_progress = isatty(STDOUT_FILENO)
                               ? Recovery_progress_style::PROGRESS_BAR

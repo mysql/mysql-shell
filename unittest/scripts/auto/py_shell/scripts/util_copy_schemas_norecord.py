@@ -933,7 +933,7 @@ target_version = __version.split(".")
 target_version[1] = str(int(target_version[1]) + 1)
 target_version = ".".join(target_version)
 
-msg = f"Target MySQL version '{target_version}' is newer than the maximum version '{'.'.join(__mysh_version_no_extra.split('.')[:2])}.*' supported by this version of MySQL Shell"
+msg = f"Target MySQL version '{target_version}' is newer than the maximum version '{'.'.join(__mysh_version.split('.')[:2])}.*' supported by this version of MySQL Shell"
 
 #@<> BUG#38107377 - copy without 'ignoreVersion' fails {not __dbug_off and VER(>=8.0.0)}
 EXPECT_FAIL("ValueError", msg, __sandbox_uri2)

@@ -294,9 +294,8 @@ Undefined ReplicaSet::addInstance(String instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::add_instance(str instance, dict options) {}
 #endif
-void ReplicaSet::add_instance(
-    const std::string &instance_def,
-    const shcore::Option_pack_ref<replicaset::Add_instance_options> &options) {
+void ReplicaSet::add_instance(const std::string &instance_def,
+                              const replicaset::Add_instance_options &options) {
   assert_valid("addInstance");
 
   // this validates the instance_def
@@ -304,15 +303,13 @@ void ReplicaSet::add_instance(
 
   // TODO(anyone): The implementation should be updated to receive the options
   // object
-  auto opts = options;
-
   execute_with_pool(
       [&]() {
         impl()->add_instance(
-            instance_def, options->ar_options, options->clone_options,
-            options->instance_label, options->cert_subject,
-            opts->get_recovery_progress(), options->timeout,
-            current_shell_options()->get().wizards, options->dry_run);
+            instance_def, options.ar_options, options.clone_options,
+            options.instance_label, options.cert_subject,
+            options.get_recovery_progress(), options.timeout,
+            current_shell_options()->get().wizards, options.dry_run);
       },
       current_shell_options()->get().wizards);
 }
@@ -411,21 +408,18 @@ None ReplicaSet::rejoin_instance(str instance, dict options) {}
 #endif
 void ReplicaSet::rejoin_instance(
     const std::string &instance_def,
-    const shcore::Option_pack_ref<replicaset::Rejoin_instance_options>
-        &options) {
+    const replicaset::Rejoin_instance_options &options) {
   assert_valid("rejoinInstance");
 
   // this validates the instance_def
   std::ignore = get_connection_options(shcore::Value(instance_def));
 
-  auto opts = options;
-
   execute_with_pool(
       [&]() {
-        impl()->rejoin_instance(instance_def, opts->clone_options,
-                                opts->get_recovery_progress(), opts->timeout,
-                                current_shell_options()->get().wizards,
-                                opts->dry_run);
+        impl()->rejoin_instance(
+            instance_def, options.clone_options,
+            options.get_recovery_progress(), options.timeout,
+            current_shell_options()->get().wizards, options.dry_run);
       },
       current_shell_options()->get().wizards);
 }
@@ -477,8 +471,7 @@ None ReplicaSet::remove_instance(str instance, dict options) {}
 
 void ReplicaSet::remove_instance(
     const std::string &instance_def,
-    const shcore::Option_pack_ref<replicaset::Remove_instance_options>
-        &options) {
+    const replicaset::Remove_instance_options &options) {
   assert_valid("removeInstance");
 
   // Remove the Instance from the Default ReplicaSet
@@ -489,8 +482,7 @@ void ReplicaSet::remove_instance(
 
   execute_with_pool(
       [&]() {
-        impl()->remove_instance(instance_def, options->force,
-                                options->timeout());
+        impl()->remove_instance(instance_def, options.force, options.timeout());
         return shcore::Value();
       },
       interactive);
@@ -576,11 +568,10 @@ String ReplicaSet::status(Dictionary options) {}
 str ReplicaSet::status(dict options) {}
 #endif
 
-shcore::Value ReplicaSet::status(
-    const shcore::Option_pack_ref<replicaset::Status_options> &options) {
+shcore::Value ReplicaSet::status(const replicaset::Status_options &options) {
   assert_valid("status");
 
-  return execute_with_pool([&]() { return impl()->status(options->extended); },
+  return execute_with_pool([&]() { return impl()->status(options.extended); },
                            false);
 }
 
@@ -655,14 +646,13 @@ None ReplicaSet::set_primary_instance(str instance, dict options) {}
 #endif
 void ReplicaSet::set_primary_instance(
     const std::string &instance_def,
-    const shcore::Option_pack_ref<replicaset::Set_primary_instance_options>
-        &options) {
+    const replicaset::Set_primary_instance_options &options) {
   assert_valid("setPrimaryInstance");
 
   execute_with_pool(
       [&]() {
-        impl()->set_primary_instance(instance_def, options->timeout(),
-                                     options->dry_run);
+        impl()->set_primary_instance(instance_def, options.timeout(),
+                                     options.dry_run);
         return shcore::Value();
       },
       false);
@@ -736,15 +726,14 @@ None ReplicaSet::force_primary_instance(str instance, dict options) {}
 #endif
 void ReplicaSet::force_primary_instance(
     const std::string &instance_def,
-    const shcore::Option_pack_ref<replicaset::Force_primary_instance_options>
-        &options) {
+    const replicaset::Force_primary_instance_options &options) {
   assert_valid("forcePrimaryInstance");
 
   execute_with_pool(
       [&]() {
-        impl()->force_primary_instance(instance_def, options->timeout(),
-                                       options->invalidate_instances,
-                                       options->dry_run);
+        impl()->force_primary_instance(instance_def, options.timeout(),
+                                       options.invalidate_instances,
+                                       options.dry_run);
       },
       false);
 }
@@ -793,11 +782,10 @@ Undefined ReplicaSet::dissolve(Dictionary options) {}
 None ReplicaSet::dissolve(dict options) {}
 #endif
 
-void ReplicaSet::dissolve(
-    const shcore::Option_pack_ref<replicaset::Dissolve_options> &options) {
+void ReplicaSet::dissolve(const replicaset::Dissolve_options &options) {
   assert_valid("dissolve");
 
-  execute_with_pool([this, &options]() { impl()->dissolve(*options); }, false);
+  execute_with_pool([this, &options]() { impl()->dissolve(options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(rescan, ReplicaSet);
@@ -833,11 +821,10 @@ Undefined ReplicaSet::rescan(Dictionary options) {}
 None ReplicaSet::rescan(dict options) {}
 #endif
 
-void ReplicaSet::rescan(
-    const shcore::Option_pack_ref<replicaset::Rescan_options> &options) {
+void ReplicaSet::rescan(const replicaset::Rescan_options &options) {
   assert_valid("rescan");
 
-  execute_with_pool([this, &options]() { impl()->rescan(*options); }, false);
+  execute_with_pool([this, &options]() { impl()->rescan(options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(listRouters, ReplicaSet);
@@ -1179,7 +1166,7 @@ specified in instances. It accepts the same keywords, except "all".
 cmd to execute in each target instance. Default value is 0 meaning it
 doesn't timeout.
 @li dryRun: boolean if true, all validations and steps for executing cmd
-are performed, but no cmd is actually executed on any instance. 
+are performed, but no cmd is actually executed on any instance.
 
 To calculate the final list of instances where cmd should be executed,
 the function starts by parsing the instances parameter and then subtract

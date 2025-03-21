@@ -49,7 +49,6 @@
 #include "modules/adminapi/dba/upgrade_metadata.h"
 #include "modules/adminapi/dba_utils.h"
 #include "modules/mod_utils.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/mysql/group_replication.h"
@@ -1489,9 +1488,8 @@ Cluster Dba::createCluster(String name, Dictionary options) {}
 #elif DOXYGEN_PY
 Cluster Dba::create_cluster(str name, dict options) {}
 #endif
-shcore::Value Dba::create_cluster(
-    const std::string &cluster_name,
-    const shcore::Option_pack_ref<Create_cluster_options> &options) {
+shcore::Value Dba::create_cluster(const std::string &cluster_name,
+                                  const Create_cluster_options &options) {
   std::shared_ptr<Instance> group_server;
   std::shared_ptr<MetadataStorage> metadata;
 
@@ -1561,7 +1559,7 @@ shcore::Value Dba::create_cluster(
   // Create the cluster
   {
     // Create the add_instance command and execute it.
-    Create_cluster op_create_cluster(group_server, cluster_name, *options);
+    Create_cluster op_create_cluster(group_server, cluster_name, options);
 
     // Always execute finish when leaving "try catch".
     shcore::on_leave_scope finally(
@@ -1619,8 +1617,7 @@ Undefined Dba::dropMetadataSchema(Dictionary options) {}
 None Dba::drop_metadata_schema(dict options) {}
 #endif
 
-void Dba::drop_metadata_schema(
-    const shcore::Option_pack_ref<Drop_metadata_schema_options> &options) {
+void Dba::drop_metadata_schema(const Drop_metadata_schema_options &options) {
   auto instance = connect_to_target_member();
   std::shared_ptr<MetadataStorage> metadata;
 
@@ -1667,7 +1664,7 @@ void Dba::drop_metadata_schema(
   // Can't dissolve if in a cluster_set
   ensure_not_in_cluster_set(*metadata, *instance);
 
-  std::optional<bool> force = options->force;
+  std::optional<bool> force = options.force;
 
   if (!force.has_value() && interactive &&
       console->confirm("Are you sure you want to remove the Metadata?",
@@ -1754,8 +1751,7 @@ JSON Dba::check_instance_configuration(InstanceDef instance, dict options) {}
 #endif
 shcore::Value Dba::check_instance_configuration(
     const std::optional<Connection_options> &instance_def_,
-    const shcore::Option_pack_ref<Check_instance_configuration_options>
-        &options) {
+    const Check_instance_configuration_options &options) {
   auto instance_def = instance_def_;
   const auto has_co = instance_def && instance_def->has_data();
 
@@ -1807,7 +1803,7 @@ shcore::Value Dba::check_instance_configuration(
   instance->close_session();
 
   // Call the API
-  return Topology_executor<Check_instance>{coptions, options->mycnf_path}.run();
+  return Topology_executor<Check_instance>{coptions, options.mycnf_path}.run();
 }
 
 // -----------------------------------------------------------------------------
@@ -2007,8 +2003,7 @@ ReplicaSet Dba::createReplicaSet(String name, Dictionary options) {}
 ReplicaSet Dba::create_replica_set(str name, dict options) {}
 #endif
 shcore::Value Dba::create_replica_set(
-    const std::string &full_rs_name,
-    const shcore::Option_pack_ref<Create_replicaset_options> &options) {
+    const std::string &full_rs_name, const Create_replicaset_options &options) {
   std::shared_ptr<Instance> target_server = connect_to_target_member();
 
   try {
@@ -2065,7 +2060,7 @@ shcore::Value Dba::create_replica_set(
 
   auto cluster = Replica_set_impl::create(
       full_rs_name, Global_topology_type::SINGLE_PRIMARY_TREE, target_server,
-      *options);
+      options);
 
   auto console = mysqlsh::current_console();
   console->print_info("ReplicaSet object successfully created for " +
@@ -2257,21 +2252,19 @@ Instance Dba::deploySandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 Instance Dba::deploy_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::deploy_sandbox_instance(
-    int port, const shcore::Option_pack_ref<Deploy_sandbox_options> &options) {
+void Dba::deploy_sandbox_instance(int port,
+                                  const Deploy_sandbox_options &options) {
   validate_port(port, "port");
 
-  const Deploy_sandbox_options &opts = *options;
-
-  if (opts.xport.has_value()) {
-    validate_port(*opts.xport, "portx");
+  if (options.xport.has_value()) {
+    validate_port(*options.xport, "portx");
   }
 
-  auto password = opts.password;
+  auto password = options.password;
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
   auto path =
-      shcore::path::join_path(options->get_sandbox_dir(), std::to_string(port));
+      shcore::path::join_path(options.get_sandbox_dir(), std::to_string(port));
 
   if (interactive) {
     console->print_info(
@@ -2305,9 +2298,9 @@ void Dba::deploy_sandbox_instance(
 
   shcore::Array_t errors;
   int rc = _provisioning_interface.create_sandbox(
-      port, opts.xport.value_or(0), options->get_sandbox_dir(), *password,
-      shcore::Value(opts.mysqld_options), true, opts.ignore_ssl_error, 0,
-      opts.mysqld_path, &errors);
+      port, options.xport.value_or(0), options.get_sandbox_dir(), *password,
+      shcore::Value(options.mysqld_options), true, options.ignore_ssl_error, 0,
+      options.mysqld_path, &errors);
 
   if (rc != 0) throw_instance_op_error(errors);
 
@@ -2317,7 +2310,7 @@ void Dba::deploy_sandbox_instance(
   // Valid values:
   //   allowRootFrom: address
   //   allowRootFrom: %
-  if (!opts.allow_root_from.empty()) {
+  if (!options.allow_root_from.empty()) {
     std::string uri = "root@localhost:" + std::to_string(port);
     mysqlshdk::db::Connection_options instance_def(uri);
     instance_def.set_password(*password);
@@ -2338,7 +2331,7 @@ void Dba::deploy_sandbox_instance(
     }
 
     log_info("Creating root@%s account for sandbox %i",
-             opts.allow_root_from.c_str(), port);
+             options.allow_root_from.c_str(), port);
 
     instance->execute("SET sql_log_bin = 0");
     shcore::Scoped_callback enableLogBin(
@@ -2350,14 +2343,14 @@ void Dba::deploy_sandbox_instance(
 
       shcore::sqlstring create_user(
           "CREATE USER root@? IDENTIFIED BY /*((*/ ? /*))*/", 0);
-      create_user << opts.allow_root_from << pwd;
+      create_user << options.allow_root_from << pwd;
       create_user.done();
       instance->execute(create_user);
     }
     {
       shcore::sqlstring grant("GRANT ALL ON *.* TO root@? WITH GRANT OPTION",
                               0);
-      grant << opts.allow_root_from;
+      grant << options.allow_root_from;
       grant.done();
       instance->execute(grant);
     }
@@ -2414,9 +2407,9 @@ Undefined Dba::deleteSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::delete_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::delete_sandbox_instance(
-    int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
-  exec_instance_op("delete", port, options->get_sandbox_dir());
+void Dba::delete_sandbox_instance(int port,
+                                  const Common_sandbox_options &options) {
+  exec_instance_op("delete", port, options.get_sandbox_dir());
 }
 
 REGISTER_HELP_FUNCTION(killSandboxInstance, dba);
@@ -2452,9 +2445,9 @@ Undefined Dba::killSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::kill_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::kill_sandbox_instance(
-    int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
-  exec_instance_op("kill", port, options->get_sandbox_dir());
+void Dba::kill_sandbox_instance(int port,
+                                const Common_sandbox_options &options) {
+  exec_instance_op("kill", port, options.get_sandbox_dir());
 }
 
 REGISTER_HELP_FUNCTION(stopSandboxInstance, dba);
@@ -2491,13 +2484,12 @@ Undefined Dba::stopSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::stop_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::stop_sandbox_instance(
-    int port, const shcore::Option_pack_ref<Stop_sandbox_options> &options) {
+void Dba::stop_sandbox_instance(int port, const Stop_sandbox_options &options) {
   std::string sandbox_dir;
 
   validate_port(port, "port");
 
-  auto password = options->password;
+  auto password = options.password;
 
   bool interactive = current_shell_options()->get().wizards;
   auto console = mysqlsh::current_console();
@@ -2541,7 +2533,7 @@ void Dba::stop_sandbox_instance(
     }
   }
 
-  exec_instance_op("stop", port, options->get_sandbox_dir(), *password);
+  exec_instance_op("stop", port, options.get_sandbox_dir(), *password);
 }
 
 REGISTER_HELP_FUNCTION(startSandboxInstance, dba);
@@ -2577,9 +2569,9 @@ Undefined Dba::startSandboxInstance(Integer port, Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::start_sandbox_instance(int port, dict options) {}
 #endif
-void Dba::start_sandbox_instance(
-    int port, const shcore::Option_pack_ref<Common_sandbox_options> &options) {
-  exec_instance_op("start", port, options->get_sandbox_dir());
+void Dba::start_sandbox_instance(int port,
+                                 const Common_sandbox_options &options) {
+  exec_instance_op("start", port, options.get_sandbox_dir());
 }
 
 void Dba::do_configure_instance(mysqlshdk::db::Connection_options instance_def,
@@ -2746,10 +2738,9 @@ None Dba::configure_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_instance(
     const std::optional<Connection_options> &instance_def,
-    const shcore::Option_pack_ref<Configure_cluster_instance_options>
-        &options) {
+    const Configure_cluster_instance_options &options) {
   do_configure_instance(instance_def ? *instance_def : Connection_options{},
-                        *options, Cluster_type::GROUP_REPLICATION);
+                        options, Cluster_type::GROUP_REPLICATION);
 }
 
 REGISTER_HELP_FUNCTION(configureReplicaSetInstance, dba);
@@ -2816,10 +2807,9 @@ None Dba::configure_replica_set_instance(InstanceDef instance, dict options) {}
 #endif
 void Dba::configure_replica_set_instance(
     const std::optional<Connection_options> &instance_def,
-    const shcore::Option_pack_ref<Configure_replicaset_instance_options>
-        &options) {
+    const Configure_replicaset_instance_options &options) {
   do_configure_instance(instance_def ? *instance_def : Connection_options{},
-                        *options, Cluster_type::ASYNC_REPLICATION);
+                        options, Cluster_type::ASYNC_REPLICATION);
 }
 
 REGISTER_HELP_FUNCTION(rebootClusterFromCompleteOutage, dba);
@@ -2905,7 +2895,7 @@ Cluster Dba::reboot_cluster_from_complete_outage(str clusterName,
 
 std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     const std::optional<std::string> &cluster_name,
-    const shcore::Option_pack_ref<Reboot_cluster_options> &options) {
+    const Reboot_cluster_options &options) {
   std::shared_ptr<MetadataStorage> metadata;
   std::shared_ptr<Instance> target_instance;
   // The cluster is completely dead, so we can't find the primary anyway...
@@ -2943,16 +2933,16 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     // Validate the options:
     //   - switchCommunicationStack
     //   - localAddress
-    options->check_option_values(target_instance_version,
-                                 target_instance->get_canonical_port(),
-                                 comm_stack);
+    options.check_option_values(target_instance_version,
+                                target_instance->get_canonical_port(),
+                                comm_stack);
   }
 
   Scoped_instance_pool ipool(
       metadata, false,
       Instance_pool::Auth_options{target_instance->get_connection_options()});
 
-  if (options->get_dry_run()) {
+  if (options.get_dry_run()) {
     current_console()->print_note(
         "dryRun option was specified. Validations will be executed, but no "
         "changes will be applied.");
@@ -2971,7 +2961,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
     // In that case, we install the GR plugin and retry.
     if (e.code() != ER_UNKNOWN_SYSTEM_VARIABLE) throw;
 
-    if (!options->get_dry_run()) {
+    if (!options.get_dry_run()) {
       log_info("%s: installing GR plugin (%s)",
                target_instance->descr().c_str(), e.format().c_str());
 
@@ -2993,7 +2983,7 @@ std::shared_ptr<Cluster> Dba::reboot_cluster_from_complete_outage(
 
   return Topology_executor<Reboot_cluster_from_complete_outage>{
       this, cluster, target_instance,
-      static_cast<Reboot_cluster_options>(*options)}
+      static_cast<Reboot_cluster_options>(options)}
       .run();
 }
 
@@ -3042,8 +3032,7 @@ Undefined Dba::upgradeMetadata(Dictionary options) {}
 #elif DOXYGEN_PY
 None Dba::upgrade_metadata(dict options) {}
 #endif
-void Dba::upgrade_metadata(
-    const shcore::Option_pack_ref<Upgrade_metadata_options> &options) {
+void Dba::upgrade_metadata(const Upgrade_metadata_options &options) {
   auto instance = connect_to_target_member();
   if (!instance) {
     // An open session is required
@@ -3085,7 +3074,7 @@ void Dba::upgrade_metadata(
   std::shared_ptr<mysqlsh::dba::Cluster> cluster;
   mysqlshdk::mysql::Lock_scoped cs_lock;
   mysqlshdk::mysql::Lock_scoped c_lock;
-  if (!options->dry_run) {
+  if (!options.dry_run) {
     try {
       cluster = get_cluster(nullptr, metadata, metadata->get_md_server(), false,
                             false);
@@ -3108,7 +3097,7 @@ void Dba::upgrade_metadata(
   auto i_lock = metadata->get_md_server()->get_lock_exclusive();
 
   Upgrade_metadata op_upgrade(metadata, current_shell_options()->get().wizards,
-                              options->dry_run);
+                              options.dry_run);
 
   shcore::on_leave_scope finally([&op_upgrade]() { op_upgrade.finish(); });
 

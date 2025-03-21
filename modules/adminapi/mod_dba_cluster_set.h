@@ -34,7 +34,6 @@
 #include "modules/adminapi/common/common.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
 namespace mysqlsh {
@@ -117,35 +116,27 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
 
   shcore::Value create_replica_cluster(
       const std::string &instance_def, const std::string &cluster_name,
-      shcore::Option_pack_ref<clusterset::Create_replica_cluster_options>
-          options = {});
+      const clusterset::Create_replica_cluster_options &options = {});
 
   void remove_cluster(const std::string &cluster_name,
-                      const shcore::Option_pack_ref<
-                          clusterset::Remove_cluster_options> &options = {});
+                      const clusterset::Remove_cluster_options &options = {});
 
   void set_primary_cluster(
       const std::string &cluster_name,
-      const shcore::Option_pack_ref<clusterset::Set_primary_cluster_options>
-          &options = {});
+      const clusterset::Set_primary_cluster_options &options = {});
 
   void force_primary_cluster(
       const std::string &cluster_name,
-      const shcore::Option_pack_ref<clusterset::Force_primary_cluster_options>
-          &options);
+      const clusterset::Force_primary_cluster_options &options);
 
-  void rejoin_cluster(
-      const std::string &cluster_name,
-      const shcore::Option_pack_ref<clusterset::Rejoin_cluster_options>
-          &options);
+  void rejoin_cluster(const std::string &cluster_name,
+                      const clusterset::Rejoin_cluster_options &options);
 
-  shcore::Value status(
-      const shcore::Option_pack_ref<clusterset::Status_options> &options);
+  shcore::Value status(const clusterset::Status_options &options);
 
   shcore::Value describe();
 
-  void dissolve(
-      const shcore::Option_pack_ref<clusterset::Dissolve_options> &options);
+  void dissolve(const clusterset::Dissolve_options &options);
 
   std::shared_ptr<Cluster_set_impl> impl() const { return m_impl; }
   std::shared_ptr<Base_cluster_impl> base_impl() const override {

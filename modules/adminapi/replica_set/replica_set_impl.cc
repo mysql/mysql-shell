@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2344,14 +2344,14 @@ void Replica_set_impl::rescan(const replicaset::Rescan_options &options) {
                                                    options.remove_obsolete);
 }
 
-shcore::Value Replica_set_impl::execute(
-    const std::string &cmd, const shcore::Value &instances,
-    const shcore::Option_pack_ref<Execute_options> &options) {
+shcore::Value Replica_set_impl::execute(const std::string &cmd,
+                                        const shcore::Value &instances,
+                                        const Execute_options &options) {
   auto rs_lock = get_lock_shared();
 
-  return Topology_executor<Execute>{*this, options->dry_run}.run(
-      cmd, Execute::convert_to_instances_def(instances, false),
-      options->exclude, std::chrono::seconds{options->timeout});
+  return Topology_executor<Execute>{*this, options.dry_run}.run(
+      cmd, Execute::convert_to_instances_def(instances, false), options.exclude,
+      std::chrono::seconds{options.timeout});
 }
 
 shcore::Value Replica_set_impl::describe() {

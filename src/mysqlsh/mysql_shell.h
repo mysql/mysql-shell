@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,7 @@
 #include "modules/adminapi/mod_dba.h"
 #include "modules/adminapi/mod_dba_cluster_set.h"
 #include "modules/mod_sys.h"
+#include "mysqlshdk/include/scripting/plugin_definition.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
 #include "shellcore/base_shell.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,13 +37,12 @@
 #include "gtest_clean.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/shellcore/shell_console.h"
-#include "scripting/common.h"
 #include "scripting/lang_base.h"
 #include "scripting/obj_date.h"
 #include "scripting/object_registry.h"
 #include "scripting/python_utils.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
+#include "scripting/types/cpp.h"
 
 #include "scripting/python_array_wrapper.h"
 #include "test_utils.h"
@@ -62,8 +61,9 @@ class Test_object : public shcore::Cpp_object_bridge {
 
   virtual std::string class_name() const { return "Test"; }
 
-  virtual std::string &append_descr(std::string &s_out, int UNUSED(indent) = -1,
-                                    int UNUSED(quote_strings) = 0) const {
+  virtual std::string &append_descr(
+      std::string &s_out, [[maybe_unused]] int indent = -1,
+      [[maybe_unused]] int quote_strings = 0) const {
     s_out.append(str_format("<Test:%d>", _value));
     return s_out;
   }

@@ -29,7 +29,6 @@
 #include <utility>
 
 #include "mysqlshdk/include/scripting/obj_date.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
 #include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/base_shell.h"
 #include "mysqlshdk/include/shellcore/console.h"
@@ -752,11 +751,6 @@ namespace detail {
 mysqlshdk::db::Connection_options Type_info<
     mysqlshdk::db::Connection_options>::to_native(const shcore::Value &in) {
   return mysqlsh::get_connection_options(in);
-}
-
-mysqlshdk::db::Connection_options
-Type_info<mysqlshdk::db::Connection_options>::default_value() {
-  return mysqlshdk::db::Connection_options();
 }
 
 }  // namespace detail

@@ -35,7 +35,7 @@
 #include "modules/adminapi/common/async_topology.h"
 #include "modules/adminapi/common/clone_options.h"
 #include "modules/adminapi/common/group_replication_options.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 
 namespace mysqlsh::dba::cluster {
 

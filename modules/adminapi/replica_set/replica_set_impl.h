@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -110,9 +110,8 @@ class Replica_set_impl final : public Base_cluster_impl {
   void dissolve(const replicaset::Dissolve_options &options);
   void rescan(const replicaset::Rescan_options &options);
 
-  shcore::Value execute(
-      const std::string &cmd, const shcore::Value &instances,
-      const shcore::Option_pack_ref<Execute_options> &options) override;
+  shcore::Value execute(const std::string &cmd, const shcore::Value &instances,
+                        const Execute_options &options) override;
 
   shcore::Value options();
 

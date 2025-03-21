@@ -357,7 +357,7 @@ DESCRIPTION
 ||ValueError: Invalid options at function definition: extra
 ||TypeError: Option 'brief' is expected to be of type String, but is Integer
 ||TypeError: Option 'details' is expected to be of type Array, but is Integer
-||TypeError: Option 'details' String expected, but value is Integer
+||TypeError: Option 'details' is expected to be an array of strings
 ||TypeError: Option 'parameters' is expected to be of type Array, but is Integer
 ||ValueError: Invalid definition at parameter #1
 
@@ -379,7 +379,7 @@ DESCRIPTION
 #@ Registration errors, string parameters
 ||ValueError: Invalid options at string parameter 'sample': class, classes, options
 ||TypeError: Option 'values' is expected to be of type Array, but is Integer
-||TypeError: Option 'values' String expected, but value is Integer
+||TypeError: Option 'values' is expected to be an array of strings
 
 
 #@ Registration errors, dictionary parameters

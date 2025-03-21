@@ -248,14 +248,12 @@ shcore::Prompt_result Shell_test_output_handler::do_prompt(bool is_password,
                                                            const char *prompt,
                                                            std::string *ret) {
   std::lock_guard<std::mutex> lock(stdout_mutex);
-  shcore::Option_pack_ref<shcore::prompt::Prompt_options> expected_options;
+  shcore::prompt::Prompt_options expected_options;
   std::string answer, expected_prompt;
   full_output << prompt;
   std_out.append(prompt);
 
-  std::list<std::tuple<std::string, std::string,
-                       shcore::Option_pack_ref<shcore::prompt::Prompt_options>>>
-      &prompt_replies{is_password ? passwords : prompts};
+  auto &prompt_replies{is_password ? passwords : prompts};
 
   shcore::Prompt_result ret_val = shcore::Prompt_result::Cancel;
   if (!prompt_replies.empty()) {
@@ -509,13 +507,11 @@ void Shell_core_test_wrapper::enable_testutil() {
                            _interactive_shell, get_path_to_mysqlsh()));
   testutil->set_test_callbacks(
       [this](const std::string &prompt, const std::string &text,
-             const shcore::Option_pack_ref<shcore::prompt::Prompt_options>
-                 &options) {
+             const shcore::prompt::Prompt_options &options) {
         output_handler.prompts.push_back({prompt, text, options});
       },
       [this](const std::string &prompt, const std::string &pass,
-             const shcore::Option_pack_ref<shcore::prompt::Prompt_options>
-                 &options) {
+             const shcore::prompt::Prompt_options &options) {
         output_handler.passwords.push_back({prompt, pass, options});
       },
       [this](bool one) -> std::string {

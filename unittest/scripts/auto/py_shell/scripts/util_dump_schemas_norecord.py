@@ -152,11 +152,11 @@ def TEST_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Array, but is String".format(option), [types_schema], test_output_relative, { option: "dummy" })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Array, but is Map".format(option), [types_schema], test_output_relative, { option: {} })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Array, but is Bool".format(option), [types_schema], test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Null".format(option), [types_schema], test_output_relative, { option: [ None ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: [ 5 ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: [ -5 ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Map".format(option), [types_schema], test_output_relative, { option: [ {} ] })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Bool".format(option), [types_schema], test_output_relative, { option: [ False ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), [types_schema], test_output_relative, { option: [ None ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), [types_schema], test_output_relative, { option: [ 5 ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), [types_schema], test_output_relative, { option: [ -5 ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), [types_schema], test_output_relative, { option: [ {} ] })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be an array of strings".format(option), [types_schema], test_output_relative, { option: [ False ] })
 
 def TEST_MAP_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is Integer".format(option), [types_schema], test_output_relative, { option: 5 })
@@ -164,11 +164,11 @@ def TEST_MAP_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is String".format(option), [types_schema], test_output_relative, { option: "dummy" })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is Array".format(option), [types_schema], test_output_relative, { option: [] })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is Bool".format(option), [types_schema], test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Null".format(option), [types_schema], test_output_relative, { option: { "key": None } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: { "key": 5 } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: { "key": -5 } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Map".format(option), [types_schema], test_output_relative, { option: { "key": {} } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Bool".format(option), [types_schema], test_output_relative, { option: { "key": False } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of strings".format(option), [types_schema], test_output_relative, { option: { "key": None } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of strings".format(option), [types_schema], test_output_relative, { option: { "key": 5 } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of strings".format(option), [types_schema], test_output_relative, { option: { "key": -5 } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of strings".format(option), [types_schema], test_output_relative, { option: { "key": {} } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of strings".format(option), [types_schema], test_output_relative, { option: { "key": False } })
 
 def TEST_MAP_OF_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is Integer".format(option), [types_schema], test_output_relative, { option: 5 })
@@ -176,14 +176,14 @@ def TEST_MAP_OF_ARRAY_OF_STRINGS_OPTION(option):
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is String".format(option), [types_schema], test_output_relative, { option: "dummy" })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is Array".format(option), [types_schema], test_output_relative, { option: [] })
     EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be of type Map, but is Bool".format(option), [types_schema], test_output_relative, { option: False })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' Array expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: { "key": 5 } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' Array expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: { "key": -5 } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' Array expected, but value is Map".format(option), [types_schema], test_output_relative, { option: { "key": {} } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' Array expected, but value is Bool".format(option), [types_schema], test_output_relative, { option: { "key": False } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: { "key": [ 5 ] } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Integer".format(option), [types_schema], test_output_relative, { option: { "key": [ -5 ] } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Map".format(option), [types_schema], test_output_relative, { option: { "key": [ {} ] } })
-    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' String expected, but value is Bool".format(option), [types_schema], test_output_relative, { option: { "key": [ False ] } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": 5 } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": -5 } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": {} } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": False } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": [ 5 ] } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": [ -5 ] } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": [ {} ] } })
+    EXPECT_FAIL("TypeError", "Argument #3: Option '{0}' is expected to be a map of arrays of strings".format(option), [types_schema], test_output_relative, { option: { "key": [ False ] } })
 
 def get_load_columns(options):
     decode = options["decodeColumns"] if "decodeColumns" in options else {}
@@ -2859,11 +2859,11 @@ EXPECT_FAIL("ValueError", "Argument #3: Invalid value of the 'targetVersion' opt
 
 #@<> WL15887-TSFR_1_2_1 - wrong values - greater
 for i in range(3):
-    version = __mysh_version_no_extra.split(".")
+    version = __mysh_version.split(".")
     version[i] = str(int(version[i]) + 1)
     version = ".".join(version)
     if i < 2:
-        EXPECT_FAIL("ValueError", f"Argument #3: Target MySQL version '{version}' is newer than the maximum version '{'.'.join(__mysh_version_no_extra.split('.')[:2])}.*' supported by this version of MySQL Shell", [ schema_name ], test_output_absolute, { "targetVersion": version, "showProgress": False })
+        EXPECT_FAIL("ValueError", f"Argument #3: Target MySQL version '{version}' is newer than the maximum version '{'.'.join(__mysh_version.split('.')[:2])}.*' supported by this version of MySQL Shell", [ schema_name ], test_output_absolute, { "targetVersion": version, "showProgress": False })
     else:
         # BUG#38107377 - patch version is not checked
         EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": version, "dryRun": True, "showProgress": False })
@@ -2874,11 +2874,11 @@ EXPECT_FAIL("ValueError", "Argument #3: Target MySQL version '7.9.26' is older t
 
 #@<> WL15887 - valid values
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": "8.0.25", "dryRun": True, "showProgress": False })
-EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": __mysh_version_no_extra, "dryRun": True, "showProgress": False })
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": __mysh_version, "dryRun": True, "showProgress": False })
 
 #@<> WL15887-TSFR_1_4_1 - implict value of targetVersion
 EXPECT_SUCCESS([ schema_name ], test_output_relative, { "ocimds": True, "dryRun": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {__mysh_version_no_extra}")
+EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {__mysh_version}")
 
 # WL15887-TSFR_2_1 - implict value of targetVersion, warnings
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning())
@@ -2894,7 +2894,7 @@ EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_view
 EXPECT_STDOUT_CONTAINS(f"""
 NOTE: One or more objects with the DEFINER clause were found.
 
-      The 'targetVersion' option was not set and compatibility was checked with the MySQL HeatWave Service {__mysh_version_no_extra}.
+      The 'targetVersion' option was not set and compatibility was checked with the MySQL HeatWave Service {__mysh_version}.
       Loading the dump will fail if it is loaded into an DB System instance that does not support the SET_ANY_DEFINER privilege, which was introduced in 8.2.0.
 """)
 
@@ -2903,7 +2903,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     account = f"`{account}`@`localhost`"
     setup_db(account)
     WIPE_OUTPUT()
-    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
+    EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_relative, { "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "showProgress": False })
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_event, "Event", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_function, "Function", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_procedure, "Procedure", account).error())
@@ -2914,7 +2914,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
 setup_db(test_user_account)
 
 #@<> WL15887-TSFR_3_2_1 - valid account
-EXPECT_SUCCESS([ schema_name ], test_output_relative, { "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
+EXPECT_SUCCESS([ schema_name ], test_output_relative, { "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "showProgress": False })
 
 # no warnings about DEFINER=
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning())
@@ -2932,8 +2932,8 @@ EXPECT_STDOUT_NOT_CONTAINS(strip_definers_security_clause(schema_name, test_view
 EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account_once().warning())
 
 #@<> WL15887-TSFR_4_1 - note about strip_definers
-EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_definers" ], "targetVersion": __mysh_version_no_extra, "ocimds": True, "dryRun": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version_no_extra}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
+EXPECT_SUCCESS([ schema_name ], test_output_relative, { "compatibility": [ "strip_definers" ], "targetVersion": __mysh_version, "ocimds": True, "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"NOTE: The 'targetVersion' option is set to {__mysh_version}. This version supports the SET_ANY_DEFINER privilege, using the 'strip_definers' compatibility option is unnecessary.")
 
 #@<> WL15887 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])

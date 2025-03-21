@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,7 +56,7 @@ namespace {
 static constexpr auto k_content_type = "Content-Type";
 static constexpr auto k_application_json = "application/json";
 
-std::string get_user_agent() { return "mysqlsh/" MYSH_VERSION; }
+constexpr const char *get_user_agent() { return "mysqlsh/" MYSH_VERSION; }
 
 size_t request_callback(char *, size_t, size_t, void *) {
   // some older versions of CURL may call this callback when performing
@@ -204,8 +204,7 @@ class Rest_service::Impl {
     // most modern browsers allow for more or less 20 redirections
     curl_easy_setopt(m_handle.get(), CURLOPT_MAXREDIRS, 20L);
     // introduce ourselves to the server
-    curl_easy_setopt(m_handle.get(), CURLOPT_USERAGENT,
-                     get_user_agent().c_str());
+    curl_easy_setopt(m_handle.get(), CURLOPT_USERAGENT, get_user_agent());
 
     mysqlshdk::db::uri::Generic_uri url;
     mysqlshdk::db::uri::Uri_parser parser(mysqlshdk::db::uri::Type::Generic);

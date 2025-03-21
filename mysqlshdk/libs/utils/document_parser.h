@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,11 +26,12 @@
 #ifndef MYSQLSHDK_LIBS_UTILS_DOCUMENT_PARSER_H_
 #define MYSQLSHDK_LIBS_UTILS_DOCUMENT_PARSER_H_
 
+#include <cassert>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/libs/utils/utils_buffered_input.h"
 
 namespace shcore {

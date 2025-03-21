@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,7 +130,7 @@ static const char k_public_key_allowed[] = {
 };
 
 int libssh_auth_callback(const char *prompt, char *buf, size_t len, int echo,
-                         int UNUSED(verify), void *userdata) {
+                         [[maybe_unused]] int verify, void *userdata) {
   std::string return_value;
   if (echo == 1) {
     if (mysqlsh::current_console()->prompt(prompt, &return_value) !=

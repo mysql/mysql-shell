@@ -32,7 +32,7 @@
 #include <utility>
 #include <vector>
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 

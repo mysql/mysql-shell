@@ -37,7 +37,7 @@
 #include <type_traits>
 #include <utility>
 
-#include "scripting/common.h"
+#include "mysqlshdk/include/mysqlshdk_export.h"
 
 namespace shcore {
 enum SqlStringFlags {

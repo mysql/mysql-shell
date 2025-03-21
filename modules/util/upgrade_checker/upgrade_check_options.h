@@ -29,7 +29,7 @@
 #include <optional>
 #include <string>
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/util/upgrade_checker/common.h"

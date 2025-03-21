@@ -36,7 +36,6 @@
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/mod_common.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/base_session.h"
 
 namespace shcore {

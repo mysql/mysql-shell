@@ -35,7 +35,6 @@
 #include "modules/adminapi/replica_set/replica_set_impl.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "scripting/types.h"
-#include "scripting/types_cpp.h"
 #include "shellcore/shell_options.h"
 
 namespace mysqlsh {
@@ -129,42 +128,32 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   void assert_valid(const std::string &option_name) const override;
 
  public:
-  void add_instance(
-      const std::string &instance_def,
-      const shcore::Option_pack_ref<replicaset::Add_instance_options> &options);
+  void add_instance(const std::string &instance_def,
+                    const replicaset::Add_instance_options &options);
 
-  void rejoin_instance(
-      const std::string &instance_def,
-      const shcore::Option_pack_ref<replicaset::Rejoin_instance_options>
-          &options);
+  void rejoin_instance(const std::string &instance_def,
+                       const replicaset::Rejoin_instance_options &options);
 
-  void remove_instance(
-      const std::string &instance_def,
-      const shcore::Option_pack_ref<replicaset::Remove_instance_options>
-          &options);
+  void remove_instance(const std::string &instance_def,
+                       const replicaset::Remove_instance_options &options);
 
   shcore::Value describe(void);
 
-  shcore::Value status(
-      const shcore::Option_pack_ref<replicaset::Status_options> &options);
+  shcore::Value status(const replicaset::Status_options &options);
 
   void disconnect();
 
   void set_primary_instance(
       const std::string &instance_def,
-      const shcore::Option_pack_ref<replicaset::Set_primary_instance_options>
-          &options);
+      const replicaset::Set_primary_instance_options &options);
 
   void force_primary_instance(
       const std::string &instance_def,
-      const shcore::Option_pack_ref<replicaset::Force_primary_instance_options>
-          &options);
+      const replicaset::Force_primary_instance_options &options);
 
-  void dissolve(
-      const shcore::Option_pack_ref<replicaset::Dissolve_options> &options);
+  void dissolve(const replicaset::Dissolve_options &options);
 
-  void rescan(
-      const shcore::Option_pack_ref<replicaset::Rescan_options> &options);
+  void rescan(const replicaset::Rescan_options &options);
 
   void remove_router_metadata(const std::string &router_def);
 

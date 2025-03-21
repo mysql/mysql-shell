@@ -26,6 +26,7 @@
 #include "shellcore/utils_help.h"
 
 #include <array>
+#include <cassert>
 #include <cctype>
 #include <functional>
 #include <map>

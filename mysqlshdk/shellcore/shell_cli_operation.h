@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,7 +33,7 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/libs/utils/options.h"
 #include "mysqlshdk/shellcore/shell_cli_mapper.h"
 #include "mysqlshdk/shellcore/shell_cli_operation_provider.h"
@@ -46,7 +46,6 @@ class Shell_cli_operation {
   Provider *get_provider() { return &m_provider; }
   void set_object_name(const std::string &name);
   void set_method_name(const std::string &name);
-  void add_argument(const shcore::Value &argument);
   void add_cmdline_argument(const std::string &cmdline_arg);
 
   void parse(Options::Cmdline_iterator *cmdline_iterator);

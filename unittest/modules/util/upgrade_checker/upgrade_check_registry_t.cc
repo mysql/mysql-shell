@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -297,7 +297,7 @@ TEST(Upgrade_check_registry, create_checklist) {
                           {{Version(8, 0, 11), Version(8, 4, 0)},
                            {Version(8, 0, 11), Version(8, 4, 1)}});
 
-  auto vShell = Version(MYSH_VERSION);
+  const auto &vShell = mysqlshdk::utils::k_shell_version;
   test_check_availability(ids::k_changed_functions_generated_columns_check,
                           true,
                           {{Version(5, 6, 0), v5_7_0},

@@ -288,18 +288,17 @@ Undefined Cluster::addInstance(InstanceDef instance, Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::add_instance(InstanceDef instance, dict options) {}
 #endif
-void Cluster::add_instance(
-    const Connection_options &instance_def,
-    const shcore::Option_pack_ref<cluster::Add_instance_options> &options) {
+void Cluster::add_instance(const Connection_options &instance_def,
+                           const cluster::Add_instance_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("addInstance");
 
-  validate_instance_label(options->label, *impl());
+  validate_instance_label(options.label, *impl());
 
   return execute_with_pool(
       [&]() {
         // Add the Instance to the Cluster
-        impl()->add_instance(instance_def, *options);
+        impl()->add_instance(instance_def, options);
       },
       false);
 }
@@ -382,16 +381,15 @@ Dictionary Cluster::rejoinInstance(InstanceDef instance, Dictionary options) {}
 Dict Cluster::rejoin_instance(InstanceDef instance, dict options) {}
 #endif
 
-void Cluster::rejoin_instance(
-    const Connection_options &instance_def,
-    const shcore::Option_pack_ref<cluster::Rejoin_instance_options> &options) {
+void Cluster::rejoin_instance(const Connection_options &instance_def,
+                              const cluster::Rejoin_instance_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("rejoinInstance");
 
   return execute_with_pool(
       [&]() {
         // Rejoin the Instance to the Cluster
-        impl()->rejoin_instance(instance_def, *options);
+        impl()->rejoin_instance(instance_def, options);
       },
       false);
 }
@@ -441,16 +439,15 @@ Undefined Cluster::removeInstance(InstanceDef instance, Dictionary options) {}
 None Cluster::remove_instance(InstanceDef instance, dict options) {}
 #endif
 
-void Cluster::remove_instance(
-    const Connection_options &instance_def,
-    const shcore::Option_pack_ref<cluster::Remove_instance_options> &options) {
+void Cluster::remove_instance(const Connection_options &instance_def,
+                              const cluster::Remove_instance_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("removeInstance");
 
   return execute_with_pool(
       [&]() {
         // Remove the Instance from the Cluster
-        impl()->remove_instance(instance_def, *options);
+        impl()->remove_instance(instance_def, options);
       },
       false);
 }
@@ -540,12 +537,11 @@ String Cluster::status(Dictionary options) {}
 str Cluster::status(dict options) {}
 #endif
 
-shcore::Value Cluster::status(
-    const shcore::Option_pack_ref<cluster::Status_options> &options) {
+shcore::Value Cluster::status(const cluster::Status_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("status");
 
-  return execute_with_pool([&]() { return impl()->status(options->extended); },
+  return execute_with_pool([&]() { return impl()->status(options.extended); },
                            false);
 }
 
@@ -576,12 +572,11 @@ String Cluster::options(Dictionary options) {}
 str Cluster::options(dict options) {}
 #endif
 
-shcore::Value Cluster::options(
-    const shcore::Option_pack_ref<cluster::Options_options> &options) {
+shcore::Value Cluster::options(const cluster::Options_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("options");
 
-  return execute_with_pool([&]() { return impl()->options(options->all); },
+  return execute_with_pool([&]() { return impl()->options(options.all); },
                            false);
 }
 
@@ -625,14 +620,13 @@ Undefined Cluster::dissolve(Dictionary options) {}
 None Cluster::dissolve(dict options) {}
 #endif
 
-void Cluster::dissolve(const shcore::Option_pack_ref<Force_options> &options) {
+void Cluster::dissolve(const Force_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("dissolve");
 
   return execute_with_pool(
       [&]() {
-        impl()->dissolve(options->force,
-                         current_shell_options()->get().wizards);
+        impl()->dissolve(options.force, current_shell_options()->get().wizards);
         // Set the flag, marking this cluster instance as invalid.
         invalidate();
       },
@@ -679,15 +673,14 @@ Undefined Cluster::resetRecoveryAccountsPassword(Dictionary options) {}
 None Cluster::reset_recovery_accounts_password(dict options) {}
 #endif
 
-void Cluster::reset_recovery_accounts_password(
-    const shcore::Option_pack_ref<Force_options> &options) {
+void Cluster::reset_recovery_accounts_password(const Force_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("resetRecoveryAccountsPassword");
 
   return execute_with_pool(
       [&]() {
         // Reset the recovery passwords.
-        impl()->reset_recovery_password(options->force,
+        impl()->reset_recovery_password(options.force,
                                         current_shell_options()->get().wizards);
       },
       false);
@@ -758,11 +751,10 @@ Undefined Cluster::rescan(Dictionary options) {}
 #elif DOXYGEN_PY
 None Cluster::rescan(dict options) {}
 #endif
-void Cluster::rescan(
-    const shcore::Option_pack_ref<cluster::Rescan_options> &options) {
+void Cluster::rescan(const cluster::Rescan_options &options) {
   assert_valid("rescan");
 
-  return execute_with_pool([&]() { impl()->rescan(*options); }, false);
+  return execute_with_pool([&]() { impl()->rescan(options); }, false);
 }
 
 REGISTER_HELP_FUNCTION(disconnect, Cluster);
@@ -962,14 +954,13 @@ None Cluster::set_primary_instance(InstanceDef instance, dict options) {}
 
 void Cluster::set_primary_instance(
     const Connection_options &instance_def,
-    const shcore::Option_pack_ref<cluster::Set_primary_instance_options>
-        &options) {
+    const cluster::Set_primary_instance_options &options) {
   assert_valid("setPrimaryInstance");
 
   return execute_with_pool(
       [&]() {
         // Set primary-instance
-        impl()->set_primary_instance(instance_def, *options);
+        impl()->set_primary_instance(instance_def, options);
       },
       false);
 }
@@ -1547,13 +1538,12 @@ ClusterSet Cluster::create_cluster_set(str domainName, dict options) {}
 #endif
 shcore::Value Cluster::create_cluster_set(
     const std::string &domain_name,
-    const shcore::Option_pack_ref<clusterset::Create_cluster_set_options>
-        &options) {
+    const clusterset::Create_cluster_set_options &options) {
   // Throw an error if the cluster has already been dissolved
   assert_valid("createClusterSet");
 
   return execute_with_pool(
-      [&]() { return impl()->create_cluster_set(domain_name, *options); },
+      [&]() { return impl()->create_cluster_set(domain_name, options); },
       false);
 }
 
@@ -1696,16 +1686,15 @@ None Cluster::add_replica_instance(InstanceDef instance, dict options);
 #endif
 void Cluster::add_replica_instance(
     const std::string &instance_def,
-    const shcore::Option_pack_ref<cluster::Add_replica_instance_options>
-        &options) {
+    const cluster::Add_replica_instance_options &options) {
   assert_valid("addReplicaInstance");
 
-  validate_instance_label(options->label, *impl());
+  validate_instance_label(options.label, *impl());
 
   return execute_with_pool(
       [&]() {
         return impl()->add_replica_instance(Connection_options{instance_def},
-                                            *options);
+                                            options);
       },
       false);
 }

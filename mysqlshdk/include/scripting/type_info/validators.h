@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,30 +23,46 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/include/scripting/type_info/custom.h"
+#ifndef MYSQLSHDK_INCLUDE_SCRIPTING_TYPE_INFO_VALIDATORS_H_
+#define MYSQLSHDK_INCLUDE_SCRIPTING_TYPE_INFO_VALIDATORS_H_
 
 #include <memory>
+#include <optional>
+#include <unordered_set>
+#include <vector>
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/type_info.h"
+#include "mysqlshdk/include/scripting/types/validator.h"
 
 namespace shcore {
 namespace detail {
 
-namespace {
-
-struct Nullable_validator : public Parameter_validator {
- public:
-  bool valid_type(const Parameter &param, Value_type type) const override {
-    return (Value_type::Null == type) ||
-           Parameter_validator::valid_type(param, type);
+template <typename T>
+struct Validator_for<std::vector<T>> {
+  static std::unique_ptr<List_validator> get() {
+    auto validator = std::make_unique<List_validator>();
+    validator->set_element_type(Type_info<T>::vtype);
+    return validator;
   }
 };
 
-}  // namespace
+template <typename T>
+struct Validator_for<std::unordered_set<T>> {
+  static std::unique_ptr<List_validator> get() {
+    auto validator = std::make_unique<List_validator>();
+    validator->set_element_type(Type_info<T>::vtype);
+    return validator;
+  }
+};
 
-std::unique_ptr<Parameter_validator> get_nullable_validator() {
-  return std::make_unique<Nullable_validator>();
-}
+template <typename T>
+struct Validator_for<std::optional<T>> {
+  static std::unique_ptr<Nullable_validator> get() {
+    return std::make_unique<Nullable_validator>();
+  }
+};
 
 }  // namespace detail
 }  // namespace shcore
+
+#endif  // MYSQLSHDK_INCLUDE_SCRIPTING_TYPE_INFO_VALIDATORS_H_

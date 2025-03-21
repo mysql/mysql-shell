@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,45 +63,41 @@ Create_replica_cluster::Create_replica_cluster(
 
 Create_replica_cluster::~Create_replica_cluster() = default;
 
-shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options>
+mysqlsh::dba::Create_cluster_options
 Create_replica_cluster::prepare_create_cluster_options() {
-  shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options;
+  mysqlsh::dba::Create_cluster_options options;
 
-  options->dry_run = m_options.dry_run;
-  options->replication_allowed_host = m_options.replication_allowed_host;
+  options.dry_run = m_options.dry_run;
+  options.replication_allowed_host = m_options.replication_allowed_host;
 
-  options->gr_options.ssl_mode = m_options.gr_options.ssl_mode;
-  options->gr_options.ip_allowlist = m_options.gr_options.ip_allowlist;
-  options->gr_options.local_address = m_options.gr_options.local_address;
-  options->gr_options.exit_state_action =
-      m_options.gr_options.exit_state_action;
-  options->gr_options.member_weight = m_options.gr_options.member_weight;
-  options->gr_options.consistency = m_options.gr_options.consistency;
-  options->gr_options.expel_timeout = m_options.gr_options.expel_timeout;
-  options->gr_options.auto_rejoin_tries =
-      m_options.gr_options.auto_rejoin_tries;
-  options->gr_options.manual_start_on_boot =
+  options.gr_options.ssl_mode = m_options.gr_options.ssl_mode;
+  options.gr_options.ip_allowlist = m_options.gr_options.ip_allowlist;
+  options.gr_options.local_address = m_options.gr_options.local_address;
+  options.gr_options.exit_state_action = m_options.gr_options.exit_state_action;
+  options.gr_options.member_weight = m_options.gr_options.member_weight;
+  options.gr_options.consistency = m_options.gr_options.consistency;
+  options.gr_options.expel_timeout = m_options.gr_options.expel_timeout;
+  options.gr_options.auto_rejoin_tries = m_options.gr_options.auto_rejoin_tries;
+  options.gr_options.manual_start_on_boot =
       m_options.gr_options.manual_start_on_boot;
-  options->gr_options.communication_stack =
+  options.gr_options.communication_stack =
       m_options.gr_options.communication_stack;
-  options->gr_options.paxos_single_leader =
+  options.gr_options.paxos_single_leader =
       m_options.gr_options.paxos_single_leader;
 
-  Create_cluster_clone_options no_clone_options;
-
-  options->clone_options = no_clone_options;
+  options.clone_options = Create_cluster_clone_options{};
 
   // Set the maximum value for Replica Clusters by default
   // Required to avoid a failure in the ClusterSet replication channel due to
   // transaction sizes in the Replica side being bigger than on the source.
-  options->gr_options.transaction_size_limit = static_cast<int64_t>(0);
+  options.gr_options.transaction_size_limit = static_cast<int64_t>(0);
 
   // recovery auth options
-  options->member_auth_options.member_auth_type =
+  options.member_auth_options.member_auth_type =
       m_cluster_set->query_clusterset_auth_type();
-  options->member_auth_options.cert_issuer =
+  options.member_auth_options.cert_issuer =
       m_cluster_set->query_clusterset_auth_cert_issuer();
-  options->member_auth_options.cert_subject = m_options.cert_subject;
+  options.member_auth_options.cert_subject = m_options.cert_subject;
 
   return options;
 }
@@ -282,12 +278,11 @@ void Create_replica_cluster::prepare() {
                                         m_options.cert_subject);
 
   try {
-    shcore::Option_pack_ref<mysqlsh::dba::Create_cluster_options> options =
-        prepare_create_cluster_options();
+    auto options = prepare_create_cluster_options();
 
     m_op_create_cluster = std::make_unique<Create_cluster>(
         m_cluster_set->get_metadata_storage(), m_target_instance,
-        m_cluster_set->get_primary_master(), m_cluster_name, *options);
+        m_cluster_set->get_primary_master(), m_cluster_name, options);
     // Validations for InnoDB Cluster compliance are done now. It includes:
     //   - clusterName validation.
     //   - Must not belong to an InnoDB Cluster or ReplicaSet, i.e. must be a

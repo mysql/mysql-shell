@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -31,7 +31,9 @@
 #include <string>
 #include <vector>
 
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/include/scripting/types/function_metadata.h"
+
 #include "mysqlshdk/shellcore/shell_cli_operation_provider.h"
 
 namespace shcore {
@@ -87,7 +89,7 @@ class Shell_cli_mapper {
   void add_cmdline_argument(const std::string &cmdline_arg);
   Provider *identify_operation(Provider *base_provider);
   void set_metadata(const std::string &object_class,
-                    const Cpp_function::Metadata &metadata);
+                    const Function_metadata &metadata);
   void process_arguments(shcore::Argument_list *argument_list);
   bool help_requested() const { return m_help_type != Help_type::NONE; }
   Help_type help_type() const { return m_help_type; }
@@ -102,7 +104,7 @@ class Shell_cli_mapper {
 
   // Functions for the help system
   std::string object_name() const;
-  const Cpp_function::Metadata *metadata() const { return m_metadata; }
+  const Function_metadata *metadata() const { return m_metadata; }
 
   const std::vector<Cli_option> &options() const {
     return m_cli_option_registry;
@@ -163,7 +165,7 @@ class Shell_cli_mapper {
   std::map<std::string, size_t> m_param_index;
 
   // Function metadata and argument list to be filled by the mapper
-  const Cpp_function::Metadata *m_metadata;
+  const Function_metadata *m_metadata;
   shcore::Argument_list *m_argument_list;
 
   // Definition of the command line arguments specified by the user

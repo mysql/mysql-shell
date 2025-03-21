@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -22,19 +22,16 @@
  * along with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef MODULES_MOD_SHELLCONTEXT_H_
-#define MODULES_MOD_SHELLCONTEXT_H_
+#ifndef MODULES_MOD_SHELL_CONTEXT_H_
+#define MODULES_MOD_SHELL_CONTEXT_H_
 
 #include <atomic>
 #include <memory>
 #include <string>
 
-#include "mysqlshdk/include/scripting/common.h"
 #include "mysqlshdk/include/scripting/lang_base.h"
-#include "mysqlshdk/include/scripting/type_info/custom.h"
-#include "mysqlshdk/include/scripting/type_info/generic.h"
 #include "mysqlshdk/include/scripting/types.h"
-#include "mysqlshdk/include/scripting/types_cpp.h"
+#include "mysqlshdk/include/scripting/types/option_pack.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -93,8 +90,7 @@ class Shell_context_wrapper_options {
 
 class Delegate_wrapper : public shcore::Interpreter_delegate {
  public:
-  explicit Delegate_wrapper(
-      const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks);
+  explicit Delegate_wrapper(const Shell_context_wrapper_options &callbacks);
 
  private:
   static bool deleg_print(void *self, const char *text);
@@ -133,9 +129,8 @@ class ShellContextWrapper {
 
 class SHCORE_PUBLIC Shell_context_wrapper : public shcore::Cpp_object_bridge {
  public:
-  Shell_context_wrapper(
-      const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks,
-      const std::shared_ptr<Shell_options> &opts);
+  Shell_context_wrapper(const Shell_context_wrapper_options &callbacks,
+                        const std::shared_ptr<Shell_options> &opts);
 
   shcore::Value get_member(const std::string &prop) const override;
   std::shared_ptr<Shell> get_shell() const;
@@ -156,4 +151,5 @@ class SHCORE_PUBLIC Shell_context_wrapper : public shcore::Cpp_object_bridge {
 };
 
 }  // namespace mysqlsh
-#endif  // MODULES_MOD_SHELLCONTEXT_H_
+
+#endif  // MODULES_MOD_SHELL_CONTEXT_H_

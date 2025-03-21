@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -107,8 +107,9 @@ void validate_ip_allow_list(const mysqlshdk::mysql::IInstance &instance,
                             bool create_cluster);
 
 struct Rejoin_group_replication_options : public Group_replication_options {
-  explicit Rejoin_group_replication_options(
-      Unpack_target t = Unpack_target::REJOIN)
+  Rejoin_group_replication_options()
+      : Rejoin_group_replication_options(Unpack_target::REJOIN) {}
+  explicit Rejoin_group_replication_options(Unpack_target t)
       : Group_replication_options(t) {}
   static const shcore::Option_pack_def<Rejoin_group_replication_options>
       &options();
@@ -118,15 +119,18 @@ struct Rejoin_group_replication_options : public Group_replication_options {
 
 struct Reboot_group_replication_options
     : public Rejoin_group_replication_options {
-  explicit Reboot_group_replication_options(
-      Unpack_target t = Unpack_target::REBOOT)
+  Reboot_group_replication_options()
+      : Reboot_group_replication_options(Unpack_target::REBOOT) {}
+  explicit Reboot_group_replication_options(Unpack_target t)
       : Rejoin_group_replication_options(t) {}
   static const shcore::Option_pack_def<Reboot_group_replication_options>
       &options();
 };
 
 struct Join_group_replication_options : public Group_replication_options {
-  explicit Join_group_replication_options(Unpack_target t = Unpack_target::JOIN)
+  Join_group_replication_options()
+      : Join_group_replication_options(Unpack_target::JOIN) {}
+  explicit Join_group_replication_options(Unpack_target t)
       : Group_replication_options(t) {}
   static const shcore::Option_pack_def<Join_group_replication_options>
       &options();
@@ -134,8 +138,10 @@ struct Join_group_replication_options : public Group_replication_options {
 
 struct Cluster_set_group_replication_options
     : public Rejoin_group_replication_options {
-  explicit Cluster_set_group_replication_options(
-      Unpack_target t = Unpack_target::CREATE_REPLICA_CLUSTER)
+  Cluster_set_group_replication_options()
+      : Cluster_set_group_replication_options(
+            Unpack_target::CREATE_REPLICA_CLUSTER) {}
+  explicit Cluster_set_group_replication_options(Unpack_target t)
       : Rejoin_group_replication_options(t) {}
   static const shcore::Option_pack_def<Cluster_set_group_replication_options>
       &options();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,8 +23,8 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _MYSQLSHDK_EXPORT_H_
-#define _MYSQLSHDK_EXPORT_H_
+#ifndef MYSQLSHDK_INCLUDE_MYSQLSHDK_EXPORT_H_
+#define MYSQLSHDK_INCLUDE_MYSQLSHDK_EXPORT_H_
 
 #define SHCORE_PUBLIC
 
@@ -42,4 +42,4 @@
 // # define SHCORE_PUBLIC
 // #endif
 
-#endif
+#endif  // MYSQLSHDK_INCLUDE_MYSQLSHDK_EXPORT_H_

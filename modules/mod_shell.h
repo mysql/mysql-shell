@@ -38,7 +38,7 @@
 #include "mysqlshdk/libs/parser/code-completion/mysql_code_completion_api.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/shellcore/shell_prompt_options.h"
-#include "scripting/types_cpp.h"
+#include "scripting/types/cpp.h"
 #include "shellcore/base_session.h"
 #include "src/mysqlsh/mysql_shell.h"
 
@@ -162,10 +162,8 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   shcore::Dictionary_t parse_uri(const std::string &uri);
   std::string unparse_uri(const shcore::Dictionary_t &options);
 
-  std::string prompt(
-      const std::string &message,
-      const shcore::Option_pack_ref<shcore::prompt::Prompt_options> &options =
-          {});
+  std::string prompt(const std::string &message,
+                     const shcore::prompt::Prompt_options &options = {});
   std::shared_ptr<ShellBaseSession> connect(
       const mysqlshdk::db::Connection_options &connection_options,
       const char *password = {});
@@ -207,7 +205,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   }
 
   std::shared_ptr<Shell_context_wrapper> create_context(
-      const shcore::Option_pack_ref<Shell_context_wrapper_options> &callbacks);
+      const Shell_context_wrapper_options &callbacks);
 
   void enable_pager();
   void disable_pager();
@@ -251,8 +249,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
 
   shcore::Dictionary_t auto_complete_sql(
       const std::string &statement,
-      const shcore::Option_pack_ref<mysqlshdk::Auto_complete_sql_options>
-          &options) const;
+      const mysqlshdk::Auto_complete_sql_options &options) const;
 
   void store_secret(const std::string &key, std::optional<std::string> value);
   std::string read_secret(const std::string &key);
