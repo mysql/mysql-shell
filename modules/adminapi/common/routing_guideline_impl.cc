@@ -36,7 +36,6 @@
 #include <stdexcept>
 
 // from mysql sources
-#include "my_inttypes.h"
 #include "routing_guidelines/routing_guidelines.h"
 
 #include "modules/adminapi/cluster_set/cluster_set_impl.h"
@@ -50,7 +49,6 @@
 #include "mysqlshdk/libs/utils/version.h"
 #include "shellcore/console.h"
 #include "utils/document_parser.h"
-#include "utils/error.h"
 #include "utils/utils_buffered_input.h"
 #include "utils/utils_file.h"
 #include "utils/utils_path.h"
@@ -100,14 +98,7 @@ mysqlshdk::utils::Version check_if_cluster_supports_guideline_version(
     Base_cluster_impl *owner, const mysqlshdk::utils::Version &version) {
   // check if we can use the given version considering what the
   // routers in the cluster support
-  std::vector<Router_metadata> routers;
-  auto md = owner->get_metadata_storage();
-
-  if (owner->get_type() == Cluster_type::REPLICATED_CLUSTER) {
-    routers = md->get_clusterset_routers(owner->get_id());
-  } else {
-    routers = md->get_routers(owner->get_id());
-  }
+  auto routers = owner->get_routers();
 
   // if there are no routers, then anything is ok
   if (routers.empty()) {
@@ -609,9 +600,7 @@ void Routing_guideline_impl::show(
   std::unique_ptr<Router_configuration_schema> router_options_parsed;
 
   if (options->router.has_value()) {
-    // Get router metadata
-    const auto &routers_md =
-        m_owner->get_metadata_storage()->get_routers(m_owner->get_id());
+    auto routers_md = m_owner->get_routers();
 
     auto it = std::find_if(
         routers_md.begin(), routers_md.end(), [&](const auto &router_md) {
@@ -1165,8 +1154,7 @@ Routing_guideline_impl::classify_topology(const std::string &router) const {
       };
 
   if (!router.empty()) {
-    const auto &routers_md =
-        m_owner->get_metadata_storage()->get_routers(m_owner->get_id());
+    auto routers_md = m_owner->get_routers();
 
     // Lookup for 'router'
     auto it = std::find_if(

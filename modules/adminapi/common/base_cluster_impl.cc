@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -2076,6 +2076,10 @@ Base_cluster_impl::import_routing_guideline(
   }
 
   return Routing_guideline_impl::import(self, file_path, options);
+}
+
+std::vector<Router_metadata> Base_cluster_impl::get_routers() const {
+  return get_metadata_storage()->get_routers(get_id());
 }
 
 }  // namespace mysqlsh::dba

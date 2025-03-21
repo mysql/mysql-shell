@@ -1848,6 +1848,19 @@ Unreferenced servers
 EXPECT_NO_THROWS(function() { rg2.show(); });
 EXPECT_OUTPUT_CONTAINS_MULTILINE(expected_show_output);
 
+//@<> .show() must require the 'router' option when a destination includes $.router.* vars.
+
+// Add a new destination with a $.router var
+rg.addDestination("RouterVar", "$.server.memberRole = SECONDARY AND $.server.clusterName = $.router.localCluster")
+
+// Check the error
+EXPECT_THROWS(function(){ rg.show(); }, "Option 'router' not set: The Routing Guideline contains destinations configured to use router-specific variables.");
+EXPECT_OUTPUT_CONTAINS("ERROR: The Routing Guideline contains destinations configured to use router-specific variables (e.g., '$.router.localCluster'), but the 'router' option is not set. This may cause potential mismatches with the live router behavior. Please set the 'router' option to specify the Router that should be used for evaluation.");
+
+// Confirm no error when the option is given
+EXPECT_NO_THROWS(function() { rg.show({router: router1}); });
+
+rg.removeDestination("RouterVar");
 
 //@<> import_routing_guideline() - Duplicate guideline
 EXPECT_THROWS(function(){ cluster.importRoutingGuideline(rg2_path);}, "A Routing Guideline with the name 'rg2' already exists");
