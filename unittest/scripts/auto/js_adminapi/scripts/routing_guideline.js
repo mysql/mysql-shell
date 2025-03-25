@@ -1988,6 +1988,39 @@ EXPECT_EQ(null, routing_options["global"]["guideline"]);
 var router_options = cluster.routerOptions();
 EXPECT_EQ(undefined, router_options["configuration"]["routing_rules"]["guideline"]);
 
+//@<> import_routing_guideline() - 'rename' and 'force' cannot be use simultaneously
+EXPECT_THROWS(function(){ cluster.importRoutingGuideline(test_import_valid, {force: true, rename: "foo"});}, "Options 'force' and 'rename' are mutually exclusive");
+
+//@<> import_routing_guideline() - 'rename' must allow renaming a guideline that has a name which is duplicate of an existing guideline
+
+// Rename with the same name must fail
+EXPECT_THROWS(function(){ cluster.importRoutingGuideline(test_import_valid, { rename: "test_import"});}, "A Routing Guideline with the name 'test_import' already exists");
+
+// Rename with an empty value must fail
+EXPECT_THROWS(function(){ cluster.importRoutingGuideline(test_import_valid, { rename: ""});}, "Option 'rename' cannot be empty.");
+
+// Rename with a valid non-duplicate name must succeed
+EXPECT_NO_THROWS(function(){ test_import = cluster.importRoutingGuideline(test_import_valid, { rename: "test_import_new_name"});});
+
+// Confirm that the guideline was NOT set as the active one
+var routing_options = cluster.routingOptions();
+EXPECT_EQ(null, routing_options["global"]["guideline"]);
+
+var router_options = cluster.routerOptions();
+EXPECT_EQ(undefined, router_options["configuration"]["routing_rules"]["guideline"]);
+
+// Confirm the guideline was renamed
+EXPECT_EQ("test_import_new_name", test_import.name);
+
+// Confirm the guideline was imported into the topology
+var rgs;
+EXPECT_NO_THROWS(function() { rgs = cluster.routingGuidelines(); } );
+
+var row = rgs.fetchOne();
+EXPECT_EQ("test_import", row[0]);
+row = rgs.fetchOne();
+EXPECT_EQ("test_import_new_name", row[0]);
+
 // Backward compatibility tests
 
 //@<> Create a guideline with version 1.0
