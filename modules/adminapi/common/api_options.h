@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -117,6 +117,8 @@ struct Create_routing_guideline_options : public Force_options {
 struct Import_routing_guideline_options : public Force_options {
   static const shcore::Option_pack_def<Import_routing_guideline_options>
       &options();
+
+  std::optional<std::string> rename;
 };
 
 }  // namespace dba

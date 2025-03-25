@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -216,9 +216,31 @@ const shcore::Option_pack_def<Create_routing_guideline_options>
 
 const shcore::Option_pack_def<Import_routing_guideline_options>
     &Import_routing_guideline_options::options() {
-  static const auto opts =
-      shcore::Option_pack_def<Import_routing_guideline_options>()
-          .include<Force_options>();
+  static const auto opts = std::invoke([]() {
+    shcore::Option_pack_builder<Import_routing_guideline_options> b;
+
+    b.include<Force_options>();
+
+    b.optional_as<std::string>(
+        kOptionRename, [](Import_routing_guideline_options &options,
+                          std::string_view, const std::string &value) {
+          if (options.force.has_value()) {
+            throw shcore::Exception::argument_error(shcore::str_format(
+                "Options '%s' and '%s' are mutually exclusive.", kForce,
+                std::string(kOptionRename.name).c_str()));
+          }
+
+          if (value.empty()) {
+            throw shcore::Exception::argument_error(
+                shcore::str_format("Option '%s' cannot be empty.",
+                                   std::string(kOptionRename.name).c_str()));
+          }
+
+          options.rename = value;
+        });
+
+    return b.build();
+  });
 
   return opts;
 }

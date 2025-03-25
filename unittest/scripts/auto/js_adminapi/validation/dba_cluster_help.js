@@ -1909,5 +1909,11 @@ DESCRIPTION
 
       - force (boolean): Allows overwriting an existing Routing Guideline with
         the same name. Disabled by default.
+      - rename (string): Allows importing a guideline under a new name; for
+        example, if a guideline with the same name already exists in the
+        Cluster.
+
+      The options 'force' and 'rename' are mutually exclusive. Only one can be
+      used at a time.
 
       For more information on Routing Guidelines, see \? RoutingGuideline.

@@ -71,6 +71,12 @@ class Routing_guideline_impl {
   std::shared_ptr<Base_cluster_impl> owner() const { return m_owner; }
 
   const std::string &get_name() const { return m_name; }
+
+  void set_name(const std::string &name) {
+    m_name = name;
+    m_guideline_doc->set("name", shcore::Value(name));
+  }
+
   const std::string &get_id() const { return m_id; }
   void set_id(const std::string &id) { m_id = id; }
   void set_as_default() { m_is_default_guideline = true; }

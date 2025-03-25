@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -353,6 +353,12 @@ The following options are supported:
 
 @li force (boolean): Allows overwriting an existing Routing Guideline with the
 same name. Disabled by default.
+
+@li rename (string): Allows importing a guideline under a new name; for
+example, if a guideline with the same name already exists in the <<<:Type>>>.
+
+The options 'force' and 'rename' are mutually exclusive. Only one can be used
+at a time.
 
 For more information on Routing Guidelines, see \\? RoutingGuideline.
 )*"));

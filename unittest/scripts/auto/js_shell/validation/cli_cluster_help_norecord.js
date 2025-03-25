@@ -732,3 +732,5 @@ RETURNS
 
 OPTIONS
 --force=<bool>
+
+--rename=<str>

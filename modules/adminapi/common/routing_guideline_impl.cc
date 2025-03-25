@@ -1547,9 +1547,25 @@ std::shared_ptr<Routing_guideline_impl> Routing_guideline_impl::import(
   auto guideline_impl = std::make_shared<Routing_guideline_impl>(owner);
   guideline_impl->parse(shcore::Value::parse(parsed_document).as_map());
 
-  // Check if a Guideline with that name already exists. Skip if forced is
-  // used and keep the same it if needed
-  guideline_impl->ensure_unique_or_reuse(owner, options->get_force());
+  // Handle options: 'force' or 'rename' (mutually exclusive)
+  if (!options->rename.has_value()) {
+    // Check if a Guideline with that name already exists. Skip if 'force' is
+    // used and keep the same if needed
+    guideline_impl->ensure_unique_or_reuse(owner, options->get_force());
+  } else {
+    // Rename the guideline but first check if a guideline with the new name
+    // already exists
+    const auto &new_name = *options->rename;
+
+    if (owner->has_guideline(new_name)) {
+      throw shcore::Exception::argument_error(shcore::str_format(
+          "A Routing Guideline with the name '%s' already exists",
+          new_name.c_str()));
+    }
+
+    // Rename the parsed guideline
+    guideline_impl->set_name(new_name);
+  }
 
   // Store the guideline in the topology and print informative messages
   owner->store_routing_guideline(guideline_impl);
@@ -1835,8 +1851,7 @@ void Routing_guideline_impl::rename(const std::string &name) {
         name.c_str()));
   }
 
-  m_name = name;
-  m_guideline_doc->set("name", shcore::Value(name));
+  set_name(name);
 
   save_guideline();
 
