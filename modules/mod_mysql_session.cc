@@ -293,9 +293,8 @@ std::shared_ptr<mysqlshdk::db::IResult> ClassicSession::do_execute_sql(
           });
 
       try {
-        result =
-            _session->query(sub_query_placeholders(std::string(query), args),
-                            false, query_attributes);
+        result = _session->query(sub_query_placeholders(query, args), false,
+                                 query_attributes);
       } catch (const mysqlshdk::db::Error &error) {
         throw shcore::Exception::mysql_error_with_code_and_state(
             error.what(), error.code(), error.sqlstate());

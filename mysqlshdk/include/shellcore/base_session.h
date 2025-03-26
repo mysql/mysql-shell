@@ -178,7 +178,7 @@ class SHCORE_PUBLIC ShellBaseSession : public shcore::Cpp_object_bridge {
   std::string get_sql_mode();
 
  protected:
-  std::string sub_query_placeholders(const std::string &query,
+  std::string sub_query_placeholders(std::string_view query,
                                      const shcore::Array_t &args);
 
   int _tx_deep;

@@ -43,8 +43,10 @@ session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').exec
 session.runSql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?')
 
 //@ runSql with various parameter types
-// NOTE: xplugin has a bug where double values lose precision
 session.runSql('select ?,?,?,?,?', [null, 1234, -0.12345, 3.14159265359, 'hellooooo']).fetchOne();
+
+//@ BUG#34715428: runSql with ! placeholders
+session.runSql('select user from !.! where user=?', ['mysql', 'user', __user]).fetchOne()[0]
 
 //@<> Finalizing
 session.dropSchema('session_sql');

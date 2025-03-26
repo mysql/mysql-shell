@@ -251,6 +251,9 @@ std::shared_ptr<mysqlshdk::db::IResult> ShellBaseSession::execute_sql(
     bool use_sql_handlers) {
   std::shared_ptr<mysqlshdk::db::IResult> ret_val;
 
+  const auto full_query = sub_query_placeholders(query, args);
+  query = full_query;
+
   // Gets the SQL handlers to be executed for the given query
   shcore::Sql_handler_ptr sql_handler = nullptr;
 
@@ -260,10 +263,6 @@ std::shared_ptr<mysqlshdk::db::IResult> ShellBaseSession::execute_sql(
     sql_handler =
         shcore::current_sql_handler_registry()->get_handler_for_sql(query);
   }
-
-  shcore::Argument_list sql_handler_args;
-  sql_handler_args.push_back(shcore::Value(get_shared_this()));
-  sql_handler_args.push_back(shcore::Value(query));
 
   if (sql_handler) {
     if (m_active_custom_sql.empty()) {
@@ -280,7 +279,11 @@ std::shared_ptr<mysqlshdk::db::IResult> ShellBaseSession::execute_sql(
     shcore::Scoped_callback enable_sql_handlers(
         [this]() { m_active_custom_sql.clear(); });
 
-    auto value = sql_handler->callback()->invoke(sql_handler_args);
+    shcore::Argument_list sql_handler_args;
+    sql_handler_args.emplace_back(get_shared_this());
+    sql_handler_args.emplace_back(query);
+
+    const auto value = sql_handler->callback()->invoke(sql_handler_args);
 
     // An SQL handler may return either nothing or a Result object
     if (value && !value.is_null()) {
@@ -308,7 +311,7 @@ std::shared_ptr<mysqlshdk::db::IResult> ShellBaseSession::execute_sql(
   if (!ret_val) {
     // The statement will be executed on this session ONLY if it was not already
     // executed by a handler
-    ret_val = do_execute_sql(query, args, query_attributes);
+    ret_val = do_execute_sql(query, {}, query_attributes);
   }
 
   return ret_val;
@@ -364,10 +367,10 @@ void ShellBaseSession::reconnect() {
 }
 
 std::string ShellBaseSession::sub_query_placeholders(
-    const std::string &query, const shcore::Array_t &args) {
-  if (!args) return query;
+    std::string_view query, const shcore::Array_t &args) {
+  if (!args) return std::string{query};
 
-  shcore::sqlstring squery(query.c_str(), 0);
+  shcore::sqlstring squery(std::string{query}, 0);
   int i = 0;
   for (const shcore::Value &value : *args) {
     try {
@@ -409,7 +412,7 @@ std::string ShellBaseSession::sub_query_placeholders(
         "Insufficient number of values for placeholders in query");
   }
 
-  return query;
+  throw std::logic_error{"ShellBaseSession::sub_query_placeholders()"};
 }
 
 void ShellBaseSession::set_query_attributes(const shcore::Dictionary_t &args) {

@@ -30,6 +30,9 @@ session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = "foo"').
 #@ WL12813 SQL Test 08 [USE:WL12813 SQL Test 01]
 session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').bind('foo').execute()
 
+#@<> BUG#34715428: runSql with ! placeholders
+assert __user == session.run_sql('select user from !.! where user=?', ['mysql', 'user', __user]).fetch_one()[0]
+
 #@<> Finalizing
 session.drop_schema('session_sql')
 session.close()

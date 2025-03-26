@@ -135,5 +135,8 @@ classicSession.runSql("select ?, ?", ['hello', 1234]);
 //@<OUT> ClassicSession: runSql with various parameter types
 classicSession.runSql('select ?,?,?,?,?', [null, 1234, -0.12345, 3.14159265359, 'hellooooo']).fetchOne();
 
+//@<> ClassicSession: runSql with ! placeholders
+EXPECT_EQ(__user, classicSession.runSql('select user from !.! where user=?', ['mysql', 'user', __user]).fetchOne()[0])
+
 // Cleanup
 classicSession.close();

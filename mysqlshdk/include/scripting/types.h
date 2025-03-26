@@ -576,8 +576,8 @@ class SHCORE_PUBLIC Argument_list final {
   bool operator==(const Argument_list &other) const;
 
   template <class T>
-  void emplace_back(const T &value) {
-    _args.emplace_back(Value(value));
+  void emplace_back(T &&value) {
+    _args.emplace_back(std::forward<T>(value));
   }
 
  private:

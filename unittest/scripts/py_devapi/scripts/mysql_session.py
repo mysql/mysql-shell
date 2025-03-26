@@ -95,6 +95,9 @@ classicSession.run_sql('select ?, ?', [1])
 #@<OUT> ClassicSession: run_sql placeholders
 classicSession.run_sql("select ?, ?", ['hello', 1234])
 
+#@<> ClassicSession: runSql with ! placeholders
+assert __user == classicSession.run_sql('select user from !.! where user=?', ['mysql', 'user', __user]).fetch_one()[0]
+
 # Cleanup
 classicSession.run_sql('drop schema if exists classic_session_schema')
 classicSession.close()

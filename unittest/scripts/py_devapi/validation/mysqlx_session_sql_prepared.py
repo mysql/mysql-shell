@@ -1,15 +1,6 @@
 #@<PROTOCOL> First execution is normal
 >>>> SEND Mysqlx.Sql.StmtExecute {
-  stmt: "select * from test_table where name like ?"
-  args {
-    type: SCALAR
-    scalar {
-      type: V_STRING
-      v_string {
-        value: "g%"
-      }
-    }
-  }
+  stmt: "select * from test_table where name like \'g%\'"
   namespace: "sql"
 }
 

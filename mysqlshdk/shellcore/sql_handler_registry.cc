@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,7 +48,7 @@ void Sql_handler_registry::register_sql_handler(
   if (prefixes.empty()) {
     throw std::runtime_error("At least one prefix must be specified.");
   } else {
-    for (auto prefix : prefixes) {
+    for (const auto &prefix : prefixes) {
       if (shcore::str_strip(prefix).empty()) {
         throw std::runtime_error("Empty or blank prefixes are not allowed.");
       }
@@ -85,7 +85,7 @@ void Sql_handler_registry::register_sql_handler(
 
 Sql_handler_ptr Sql_handler_registry::get_handler_for_sql(
     std::string_view sql) const {
-  auto match = m_sql_handler_matcher.matches(std::string(sql));
+  auto match = m_sql_handler_matcher.matches(sql);
   if (match.has_value()) {
     return m_sql_handlers.at(*match);
   }

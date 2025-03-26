@@ -226,6 +226,39 @@ callMysqlsh([__mysqluripwd, "--js", "--disable-plugins", "-i", "--tabbed", "-e",
 EXPECT_STDOUT_CONTAINS("You have an error in your SQL syntax;")
 EXPECT_STDOUT_NOT_CONTAINS(`====> SQL HANDLER:`)
 
+//@<> BUG#37196079 - SQL handler callbacks received SQL query still containing the placeholders
+plugin_code = `
+function my_handler(session, sql) {
+    println("====> SQL HANDLER:", sql);
+}
+
+shell.registerSqlHandler("placeholdersHandler", "Handler with placeholders", ["SELECT "], my_handler);
+`
+testutil.createFile(plugin_path, plugin_code);
+
+callMysqlsh([__mysqluripwd, "--js", "-e", "session.runSql('select 1', [])"]);
+EXPECT_STDOUT_CONTAINS(`
+====> SQL HANDLER: select 1
+`);
+WIPE_OUTPUT();
+
+callMysqlsh([__mysqluripwd, "--js", "-e", "session.runSql('select ? from dual', [1])"]);
+EXPECT_STDOUT_CONTAINS(`
+====> SQL HANDLER: select 1 from dual
+`);
+WIPE_OUTPUT();
+
+callMysqlsh([__mysqluripwd, "--js", "-e", "session.runSql('select ?,?, ? from DUAL', ['a', 2, 'c'])"]);
+EXPECT_STDOUT_CONTAINS(`
+====> SQL HANDLER: select 'a',2, 'c' from DUAL
+`);
+WIPE_OUTPUT();
+
+callMysqlsh([__mysqluripwd, "--js", "-e", "session.runSql('select ? from dual', [])"])
+EXPECT_STDOUT_CONTAINS(`
+Insufficient number of values for placeholders in query (ArgumentError)
+`)
+WIPE_OUTPUT()
+
 //@<> Finalization
 testutil.rmdir(plugins_path, true)
-
