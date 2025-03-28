@@ -215,5 +215,65 @@ EXPECT_OUTPUT_CONTAINS("Check for invalid table names and schema names used in 5
 session.run_sql("SET GLOBAL sql_mode = @saved_sql_mode")
 session.run_sql("SET SESSION sql_mode = @saved_sql_mode")
 
+#@<> Invalid FK References Check - Cleanup
+session.run_sql("DROP SCHEMA uctest3")
+
+#@<> Bug#37651453 false positive on FK to different schema - full key to other schema table - no warning
+session.run_sql("create schema fktestone;")
+session.run_sql("create schema fktesttwo;")
+
+session.run_sql("use fktestone;")
+session.run_sql("""CREATE TABLE `source_table` (
+    `id_key` bigint unsigned NOT NULL AUTO_INCREMENT,
+    `other` varchar(255) DEFAULT NULL,
+    PRIMARY KEY (`id_key`)
+    ) ENGINE=InnoDB;""")
+
+session.run_sql("use fktesttwo;")
+session.run_sql("""CREATE TABLE `target_table` (
+`id` bigint unsigned NOT NULL AUTO_INCREMENT,
+`id_key` bigint unsigned DEFAULT NULL,
+PRIMARY KEY (`id`),
+KEY `idx_id_key` (`id_key`),
+CONSTRAINT `fk_target_table_id_key` FOREIGN KEY (`id_key`) REFERENCES `fktestone`.`source_table` (`id_key`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;""")
+
+testutil.call_mysqlsh([__sandbox_uri1, "--", "util", "check-for-server-upgrade", "--include=foreignKeyReferences"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+EXPECT_OUTPUT_NOT_CONTAINS("fk_target_table_id_key")
+EXPECT_OUTPUT_CONTAINS("Warnings: 0")
+
+#@<> false positive FK - no warning - cleanup
+session.run_sql("drop schema if exists fktesttwo;")
+session.run_sql("drop schema if exists fktestone;")
+
+#@<> Bug#37651453 false positive on FK to different schema - partial key to other schema table - with warning
+session.run_sql("create schema fktestone;")
+session.run_sql("create schema fktesttwo;")
+
+session.run_sql("use fktestone;")
+session.run_sql("""CREATE TABLE `source_table` (
+  `id_key` bigint unsigned NOT NULL,
+  `id_key_other` bigint unsigned NOT NULL,
+  `other` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id_key`, `id_key_other`)
+) ENGINE=InnoDB;""")
+
+session.run_sql("use fktesttwo;")
+session.run_sql("""CREATE TABLE `target_table` (
+  `id` bigint unsigned NOT NULL,
+  `id_key` bigint unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_id_key` (`id_key`),
+  CONSTRAINT `fk_target_table_id_key` FOREIGN KEY (`id_key`) REFERENCES `fktestone`.`source_table` (`id_key`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;""")
+
+testutil.call_mysqlsh([__sandbox_uri1, "--", "util", "check-for-server-upgrade", "--include=foreignKeyReferences"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+EXPECT_OUTPUT_CONTAINS("fk_target_table_id_key")
+EXPECT_OUTPUT_NOT_CONTAINS("Warnings: 0")
+
+#@<> false positive FK - with warning - cleanup
+session.run_sql("drop schema if exists fktesttwo;")
+session.run_sql("drop schema if exists fktestone;")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
