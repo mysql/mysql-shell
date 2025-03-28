@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1583,6 +1583,16 @@ std::unique_ptr<Upgrade_check> get_foreign_key_references_check() {
       ids::k_foreign_key_references,
       std::vector<Check_query>{
           {
+/*
+ * query for finding foreign key constraint to non unique key
+ *
+ * Query works in three parts - first one (using REFERENTIAL_CONSTRAINTS and
+ * KEY_COLUMN_USAGE tables) constructs a list of constraints with fk definitions.
+ * Second part (using STATISTICS table) creates a list of sums of non unique
+ * keys that are join to the previous query using the fk definition.
+ * Last, the final part, produces from previous parts results a list of
+ * constraints that have any (non zero) non unique keys .
+ */
 R"(select 
   fk.constraint_schema, 
   fk.constraint_name,
@@ -1629,28 +1639,65 @@ from (select
       idx.non_unique_count > 0)",
                        Upgrade_issue::Object_type::FOREIGN_KEY},
                        {
-"SELECT constraint_schema, "
-        "name, "
-        "'', " // column field
-        "fk_definition, "
-        "col_list, "
-        "target_table, "
-        "'##fkToPartialKey'"
-  "FROM (SELECT rc.constraint_schema constraint_schema, "
-               "rc.constraint_name name, "
-               "rc.referenced_table_name target_table, "
-               "CONCAT(rc.constraint_schema,'.',rc.table_name,'(',GROUP_CONCAT(kc.column_name order by kc.ORDINAL_POSITION),')') fk_definition, "
-               "CONCAT(rc.constraint_schema,'.',rc.referenced_table_name,'(',GROUP_CONCAT(kc.referenced_column_name order by kc.ORDINAL_POSITION),')') col_list "
-        "FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc INNER JOIN "
-             "INFORMATION_SCHEMA.KEY_COLUMN_USAGE kc ON "
-             "rc.constraint_schema=kc.constraint_schema AND "
-             "rc.constraint_name=kc.constraint_name AND "
-             "<<schema_filter:rc.constraint_schema>> "
-        "GROUP BY "
-             "rc.constraint_name,rc.constraint_schema, rc.table_name, "
-             "rc.referenced_table_name) fk "
-        "WHERE fk.col_list NOT IN (SELECT CONCAT(table_schema,'.',table_name,'(',GROUP_CONCAT(column_name order by seq_in_index),')') col_list "
-        "FROM INFORMATION_SCHEMA.STATISTICS WHERE sub_part IS NULL AND <<schema_filter:table_schema>> GROUP BY table_schema, table_name, index_name);"
+/*
+ * query for finding foreign key constraint to partial keys
+ *
+ * Query works in three parts - first one (using REFERENTIAL_CONSTRAINTS and
+ * KEY_COLUMN_USAGE tables) constructs list of constraints with source and
+ * target (col_list) fk definitions.
+ * Second part (using STATISTICS table) constructs a list of known fk definitions.
+ * Last, final part tries to find target fk definitions from first part in
+ * the list from the second part - constraints with missing fk definitions in
+ * second part are the ones with partial keys.
+ */
+                         R"(SELECT
+  constraint_schema,
+  name,
+  '',
+  fk_definition,
+  col_list,
+  target_table,
+  '##fkToPartialKey'
+FROM (
+  SELECT
+    rc.constraint_schema constraint_schema,
+    rc.constraint_name name,
+    rc.referenced_table_name target_table,
+    CONCAT(kc.table_schema,'.',rc.table_name,'(',GROUP_CONCAT(kc.column_name order by kc.ORDINAL_POSITION),')') fk_definition,
+    CONCAT(kc.referenced_table_schema,'.',kc.referenced_table_name,'(',GROUP_CONCAT(kc.referenced_column_name order by kc.ORDINAL_POSITION),')') col_list
+  FROM
+    INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+    INNER JOIN
+      INFORMATION_SCHEMA.KEY_COLUMN_USAGE kc
+    ON
+      rc.constraint_schema = kc.constraint_schema AND
+      rc.constraint_name = kc.constraint_name AND
+      rc.table_name = kc.table_name AND
+      rc.referenced_table_name = kc.referenced_table_name AND
+      <<schema_filter:rc.constraint_schema>>
+
+    GROUP BY
+      rc.constraint_name,
+      rc.constraint_schema,
+      kc.table_schema,
+      kc.table_name,
+      kc.referenced_table_schema,
+      kc.referenced_table_name
+  ) fk
+WHERE
+  fk.col_list NOT IN (
+    SELECT
+      CONCAT(table_schema,'.',table_name,'(',GROUP_CONCAT(column_name order by seq_in_index),')') col_list
+    FROM
+      INFORMATION_SCHEMA.STATISTICS
+    WHERE
+      sub_part IS NULL AND
+      <<schema_filter:table_schema>>
+    GROUP BY
+      table_schema,
+      table_name,
+      index_name
+    ))"
                         ,Upgrade_issue::Object_type::FOREIGN_KEY
                        }},
       Upgrade_issue::WARNING);
