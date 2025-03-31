@@ -3496,6 +3496,25 @@ EXPECT_STDOUT_CONTAINS("Checksumming enabled.")
 #@<> WL15947 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
+#@<> BUG#37770454 - shell crashes during dump if table has a functional key {VER(>=8.0.0)}
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql("""CREATE TABLE !.! (
+`id` bigint NOT NULL AUTO_INCREMENT,
+`b` bit(1) NOT NULL,
+`c` varchar(100) NOT NULL,
+PRIMARY KEY (`id`),
+UNIQUE KEY `a` (((case when (`b` <> 0) then `b` end)),`c`)
+)""", [ tested_schema, tested_table ])
+
+EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showProgress": False })
+
+# cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
