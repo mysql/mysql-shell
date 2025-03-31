@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -591,11 +591,11 @@ void Instance_cache_builder::fetch_table_indexes() {
   info.table_column = "TABLE_NAME";
   info.extra_columns = {
       "INDEX_NAME",   // can be NULL in 8.0
-      "COLUMN_NAME",  // can be NULL in 8.0
+      "COLUMN_NAME",  // can be NULL
       "SEQ_IN_INDEX"  // NOT NULL
   };
   info.table_name = "statistics";
-  info.where = "COLUMN_NAME IS NOT NULL AND NON_UNIQUE=0";
+  info.where = "NON_UNIQUE=0";
 
   constexpr std::string_view k_primary_index = "PRIMARY";
   struct Index_info {
@@ -608,38 +608,42 @@ void Instance_cache_builder::fetch_table_indexes() {
       std::unordered_map<std::string, std::map<std::string, Index_info>>>
       indexes;
 
-  iterate_tables(
-      info,
-      [&indexes](const std::string &schema_name, const std::string &table_name,
-                 Instance_cache::Table *t, const mysqlshdk::db::IRow *row) {
-        // INDEX_NAME can be NULL in 8.0, as per output of 'SHOW COLUMNS', but
-        // it's not likely, as it's NOT NULL in definition of mysql.indexes
-        // hidden table
-        //
-        // NULL values in COLUMN_NAME are filtered out
-        const auto column =
-            std::find_if(t->all_columns.begin(), t->all_columns.end(),
-                         [name = row->get_string(3)](const auto &c) {
-                           return name == c.name;
-                         });  // COLUMN_NAME
+  iterate_tables(info, [&indexes](const std::string &schema_name,
+                                  const std::string &table_name,
+                                  Instance_cache::Table *t,
+                                  const mysqlshdk::db::IRow *row) {
+    // INDEX_NAME can be NULL in 8.0, as per output of 'SHOW COLUMNS', but
+    // it's not likely, as it's NOT NULL in definition of mysql.indexes
+    // hidden table
 
-        // column will not be found if user is missing SELECT privilege and it
-        // was not possible to fetch column information
-        if (t->all_columns.end() != column) {
-          auto &index_info = indexes[schema_name][table_name]
-                                    [row->get_string(2, {})];  // INDEX_NAME
-          const auto seq = row->get_uint(4);                   // SEQ_IN_INDEX
+    // COLUMN_NAME column is NULL if this is a functional key
+    Instance_cache::Column *column_ptr = nullptr;
 
-          // SEQ_IN_INDEX is 1-based
-          if (seq > index_info.columns.size()) {
-            index_info.columns.resize(seq);
-          }
+    if (!row->is_null(3)) {
+      const auto column =
+          std::find_if(t->all_columns.begin(), t->all_columns.end(),
+                       [name = row->get_string(3)](const auto &c) {
+                         return name == c.name;
+                       });  // COLUMN_NAME
 
-          index_info.columns[seq - 1] = &(*column);
-        } else {
-          assert(t->all_columns.empty());
-        }
-      });
+      // column will not be found if user is missing SELECT privilege and it
+      // was not possible to fetch column information
+      if (t->all_columns.end() != column) {
+        column_ptr = &(*column);
+      }
+    }
+
+    auto &index_info =
+        indexes[schema_name][table_name][row->get_string(2, {})];  // INDEX_NAME
+    const auto seq = row->get_uint(4);  // SEQ_IN_INDEX
+
+    // SEQ_IN_INDEX is 1-based
+    if (seq > index_info.columns.size()) {
+      index_info.columns.resize(seq);
+    }
+
+    index_info.columns[seq - 1] = column_ptr;
+  });
 
   for (const auto &schema : indexes) {
     for (const auto &table : schema.second) {
@@ -648,21 +652,30 @@ void Instance_cache_builder::fetch_table_indexes() {
       for (const auto &index : table.second) {
         Instance_cache::Index new_index;
         bool nullable = false;
+        bool add_index = true;
 
         for (const auto &column : index.second.columns) {
+          if (!column) {
+            // skip this index
+            add_index = false;
+            break;
+          }
+
           new_index.add_column(column);
           nullable |= column->nullable;
         }
 
-        auto ptr =
-            &t.indexes.emplace(index.first, std::move(new_index)).first->second;
+        if (add_index) {
+          auto ptr = &t.indexes.emplace(index.first, std::move(new_index))
+                          .first->second;
 
-        if (k_primary_index == index.first) {
-          t.primary_key = ptr;
-        } else if (!nullable) {
-          t.primary_key_equivalents.emplace_back(ptr);
-        } else {
-          t.unique_keys.emplace_back(ptr);
+          if (k_primary_index == index.first) {
+            t.primary_key = ptr;
+          } else if (!nullable) {
+            t.primary_key_equivalents.emplace_back(ptr);
+          } else {
+            t.unique_keys.emplace_back(ptr);
+          }
         }
       }
     }
