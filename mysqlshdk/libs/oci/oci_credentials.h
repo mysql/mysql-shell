@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 
 #include <string>
 
+#include "mysqlshdk/libs/rest/headers.h"
 #include "mysqlshdk/libs/rest/signed/credentials.h"
 #include "mysqlshdk/libs/utils/utils_private_key.h"
 
@@ -44,7 +45,8 @@ class Oci_credentials final : public rest::Credentials<2> {
 
   Oci_credentials(std::string auth_key_id,
                   shcore::ssl::Private_key_id private_key_id,
-                  Time_point expiration = NO_EXPIRATION);
+                  Time_point expiration = NO_EXPIRATION,
+                  rest::Headers &&extra_headers = {});
 
   Oci_credentials(const Oci_credentials &) = default;
   Oci_credentials(Oci_credentials &&) = default;
@@ -68,10 +70,15 @@ class Oci_credentials final : public rest::Credentials<2> {
     return m_private_key;
   }
 
+  inline const rest::Headers &extra_headers() const noexcept {
+    return m_extra_headers;
+  }
+
  private:
   std::string m_auth_key_id;
   shcore::ssl::Private_key_id m_private_key_id;
   shcore::ssl::Private_key m_private_key;
+  rest::Headers m_extra_headers;
 };
 
 }  // namespace oci

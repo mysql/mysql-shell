@@ -28,12 +28,14 @@ ENDIF()
 set(oci_SOURCES
   api_key_credentials_provider.cc
   config_credentials_provider.cc
+  config_file.cc
   data_plane_client.cc
   federation_client.cc
   federation_credentials_provider.cc
   fixed_credentials_provider.cc
   instance_metadata_retriever.cc
   instance_principal_credentials_provider.cc
+  instance_principal_delegation_token_credentials_provider.cc
   oci_bucket.cc
   oci_bucket_config.cc
   oci_bucket_options.cc

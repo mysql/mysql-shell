@@ -604,8 +604,8 @@ EXPECT_FAIL("ValueError", "Argument #3: The option 'ociProfile' cannot be used w
 help_text = """
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
 """
 EXPECT_TRUE(help_text in util.help("export_table"))
 
@@ -628,7 +628,7 @@ EXPECT_FAIL("ValueError", "Argument #3: The option 'ociConfigFile' cannot be use
 EXPECT_FAIL("ValueError", "Argument #3: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: resource_principal.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociProfile": "profile" })
 
 #@<> WL15884-TSFR_9_1 - `ociAuth` set to an invalid value
-EXPECT_FAIL("ValueError", "Argument #3: Invalid value of 'ociAuth' option, expected one of: api_key, instance_principal, resource_principal, security_token, but got: unknown.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "osBucketName": "bucket", "ociAuth": "unknown" })
+EXPECT_FAIL("ValueError", "Argument #3: Invalid value of 'ociAuth' option, expected one of: api_key, instance_obo_user, instance_principal, resource_principal, security_token, but got: unknown.", quote(types_schema, types_schema_tables[0]), test_output_relative, { "osBucketName": "bucket", "ociAuth": "unknown" })
 
 #@<> WL13804-FR5.8 - The `options` dictionary may contain a `defaultCharacterSet` key with a string value, which specifies the character set to be used during the dump. The session variables `character_set_client`, `character_set_connection`, and `character_set_results` must be set to this value for each opened connection.
 TEST_STRING_OPTION("defaultCharacterSet")

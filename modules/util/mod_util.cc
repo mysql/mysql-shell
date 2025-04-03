@@ -684,8 +684,8 @@ configuration file instead of the one at the default location.
 instead of the default one.
 @li <b>ociAuth</b>: string (default: not set) - Use the specified authentication
 method when connecting to the OCI. Allowed values: <b>api_key</b> (used when not
-explicitly set), <b>instance_principal</b>, <b>resource_principal</b>,
-<b>security_token</b>.)*");
+explicitly set), <b>instance_obo_user</b>, <b>instance_principal</b>,
+<b>resource_principal</b>, <b>security_token</b>.)*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_OCI_STORAGE_OPTIONS_DETAILS, R"*(
 If the <b>osBucketName</b> option is used, the specified OCI bucket is used as
@@ -703,6 +703,7 @@ The <b>ociAuth</b> option allows to specify the authentication method used when
 connecting to the OCI:
 
 @li <b>api_key</b> - API Key-Based Authentication
+@li <b>instance_obo_user</b> - Instance Principal Authentication with delegation token
 @li <b>instance_principal</b> - Instance Principal Authentication
 @li <b>resource_principal</b> - Resource Principal Authentication
 @li <b>security_token</b> - Session Token-Based Authentication

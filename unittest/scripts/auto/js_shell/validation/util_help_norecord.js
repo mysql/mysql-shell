@@ -642,8 +642,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -857,8 +857,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1270,8 +1270,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1654,8 +1654,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -1994,8 +1994,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -2257,8 +2257,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -2378,8 +2378,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -2638,8 +2638,8 @@ DESCRIPTION
         instead of the default one.
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
       - s3BucketName: string (default: not set) - Name of the AWS S3 bucket to
         use. The bucket must already exist.
       - s3CredentialsFile: string (default: not set) - Use the specified AWS
@@ -2723,7 +2723,8 @@ Oracle Cloud Infrastructure (OCI) Object Storage Options
   of the default one.
 - ociAuth: string (default: not set) - Use the specified authentication method
   when connecting to the OCI. Allowed values: api_key (used when not explicitly
-  set), instance_principal, resource_principal, security_token.
+  set), instance_obo_user, instance_principal, resource_principal,
+  security_token.
 
 Description
 
@@ -2741,6 +2742,7 @@ The ociAuth option allows to specify the authentication method used when
 connecting to the OCI:
 
 - api_key - API Key-Based Authentication
+- instance_obo_user - Instance Principal Authentication with delegation token
 - instance_principal - Instance Principal Authentication
 - resource_principal - Resource Principal Authentication
 - security_token - Session Token-Based Authentication

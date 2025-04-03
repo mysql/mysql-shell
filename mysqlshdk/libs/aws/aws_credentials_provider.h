@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,7 @@ struct Aws_credentials_provider_traits {
   };
 
   static std::shared_ptr<Credentials_t> convert(
-      const Provider_t &self, const Intermediate_credentials &credentials);
+      const Provider_t &self, Intermediate_credentials &&credentials);
 };
 
 class Aws_credentials_provider

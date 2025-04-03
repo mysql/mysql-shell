@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,7 +42,7 @@ namespace oci {
 /**
  * Instance principal authentication.
  */
-class Instance_principal_credentials_provider final
+class Instance_principal_credentials_provider
     : public Oci_credentials_provider {
  public:
   Instance_principal_credentials_provider();
@@ -57,9 +57,14 @@ class Instance_principal_credentials_provider final
   Instance_principal_credentials_provider &operator=(
       Instance_principal_credentials_provider &&) = delete;
 
- private:
+  ~Instance_principal_credentials_provider() override = default;
+
+ protected:
+  explicit Instance_principal_credentials_provider(std::string name);
+
   Credentials fetch_credentials() override;
 
+ private:
   std::unique_ptr<Instance_metadata_retriever> m_instance_metadata;
   std::unique_ptr<Federation_credentials_provider> m_credentials_provider;
   std::unique_ptr<Federation_client> m_federation_client;

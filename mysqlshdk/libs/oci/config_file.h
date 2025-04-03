@@ -23,23 +23,62 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysqlshdk/libs/oci/oci_credentials.h"
+#ifndef MYSQLSHDK_LIBS_OCI_CONFIG_FILE_H_
+#define MYSQLSHDK_LIBS_OCI_CONFIG_FILE_H_
 
-#include <utility>
+#include <string>
+
+#include "mysqlshdk/libs/config/config_file.h"
 
 namespace mysqlshdk {
 namespace oci {
 
-Oci_credentials::Oci_credentials(std::string auth_key_id,
-                                 shcore::ssl::Private_key_id private_key_id,
-                                 Time_point expiration,
-                                 rest::Headers &&extra_headers)
-    : Credentials(expiration),
-      m_auth_key_id(std::move(auth_key_id)),
-      m_private_key_id(std::move(private_key_id)),
-      m_private_key(
-          shcore::ssl::Private_key_storage::instance().get(m_private_key_id)),
-      m_extra_headers(std::move(extra_headers)) {}
+/**
+ * An OCI config file.
+ */
+class Config_file final {
+ public:
+  enum class Entry {
+    USER,
+    FINGERPRINT,
+    KEY_FILE,
+    PASS_PHRASE,
+    TENANCY,
+    REGION,
+    SECURITY_TOKEN_FILE,
+    DELEGATION_TOKEN_FILE,
+  };
+
+  Config_file(const std::string &config_file,
+              const std::string &config_profile);
+
+  Config_file(const Config_file &) = default;
+  Config_file(Config_file &&) = default;
+
+  Config_file &operator=(const Config_file &) = default;
+  Config_file &operator=(Config_file &&) = default;
+
+  ~Config_file() = default;
+
+  inline const std::string &config_file() const noexcept {
+    return m_config_file;
+  }
+
+  inline const std::string &config_profile() const noexcept {
+    return m_config_profile;
+  }
+
+  std::string config_option(Entry entry);
+
+ private:
+  std::string m_config_file;
+  std::string m_config_profile;
+
+  mysqlshdk::config::Config_file m_config;
+  bool m_config_is_read = false;
+};
 
 }  // namespace oci
 }  // namespace mysqlshdk
+
+#endif  // MYSQLSHDK_LIBS_OCI_CONFIG_FILE_H_

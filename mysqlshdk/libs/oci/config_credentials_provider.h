@@ -28,9 +28,9 @@
 
 #include <string>
 
-#include "mysqlshdk/libs/config/config_file.h"
 #include "mysqlshdk/libs/utils/utils_private_key.h"
 
+#include "mysqlshdk/libs/oci/config_file.h"
 #include "mysqlshdk/libs/oci/oci_credentials_provider.h"
 
 namespace mysqlshdk {
@@ -50,36 +50,26 @@ class Config_credentials_provider : public Oci_credentials_provider {
       delete;
 
   inline const std::string &config_profile() const noexcept {
-    return m_config_profile;
+    return m_config.config_profile();
   }
 
  protected:
-  enum class Entry {
-    USER,
-    FINGERPRINT,
-    KEY_FILE,
-    PASS_PHRASE,
-    TENANCY,
-    REGION,
-    SECURITY_TOKEN_FILE,
-  };
+  using Entry = Config_file::Entry;
 
   Config_credentials_provider(const std::string &config_file,
                               const std::string &config_profile,
                               std::string name, bool allow_key_content_env_var);
 
-  std::string config_option(Entry entry);
+  inline std::string config_option(Entry entry) {
+    return m_config.config_option(entry);
+  }
 
   Credentials m_credentials;
 
  private:
   void load_key(bool allow_key_content_env_var);
 
-  std::string m_config_file;
-  std::string m_config_profile;
-
-  mysqlshdk::config::Config_file m_config;
-  bool m_config_is_read = false;
+  Config_file m_config;
 };
 
 }  // namespace oci

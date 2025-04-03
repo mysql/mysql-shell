@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -32,6 +32,7 @@
 #include <optional>
 #include <string>
 
+#include "mysqlshdk/libs/rest/headers.h"
 #include "mysqlshdk/libs/rest/signed/credentials_provider.h"
 
 #include "mysqlshdk/libs/oci/oci_credentials.h"
@@ -49,10 +50,11 @@ struct Oci_credentials_provider_traits {
     std::string auth_key_id;
     std::string private_key_id;
     std::optional<std::time_t> expiration{};
+    rest::Headers extra_headers{};
   };
 
   static std::shared_ptr<Credentials_t> convert(
-      const Provider_t &self, const Intermediate_credentials &credentials);
+      const Provider_t &self, Intermediate_credentials &&credentials);
 };
 
 class Oci_credentials_provider

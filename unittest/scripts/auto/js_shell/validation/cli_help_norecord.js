@@ -903,8 +903,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
@@ -1136,8 +1136,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
@@ -1383,8 +1383,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
@@ -1597,8 +1597,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
@@ -1756,8 +1756,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
@@ -1981,8 +1981,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
@@ -2095,8 +2095,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
@@ -2349,8 +2349,8 @@ OPTIONS
 --ociAuth=<str>
             Use the specified authentication method when connecting to the OCI.
             Allowed values: api_key (used when not explicitly set),
-            instance_principal, resource_principal, security_token. Default:
-            not set.
+            instance_obo_user, instance_principal, resource_principal,
+            security_token. Default: not set.
 
 --ociConfigFile=<str>
             Use the specified OCI configuration file instead of the one at the
