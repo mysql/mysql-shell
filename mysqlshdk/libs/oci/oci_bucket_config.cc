@@ -39,6 +39,7 @@
 
 #include "mysqlshdk/libs/oci/api_key_credentials_provider.h"
 #include "mysqlshdk/libs/oci/instance_principal_credentials_provider.h"
+#include "mysqlshdk/libs/oci/instance_principal_delegation_token_credentials_provider.h"
 #include "mysqlshdk/libs/oci/oci_bucket.h"
 #include "mysqlshdk/libs/oci/resource_principal_credentials_provider.h"
 #include "mysqlshdk/libs/oci/security_token_credentials_provider.h"
@@ -166,6 +167,12 @@ void Oci_bucket_config::resolve_credentials() {
       m_credentials_provider =
           std::make_unique<Security_token_credentials_provider>(
               m_config_file, m_config_profile);
+      break;
+
+    case Authentication::INSTANCE_OBO_USER:
+      m_credentials_provider = std::make_unique<
+          Instance_principal_delegation_token_credentials_provider>(
+          m_config_file, m_config_profile);
       break;
   }
 

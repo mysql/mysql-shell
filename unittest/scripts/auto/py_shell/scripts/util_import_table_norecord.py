@@ -350,8 +350,8 @@ def TEST_STRING_OPTION(option):
 help_text = """
       - ociAuth: string (default: not set) - Use the specified authentication
         method when connecting to the OCI. Allowed values: api_key (used when
-        not explicitly set), instance_principal, resource_principal,
-        security_token.
+        not explicitly set), instance_obo_user, instance_principal,
+        resource_principal, security_token.
 """
 EXPECT_TRUE(help_text in util.help("import_table"))
 
@@ -375,7 +375,7 @@ EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "
 EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "resource_principal", "ociProfile": "profile", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: The option 'ociProfile' cannot be used when the 'ociAuth' option is set to: resource_principal.")
 
 #@<> WL15884-TSFR_9_1 - `ociAuth` set to an invalid value
-EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "unknown", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: Invalid value of 'ociAuth' option, expected one of: api_key, instance_principal, resource_principal, security_token, but got: unknown.")
+EXPECT_THROWS(lambda: util.import_table(world_x_cities_dump, { "osBucketName": "bucket", "ociAuth": "unknown", "schema": target_schema, "table": target_table }), "ValueError: Argument #2: Invalid value of 'ociAuth' option, expected one of: api_key, instance_obo_user, instance_principal, resource_principal, security_token, but got: unknown.")
 
 #@<> WL14387-TSFR_1_1_1 - s3BucketName - string option
 TEST_STRING_OPTION("s3BucketName")

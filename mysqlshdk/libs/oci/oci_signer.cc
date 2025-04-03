@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 
 #include "mysqlshdk/libs/oci/oci_signer.h"
 
+#include <string>
 #include <string_view>
 #include <utility>
 
@@ -38,7 +39,7 @@ namespace oci {
 
 namespace {
 
-const std::string k_empty_payload_base64 =
+constexpr std::string_view k_empty_payload_base64 =
     "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
 
 std::string sign(EVP_PKEY *sigkey, const std::string &string_to_sign) {
@@ -97,42 +98,78 @@ rest::Headers Oci_signer::sign_request(const rest::Signed_request &request,
   const auto method = request.type;
   const auto &headers = request.unsigned_headers();
 
-  const auto date = mysqlshdk::utils::fmttime(
-      "%a, %d %b %Y %H:%M:%S GMT", mysqlshdk::utils::Time_type::GMT, &now);
+  auto date = mysqlshdk::utils::fmttime("%a, %d %b %Y %H:%M:%S GMT",
+                                        mysqlshdk::utils::Time_type::GMT, &now);
 
-  std::string string_to_sign{
-      "(request-target): " + mysqlshdk::rest::type_name(method) + " " + path +
-      "\nhost: " + m_host + "\nx-date: " + date};
+  std::string string_to_sign;
+  string_to_sign.reserve(512);
+
+  string_to_sign += "(request-target): ";
+  string_to_sign += mysqlshdk::rest::type_name(method);
+  string_to_sign += ' ';
+  string_to_sign += path;
+
+  string_to_sign += "\nhost: ";
+  string_to_sign += m_host;
+
+  string_to_sign += "\nx-date: ";
+  string_to_sign += date;
 
   // Sets the content type to application/json if no other specified
-  if (headers.find("content-type") != headers.end())
-    all_headers["content-type"] = headers.at("content-type");
-  else
+  if (const auto content_type = headers.find("content-type");
+      content_type != headers.end()) {
+    all_headers["content-type"] = content_type->second;
+  } else {
     all_headers["content-type"] = "application/json";
+  }
 
   if (method == rest::Type::POST) {
     all_headers["x-content-sha256"] =
         request.size ? encode_sha256({request.body, request.size})
                      : k_empty_payload_base64;
     all_headers["content-length"] = std::to_string(request.size);
-    string_to_sign.append(
-        "\nx-content-sha256: " + all_headers["x-content-sha256"] +
-        "\ncontent-length: " + all_headers["content-length"] +
-        "\ncontent-type: " + all_headers["content-type"]);
+
+    string_to_sign += "\nx-content-sha256: ";
+    string_to_sign += all_headers["x-content-sha256"];
+
+    string_to_sign += "\ncontent-length: ";
+    string_to_sign += all_headers["content-length"];
+
+    string_to_sign += "\ncontent-type: ";
+    string_to_sign += all_headers["content-type"];
   }
 
-  const std::string signature_b64 =
-      sign(m_credentials->private_key().ptr(), string_to_sign);
-  std::string auth_header =
-      "Signature version=\"1\",headers=\"(request-target) host x-date";
+  std::string auth_header;
+  auth_header.reserve(256);
+
+  auth_header +=
+      "Signature version=\"1\","
+      "algorithm=\"rsa-sha256\","
+      "headers=\"(request-target) host x-date";
 
   if (method == rest::Type::POST) {
     auth_header.append(" x-content-sha256 content-length content-type");
   }
 
-  auth_header.append("\",keyId=\"" + m_credentials->auth_key_id() +
-                     "\",algorithm=\"rsa-sha256\",signature=\"" +
-                     signature_b64 + "\"");
+  for (const auto &extra : m_credentials->extra_headers()) {
+    all_headers[extra.first] = extra.second;
+
+    string_to_sign += '\n';
+    string_to_sign += extra.first;
+    string_to_sign += ": ";
+    string_to_sign += extra.second;
+
+    auth_header += ' ';
+    auth_header += extra.first;
+  }
+
+  auth_header += "\",keyId=\"";
+  auth_header += m_credentials->auth_key_id();
+
+  auth_header += "\",signature=\"";
+  auth_header += sign(m_credentials->private_key().ptr(), string_to_sign);
+
+  auth_header += '"';
 
   all_headers["authorization"] = std::move(auth_header);
   all_headers["x-date"] = std::move(date);

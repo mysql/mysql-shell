@@ -45,6 +45,7 @@ enum class Authentication {
   SECURITY_TOKEN,
   INSTANCE_PRINCIPAL,
   RESOURCE_PRINCIPAL,
+  INSTANCE_OBO_USER,
 };
 
 class Oci_bucket_options

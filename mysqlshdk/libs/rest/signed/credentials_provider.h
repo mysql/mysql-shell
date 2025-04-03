@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,7 +48,7 @@ namespace rest {
  *  - Intermediate_credentials - a structure to store the intermediate
  *    credentials
  *  - static std::shared_ptr<Credentials_t> convert(
- *        const Provider_t &self, const Intermediate_credentials &credentials) -
+ *        const Provider_t &self, Intermediate_credentials &&credentials) -
  *      a method to convert intermediate credentials into the final ones
  *
  * Traits::Provider_t is expected to contain:
@@ -159,7 +159,8 @@ class Credentials_provider {
       throw Credentials_error{e.what()};
     }
 
-    return Traits::convert(*static_cast<Provider_t *>(this), credentials);
+    return Traits::convert(*static_cast<Provider_t *>(this),
+                           std::move(credentials));
   }
 
   void maybe_refresh() {

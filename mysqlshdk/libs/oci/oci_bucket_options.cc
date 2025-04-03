@@ -121,11 +121,13 @@ Authentication to_authentication(std::string_view auth) {
     return Authentication::INSTANCE_PRINCIPAL;
   } else if ("resource_principal" == auth) {
     return Authentication::RESOURCE_PRINCIPAL;
+  } else if ("instance_obo_user" == auth) {
+    return Authentication::INSTANCE_OBO_USER;
   } else {
-    throw std::invalid_argument(
-        shcore::str_format("expected one of: api_key, instance_principal, "
-                           "resource_principal, security_token, but got: %.*s",
-                           static_cast<int>(auth.length()), auth.data()));
+    throw std::invalid_argument(shcore::str_format(
+        "expected one of: api_key, instance_obo_user, instance_principal, "
+        "resource_principal, security_token, but got: %.*s",
+        static_cast<int>(auth.length()), auth.data()));
   }
 }
 
@@ -142,6 +144,9 @@ const char *to_string(Authentication auth) {
 
     case Authentication::RESOURCE_PRINCIPAL:
       return "resource_principal";
+
+    case Authentication::INSTANCE_OBO_USER:
+      return "instance_obo_user";
   }
 
   // should not happen

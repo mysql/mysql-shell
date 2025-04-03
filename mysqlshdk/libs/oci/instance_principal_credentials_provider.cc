@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <cinttypes>
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "mysqlshdk/libs/rest/rest_service.h"
@@ -52,7 +53,11 @@ using shcore::ssl::Private_key;
 
 Instance_principal_credentials_provider::
     Instance_principal_credentials_provider()
-    : Oci_credentials_provider("instance_principal") {
+    : Instance_principal_credentials_provider("instance_principal") {}
+
+Instance_principal_credentials_provider::
+    Instance_principal_credentials_provider(std::string name)
+    : Oci_credentials_provider(std::move(name)) {
   try {
     m_instance_metadata = std::make_unique<Instance_metadata_retriever>();
     m_instance_metadata->refresh();

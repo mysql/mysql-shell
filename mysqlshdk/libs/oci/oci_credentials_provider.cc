@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -51,7 +51,7 @@ void Oci_credentials_provider::set_tenancy_id(std::string tenancy_id) {
 Oci_credentials_provider::Credentials_ptr_t
 Oci_credentials_provider_traits::convert(
     const Oci_credentials_provider &self,
-    const Intermediate_credentials &credentials) {
+    Intermediate_credentials &&credentials) {
   // ensure that these are set
   assert(!credentials.auth_key_id.empty());
   assert(!credentials.private_key_id.empty());
@@ -70,8 +70,9 @@ Oci_credentials_provider_traits::convert(
   }
 
   return std::make_shared<Oci_credentials>(
-      credentials.auth_key_id,
-      shcore::ssl::Private_key_id{credentials.private_key_id}, expiration);
+      std::move(credentials.auth_key_id),
+      shcore::ssl::Private_key_id{std::move(credentials.private_key_id)},
+      std::move(expiration), std::move(credentials.extra_headers));
 }
 
 }  // namespace oci

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,7 +41,7 @@ Aws_credentials_provider::Aws_credentials_provider(Context context)
 Aws_credentials_provider::Credentials_ptr_t
 Aws_credentials_provider_traits::convert(
     const Aws_credentials_provider &self,
-    const Intermediate_credentials &credentials) {
+    Intermediate_credentials &&credentials) {
   if (credentials.access_key_id.has_value() !=
       credentials.secret_access_key.has_value()) {
     throw std::runtime_error("Partial AWS credentials found in " + self.name() +
@@ -70,8 +70,10 @@ Aws_credentials_provider_traits::convert(
     }
 
     return std::make_shared<Aws_credentials>(
-        *credentials.access_key_id, *credentials.secret_access_key,
-        credentials.session_token.value_or(std::string{}), expiration);
+        *std::move(credentials.access_key_id),
+        *std::move(credentials.secret_access_key),
+        std::move(credentials.session_token).value_or(std::string{}),
+        std::move(expiration));
   }
 
   return {};
