@@ -91,6 +91,7 @@ session2.run_sql("set names utf8mb4")
 # * mysql_rest_service_user,
 # * mysql_task_admin,
 # * mysql_task_user,
+# BUG#37792183 - added ocirest - MRS admin in MHS
 mhs_excluded_users = [
     "administrator",
     "mysql_option_tracker_persister",
@@ -105,6 +106,7 @@ mhs_excluded_users = [
     "ociadmin",
     "ocidbm",
     "ocimonitor",
+    "ocirest",
     "ocirpl",
     "oracle-cloud-agent",
     "rrhhuser",
