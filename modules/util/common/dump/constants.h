@@ -52,6 +52,7 @@ constexpr inline std::array k_mhs_excluded_users = {
     "ociadmin",
     "ocidbm",
     "ocimonitor",
+    "ocirest",
     "ocirpl",
     "oracle-cloud-agent",
     "rrhhuser",
