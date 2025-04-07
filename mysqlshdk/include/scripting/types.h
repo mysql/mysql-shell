@@ -29,6 +29,8 @@
 #include "types_common.h"
 
 #include <algorithm>
+#include <cassert>
+#include <cstdint>
 #include <iterator>
 #include <list>
 #include <map>
