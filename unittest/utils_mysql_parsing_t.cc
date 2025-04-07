@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1378,6 +1378,10 @@ select $;)*"));
   // select 1, \w\d @ 2, 3@
 }
 
+#if __GNUC__ >= 15 && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#endif
 TEST_P(Statement_splitter, line_numbering) {
   // clang-format off
   {
@@ -1464,6 +1468,9 @@ TEST_P(Statement_splitter, line_numbering) {
   }
   // clang-format on
 }
+#if __GNUC__ >= 15 && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 namespace {
 
