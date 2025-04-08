@@ -167,7 +167,7 @@ session.close()
 //@<> WL16470#FR3_1 - config - proper user, proper auth, invalid token file
 {
     var config_file = testutil.catFile(mysqlsh_cnfg_replace_path);
-    config_file = config_file.replace("[REPLACE]", token_path_invalid);
+    config_file = config_file.replace("[REPLACE]", token_path_invalid.replace(/\\/g, "/"));
     testutil.createFile(mysqlsh_cnfg_path, config_file);
 }
 testutil.callMysqlsh([
@@ -230,7 +230,7 @@ session.close();
 //@<> WL16470#FR3_2 - config - proper user, proper auth, valid token file {openid_available}
 {
     var config_file = testutil.catFile(mysqlsh_cnfg_replace_path);
-    config_file = config_file.replace("[REPLACE]", token_path);
+    config_file = config_file.replace("[REPLACE]", token_path.replace(/\\/g, "/"));
     testutil.createFile(mysqlsh_cnfg_path, config_file);
 }
 testutil.callMysqlsh([
@@ -249,7 +249,7 @@ EXPECT_OUTPUT_CONTAINS(`${OPENID_CONNECT_USER}`);
 //@<> WL16470#FR5_1 - config - another user, other password, openid-auth auth, valid token file {openid_available}
 {
     var config_file = testutil.catFile(mysqlsh_cnfg_replace_path);
-    config_file = config_file.replace("[REPLACE]", token_path);
+    config_file = config_file.replace("[REPLACE]", token_path.replace(/\\/g, "/"));
     config_file = config_file + '\npassword=mypwd';
     testutil.createFile(mysqlsh_cnfg_path, config_file);
 }
