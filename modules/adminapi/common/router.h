@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -120,10 +120,6 @@ shcore::Value router_list(MetadataStorage *md, const Cluster_id &cluster_id,
 shcore::Value clusterset_list_routers(MetadataStorage *md,
                                       const Cluster_set_id &clusterset_id,
                                       const std::string &router);
-
-shcore::Dictionary_t routing_options(MetadataStorage *md, Cluster_type type,
-                                     const std::string &id,
-                                     const std::string &router_label = "");
 
 shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,
                                     const std::string &id,

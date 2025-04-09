@@ -1,6 +1,6 @@
 shell.connect(__uripwd);
 \sql
-\option outputFormat = tabbed
+\option resultFormat = tabbed
 
 //@ Setup
 drop database if exists scti_test;

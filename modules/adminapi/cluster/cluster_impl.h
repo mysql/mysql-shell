@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -130,7 +130,6 @@ class Cluster_impl final : public Base_cluster_impl,
   shcore::Value status(int64_t extended);
   shcore::Value list_routers(bool only_upgrade_required) override;
 
-  shcore::Dictionary_t routing_options(const std::string &router) override;
   shcore::Dictionary_t router_options(
       const shcore::Option_pack_ref<Router_options_options> &options) override;
   void set_routing_option(const std::string &option,

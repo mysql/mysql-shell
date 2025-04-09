@@ -223,7 +223,7 @@ CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
 
 //@<> Changing the primary instance of the REPLICA Cluster to the same primary must ensure the replication stream is not broken
-\option dba.logSql = 2
+\option logSql = unfiltered
 WIPE_SHELL_LOG();
 
 replicacluster.setPrimaryInstance(__sandbox_uri4);
@@ -238,13 +238,13 @@ EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[0]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[1]);
 EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[2]);
 
-\option dba.logSql = 0
+\option logSql = off
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster);
 
 //@<> Changing the primary instance of the REPLICA Cluster must ensure the replication stream is kept
-\option dba.logSql = 2
+\option logSql = unfiltered
 WIPE_SHELL_LOG();
 
 replicacluster.setPrimaryInstance(__sandbox_uri3);
@@ -262,7 +262,7 @@ EXPECT_SHELL_LOG_CONTAINS(set_primary_instance_sql[1]);
 // that's handled by GR
 EXPECT_SHELL_LOG_NOT_CONTAINS(set_primary_instance_sql[2]);
 
-\option dba.logSql = 0
+\option logSql = off
 
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2], cluster);
 CHECK_REPLICA_CLUSTER([__sandbox_uri3, __sandbox_uri4], cluster, replicacluster);

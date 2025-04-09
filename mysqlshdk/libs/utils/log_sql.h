@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -88,13 +88,11 @@ class Log_sql : public NotificationObserver {
 
   mutable std::mutex m_mutex;
 
-  std::atomic<int> m_dba_log_sql{0};
   std::atomic<Log_level> m_log_sql_level{Log_level::OFF};
   std::vector<std::string> m_ignore_patterns;
   std::vector<std::string> m_ignore_patterns_all;
   Logger::LOG_LEVEL m_log_level = Logger::LOG_LEVEL::LOG_INFO;
   std::stack<std::string> m_context_stack;
-  size_t m_num_dba_ctx{0};
 };
 
 // implemented in scoped_contexts.cc

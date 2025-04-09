@@ -58,8 +58,6 @@ class Base_cluster : public shcore::Cpp_object_bridge {
   void set_routing_option(const std::string &router, const std::string &option,
                           const shcore::Value &value);
 
-  shcore::Dictionary_t routing_options(const std::string &router);
-
   shcore::Dictionary_t router_options(
       const shcore::Option_pack_ref<Router_options_options> &options);
 
@@ -238,21 +236,6 @@ changes to it.
 To change authentication options for an existing account, set `update` to `true`.
 It is possible to change password without affecting certificate options or
 vice-versa but certificate options can only be changed together.
-)*"));
-
-REGISTER_HELP_SHARED_TEXT(ROUTINGOPTIONS_HELP_TEXT, (R"*(
-Lists the <<<:Type>>> Routers configuration options.
-
-@param router Optional identifier of the router instance to query for the options.
-
-@returns A JSON object describing the configuration options of all router
-instances of the <<<:Type>>> and its global options or just the given Router.
-
-@attention This function is deprecated and will be removed in a future release
-of MySQL Shell. Use <<<:Type>>>.routerOptions() instead.
-
-This function lists the Router configuration options of all Routers of the
-<<<:Type>>> or the target Router.
 )*"));
 
 REGISTER_HELP_SHARED_TEXT(CREATEROUTINGGUIDELINE_HELP_TEXT, (R"*(

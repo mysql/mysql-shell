@@ -123,14 +123,11 @@ mysqlsh::SessionType session_type_for_option(const std::string &option) {
     return mysqlsh::SessionType::Classic;
   } else if (shcore::str_beginswith(option, "mysqlx://")) {
     return mysqlsh::SessionType::X;
-  } else if (option == "-mc" || option == "--mc" || option == "--mysql" ||
-             option == "--sqlc") {
+  } else if (option == "--mc" || option == "--mysql" || option == "--sqlc") {
     return mysqlsh::SessionType::Classic;
-  } else if (option == "-mx" || option == "--mx" || option == "--mysqlx" ||
-             option == "--sqlx") {
+  } else if (option == "--mx" || option == "--mysqlx" || option == "--sqlx") {
     return mysqlsh::SessionType::X;
   } else {
-    // -ma, --ma
     return mysqlsh::SessionType::Auto;
   }
 }
@@ -566,18 +563,6 @@ Shell_options::Shell_options(
         create_result_format_handler("vertical"));
 
   add_named_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
-    (&storage.result_format, "table", "outputFormat",
-        "outputFormat option was deprecated, "
-        "please use " SHCORE_RESULT_FORMAT " to set result format and --json "
-        "command line option to wrap output in JSON instead.",
-        [this](const std::string &val, Source s) {
-          m_on_warning("WARNING: outputFormat option was deprecated, "
-              "please use " SHCORE_RESULT_FORMAT " to set result format and"
-              " --json command line option to wrap output in JSON instead.");
-          get_option(SHCORE_RESULT_FORMAT).set(val, s);
-          storage.wrap_json = shcore::str_beginswith(val, "json") ? val : "off";
-          return storage.result_format;
-        })
     (&storage.result_format, "table", SHCORE_RESULT_FORMAT,
         cmdline("--result-format=<value>"),
         "Determines format of results. Allowed values:"
@@ -683,12 +668,6 @@ Shell_options::Shell_options(
 
           return level;
         })
-    (&storage.dba_log_sql, 0, SHCORE_DBA_LOG_SQL,
-        cmdline("--dba-log-sql[={0|1|2}]"),
-        "Log SQL statements executed by AdminAPI operations: "
-        "0 - logging disabled; 1 - log statements other than SELECT and SHOW; "
-        "2 - log all statements. Option takes precedence over --log-sql in "
-        "Dba.* context if enabled.", shcore::opts::Range<int>(0, 2))
     (&storage.log_sql, "error", SHCORE_LOG_SQL,
         cmdline("--log-sql=off|error|on|all|unfiltered"),
         "Log SQL statements: "
@@ -882,9 +861,6 @@ Shell_options::Shell_options(
     assign_value(&storage.disable_user_plugins, true));
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
-    (&storage.execute_dba_statement, "",
-        cmdline("--dba=enableXProtocol"), "Enable the X protocol in the target "
-        "server. Requires a connection using classic session. Deprecated.")
 #ifndef NDEBUG
     (cmdline("--trace-proto"), assign_value(&storage.trace_protocol, true))
 #endif
@@ -1229,52 +1205,6 @@ bool Shell_options::custom_cmdline_handler(Iterator *iterator) {
       storage.connection_data.clear_mfa_password(mfa_password);
       iterator->next_no_value();
     }
-  } else if ("-m" == option) {
-    bool handled = false;
-
-    if (iterator->value()) {
-      const std::string value = option + iterator->value();
-      const char *replacement = nullptr;
-
-      if ("-ma" == value) {
-        handled = true;
-      } else if ("-mc" == value) {
-        replacement = "--mc";
-      } else if ("-mx" == value) {
-        replacement = "--mx";
-      }
-
-      if (nullptr != replacement) {
-        handled = true;
-      }
-
-      if (handled) {
-        deprecated(m_on_warning, replacement,
-                   std::bind(&Shell_options::override_session_type, this, _1,
-                             _2))(value, nullptr);
-        iterator->next();
-      }
-    }
-
-    if (!handled) {
-      throw std::invalid_argument(iterator->iterator()->first() +
-                                  std::string(": unknown option -m"));
-    }
-  } else if ("--dba-log-sql" == option) {
-    m_on_warning(
-        "WARNING: The --dba-log-sql option was deprecated, "
-        "please use --log-sql instead.");
-    return false;
-  } else if ("--dba" == option) {
-    if (iterator->value()) {
-      const std::string value = iterator->value();
-      if ("enableXProtocol" == value) {
-        deprecated(m_on_warning, nullptr,
-                   std::bind(&Shell_options::override_session_type, this, _1,
-                             _2))(value, nullptr);
-      }
-    }
-    return false;
   } else {
     return false;
   }

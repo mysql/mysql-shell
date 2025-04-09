@@ -224,15 +224,6 @@ cluster.help("addReplicaInstance")
 //@ addReplicaInstance, \help [USE:addReplicaInstance]
 \help cluster.addReplicaInstance
 
-//@ routingOptions
-cluster.help("routingOptions")
-
-//@ routingOptions, \? [USE:routingOptions]
-\? cluster.routingOptions
-
-//@ routingOptions, \help [USE:routingOptions]
-\help cluster.routingOptions
-
 //@ routerOptions
 cluster.help("routerOptions")
 

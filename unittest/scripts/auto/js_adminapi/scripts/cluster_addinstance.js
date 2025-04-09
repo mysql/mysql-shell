@@ -67,7 +67,7 @@ session2.runSql("SET GLOBAL offline_mode=1");
 session2.close();
 
 //@<> BUG#27084767: Create a cluster in single-primary mode
-shell.options["dba.logSql"] = 1;
+shell.options["logSql"] = "on";
 WIPE_SHELL_LOG();
 
 var c = dba.createCluster('test', {gtidSetIsComplete: true});
@@ -82,7 +82,7 @@ EXPECT_EQ(1, get_sysvar(session, "auto_increment_increment"));
 EXPECT_EQ(2, get_sysvar(session, "auto_increment_offset"));
 
 //@<> BUG#27084767: Add instance to cluster in single-primary mode
-shell.options["dba.logSql"] = 1;
+shell.options["logSql"] = "on";
 WIPE_SHELL_LOG();
 
 EXPECT_NO_THROWS(function(){ c.addInstance(__sandbox_uri2); });

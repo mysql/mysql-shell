@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,20 +58,6 @@ std::string mask_sql_query(std::string_view sql, bool *out_masked = nullptr) {
       },
       "/*((*/", "/*))*/"));
 }
-
-// We need to know when we are in Dba.* context to be (backward) compatible
-// with --dba-log-sql option.
-// Dba.* context is when we are invoking one of the following objects: Dba.*,
-// ClusterSet.*, Cluster.*, ReplicaSet.*
-bool is_dba_context(std::string_view context) {
-  using namespace std::literals;
-
-  // todo(kg): transform to state machine or use (compile-time) regex
-  return (shcore::str_ibeginswith(context, "dba."sv) ||
-          shcore::str_ibeginswith(context, "cluster."sv) ||
-          shcore::str_ibeginswith(context, "clusterset."sv) ||
-          shcore::str_ibeginswith(context, "replicaset."sv));
-}
 }  // namespace
 
 Log_sql::Log_sql() {
@@ -92,7 +78,6 @@ Log_sql::~Log_sql() = default;
 
 void Log_sql::init(const mysqlsh::Shell_options::Storage &opts) {
   // only called on ctor: doesn't need protection
-  m_dba_log_sql = opts.dba_log_sql;
   m_log_sql_level = get_level_by_name(opts.log_sql);
   m_ignore_patterns = shcore::split_string(opts.log_sql_ignore, ":");
   m_ignore_patterns_all = shcore::split_string(opts.log_sql_ignore_unsafe, ":");
@@ -108,8 +93,6 @@ void Log_sql::handle_notification(const std::string &name,
   auto option = data->get_string("option");
   if (option == SHCORE_LOG_SQL) {
     m_log_sql_level = get_level_by_name(data->get_string("value"));
-  } else if (option == SHCORE_DBA_LOG_SQL) {
-    m_dba_log_sql = data->get_int("value");
   } else if (option == SHCORE_LOG_SQL_IGNORE) {
     std::lock_guard lock(m_mutex);
     auto v = data->get_string("value");
@@ -204,23 +187,6 @@ bool Log_sql::is_off() const { return m_log_sql_level == Log_level::OFF; }
 
 std::pair<bool, std::string> Log_sql::will_log(std::string_view sql,
                                                bool has_error) {
-  // If --dba-log-sql != 0, then it has priority in Dba.* context
-  if (m_num_dba_ctx > 0) {
-    if (m_dba_log_sql >= 2) {
-      return std::make_pair(true, "");
-    }
-
-    if (m_dba_log_sql == 1) {
-      if (shcore::str_ibeginswith(sql, "select")) {
-        return std::make_pair(false, "select");
-      } else if (shcore::str_ibeginswith(sql, "show")) {
-        return std::make_pair(false, "show");
-      } else {
-        return std::make_pair(true, "");
-      }
-    }
-  }
-
   switch (m_log_sql_level) {
     case Log_level::OFF:
       return std::make_pair(false, "");
@@ -249,9 +215,6 @@ void Log_sql::push(std::string_view context) {
   std::lock_guard lock(m_mutex);
 
   m_context_stack.emplace(std::string{context});
-
-  // Track Dba.* context
-  if (is_dba_context(context)) m_num_dba_ctx++;
 }
 
 void Log_sql::pop() {
@@ -260,13 +223,7 @@ void Log_sql::pop() {
   assert(!m_context_stack.empty());
   if (m_context_stack.empty()) return;
 
-  if (is_dba_context(m_context_stack.top())) {
-    assert(m_num_dba_ctx > 0);
-    m_num_dba_ctx--;
-  }
-
   m_context_stack.pop();
-  assert(!m_context_stack.empty() || (m_num_dba_ctx == 0));
 }
 
 Log_sql::Log_level Log_sql::parse_log_level(std::string_view tag) {

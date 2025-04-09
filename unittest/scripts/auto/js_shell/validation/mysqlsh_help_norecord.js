@@ -9,7 +9,6 @@ Usage: mysqlsh [OPTIONS] [URI]
        mysqlsh [OPTIONS] [URI] -f <path> [<script-args>...]
        mysqlsh [OPTIONS] [URI] --cluster|--replicaset
        mysqlsh [OPTIONS] [URI] -- <object> <method> [<method-args>...]
-       mysqlsh [OPTIONS] [URI] --dba enableXProtocol
 
   -?, --help                       Display this help and exit.
   --                               Triggers API Command Line integration, which
@@ -167,11 +166,6 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    be an integer between 1 and 8 or any of
                                    [none, internal, error, warning, info,
                                    debug, debug2, debug3] respectively.
-  --dba-log-sql[={0|1|2}]          Log SQL statements executed by AdminAPI
-                                   operations: 0 - logging disabled; 1 - log
-                                   statements other than SELECT and SHOW; 2 -
-                                   log all statements. Option takes precedence
-                                   over --log-sql in Dba.* context if enabled.
   --log-sql=off|error|on|all|unfiltered
                                    Log SQL statements: off - none of SQL
                                    statements will be logged; (default) error -
@@ -257,9 +251,6 @@ Usage: mysqlsh [OPTIONS] [URI]
   --js-debug-wait-attached         Waits for a debug client to get attached to
                                    a JavaScript debug server.
   --disable-plugins                Disable loading user plugins.
-  --dba=enableXProtocol            Enable the X protocol in the target server.
-                                   Requires a connection using classic session.
-                                   Deprecated.
   --quiet-start[={1|2}]            Avoids printing information when the shell
                                    is started. A value of 1 will prevent
                                    printing the shell version information. A

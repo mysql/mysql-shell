@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -121,21 +121,6 @@ void Base_cluster::set_routing_option(const std::string &router,
 
   return execute_with_pool(
       [&]() { base_impl()->set_routing_option(router, option, value); }, false);
-}
-
-shcore::Dictionary_t Base_cluster::routing_options(const std::string &router) {
-  assert_valid("routingOptions");
-
-  std::string type =
-      to_display_string(base_impl()->get_type(), Display_form::API_CLASS);
-
-  mysqlsh::current_console()->print_warning(shcore::str_format(
-      "This function is deprecated and will be removed in a future release of "
-      "MySQL Shell. Use <%s>.<<<routerOptions()>>> instead.",
-      type.c_str()));
-
-  return execute_with_pool(
-      [&]() { return base_impl()->routing_options(router); }, false);
 }
 
 shcore::Dictionary_t Base_cluster::router_options(

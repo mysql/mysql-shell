@@ -63,13 +63,6 @@
 ||
 |5|
 
-//@ outputFormat update and set back to default using shell.options
-||
-|tabbed|
-|"outputFormat": "tabbed"|
-||
-|table|
-
 //@ resultFormat update and set back to default using shell.options
 ||
 |json/raw|
@@ -125,13 +118,6 @@
 |"dba.restartWaitTimeout": "180"|
 ||
 |60|
-
-//@ dba.logSql update and set back to default using shell.options
-||
-|1|
-|"dba.logSql": "1"|
-||
-|0|
 
 //@ autocomplete.nameCache update and set back to default using \option
 ||
@@ -190,12 +176,6 @@
 ||
 |5|
 
-//@ outputFormat update and set back to default using \option
-||
-|tabbed|
-||
-|table|
-
 //@ resultFormat update and set back to default using \option
 ||
 |json/raw|
@@ -250,13 +230,6 @@
 ||
 |60|
 
-//@ dba.logSql update and set back to default using \option
-||
-|2|
-|"dba.logSql": "2"|
-||
-|0|
-
 //@ credentialStore.helper update and set back to default using \option
 ||
 |plaintext|
@@ -309,7 +282,6 @@
  dba.connectTimeout              5
  dba.connectivityChecks          true
  dba.gtidWaitTimeout             60
- dba.logSql                      0
  dba.restartWaitTimeout          60
  dba.versionCompatibilityChecks  true
  defaultCompress                 false
@@ -328,7 +300,6 @@
  mysqlPluginDir                  [[*]]plugins
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
- outputFormat                    table
  pager                           ""
  passwordsFromStdin              false
  resultFormat                    table
@@ -350,7 +321,6 @@
  dba.connectTimeout              5 (Compiled default)
  dba.connectivityChecks          true (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
- dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)
  dba.versionCompatibilityChecks  true (Compiled default)
  defaultCompress                 false (Compiled default)
@@ -369,7 +339,6 @@
  mysqlPluginDir                  [[*]]plugins (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)
- outputFormat                    table (Compiled default)
  pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)
  resultFormat                    table (Compiled default)
@@ -406,15 +375,6 @@
 
 //@ Verify option dba.restartWaitTimeout
 ||Malformed option value.
-||value out of range
-||Incorrect option value.
-||
-||
-||
-
-//@ Verify option dba.logSql
-||Malformed option value.
-||value out of range
 ||value out of range
 ||Incorrect option value.
 ||
@@ -472,7 +432,6 @@
  dba.connectTimeout              5
  dba.connectivityChecks          true
  dba.gtidWaitTimeout             60
- dba.logSql                      0
  dba.restartWaitTimeout          60
  dba.versionCompatibilityChecks  true
  defaultCompress                 false
@@ -491,7 +450,6 @@
  mysqlPluginDir                  [[*]]plugins
  oci.configFile                  <<<_defaultOciConfigFile>>>
  oci.profile                     DEFAULT
- outputFormat                    table
  pager                           ""
  passwordsFromStdin              false
  resultFormat                    table
@@ -514,7 +472,6 @@ Switching to SQL mode... Commands end with ;
  dba.connectTimeout              5 (Compiled default)
  dba.connectivityChecks          true (Compiled default)
  dba.gtidWaitTimeout             60 (Compiled default)
- dba.logSql                      0 (Compiled default)
  dba.restartWaitTimeout          60 (Compiled default)
  dba.versionCompatibilityChecks  true (Compiled default)
  defaultCompress                 false (Compiled default)
@@ -533,7 +490,6 @@ Switching to SQL mode... Commands end with ;
  mysqlPluginDir                  [[*]]plugins (Compiled default)
  oci.configFile                  <<<_defaultOciConfigFile>>> (Compiled default)
  oci.profile                     DEFAULT (Compiled default)
- outputFormat                    table (Compiled default)
  pager                           "" (Compiled default)
  passwordsFromStdin              false (Compiled default)
  resultFormat                    table (Compiled default)

@@ -60,8 +60,8 @@ EXPECT_FALSE("instanceErrors" in status["defaultReplicaSet"]["topology"][`${host
 EXPECT_EQ(2, session.runSql("SELECT count(*) FROM mysql_innodb_cluster_metadata.instances WHERE attributes->>'$.recoveryAccountUser' REGEXP '^mysql_innodb_cluster_[[:digit:]]+$'").fetchOne()[0]);
 
 // Verify read_only_targets is set to secondary as default in the metadata
-routing_options = cluster.routingOptions();
-EXPECT_EQ("secondaries", routing_options["global"]["read_only_targets"]);
+router_options = cluster.routerOptions();
+EXPECT_EQ("secondaries", router_options["configuration"]["routing_rules"]["read_only_targets"]);
 
 testutil.waitMemberTransactions(__mysql_sandbox_port2);
 

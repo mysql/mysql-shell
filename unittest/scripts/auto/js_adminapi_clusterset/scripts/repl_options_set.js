@@ -156,11 +156,27 @@ EXPECT_THROWS(function() {
 // fails because of network related options
 WIPE_SHELL_LOG();
 
-begin_dba_log_sql();
+shell.options["logSql"] = "on";
 EXPECT_THROWS(function() {
  cset.createReplicaCluster(__sandbox_uri2, "c2", {clusterSetReplicationConnectRetry: 10, clusterSetReplicationRetryCount: 11, clusterSetReplicationHeartbeatPeriod: 33.3, clusterSetReplicationCompressionAlgorithms: "zlib", clusterSetReplicationZstdCompressionLevel: "4", clusterSetReplicationBind: "foo", clusterSetReplicationNetworkNamespace: "bar"});
 }, (__version_num >= 80400) ? "Error found in replication receiver thread" : "Replication thread not in expected state");
-end_dba_log_sql();
+shell.options["logSql"] = "off";
+
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_CONNECT_RETRY=10");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_RETRY_COUNT=11");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_HEARTBEAT_PERIOD=33.3");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_COMPRESSION_ALGORITHMS='zlib'");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_ZSTD_COMPRESSION_LEVEL=4");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_BIND='foo'");
+EXPECT_SHELL_LOG_NOT_CONTAINS("NETWORK_NAMESPACE='bar'");
+
+WIPE_SHELL_LOG();
+
+shell.options["logSql"] = "unfiltered";
+EXPECT_THROWS(function() {
+    cset.createReplicaCluster(__sandbox_uri2, "c2", {clusterSetReplicationConnectRetry: 10, clusterSetReplicationRetryCount: 11, clusterSetReplicationHeartbeatPeriod: 33.3, clusterSetReplicationCompressionAlgorithms: "zlib", clusterSetReplicationZstdCompressionLevel: "4", clusterSetReplicationBind: "foo", clusterSetReplicationNetworkNamespace: "bar"});
+}, (__version_num >= 80400) ? "Error found in replication receiver thread" : "Replication thread not in expected state");
+shell.options["logSql"] = "off";
 
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_CONNECT_RETRY=10");
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_RETRY_COUNT=11");
@@ -305,9 +321,9 @@ check_repl_option_metadata_only(session, "c2", session2, "opt_replNetworkNamespa
 
 WIPE_SHELL_LOG();
 
-begin_dba_log_sql();
+\option logSql = on
 EXPECT_NO_THROWS(function() { cset.rejoinCluster("c2"); });
-end_dba_log_sql();
+\option --unset logSql
 
 // because we add a NULL option, the channel should have been reset
 EXPECT_SHELL_LOG_CONTAINS("RESET REPLICA ALL FOR CHANNEL 'clusterset_replication'");
@@ -330,9 +346,9 @@ EXPECT_NO_THROWS(function() { c2.setOption("clusterSetReplicationCompressionAlgo
 
 WIPE_SHELL_LOG();
 
-begin_dba_log_sql();
+\option logSql = on
 EXPECT_NO_THROWS(function() { cset.rejoinCluster("c2"); });
-end_dba_log_sql();
+\option --unset logSql
 
 EXPECT_SHELL_LOG_NOT_CONTAINS("RESET REPLICA ALL FOR CHANNEL 'clusterset_replication'");
 

@@ -28,9 +28,6 @@
 //@ logLevel option help text
 \option -h logLevel
 
-//@ outputFormat option help text
-\option --help outputFormat
-
 //@ resultFormat option help text
 \option --help resultFormat
 
@@ -49,10 +46,6 @@
 //@ dba.gtidWaitTimeout option help text
 // WL#11862 - FR6_5
 \option -h dba.gtidWaitTimeout
-
-//@ dba.logSql option help text
-// WL#13294
-\option -h dba.logSql
 
 //@ Verify the help text when using filter
 \option --help history

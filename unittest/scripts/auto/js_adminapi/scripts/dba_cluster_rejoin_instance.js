@@ -1,6 +1,6 @@
 // Assumptions: smart deployment rountines available
 //@<> Initialization
-begin_dba_log_sql(2);
+\option logSql = unfiltered
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
@@ -112,10 +112,7 @@ session.runSql('SET sql_log_bin=1');
 session.close();
 
 //@<> Finalization
-var logs = end_dba_log_sql();
-EXPECT_NO_SQL(__sandbox1, logs);
-EXPECT_NO_SQL(__sandbox2, logs);
-EXPECT_NO_SQL(__sandbox3, logs);
+\option --unset logSql
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
 testutil.destroySandbox(__mysql_sandbox_port3);

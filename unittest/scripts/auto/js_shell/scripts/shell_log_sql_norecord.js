@@ -6,8 +6,7 @@ shell.connect(__sandbox_uri1);
 // Using 'unfiltered' logging option
 // =================================
 
-\option logSql = "unfiltered"
-\option dba.logSql = 0
+\option logSql = unfiltered
 
 //@<> Testing unfiltered sql logging with \use
 WIPE_SHELL_LOG();

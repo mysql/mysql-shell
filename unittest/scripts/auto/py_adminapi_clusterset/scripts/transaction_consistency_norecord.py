@@ -57,7 +57,7 @@ session2.run_sql("change replication source to source_delay=5 for channel 'clust
 session2.run_sql("start replica for channel 'clusterset_replication'")
 
 #shell.options["verbose"]=1
-#shell.options["dba.logSql"]=2
+#shell.options["logSql"]="unfiltered"
 
 shell.dump_rows(session2.run_sql("select @@gtid_executed, @@group_replication_group_name, @@group_replication_view_change_uuid"), "vertical")
 

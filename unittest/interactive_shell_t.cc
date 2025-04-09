@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -368,9 +368,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     execute("session.close()");
   }
 
-  // FR_EXTRA_SUCCEED_5 : \connect -ma mysql://user@host:3306/db
+  // FR_EXTRA_SUCCEED_5 : \connect mysql://user@host:3306/db
   {
-    execute("\\connect -ma mysql://" + _mysql_uri + "/mysql");
+    execute("\\connect mysql://" + _mysql_uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
                               _mysql_uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -384,9 +384,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     execute("session.close()");
   }
 
-  // FR_EXTRA_SUCCEED_6 : "\c -ma mysql://user@host:3306/db
+  // FR_EXTRA_SUCCEED_6 : "\c mysql://user@host:3306/db
   {
-    execute("\\c -ma mysql://" + _mysql_uri + "/mysql");
+    execute("\\c mysql://" + _mysql_uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
                               _mysql_uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -400,9 +400,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     execute("session.close()");
   }
 
-  // FR_EXTRA_SUCCEED_9 : \connect -ma mysqlx://user@host:33060/db
+  // FR_EXTRA_SUCCEED_9 : \connect mysqlx://user@host:33060/db
   {
-    execute("\\connect -ma mysqlx://" + _uri + "/mysql");
+    execute("\\connect mysqlx://" + _uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
                               _uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -416,9 +416,9 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
     execute("session.close()");
   }
 
-  // FR_EXTRA_SUCCEED_10 : \c -ma mysqlx://user@host:33060/db
+  // FR_EXTRA_SUCCEED_10 : \c mysqlx://user@host:33060/db
   {
-    execute("\\c -ma mysqlx://" + _uri + "/mysql");
+    execute("\\c mysqlx://" + _uri + "/mysql");
     MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
                               _uri_nopasswd + "/mysql'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -435,75 +435,6 @@ TEST_F(Interactive_shell_test, shell_command_connect_auto) {
   // Session type determined by the URI scheme
   {
     execute("\\connect mysqlx://" + _uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
-                              _uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-    MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
-    MY_EXPECT_STDOUT_CONTAINS(
-        "No default schema selected; type \\use <schema> to set one.");
-    output_handler.wipe_all();
-
-    execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
-    output_handler.wipe_all();
-
-    execute("session.close()");
-  }
-
-  // Using -ma for X protocol session(type determined from connection success)
-  {
-    execute("\\connect -ma " + _uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-    MY_EXPECT_STDOUT_CONTAINS("(X protocol)");
-    MY_EXPECT_STDOUT_CONTAINS(
-        "No default schema selected; type \\use <schema> to set one.");
-    output_handler.wipe_all();
-
-    execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<Session:" + _uri_nopasswd);
-    output_handler.wipe_all();
-
-    execute("session.close()");
-  }
-
-  // Using -ma for Classic session(type determined from connection success)
-  {
-    execute("\\connect -ma " + _mysql_uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating a session to '" + _mysql_uri_nopasswd +
-                              "'");
-    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-    MY_EXPECT_STDOUT_CONTAINS(
-        "No default schema selected; type \\use <schema> to set one.");
-    output_handler.wipe_all();
-
-    execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-    output_handler.wipe_all();
-
-    execute("session.close()");
-  }
-
-  // Using -ma for session type determined by the URI scheme(Classic session)
-  {
-    execute("\\connect -ma mysql://" + _mysql_uri);
-    MY_EXPECT_STDOUT_CONTAINS("Creating a Classic session to '" +
-                              _mysql_uri_nopasswd + "'");
-    MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
-    MY_EXPECT_STDOUT_CONTAINS(
-        "No default schema selected; type \\use <schema> to set one.");
-    output_handler.wipe_all();
-
-    execute("session");
-    MY_EXPECT_STDOUT_CONTAINS("<ClassicSession:" + _mysql_uri_nopasswd);
-    output_handler.wipe_all();
-
-    execute("session.close()");
-  }
-
-  // Using -ma for session type determined by the URI scheme(X protocol session)
-  {
-    execute("\\connect -ma mysqlx://" + _uri);
     MY_EXPECT_STDOUT_CONTAINS("Creating an X protocol session to '" +
                               _uri_nopasswd + "'");
     MY_EXPECT_STDOUT_CONTAINS("Your MySQL connection id is ");
@@ -794,26 +725,6 @@ TEST_F(Interactive_shell_test, shell_command_connect_conflicts) {
   // Not validating a specific error since they vary depending on where the test
   // is executed
   MY_EXPECT_STDERR_CONTAINS("Cannot open SSH Tunnel:");
-  output_handler.wipe_all();
-}
-
-TEST_F(Interactive_shell_test, shell_command_connect_deprecated_options) {
-  // Deprecated is not the same as removed, so these are supposed to still
-  // work in 8.0
-  execute("\\connect -mx " + _uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "WARNING: The -mx option was deprecated, please use --mx instead.");
-  MY_EXPECT_STDOUT_CONTAINS("Creating an X");
-  output_handler.wipe_all();
-
-  execute("\\connect -mc " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS(
-      "WARNING: The -mc option was deprecated, please use --mc instead.");
-  MY_EXPECT_STDOUT_CONTAINS("Creating a Classic");
-  output_handler.wipe_all();
-
-  execute("\\connect -ma " + _mysql_uri);
-  MY_EXPECT_STDERR_CONTAINS("WARNING: The -ma option was deprecated.");
   output_handler.wipe_all();
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -92,12 +92,6 @@ class Rescan : public Command_interface {
   bool m_is_view_change_uuid_supported = false;
   Replication_account m_repl_account_mng;
   std::vector<Cluster_metadata> m_invalid_clusterset_clusters;
-
-  /**
-   * Validate existence of duplicates for the addInstances and removeInstances
-   * options.
-   */
-  void validate_list_duplicates() const;
 
   /**
    * Goes through the list of unavailable instances, and checks if they are

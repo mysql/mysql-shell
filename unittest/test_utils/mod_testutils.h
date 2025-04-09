@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,9 +74,6 @@ class Testutils : public mysqlsh::Extensible_object {
   String getSandboxPath(Integer port, String name);
   List readGeneralLog(Integer port, String startingTimestamp = "");
   String getShellLogPath();
-#ifndef ENABLE_SESSION_RECORDING
-  Array fetchDbaSqlLog(Boolean flush);
-#endif
   Undefined dumpData(String uri, String path, Array schemaList);
   Undefined importData(String uri, String path, String defaultSchema,
                        String importCharset);
@@ -144,7 +141,7 @@ class Testutils : public mysqlsh::Extensible_object {
   list read_general_log(int port, str startingTimestamp = "");
   str get_shell_log_path();
 #ifndef ENABLE_SESSION_RECORDING
-  list fetch_dba_sql_log(bool flush);
+  list fetch_sql_log(bool flush);
 #endif
   None dump_data(str uri, str path, list schemaList);
   None import_data(str uri, str path, str defaultSchema, str defaultCharset);
@@ -324,7 +321,7 @@ class Testutils : public mysqlsh::Extensible_object {
 
   std::string get_shell_log_path();
 #ifndef ENABLE_SESSION_RECORDING
-  shcore::Array_t fetch_dba_sql_log(bool flush);
+  shcore::Array_t fetch_sql_log(bool flush);
 #endif
 
   shcore::Array_t grep_file(const std::string &path,

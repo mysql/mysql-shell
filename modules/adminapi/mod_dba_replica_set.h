@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -63,7 +63,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   Undefined setRoutingOption(String option, String value);
   Undefined setRoutingOption(String router, String option, String value);
   Dictionary routerOptions(Dictionary options);
-  Dictionary routingOptions(String router);
   Undefined rejoinInstance(String instance, Dictionary options);
   Undefined removeInstance(String instance, Dictionary options);
   Dictionary status(Dictionary options);
@@ -94,7 +93,6 @@ class ReplicaSet : public std::enable_shared_from_this<ReplicaSet>,
   None set_routing_option(str option, str value);
   None set_routing_option(str router, str option, str value);
   dict router_options(dict options);
-  dict routing_options(str router);
   None rejoin_instance(str instance, dict options);
   None remove_instance(str instance, dict options);
   dict status(dict options);

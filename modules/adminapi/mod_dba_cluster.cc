@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -127,7 +127,6 @@ void Cluster::init() {
       ->cli();
   expose("removeRouterMetadata", &Cluster::remove_router_metadata, "router")
       ->cli();
-  expose("routingOptions", &Cluster::routing_options, "?router")->cli();
   expose("routerOptions", &Cluster::router_options, "?options")->cli();
   expose("setRoutingOption", &Cluster::set_routing_option, "option", "value");
   expose("setRoutingOption", &Cluster::set_routing_option, "router", "option",
@@ -728,12 +727,6 @@ members or other potential issues.
 
 The options dictionary may contain the following attributes:
 
-@li addInstances: List with the connection data of the new active instances to
-add to the metadata, or "auto" to automatically add missing instances to the
-metadata. Deprecated.
-@li removeInstances: List with the connection data of the obsolete instances to
-remove from the metadata, or "auto" to automatically remove obsolete instances
-from the metadata. Deprecated.
 @li upgradeCommProtocol: Boolean. Set to true to upgrade the Group Replication
 communication protocol to the highest version possible.
 @li updateViewChangeUuid: Boolean. Indicates if the command should generate and
@@ -749,19 +742,10 @@ Defaults to false.
 @li repairMetadata: Boolean. Set to true to repair the Metadata if detected to
 be inconsistent.
 
-The value for 'addInstances' and 'removeInstances' is used to specify which
-instances to add or remove from the metadata, respectively. Both options accept
-list connection data. In addition, the "auto" value can be used for both
-options in order to automatically add or remove the instances in the metadata,
-without having to explicitly specify them.
-
 'repairMetadata' is used to eliminate any inconsistencies detected in the
 Metadata. These inconsistencies may arise from a few scenarios, such as the
 failure of one or more commands. Clusters detected in the ClusterSet Metadata
 that do not qualify as valid members will be removed.
-
-@attention The addInstances and removeInstances options will be removed in a
-future release. Use addUnmanaged and removeObsolete instead.
 )*");
 
 /**
@@ -1267,19 +1251,6 @@ Undefined Cluster::setRoutingOption(String router, String option,
                                     String value) {}
 #elif DOXYGEN_PY
 None Cluster::set_routing_option(str router, str option, str value) {}
-#endif
-
-REGISTER_HELP_FUNCTION(routingOptions, Cluster);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTER_ROUTINGOPTIONS, ROUTINGOPTIONS_HELP_TEXT);
-/**
- * $(CLUSTER_ROUTINGOPTIONS_BRIEF)
- *
- * $(CLUSTER_ROUTINGOPTIONS)
- */
-#if DOXYGEN_JS
-Dictionary Cluster::routingOptions(String router) {}
-#elif DOXYGEN_PY
-dict Cluster::routing_options(str router) {}
 #endif
 
 REGISTER_HELP_FUNCTION(removeRouterMetadata, Cluster);

@@ -24,7 +24,7 @@ function upgrade_and_fail(num_queries, test_crash) {
 
     println("\033[1;31mUPGRADING", "\033[0m");
     // perform upgrade and ensure it crashes after X queries
-    r=testutil.callMysqlsh([url, "--js", "--verbose=3", "--dba-log-sql=2",
+    r=testutil.callMysqlsh([url, "--js", "--verbose=3", "--log-sql=unfiltered",
                     "--debug=+d,"+failure, 
                     "--", "dba", "upgrade-metadata"], 
                     "", ["TEST_SQL_UNTIL_CRASH="+num_queries], mysqlshrec);
@@ -35,7 +35,7 @@ function upgrade_and_fail(num_queries, test_crash) {
 function recover() {
     println("\033[1;31mRECOVERING", "\033[0m");
 
-    r = testutil.callMysqlsh([url, "--js", "--verbose=2", "--dba-log-sql=2",
+    r = testutil.callMysqlsh([url, "--js", "--verbose=2", "--log-sql=unfiltered",
         "--", "dba", "upgrade-metadata"]);
 
     println("\033[1;31mRECOVERY RC=",r, "\033[0m");
@@ -53,7 +53,7 @@ function recover_and_fail(num_queries, test_crash) {
     else
         failure = "sql_test_error";
 
-    r = testutil.callMysqlsh([url, "--js", "--verbose=2", "--dba-log-sql=2",
+    r = testutil.callMysqlsh([url, "--js", "--verbose=2", "--log-sql=unfiltered",
         "--debug=+d,"+failure, 
         "--", "dba", "upgrade-metadata"],
         "", ["TEST_SQL_UNTIL_CRASH="+num_queries], mysqlshrec);

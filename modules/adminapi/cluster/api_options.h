@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -86,18 +86,11 @@ struct Options_options {
 struct Rescan_options {
   static const shcore::Option_pack_def<Rescan_options> &options();
 
-  std::vector<mysqlshdk::db::Connection_options> add_instances_list;
-  std::vector<mysqlshdk::db::Connection_options> remove_instances_list;
   bool auto_add{false};
   bool auto_remove{false};
   bool upgrade_comm_protocol{false};
   std::optional<bool> update_view_change_uuid;
   std::optional<bool> repair_metadata;
-
- private:
-  void set_list_option(std::string_view name, const shcore::Value &value);
-
-  std::optional<bool> m_used_deprecated;
 };
 
 struct Set_primary_instance_options {

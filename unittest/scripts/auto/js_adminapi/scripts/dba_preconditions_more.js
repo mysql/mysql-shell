@@ -285,7 +285,6 @@ check_exception(function(){ cluster.forceQuorumUsingPartitionOf(__sandbox_uri1);
 check_exception(function(){ cluster.switchToSinglePrimaryMode(); }, expect_exp, expect_output);
 check_exception(function(){ cluster.switchToMultiPrimaryMode(); }, expect_exp, expect_output);
 check_exception(function(){ cluster.setRoutingOption("tag:test_tag", 567); }, expect_exp, expect_output);
-check_exception(function(){ cluster.routingOptions(); }, expect_exp, expect_output);
 check_exception(function(){ cluster.fenceAllTraffic(); }, expect_exp, expect_output);
 check_exception(function(){ cluster.fenceWrites(); }, expect_exp, expect_output);
 check_exception(function(){ cluster.unfenceWrites(); }, expect_exp, expect_output);

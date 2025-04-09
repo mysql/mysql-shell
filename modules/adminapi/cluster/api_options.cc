@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,15 +34,6 @@
 #include "mysqlshdk/include/shellcore/console.h"
 
 namespace mysqlsh::dba::cluster {
-
-namespace {
-void throw_rescan_mixing_exception() {
-  throw shcore::Exception::argument_error(shcore::str_format(
-      "Options '%s' and '%s' are mutually exclusive with deprecated options "
-      "'%s' and '%s'. Mixing either one from both groups isn't allowed.",
-      kAddUnmanaged, kRemoveObsolete, kAddInstances, kRemoveInstances));
-}
-}  // namespace
 
 const shcore::Option_pack_def<Add_instance_options>
     &Add_instance_options::options() {
@@ -132,10 +123,6 @@ const shcore::Option_pack_def<Options_options> &Options_options::options() {
 }
 
 namespace {
-constexpr shcore::Option_data<std::vector<mysqlshdk::db::Connection_options>>
-    kOptionAddInstances{"addInstances"};
-constexpr shcore::Option_data<std::vector<mysqlshdk::db::Connection_options>>
-    kOptionRemoveInstances{"removeInstances"};
 constexpr shcore::Option_data<bool> kOptionAddUnmanaged{"addUnmanaged"};
 constexpr shcore::Option_data<bool> kOptionRemoveObsolete{"removeObsolete"};
 constexpr shcore::Option_data<bool> kOptionUpgradeCommProtocol{
@@ -150,37 +137,12 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
   static const auto opts = std::invoke([]() {
     shcore::Option_pack_builder<Rescan_options> b;
 
-    b.optional_as<shcore::Value>(
-        kOptionAddInstances, [](Rescan_options &options, std::string_view name,
-                                const shcore::Value &value) {
-          options.set_list_option(name, value);
-        });
-    b.optional_as<shcore::Value>(
-        kOptionRemoveInstances,
-        [](Rescan_options &options, std::string_view name,
-           const shcore::Value &value) {
-          options.set_list_option(name, value);
-        });
-
-    b.optional_as<bool>(kOptionAddUnmanaged, [](Rescan_options &options,
-                                                std::string_view, bool value) {
-      if (options.m_used_deprecated.has_value() &&
-          !options.m_used_deprecated.value())
-        throw_rescan_mixing_exception();
-
-      options.m_used_deprecated = true;
-      options.auto_add = value;
-    });
-    b.optional_as<bool>(
-        kOptionRemoveObsolete,
-        [](Rescan_options &options, std::string_view, bool value) {
-          if (options.m_used_deprecated.has_value() &&
-              !options.m_used_deprecated.value())
-            throw_rescan_mixing_exception();
-
-          options.m_used_deprecated = true;
-          options.auto_remove = value;
-        });
+    b.optional_as<bool>(kOptionAddUnmanaged,
+                        [](Rescan_options &options, std::string_view,
+                           bool value) { options.auto_add = value; });
+    b.optional_as<bool>(kOptionRemoveObsolete,
+                        [](Rescan_options &options, std::string_view,
+                           bool value) { options.auto_remove = value; });
 
     b.optional(kOptionUpgradeCommProtocol,
                &Rescan_options::upgrade_comm_protocol);
@@ -192,77 +154,6 @@ const shcore::Option_pack_def<Rescan_options> &Rescan_options::options() {
   });
 
   return opts;
-}
-
-void Rescan_options::set_list_option(std::string_view name,
-                                     const shcore::Value &value) {
-  if (m_used_deprecated.has_value() && m_used_deprecated.value())
-    throw_rescan_mixing_exception();
-
-  m_used_deprecated = false;
-
-  auto console = mysqlsh::current_console();
-  console->print_info(shcore::str_format(
-      "The '%s' and '%s' options are deprecated. Please use '%s' and/or '%s' "
-      "instead.",
-      kAddInstances, kRemoveInstances, kAddUnmanaged, kRemoveObsolete));
-  console->print_info();
-
-  std::vector<mysqlshdk::db::Connection_options> *instances_list;
-
-  // Selects the target list
-  instances_list = (name == kOptionRemoveInstances.name)
-                       ? &remove_instances_list
-                       : &add_instances_list;
-
-  bool *auto_option =
-      (name == kOptionRemoveInstances.name) ? &auto_remove : &auto_add;
-
-  if (value.get_type() == shcore::Value_type::String) {
-    auto str_val = value.as_string();
-    if (shcore::str_caseeq(str_val, "auto")) {
-      *auto_option = true;
-    } else {
-      throw shcore::Exception::argument_error(shcore::str_format(
-          "Option '%.*s' only accepts 'auto' as a valid string "
-          "value, otherwise a list of instances is expected.",
-          static_cast<int>(name.length()), name.data()));
-    }
-  } else if (value.get_type() == shcore::Value_type::Array) {
-    auto instances_array = value.as_array();
-    if (instances_array->empty()) {
-      throw shcore::Exception::argument_error(
-          shcore::str_format("The list for '%.*s' option cannot be empty.",
-                             static_cast<int>(name.length()), name.data()));
-    }
-
-    // Process values from addInstances list (must be valid connection data).
-    for (const shcore::Value &instance : *instances_array.get()) {
-      try {
-        auto cnx_opt = mysqlsh::get_connection_options(instance);
-
-        if (cnx_opt.get_host().empty()) {
-          throw shcore::Exception::argument_error("host cannot be empty.");
-        }
-
-        if (!cnx_opt.has_port()) {
-          throw shcore::Exception::argument_error("port is missing.");
-        }
-
-        instances_list->emplace_back(std::move(cnx_opt));
-      } catch (const std::exception &err) {
-        std::string error(err.what());
-        throw shcore::Exception::argument_error(shcore::str_format(
-            "Invalid value '%s' for '%.*s' option: %s",
-            instance.descr().c_str(), static_cast<int>(name.length()),
-            name.data(), error.c_str()));
-      }
-    }
-  } else {
-    throw shcore::Exception::argument_error(shcore::str_format(
-        "The '%.*s' option must be a string or a list of strings.",
-        static_cast<int>(name.length()), name.data()));
-  }
 }
 
 namespace {

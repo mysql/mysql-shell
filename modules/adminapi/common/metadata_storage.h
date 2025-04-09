@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -147,11 +147,6 @@ struct Router_metadata {
   std::optional<std::string> current_routing_guideline;
 
   shcore::Dictionary_t tags = nullptr;
-};
-
-struct Routing_options_metadata {
-  std::map<std::string, shcore::Value> global;
-  std::map<std::string, std::map<std::string, shcore::Value>> routers;
 };
 
 struct Routing_guideline_metadata {
@@ -484,9 +479,6 @@ class MetadataStorage {
 
   std::vector<Router_metadata> get_routers(const Cluster_id &cluster_id);
   std::vector<Router_metadata> get_clusterset_routers(const Cluster_set_id &cs);
-
-  Routing_options_metadata get_routing_options(Cluster_type type,
-                                               const std::string &id);
 
   shcore::Value get_router_options(Cluster_type type, const std::string &id,
                                    const std::string &router_name = "");

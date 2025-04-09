@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -992,20 +992,11 @@ TEST_F(Shell_cmdline_options, test_session_type_conflicts) {
   test_session_type_conflicts("--mysql", "--sqlx", 1);
   test_session_type_conflicts("--mysql", "--mysqlx", 0);
 
-  test_session_type_conflicts("-ma", "--mysql", 0);
-  test_session_type_conflicts("--mysql", "-ma", 0);
-  test_session_type_conflicts("-ma", "--mysqlx", 0);
-  test_session_type_conflicts("--mysqlx", "-ma", 0);
-  test_session_type_conflicts("--mc", "-ma", 0);
-  test_session_type_conflicts("--mx", "-ma", 0);
-
   test_session_type_conflicts("mysql://root@localhost", "--sqlc", 0);
   test_session_type_conflicts("mysql://root@localhost", "--mysql", 0);
-  test_session_type_conflicts("mysql://root@localhost", "-ma", 0);
 
   test_session_type_conflicts("mysqlx://root@localhost", "--sqlx", 0);
   test_session_type_conflicts("mysqlx://root@localhost", "--mysqlx", 0);
-  test_session_type_conflicts("mysqlx://root@localhost", "-ma", 0);
 
   test_session_type_conflicts("mysql://root@localhost", "--sqlx", 1);
   test_session_type_conflicts("mysqlx://root@localhost", "--sqlc", 1);

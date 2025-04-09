@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1180,7 +1180,6 @@ void Command_line_shell::print_cmd_line_helper() {
   println("       mysqlsh [OPTIONS] [URI] -f <path> [<script-args>...]");
   println("       mysqlsh [OPTIONS] [URI] --cluster|--replicaset");
   println("       mysqlsh [OPTIONS] [URI] -- <object> <method> [<method-args>...]");
-  println("       mysqlsh [OPTIONS] [URI] --dba enableXProtocol");
   println("");
   // clang-format on
   std::vector<std::string> details = Shell_options(0, nullptr).get_details();

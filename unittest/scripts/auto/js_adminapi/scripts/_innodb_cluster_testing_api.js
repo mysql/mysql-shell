@@ -130,7 +130,7 @@ exports.test_cluster_rescan = function(primary_port, secondary_port, session) {
     if (shell.options.useWizards) {
         testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]: ", "y");
     } else {
-        options.addInstances="auto";
+        options.addUnmanaged=true;
     }
     cluster.rescan(options);
 

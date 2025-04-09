@@ -52,13 +52,6 @@ The following operations are available at 'rs':
    routing-guidelines
       Lists the Routing Guidelines defined for the ReplicaSet.
 
-   routing-options
-      Lists the ReplicaSet Routers configuration options.
-
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell. Use ReplicaSet.routerOptions()
-                 instead.
-
    set-instance-option
       Changes the value of an option in a ReplicaSet member.
 
@@ -276,21 +269,6 @@ WHERE
 
 RETURNS
       Nothing
-
-//@<OUT> CLI replicaset routing-options --help
-NAME
-      routing-options - Lists the ReplicaSet Routers configuration options.
-
-SYNTAX
-      rs routing-options [<router>]
-
-WHERE
-      router: Identifier of the router instance to query for the options.
-
-RETURNS
-      A JSON object describing the configuration options of all router
-      instances of the ReplicaSet and its global options or just the given
-      Router.
 
 //@<OUT> CLI replicaset router-options --help
 NAME

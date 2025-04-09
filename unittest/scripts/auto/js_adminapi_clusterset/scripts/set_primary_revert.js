@@ -100,7 +100,7 @@ session5.runSql("set sql_log_bin=1");
 session5.runSql("set global super_read_only=1");
 
 shell.options.verbose=3;
-shell.options["dba.logSql"]=1;
+shell.options["logSql"]="on";
 
 EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster2");}, "Could not update replication source of "+hostname+":"+__mysql_sandbox_port5);
 

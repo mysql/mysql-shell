@@ -45,7 +45,6 @@ validateMembers(Cluster, [
   'fenceWrites',
   'unfenceWrites',
   'addReplicaInstance',
-  'routingOptions',
   'setRoutingOption',
   'routerOptions',
   'createRoutingGuideline',

@@ -35,11 +35,6 @@
            and 8 or any of [none, internal, error, warning, info, debug,
            debug2, debug3] respectively.
 
-//@<OUT> outputFormat option help text
- outputFormat  outputFormat option was deprecated, please use resultFormat to
-               set result format and --json command line option to wrap output
-               in JSON instead.
-
 //@<OUT> resultFormat option help text
  resultFormat  Determines format of results. Allowed values: [table, tabbed,
                vertical, json, ndjson, json/raw, json/array, json/pretty].
@@ -59,13 +54,6 @@
 //@<OUT> dba.gtidWaitTimeout option help text
  dba.gtidWaitTimeout  Timeout value in seconds to wait for GTIDs to be
                       synchronized.
-
-//@<OUT> dba.logSql option help text
- dba.logSql  Log SQL statements executed by AdminAPI operations: 0 - logging
-             disabled; 1 - log statements other than SELECT and SHOW; 2 - log
-             all statements. Option takes precedence over --log-sql in Dba.*
-             context if enabled.
-
 
 //@<OUT> Verify the help text when using filter
  history.autoSave           Automatically persist command line history when

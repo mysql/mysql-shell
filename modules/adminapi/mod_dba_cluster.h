@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,7 +68,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   Undefined setRoutingOption(String option, String value);
   Undefined setRoutingOption(String router, String option, String value);
   Dictionary routerOptions(Dictionary options);
-  Dictionary routingOptions(String router);
   Dictionary rejoinInstance(InstanceDef instance, Dictionary options);
   Undefined removeInstance(InstanceDef instance, Dictionary options);
   Undefined rescan(Dictionary options);
@@ -109,7 +108,6 @@ class Cluster : public std::enable_shared_from_this<Cluster>,
   None set_routing_option(str option, str value);
   None set_routing_option(str router, str option, str value);
   dict router_options(dict options);
-  dict routing_options(str router);
   dict rejoin_instance(InstanceDef instance, dict options);
   None remove_instance(InstanceDef instance, dict options);
   None rescan(dict options);

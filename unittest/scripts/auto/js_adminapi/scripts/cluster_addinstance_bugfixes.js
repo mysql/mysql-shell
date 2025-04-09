@@ -75,7 +75,7 @@ testutil.startSandbox(__mysql_sandbox_port2);
 testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 
 //@<> Check if var name is correct  {VER(>=8.0.26)}
-shell.options["dba.logSql"] = 2;
+shell.options["logSql"] = "unfiltered";
 
 shell.connect(__sandbox_uri1);
 

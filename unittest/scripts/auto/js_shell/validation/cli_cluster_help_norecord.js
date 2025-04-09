@@ -69,12 +69,6 @@ The following operations are available at 'cluster':
    routing-guidelines
       Lists the Routing Guidelines defined for the Cluster.
 
-   routing-options
-      Lists the Cluster Routers configuration options.
-
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell. Use Cluster.routerOptions() instead.
-
    set-instance-option
       Changes the value of an option in a Cluster member.
 
@@ -315,20 +309,10 @@ RETURNS
       Nothing.
 
 OPTIONS
---addInstances[:<type>]=<value>
-            List with the connection data of the new active instances to add to
-            the metadata, or "auto" to automatically add missing instances to
-            the metadata. Deprecated.
-
 --addUnmanaged=<bool>
             Boolean. Set to true to automatically add newly discovered
             instances, i.e. already part of the replication topology but not
             managed in the Cluster, to the metadata. Defaults to false.
-
---removeInstances[:<type>]=<value>
-            List with the connection data of the obsolete instances to remove
-            from the metadata, or "auto" to automatically remove obsolete
-            instances from the metadata. Deprecated.
 
 --removeObsolete=<bool>
             Boolean. Set to true to automatically remove all obsolete
@@ -596,20 +580,6 @@ OPTIONS
             the PRIMARY after it's provisioned and the replication channel is
             established. If reached, the operation is rolled-back. Default is 0
             (no timeout).
-
-//@<OUT> CLI cluster routing-options --help
-NAME
-      routing-options - Lists the Cluster Routers configuration options.
-
-SYNTAX
-      cluster routing-options [<router>]
-
-WHERE
-      router: Identifier of the router instance to query for the options.
-
-RETURNS
-      A JSON object describing the configuration options of all router
-      instances of the Cluster and its global options or just the given Router.
 
 //@<OUT> CLI cluster router-options --help
 NAME

@@ -66,13 +66,6 @@ os.loadTextFile(options_file);
 shell.options.unsetPersist("logLevel");
 shell.options["logLevel"]
 
-//@ outputFormat update and set back to default using shell.options
-shell.options.setPersist("outputFormat", "tabbed");
-shell.options["outputFormat"]
-os.loadTextFile(options_file);
-shell.options.unsetPersist("outputFormat")
-shell.options["outputFormat"]
-
 //@ resultFormat update and set back to default using shell.options
 shell.options.setPersist("resultFormat", "json/raw");
 shell.options["resultFormat"]
@@ -129,14 +122,6 @@ shell.options["dba.restartWaitTimeout"]
 os.loadTextFile(options_file);
 shell.options.unsetPersist("dba.restartWaitTimeout");
 shell.options["dba.restartWaitTimeout"]
-
-//@ dba.logSql update and set back to default using shell.options
-// WL#13294
-shell.options.setPersist("dba.logSql", "1");
-shell.options["dba.logSql"]
-os.loadTextFile(options_file);
-shell.options.unsetPersist("dba.logSql");
-shell.options["dba.logSql"]
 
 //@ autocomplete.nameCache update and set back to default using \option
 \option --persist autocomplete.nameCache = false
@@ -199,13 +184,6 @@ os.loadTextFile(options_file);
 \option --unset --persist logLevel
 \option logLevel
 
-//@ outputFormat update and set back to default using \option
-\option --persist outputFormat = tabbed
-\option outputFormat
-os.loadTextFile(options_file);
-\option --unset --persist outputFormat
-\option outputFormat
-
 //@ resultFormat update and set back to default using \option
 \option --persist resultFormat = json/raw
 \option resultFormat
@@ -262,14 +240,6 @@ os.loadTextFile(options_file);
 os.loadTextFile(options_file);
 \option --unset --persist dba.restartWaitTimeout
 \option dba.restartWaitTimeout
-
-//@ dba.logSql update and set back to default using \option
-// WL#13294
-\option --persist dba.logSql = 2
-\option dba.logSql
-os.loadTextFile(options_file);
-\option --unset --persist dba.logSql
-\option dba.logSql
 
 //@ credentialStore.helper update and set back to default using \option
 \option --persist credentialStore.helper = plaintext
@@ -352,16 +322,6 @@ shell.options.unset(InvalidOption)
 \option dba.restartWaitTimeout = 0
 \option dba.restartWaitTimeout = 1
 \option --unset dba.restartWaitTimeout
-
-//@ Verify option dba.logSql
-// WL#13294
-\option dba.logSql = 0.2
-\option dba.logSql = -1
-\option dba.logSql = 3
-\option dba.logSql = "not valid"
-\option dba.logSql = 0
-\option dba.logSql = 2
-\option --unset dba.logSql
 
 //@ Verify option verbose
 \option verbose = 0.2
@@ -488,14 +448,12 @@ function test_cli_option_update(option, default_value, test_value) {
 //@<> WL14297 - TSFR_3_1_1 - Updating Shell Options using CLI integration
 //test_cli_option_update('autocomplete.nameCache', true, false);
 test_cli_option_update('dba.gtidWaitTimeout', 60, 30);
-test_cli_option_update('dba.logSql', 0, 2);
 test_cli_option_update('dba.gtidWaitTimeout', 60, 30);
 test_cli_option_update('defaultCompress', false, true);
 test_cli_option_update('devapi.dbObjectHandles', true, false);
 test_cli_option_update('history.autoSave', true, false);
 test_cli_option_update('history.maxSize', 1000, 20);
 test_cli_option_update('logLevel', 5, 1);
-test_cli_option_update('outputFormat', "table", "vertical");
 test_cli_option_update('resultFormat', "table", "vertical");
 test_cli_option_update('showColumnTypeInfo', false, true);
 test_cli_option_update('showWarnings', true, false);

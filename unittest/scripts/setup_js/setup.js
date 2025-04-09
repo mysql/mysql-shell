@@ -881,42 +881,8 @@ function wait(timeout, wait_interval, condition) {
   return res;
 }
 
-// --------
-
-function begin_dba_log_sql(level) {
-  shell.options["dba.logSql"] = level ? level : 1;
-  var dummy = testutil.fetchDbaSqlLog(true);
-}
-
-function end_dba_log_sql() {
-  var logs = testutil.fetchDbaSqlLog(false);
-  shell.options["dba.logSql"] = 0;
-  return logs;
-}
 
 // -------- Test Expectations
-
-
-function EXPECT_NO_SQL(instance, logs, allowed_stmts) {
-  var fail = false;
-  for(var i in logs) {
-    var line = logs[i];
-    if (line.startsWith(instance)) {
-      var bad = false;
-      for (var j in allowed_stmts) {
-        if (!line.split(": ")[1].startsWith(allowed_stmts[j])) {
-          bad = true;
-          break;
-        }
-      }
-      if (bad) {
-        println("UNEXPECTED SQL DETECTED:", line);
-        fail = true;
-      }
-    }
-  }
-  EXPECT_FALSE(fail);
-}
 
 function EXPECT_SQL(instance, logs, expected_stmt) {
   var fail = true;

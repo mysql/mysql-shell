@@ -126,11 +126,11 @@ EXPECT_THROWS(function() {
 // fails because of network related options
 WIPE_SHELL_LOG();
 
-begin_dba_log_sql();
+shell.options["logSql"] = "unfiltered"
 EXPECT_THROWS(function() {
     rs.addInstance(__sandbox_uri2, {replicationConnectRetry: 10, replicationRetryCount: 11, replicationHeartbeatPeriod: 33.3, replicationCompressionAlgorithms: "zlib", replicationZstdCompressionLevel: "4", replicationBind: "foo", replicationNetworkNamespace: "bar"});
 }, (__version_num >= 80400) ? "Error found in replication receiver thread" : "Replication thread not in expected state");
-end_dba_log_sql();
+shell.options["logSql"] = "off"
 
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_CONNECT_RETRY=10");
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_RETRY_COUNT=11");
@@ -139,6 +139,22 @@ EXPECT_SHELL_LOG_CONTAINS("SOURCE_COMPRESSION_ALGORITHMS='zlib'");
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_ZSTD_COMPRESSION_LEVEL=4");
 EXPECT_SHELL_LOG_CONTAINS("SOURCE_BIND='foo'");
 EXPECT_SHELL_LOG_CONTAINS("NETWORK_NAMESPACE='bar'");
+
+WIPE_SHELL_LOG();
+
+shell.options["logSql"] = "on"
+EXPECT_THROWS(function() {
+    rs.addInstance(__sandbox_uri2, {replicationConnectRetry: 10, replicationRetryCount: 11, replicationHeartbeatPeriod: 33.3, replicationCompressionAlgorithms: "zlib", replicationZstdCompressionLevel: "4", replicationBind: "foo", replicationNetworkNamespace: "bar"});
+}, (__version_num >= 80400) ? "Error found in replication receiver thread" : "Replication thread not in expected state");
+shell.options["logSql"] = "off"
+
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_CONNECT_RETRY=10");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_RETRY_COUNT=11");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_HEARTBEAT_PERIOD=33.3");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_COMPRESSION_ALGORITHMS='zlib'");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_ZSTD_COMPRESSION_LEVEL=4");
+EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_BIND='foo'");
+EXPECT_SHELL_LOG_NOT_CONTAINS("NETWORK_NAMESPACE='bar'");
 
 // must succeed
 EXPECT_NO_THROWS(function() { rs.addInstance(__sandbox_uri2, {replicationConnectRetry: 20, replicationRetryCount: 22, replicationHeartbeatPeriod: 44.4, replicationCompressionAlgorithms: "zstd", replicationZstdCompressionLevel: "7"}); });
@@ -156,9 +172,9 @@ reset_instance(session2);
 //@<> FR9.1 / FR9.2 check addInstance options (don't use hard-coded values: if the server updates the defaults the test stops working)
 WIPE_SHELL_LOG();
 
-begin_dba_log_sql();
+\option logSql = on
 EXPECT_NO_THROWS(function() { rs.addInstance(__sandbox_uri2); });
-end_dba_log_sql();
+\option --unset logSql
 
 // "source_connect_retry" and "source_retry_count" are always present because they're used in the connectivity tests
 EXPECT_SHELL_LOG_NOT_CONTAINS("SOURCE_HEARTBEAT_PERIOD");
@@ -285,9 +301,9 @@ check_repl_option_metadata_only(session, session2, "opt_replZstdCompressionLevel
 
 WIPE_SHELL_LOG();
 
-begin_dba_log_sql();
+\option logSql = on
 EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox_uri2); });
-end_dba_log_sql();
+\option --unset logSql
 
 //because we added a NULL option, the channel should have been reset
 EXPECT_SHELL_LOG_CONTAINS("RESET REPLICA ALL FOR CHANNEL ''");
@@ -304,7 +320,7 @@ EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox_uri2); });
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' is ONLINE and replicating from '${hostname}:${__mysql_sandbox_port1}'.`)
 
 //@<> FR11.4 simple change, no reset of the channel needed
-shell.options["dba.logSql"] = 1;
+shell.options["logSql"] = "on";
 WIPE_SHELL_LOG();
 
 EXPECT_NO_THROWS(function() { rs.setInstanceOption(__sandbox_uri2, "replicationRetryCount", 17); });

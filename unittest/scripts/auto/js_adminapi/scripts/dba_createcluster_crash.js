@@ -8,7 +8,7 @@ testutil.deploySandbox(__mysql_sandbox_port1, "root")
 
 shell.connect(__sandbox_uri1)
 
-shell.options["dba.logSql"]=1;
+shell.options["logSql"]="on";
 
 //@<> run createCluster in a loop, fail during it and see if we can recover
 

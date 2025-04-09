@@ -99,7 +99,6 @@ void ClusterSet::init() {
   expose("setOption", &ClusterSet::set_option, "option", "value")->cli();
 
   expose("listRouters", &ClusterSet::list_routers, "?router")->cli();
-  expose("routingOptions", &ClusterSet::routing_options, "?router")->cli();
   expose("routerOptions", &ClusterSet::router_options, "?options")->cli();
   // TODO(konrad): cli does not support yet such overloads
   expose("setRoutingOption", &ClusterSet::set_routing_option, "option",
@@ -1016,21 +1015,6 @@ Undefined ClusterSet::setRoutingOption(String router, String option,
                                        String value) {}
 #elif DOXYGEN_PY
 None ClusterSet::set_routing_option(str router, str option, str value) {}
-#endif
-
-REGISTER_HELP_FUNCTION(routingOptions, ClusterSet);
-REGISTER_HELP_FUNCTION_TEXT(CLUSTERSET_ROUTINGOPTIONS,
-                            ROUTINGOPTIONS_HELP_TEXT);
-
-/**
- * $(CLUSTERSET_ROUTINGOPTIONS_BRIEF)
- *
- * $(CLUSTERSET_ROUTINGOPTIONS)
- */
-#if DOXYGEN_JS
-Dictionary ClusterSet::routingOptions(String router) {}
-#elif DOXYGEN_PY
-dict ClusterSet::routing_options(str router) {}
 #endif
 
 REGISTER_HELP_FUNCTION(routerOptions, ClusterSet);

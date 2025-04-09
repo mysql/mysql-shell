@@ -202,7 +202,7 @@ session1.runSql("create schema foobar");
 testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
 cluster.status();
 
-shell.options["dba.logSql"] = 1;
+shell.options["logSql"] = "on";
 WIPE_SHELL_LOG();
 
 cluster.status({extended:1});

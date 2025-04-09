@@ -48,13 +48,6 @@ The following operations are available at 'clusterset':
    routing-guidelines
       Lists the Routing Guidelines defined for the ClusterSet.
 
-   routing-options
-      Lists the ClusterSet Routers configuration options.
-
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell. Use ClusterSet.routerOptions()
-                 instead.
-
    set-option
       Changes the value of an option for the whole ClusterSet.
 

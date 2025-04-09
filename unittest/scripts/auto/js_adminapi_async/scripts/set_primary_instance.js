@@ -132,12 +132,12 @@ EXPECT_OUTPUT_CONTAINS(`${hostname_ip}:${__mysql_sandbox_port2} was promoted to 
 WIPE_OUTPUT();
 WIPE_SHELL_LOG();
 
-shell.options["dba.logSql"] = 2;
+shell.options["logSql"] = "unfiltered";
 
 rs.setPrimaryInstance(__sandbox1, {dryRun:true});
 EXPECT_SHELL_LOG_NOT_CONTAINS("FLUSH TABLES WITH READ LOCK");
 
-shell.options["dba.logSql"] = 0;
+shell.options["logSql"] = "off";
 
 //@ timeout (should fail)
 rs.setPrimaryInstance(__sandbox1);

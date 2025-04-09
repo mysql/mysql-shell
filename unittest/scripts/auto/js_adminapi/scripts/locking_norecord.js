@@ -102,10 +102,10 @@ cluster_lock_check(function() {
 
 //@<> exclusive lock on cluster.rescan()
 cluster_lock_check(function() {
-    cluster.rescan({addInstances: [`${hostname}:${__mysql_sandbox_port1}`]});
+    cluster.rescan({addUnmanaged: true});
 });
 cluster_lock_check(function() {
-    cluster2.rescan({addInstances: [`${hostname}:${__mysql_sandbox_port1}`]});
+    cluster2.rescan({addUnmanaged: true});
 });
 
 //@<> exclusive lock on dba.upgradeMetadata()

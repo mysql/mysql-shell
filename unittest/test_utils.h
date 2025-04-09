@@ -1,4 +1,4 @@
-/* Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2015, 2025, Oracle and/or its affiliates.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -173,7 +173,6 @@ class Shell_test_output_handler {
   std::string internal_std_out;
   std::stringstream full_output;
   std::mutex stdout_mutex;
-  shcore::Array_t dba_sql_log = nullptr;
   static std::vector<std::string> log;
 
   void set_log_level(shcore::Logger::LOG_LEVEL log_level) {

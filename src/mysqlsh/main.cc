@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -62,176 +62,6 @@ void finalize_debug_shell(mysqlsh::Command_line_shell *shell);
 
 const char *g_mysqlsh_path;
 
-static int enable_x_protocol(
-    std::shared_ptr<mysqlsh::Command_line_shell> shell) {
-  auto shell_session = shell->shell_context()->get_dev_session();
-
-  if (!shell_session) {
-    mysqlsh::current_console()->print_error(
-        "A session to the target instance is required to execute "
-        "the enableXProtocol command.\n");
-    return 1;
-  }
-
-  mysqlshdk::db::Connection_options connection_options =
-      shell_session->get_connection_options();
-
-  connection_options.set_scheme("mysqlx");
-  // Temporary port to be replaced by the X port
-  connection_options.set_port(33060);
-
-  std::string temp_uri =
-      connection_options.as_uri(mysqlshdk::db::uri::formats::full());
-
-  shell->switch_shell_mode(shcore::Shell_core::Mode::JavaScript, {});
-  shell->process_line("var uri_template = '" + temp_uri + "'");
-
-  // clang-format off
-  static const char *script =
-      R"*(
-// Returns object with code and message about X Protocol state
-function checkXProtocol() {
-  result = {}
-  result.code = 0;
-  result.message = '';
-
-  // Return codes:
-  // - 0: X Protocol is active for TCP connections
-  // - 1: X Protocol is active but is not listening for TCP connections
-  // - 2: X Protocol is inactive
-  // - 3: Error verifying xprotocol state
-
-  try {
-    if (session.uri.indexOf("mysqlx://") == 0) {
-      let x_port = session.runSql('select @@mysqlx_port as xport').fetchOneObject().xport;
-      result.code = 0;
-      result.message = `X Protocol plugin is already enabled and listening for connections on port ${x_port}`;
-    } else {
-      let active = session.runSql(`SELECT COUNT(*) AS active
-                                    FROM information_schema.plugins WHERE plugin_name='mysqlx'
-                                    AND plugin_status='ACTIVE'`).fetchOneObject().active;
-
-      if (active) {
-        let x_port = session.runSql("SELECT @@mysqlx_port AS xport").fetchOneObject().xport;
-        let server_uuid = session.runSql("SELECT @@server_uuid AS uuid").fetchOneObject().uuid;
-
-        // Attempts a TCP connection to the X protocol
-        let x_uri = uri_template.replace(":33060", ":" + x_port.toString());
-        let x_session;
-        try {
-          x_session = shell.openSession(x_uri);
-          let x_server_uuid = x_session.runSql("SELECT @@server_uuid AS uuid").fetchOneObject().uuid;
-          x_session.close();
-          if (server_uuid != x_server_uuid) {
-            result.code = 1;
-            result.message = 'The X Protocol plugin is enabled, however a different ' +
-                            `server is listening for TCP connections at port ${x_port}` +
-                            ', check the MySQL Server log for more details';
-          } else {
-            result.message = `The X Protocol plugin is already enabled and listening for connections on port ${x_port}`;
-          }
-        } catch (error) {
-          result.code = 1;
-          result.message = 'The X plugin is enabled, however failed to create a session using ' +
-                    `port ${x_port}, check the MySQL Server log for more details`;
-        }
-      } else {
-        result.code = 2;
-        result.message = 'The X plugin is not enabled';
-      }
-    }
-  } catch (error) {
-    result.code = 3;
-    result.message = `Error checking for X Protocol plugin: ${error["message"]}`;
-  }
-
-  return result;
-}
-
-function enableXProtocol() {
-  println('enableXProtocol: Installing plugin mysqlx...');
-  var row = session.runSql("select @@version_compile_os, substr(@@version, 1, instr(@@version, '-')-1)").fetchOne();
-  var version = row[1].split(".");
-  var vernum = parseInt(version[0]) * 10000 + parseInt(version[1]) * 100 + parseInt(version[2]);
-  let error_str = '';
-
-  if (row[0] == "Win32" || row[0] == "Win64") {
-    var r = session.runSql("install plugin mysqlx soname 'mysqlx.dll';");
-    if (vernum >= 80004)
-      var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.dll';");
-  } else {
-    var r = session.runSql("install plugin mysqlx soname 'mysqlx.so';")
-    if (vernum >= 80004)
-      var r = session.runSql("install plugin mysqlx_cache_cleaner soname 'mysqlx.so';");
-  }
-  println('enableXProtocol: Verifying plugin is active...')
-  let active = session.runSql(`SELECT COUNT(*) AS active
-                                FROM information_schema.plugins WHERE plugin_name='mysqlx'
-                                AND plugin_status='ACTIVE'`).fetchOneObject().active;
-
-  return error_str;
-}
-
-// Initial verification for X protocol state
-let state = checkXProtocol(session);
-
-// If it is OK or there was an error verifying there's nothing else to do.
-if (state.code == 0 || state.code == 3) {
-  println(`enableXProtocol: ${state.message}`);
-} else {
-  try {
-    if (state.code == 2) {
-      error = enableXProtocol();
-
-      if (error == '') {
-        state = checkXProtocol();
-      }
-    }
-
-    switch (state.code) {
-      case 0:
-        println('enableXProtocol: successfully installed the X protocol plugin!');
-        break;
-      case 1:
-        println(`enableXProtocol: WARNING: ${state.message}`);
-        break;
-      case 2:
-        throw state.message;
-        break;
-      case 3:
-        println(`enableXProtocol: Error verifying X protocol state: ${state.message}`);
-        break;
-    }
-  } catch (error) {
-    println('Error installing the X Plugin: '+ error['message']);
-  }
-}
-println();
-)*";
-  // clang-format on
-  std::stringstream stream(script);
-  return shell->process_stream(stream, "(command line)", {});
-}
-
-// Execute a Administrative DB command passed from the command line via the
-// --dba option Currently, only the enableXProtocol command is supported.
-int execute_dba_command(std::shared_ptr<mysqlsh::Command_line_shell> shell,
-                        const std::string &command) {
-  if (command != "enableXProtocol") {
-    mysqlsh::current_console()->raw_print(
-        "Unsupported dba command " + command + "\n",
-        mysqlsh::Output_stream::STDERR);
-    return 1;
-  }
-
-  // this is a temporary solution, ideally there will be a dba object/module
-  // that implements all commands are the requested command will be invoked as
-  // dba.command() with param handling and others, from both interactive shell
-  // and cmdline
-
-  return enable_x_protocol(shell);
-}
-
 // Detects whether the shell will be running in interactive mode or not
 // Non interactive mode is used when:
 // - A file is processed using the --file option
@@ -262,7 +92,6 @@ void detect_interactive(mysqlsh::Shell_options *options, bool *stdin_is_tty,
     is_interactive = options->get().run_file.empty() &&
                      options->get().run_module.empty() &&
                      options->get().execute_statement.empty() &&
-                     options->get().execute_dba_statement.empty() &&
                      !options->get_shell_cli_operation();
 
   // The --interactive option forces the shell to work emulating the
@@ -864,16 +693,6 @@ int main(int argc, char **argv) {
         std::stringstream stream(options.execute_statement);
         ret_val = shell->process_stream(stream, "(command line)",
                                         options.script_argv);
-      } else if (!options.execute_dba_statement.empty()) {
-        if (options.initial_mode != shcore::IShell_core::Mode::JavaScript &&
-            options.initial_mode != shcore::IShell_core::Mode::None) {
-          mysqlsh::current_console()->raw_print(
-              "The --dba option can only be used in JavaScript mode\n",
-              mysqlsh::Output_stream::STDERR);
-          ret_val = 1;
-        } else {
-          ret_val = execute_dba_command(shell, options.execute_dba_statement);
-        }
       } else if (!options.run_file.empty()) {
         ret_val = shell->process_file(options.run_file, options.script_argv);
       } else if (!options.run_module.empty()) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -73,11 +73,6 @@ clusterset, or adding an instance to one
 @li <b>dba.gtidWaitTimeout</b>: timeout value in seconds to wait for GTIDs to be
 synchronized
 
-@li <b>dba.logSql</b>: 0..2, log SQL statements executed by AdminAPI operations:
-0 - logging disabled; 1 - log statements other than SELECT and SHOW; 2 - log
-all statements. Option takes precedence over <b>--log-sql</b> in Dba.* context,
-if enabled.
-
 @li <b>dba.restartWaitTimeout</b>: timeout in seconds to wait for MySQL server
 to come back after a restart during clone recovery
 
@@ -139,8 +134,6 @@ configuration file
 
 @li <b>oci.profile</b>: Specify which section in oci.configFile will be used as
 profile settings
-
-@li <b>outputFormat</b>: Deprecated, use <b>resultFormat</b> instead
 
 @li <b>pager</b>: string which specifies the external command which is going to
 be used to display the paged output

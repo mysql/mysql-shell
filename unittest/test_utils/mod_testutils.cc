@@ -298,9 +298,6 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("assertNoPrompts", &Testutils::assert_no_prompts);
   expose("fetchCapturedStdout", &Testutils::fetch_captured_stdout, "?eatOne");
   expose("fetchCapturedStderr", &Testutils::fetch_captured_stderr, "?eatOne");
-#ifndef ENABLE_SESSION_RECORDING
-  expose("fetchDbaSqlLog", &Testutils::fetch_dba_sql_log, "?flush");
-#endif
 
   expose("callMysqlsh", &Testutils::call_mysqlsh, "args", "?stdInput", "?envp",
          "?execPath");
@@ -1168,28 +1165,6 @@ str Testutils::get_shell_log_path();
 std::string Testutils::get_shell_log_path() {
   return shcore::current_logger()->logfile_name();
 }
-
-#ifndef ENABLE_SESSION_RECORDING
-//!<  @name Misc Utilities
-///@{
-/**
- * Gets (and optionally flushes) the contents of the dba SQL log.
- */
-#if DOXYGEN_JS
-Array Testutils::fetchDbaSqlLog(Boolean);
-#elif DOXYGEN_PY
-list Testutils::fetch_dba_sql_log(bool);
-#endif
-///@}
-shcore::Array_t Testutils::fetch_dba_sql_log(bool flush) {
-  shcore::Array_t log = static_cast<Shell_core_test_wrapper *>(_test_env)
-                            ->output_handler.dba_sql_log;
-  if (flush)
-    static_cast<Shell_core_test_wrapper *>(_test_env)
-        ->output_handler.dba_sql_log.reset();
-  return log;
-}
-#endif
 
 //!<  @name Testing Utilities
 ///@{

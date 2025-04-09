@@ -76,13 +76,6 @@ FUNCTIONS
       routingGuidelines()
             Lists the Routing Guidelines defined for the ClusterSet.
 
-      routingOptions([router])
-            Lists the ClusterSet Routers configuration options.
-
-            ATTENTION: This function is deprecated and will be removed in a
-                       future release of MySQL Shell. Use
-                       ClusterSet.routerOptions() instead.
-
       setOption(option, value)
             Changes the value of an option for the whole ClusterSet.
 
@@ -922,29 +915,6 @@ DESCRIPTION
       - rwXPort: Read-write port (X protocol).
       - targetCluster: Target Cluster for Router routing operations.
       - version: Version.
-
-//@<OUT> routingOptions
-NAME
-      routingOptions - Lists the ClusterSet Routers configuration options.
-
-SYNTAX
-      <ClusterSet>.routingOptions([router])
-
-WHERE
-      router: Identifier of the router instance to query for the options.
-
-RETURNS
-      A JSON object describing the configuration options of all router
-      instances of the ClusterSet and its global options or just the given
-      Router.
-
-DESCRIPTION
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell. Use ClusterSet.routerOptions()
-                 instead.
-
-      This function lists the Router configuration options of all Routers of
-      the ClusterSet or the target Router.
 
 //@<OUT> routerOptions
 NAME

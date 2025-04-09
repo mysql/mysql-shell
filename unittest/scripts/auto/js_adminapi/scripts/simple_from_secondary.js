@@ -117,7 +117,7 @@ session1.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE insta
 shell.connect(__sandbox_uri2);
 cluster = dba.getCluster();
 
-cluster.rescan({addInstances:"auto"});
+cluster.rescan({addUnmanaged:"true"});
 
 //@<> listRouters
 cluster_id = session1.runSql("SELECT cluster_id FROM mysql_innodb_cluster_metadata.clusters").fetchOne()[0];
@@ -230,7 +230,7 @@ EXPECT_THROWS(function(){cluster.switchToSinglePrimaryMode()}, "This operation r
 // delete sb3 from the metadata so that rescan picks it up
 session1.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port3]);
 
-EXPECT_THROWS(function(){cluster.rescan({addInstances:"auto"})}, "Access denied for user 'root'@'localhost'. Account is locked.");
+EXPECT_THROWS(function(){cluster.rescan({addUnmanaged:"true"})}, "Access denied for user 'root'@'localhost'. Account is locked.");
 
 //@<> listRouters (no primary, should pass)
 cluster.listRouters();

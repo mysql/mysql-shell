@@ -82,7 +82,7 @@ EXPECT_THROWS(function() {
 }, "Invalid value for cloneDonor: Invalid address format in '::1'. Must be <host>:<port> or [<ip>]:<port> for IPv6 addresses");
 
 //@<> Try rejoin ONLINE instance (fail).
-shell.options["dba.logSql"] = 1;
+shell.options["logSql"] = "on";
 WIPE_SHELL_LOG();
 
 EXPECT_NO_THROWS(function() { rs.rejoinInstance(__sandbox2); });
@@ -362,7 +362,7 @@ var bug_30632029 = [
 ];
 
 //@<> BUG#30632029: add instance using clone and a secondary as donor rest
-\option dba.logSql = 2
+\option logSql = unfiltered
 WIPE_SHELL_LOG();
 
 shell.options.useWizards = true;

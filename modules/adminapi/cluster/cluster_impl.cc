@@ -4362,13 +4362,6 @@ mysqlshdk::mysql::Lock_scoped Cluster_impl::get_lock(
   return mysqlshdk::mysql::Lock_scoped{std::move(release_cb)};
 }
 
-shcore::Dictionary_t Cluster_impl::routing_options(const std::string &router) {
-  auto dict = Base_cluster_impl::routing_options(router);
-  if (router.empty()) (*dict)["clusterName"] = shcore::Value(get_name());
-
-  return dict;
-}
-
 shcore::Dictionary_t Cluster_impl::router_options(
     const shcore::Option_pack_ref<Router_options_options> &options) {
   if (is_cluster_set_member()) {

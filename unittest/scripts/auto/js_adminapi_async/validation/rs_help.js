@@ -72,13 +72,6 @@ FUNCTIONS
       routingGuidelines()
             Lists the Routing Guidelines defined for the ReplicaSet.
 
-      routingOptions([router])
-            Lists the ReplicaSet Routers configuration options.
-
-            ATTENTION: This function is deprecated and will be removed in a
-                       future release of MySQL Shell. Use
-                       ReplicaSet.routerOptions() instead.
-
       setInstanceOption(instance, option, value)
             Changes the value of an option in a ReplicaSet member.
 
@@ -723,29 +716,6 @@ DESCRIPTION
         automatically added to the metadata. Defaults to false.
       - removeObsolete: if true, all obsolete instances will be automatically
         removed from the metadata. Defaults to false.
-
-//@<OUT> routingOptions
-NAME
-      routingOptions - Lists the ReplicaSet Routers configuration options.
-
-SYNTAX
-      <ReplicaSet>.routingOptions([router])
-
-WHERE
-      router: Identifier of the router instance to query for the options.
-
-RETURNS
-      A JSON object describing the configuration options of all router
-      instances of the ReplicaSet and its global options or just the given
-      Router.
-
-DESCRIPTION
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell. Use ReplicaSet.routerOptions()
-                 instead.
-
-      This function lists the Router configuration options of all Routers of
-      the ReplicaSet or the target Router.
 
 //@<OUT> routerOptions
 NAME

@@ -237,7 +237,6 @@ class Cluster_set_impl : public Base_cluster_impl,
   void ensure_replica_settings(Cluster_impl *replica, bool dry_run);
 
   shcore::Value list_routers(const std::string &router);
-  shcore::Dictionary_t routing_options(const std::string &router) override;
 
   void record_in_metadata(const Cluster_id &seed_cluster_id,
                           const clusterset::Create_cluster_set_options &options,

@@ -181,14 +181,12 @@ testutil.waitForReplConnectionError(__mysql_sandbox_port2, "");
 var before = rs.status();
 println("PRIMARY", before.replicaSet.primary);
 
-begin_dba_log_sql();
+WIPE_SHELL_LOG();
+\option logSql = on
 
 rs.forcePrimaryInstance(__sandbox2, {dryRun:true});
 
-var logs = end_dba_log_sql();
-EXPECT_NO_SQL(__sandbox1, logs);
-EXPECT_NO_SQL(__sandbox2, logs);
-EXPECT_NO_SQL(__sandbox3, logs);
+\option --unset logSql
 
 EXPECT_EQ(before.replicaSet.primary, rs.status().replicaSet.primary);
 

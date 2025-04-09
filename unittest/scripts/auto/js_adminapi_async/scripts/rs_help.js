@@ -107,12 +107,6 @@ rs.help("rescan");
 //@ Rescan \? [USE:Rescan]
 \? ReplicaSet.rescan
 
-//@ routingOptions
-rs.help("routingOptions")
-
-//@ routingOptions. \? [USE:routingOptions]
-\? ReplicaSet.routingOptions
-
 //@ routerOptions
 rs.help("routerOptions")
 

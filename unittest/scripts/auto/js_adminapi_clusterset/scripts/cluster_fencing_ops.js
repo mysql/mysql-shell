@@ -171,7 +171,7 @@ EXPECT_NO_THROWS(function() { cluster.options(); });
 EXPECT_NO_THROWS(function() { cluster.status(); });
 EXPECT_NO_THROWS(function() { dba.getCluster(); });
 // ClusterSet ops
-EXPECT_NO_THROWS(function() { cs.routingOptions(); });
+EXPECT_NO_THROWS(function() { cs.routerOptions(); });
 EXPECT_NO_THROWS(function() { cs.listRouters(); });
 EXPECT_NO_THROWS(function() { cs.status(); });
 EXPECT_NO_THROWS(function() { cs.describe(); });

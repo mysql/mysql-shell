@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2025, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -68,68 +68,6 @@ TEST_F(Command_line_test, bug24912358) {
                                multiline({"-127 << -1.1", "0"}), _output);
   }
 }
-
-#ifdef HAVE_JS
-TEST_F(Command_line_test, bug23508428) {
-  // Test if the xplugin is installed using enableXProtocol in the --dba option
-  // In 8.0.4, the mysqlx_cache_cleaner is also supposed to be installed
-  // In 8.0.11+, both plugins are built-in, cannot be uninstalled
-  std::string uri = "--uri=" + _mysql_uri;
-
-  execute({_mysqlsh, uri.c_str(), "--sqlc", "-e", "uninstall plugin mysqlx;",
-           NULL});
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "ERROR: 1619 (HY000) at line 1: Built-in plugins "
-        "cannot be deleted");
-  }
-
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
-    execute({_mysqlsh, uri.c_str(), "--sqlc", "-e",
-             "uninstall plugin mysqlx_cache_cleaner;", NULL});
-    if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 5)) {
-      MY_EXPECT_CMD_OUTPUT_CONTAINS(
-          "ERROR: 1619 (HY000) at line 1: Built-in plugins "
-          "cannot be deleted");
-    }
-  }
-
-  if (_target_server_version < mysqlshdk::utils::Version(8, 0, 5)) {
-    execute(
-        {_mysqlsh, uri.c_str(), "--mysql", "--dba", "enableXProtocol", NULL});
-
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "WARNING: The enableXProtocol option was deprecated.");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "enableXProtocol: Installing plugin "
-        "mysqlx...");
-    MY_EXPECT_CMD_OUTPUT_CONTAINS(
-        "enableXProtocol: successfully installed the X protocol plugin!");
-  }
-
-  execute({_mysqlsh, uri.c_str(), "--interactive=full", "--js", "-e",
-           "session.runSql('SELECT COUNT(*) FROM information_schema.plugins "
-           "WHERE PLUGIN_NAME in (\"mysqlx\", \"mysqlx_cache_cleaner\")')."
-           "fetchOne()",
-           NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("[");
-  if (_target_server_version >= mysqlshdk::utils::Version(8, 0, 4)) {
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("    2");
-  } else {
-    MY_EXPECT_CMD_OUTPUT_CONTAINS("    1");
-  }
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("]");
-
-  execute({_mysqlsh, uri.c_str(), "--mysql", "--js", "--dba", "enableXProtocol",
-           NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "WARNING: The enableXProtocol option was deprecated.");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "enableXProtocol: The X Protocol plugin is already enabled and listening "
-      "for connections on port " +
-      _port);
-}
-#endif
 
 TEST_F(Command_line_test, bug24905066) {
   // Tests URI formatting using classic protocol

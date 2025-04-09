@@ -79,12 +79,6 @@ cs.help("listRouters");
 //@ listRouters \? [USE:listRouters]
 \? ClusterSet.listRouters
 
-//@ routingOptions
-cs.help("routingOptions");
-
-//@ routingOptions \? [USE:routingOptions]
-\? ClusterSet.routingOptions
-
 //@ routerOptions
 cs.help("routerOptions");
 

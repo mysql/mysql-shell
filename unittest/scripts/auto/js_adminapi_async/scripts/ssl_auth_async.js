@@ -214,7 +214,8 @@ EXPECT_THROWS(function() {
 }, "Invalid value for 'certSubject' option. Value cannot be an empty string.");
 
 shell.options.verbose=1
-shell.options['dba.logSql']=1
+shell.options['logSql']='on'
+
 EXPECT_NO_THROWS(function() { rset.addInstance(__sandbox_uri2); });
 shell.options.verbose=0
 EXPECT_OUTPUT_CONTAINS("* Checking connectivity and SSL configuration...");

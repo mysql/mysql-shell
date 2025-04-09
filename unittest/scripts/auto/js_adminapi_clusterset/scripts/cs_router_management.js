@@ -34,51 +34,57 @@ var cr_router2 = "routerhost2::another";
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (4, '', 'mysqlrouter', 'routerhost2', '8.0.27', '2021-01-01 11:22:33', '{\"bootstrapTargetType\": \"clusterset\"}', NULL, NULL, ?)", [clusterset_id]);
 var cr_router3 = "routerhost2::";
 
-//@<> clusterset.routingOptions on invalid router
-EXPECT_THROWS(function(){ clusterset.routingOptions("invalid_router"); }, "Router 'invalid_router' is not registered in the clusterset");
+//@<> clusterset.routerOptions on invalid router
+EXPECT_THROWS(function(){ clusterset.routerOptions({"router": "invalid_router"}); }, "Router 'invalid_router' is not registered in the clusterset");
 
-//@ clusterset.routingOptions() with all defaults
-values = clusterset.routingOptions();
+//@ clusterset.routerOptions() with all defaults
+values = clusterset.routerOptions();
 
 //@<> clusterset.setRoutingOption, all valid values, tag
 clusterset.setRoutingOption(cm_router, "tag:test_tag", 567);
-EXPECT_JSON_EQ(567, clusterset.routingOptions(cm_router)[cm_router]["tags"]["test_tag"]);
-EXPECT_JSON_EQ(567, clusterset.routingOptions()["routers"][cm_router]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, clusterset.routerOptions({"router": cm_router, "extended": 2})["routers"][cm_router]["configuration"]["routing_rules"]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, clusterset.routerOptions({"extended": 2})["routers"][cm_router]["configuration"]["routing_rules"]["tags"]["test_tag"]);
 
 clusterset.setRoutingOption("tag:test_tag", 567);
-EXPECT_JSON_EQ(567, clusterset.routingOptions()["global"]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, clusterset.routerOptions()["configuration"]["routing_rules"]["tags"]["test_tag"]);
 
 clusterset.setRoutingOption("tag:test_tag", null);
 clusterset.setRoutingOption(cm_router, "tag:test_tag", null);
-EXPECT_JSON_EQ(null, clusterset.routingOptions()["routers"][cm_router]["tags"]["test_tag"]);
-EXPECT_JSON_EQ(null, clusterset.routingOptions()["global"]["tags"]["test_tag"]);
+EXPECT_JSON_EQ({}, clusterset.routerOptions({"extended": 2})["routers"][cm_router]["configuration"]["routing_rules"]["tags"]);
+EXPECT_JSON_EQ({}, clusterset.routerOptions()["configuration"]["routing_rules"]["tags"]);
+
+clusterset.setRoutingOption("tag:test_tag", 567);
+clusterset.setRoutingOption(cm_router, "tag:test_tag", 567);
 
 clusterset.setRoutingOption("tags", null);
 clusterset.setRoutingOption(cm_router, "tags", null);
-EXPECT_JSON_EQ(undefined, clusterset.routingOptions()["routers"][cm_router]["tags"]);
-EXPECT_JSON_EQ({}, clusterset.routingOptions()["global"]["tags"]);
+EXPECT_JSON_EQ({}, clusterset.routerOptions({"extended": 2})["routers"][cm_router]["configuration"]["routing_rules"]["tags"]);
+EXPECT_JSON_EQ({}, clusterset.routerOptions()["configuration"]["routing_rules"]["tags"]);
 
 //@<> clusterset.setRoutingOption, all valid values
 function CHECK_SET_ROUTING_OPTION(option, value, expected_value) {
-  orig_options = clusterset.routingOptions();
+  orig_options = clusterset.routerOptions({"extended": 2});
 
-  router_options = clusterset.routingOptions(cm_router);
-  global_options = clusterset.routingOptions();
+  router_options = clusterset.routerOptions({"router": cm_router, "extended": 2});
+  global_options = clusterset.routerOptions({"extended": 2});
 
   clusterset.setRoutingOption(cm_router, option, value);
-  router_options[cm_router][option] = expected_value;
-  global_options["routers"][cm_router][option] = expected_value;
-  EXPECT_JSON_EQ(router_options, clusterset.routingOptions(cm_router), "router check");
-  EXPECT_JSON_EQ(global_options, clusterset.routingOptions(), "router check 2");
+  router_options["routers"][cm_router]["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][cm_router]["configuration"]["routing_rules"][option] = expected_value;
+  EXPECT_JSON_EQ(router_options, clusterset.routerOptions({"router": cm_router, "extended": 2}), "router check");
+  EXPECT_JSON_EQ(global_options, clusterset.routerOptions({"extended": 2}), "router check 2");
 
   clusterset.setRoutingOption(option, value);
-  global_options["global"][option] = expected_value;
-  EXPECT_JSON_EQ(global_options, clusterset.routingOptions(), "global check");
+  global_options["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][cr_router]["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][cr_router2]["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][cr_router3]["configuration"]["routing_rules"][option] = expected_value;
+  EXPECT_JSON_EQ(global_options, clusterset.routerOptions({"extended": 2}), "global check");
 
   // setting option to null should reset to default
   clusterset.setRoutingOption(option, null);
   clusterset.setRoutingOption(cm_router, option, null);
-  EXPECT_JSON_EQ(orig_options, clusterset.routingOptions(), "original check");
+  EXPECT_JSON_EQ(orig_options, clusterset.routerOptions({"extended": 2}), "original check");
 }
 
 CHECK_SET_ROUTING_OPTION("target_cluster", "primary", "primary");
@@ -105,22 +111,32 @@ CHECK_SET_ROUTING_OPTION('read_only_targets', 'all', 'all');
 CHECK_SET_ROUTING_OPTION('read_only_targets', 'read_replicas', 'read_replicas');
 CHECK_SET_ROUTING_OPTION('read_only_targets', 'secondaries', 'secondaries');
 
-//@<> default values filled in when metadata is missing some option (e.g. upgrade)
-var full_options = clusterset.routingOptions();
+//@<> default values are not filled in when metadata is missing some option (e.g. upgrade)
+var full_options = clusterset.routerOptions({"extended": 2});
+
+EXPECT_EQ(full_options["configuration"]["routing_rules"].hasOwnProperty("read_only_targets"),true)
+EXPECT_EQ(full_options["configuration"]["routing_rules"].hasOwnProperty("tags"),true)
 
 var router_options = session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]
 session.runSql("update mysql_innodb_cluster_metadata.clustersets set router_options='{}'");
 
-EXPECT_JSON_EQ(full_options, clusterset.routingOptions());
+EXPECT_EQ(clusterset.routerOptions()["configuration"]["routing_rules"].hasOwnProperty("read_only_targets"),false)
+EXPECT_EQ(clusterset.routerOptions()["configuration"]["routing_rules"].hasOwnProperty("tags"),false)
+
+EXPECT_JSON_EQ({}, clusterset.routerOptions()["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, clusterset.routerOptions({"extended": 2})["routers"][cm_router]["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, clusterset.routerOptions({"extended": 2})["routers"][cr_router]["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, clusterset.routerOptions({"extended": 2})["routers"][cr_router2]["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, clusterset.routerOptions({"extended": 2})["routers"][cr_router3]["configuration"]["routing_rules"])
 
 session.runSql("update mysql_innodb_cluster_metadata.clustersets set router_options=?", [router_options]);
-EXPECT_JSON_EQ(full_options, clusterset.routingOptions());
+EXPECT_JSON_EQ(full_options, clusterset.routerOptions({"extended": 2}));
 
 //@<> BUG#34458017: setRoutingOption to null resets all options
 // Each option should be reset individually and not all of them
 clusterset.setRoutingOption("stats_updates_frequency", 42);
 clusterset.setRoutingOption(cm_router, "stats_updates_frequency", 44);
-var orig = clusterset.routingOptions();
+var orig = clusterset.routerOptions({"extended": 2});
 
 // WL15601 NFR2: value must be present in the MD
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
@@ -129,8 +145,8 @@ options = JSON.parse(session.runSql("select options from mysql_innodb_cluster_me
 EXPECT_TRUE("stats_updates_frequency" in options);
 
 clusterset.setRoutingOption(cm_router, "stats_updates_frequency", null);
-delete orig["routers"][cm_router]["stats_updates_frequency"];
-EXPECT_JSON_EQ(orig, clusterset.routingOptions());
+orig["routers"][cm_router]["configuration"]["routing_rules"]["stats_updates_frequency"] = 42;
+EXPECT_JSON_EQ(orig, clusterset.routerOptions({"extended": 2}));
 
 // WL15601 NFR2: value must *not* be present in the MD
 options = JSON.parse(session.runSql("select options from mysql_innodb_cluster_metadata.routers").fetchOne()[0]);
@@ -146,15 +162,15 @@ clusterset.setRoutingOption("tags", {"old":"oldvalue"});
 
 clusterset.setRoutingOption("tag:test_tag", 1234);
 clusterset.setRoutingOption("tag:bla", "test");
-EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, clusterset.routingOptions()["global"]["tags"]);
+EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, clusterset.routerOptions()["configuration"]["routing_rules"]["tags"]);
 clusterset.setRoutingOption("tags", {});
-EXPECT_JSON_EQ({}, clusterset.routingOptions()["global"]["tags"]);
+EXPECT_JSON_EQ({}, clusterset.routerOptions()["configuration"]["routing_rules"]["tags"]);
 
 clusterset.setRoutingOption(cm_router, "tags", {"old":"oldvalue"});
 clusterset.setRoutingOption(cm_router, "tags", {"test_tag":1234});
-EXPECT_JSON_EQ({"test_tag":1234}, clusterset.routingOptions()["routers"][cm_router]["tags"]);
+EXPECT_JSON_EQ({"test_tag":1234}, clusterset.routerOptions({"extended": 2})["routers"][cm_router]["configuration"]["routing_rules"]["tags"]);
 clusterset.setRoutingOption(cm_router, "tags", {});
-EXPECT_JSON_EQ({}, clusterset.routingOptions()["routers"][cm_router]["tags"]);
+EXPECT_JSON_EQ({}, clusterset.routerOptions({"extended": 2})["routers"][cm_router]["configuration"]["routing_rules"]["tags"]);
 
 //@<> clusterset.setRoutingOption for a router, invalid values
 EXPECT_THROWS(function(){ clusterset.setRoutingOption(cm_router, "target_cluster", 'any_not_supported_value'); },
@@ -217,12 +233,12 @@ EXPECT_THROWS(function(){ clusterset.setRoutingOption("::system", 'read_only_tar
 
 //@<> check types of clusterset router option values
 // Bug#34604612
-options = clusterset.routingOptions();
-EXPECT_EQ("string", typeof options["global"]["target_cluster"]);
-EXPECT_EQ("string", typeof options["global"]["invalidated_cluster_policy"]);
-EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
-EXPECT_EQ("boolean", typeof options["global"]["use_replica_primary_as_rw"]);
-EXPECT_EQ("string", typeof options["global"]["read_only_targets"]);
+options = clusterset.routerOptions();
+EXPECT_EQ("string", typeof options["configuration"]["routing_rules"]["target_cluster"]);
+EXPECT_EQ("string", typeof options["configuration"]["routing_rules"]["invalidated_cluster_policy"]);
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["stats_updates_frequency"]);
+EXPECT_EQ("boolean", typeof options["configuration"]["routing_rules"]["use_replica_primary_as_rw"]);
+EXPECT_EQ("string", typeof options["configuration"]["routing_rules"]["read_only_targets"]);
 
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
 EXPECT_EQ("string", typeof options["target_cluster"]);
@@ -324,7 +340,7 @@ EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tag:two", 2); });
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clustersets SET router_options = '{}'");
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tags", {"one":1, "two":"2"}); });
 
-//@<> cluster.routingOptions(), for global options that also exist in clusterset.routingOptions(), should show the values (except tags) stored on the ClusterSet
+//@<> cluster.routerOptions(), for global options that also exist in clusterset.routerOptions(), should show the values (except tags) stored on the ClusterSet
 shell.connect(__sandbox_uri3);
 reset_instance(session);
 shell.connect(__sandbox_uri2);
@@ -337,28 +353,28 @@ EXPECT_NO_THROWS(function() {cluster = dba.createCluster("cluster", {gtidSetIsCo
 EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("tag:five", 5); });
 EXPECT_NO_THROWS(function(){ cluster.setRoutingOption("stats_updates_frequency", 52); });
 
-options = cluster.routingOptions();
-EXPECT_EQ("number", typeof options["global"]["tags"]["five"]);
-EXPECT_EQ(5, options["global"]["tags"]["five"]);
-EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
-EXPECT_EQ(52, options["global"]["stats_updates_frequency"]);
+options = cluster.routerOptions();
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["tags"]["five"]);
+EXPECT_EQ(5, options["configuration"]["routing_rules"]["tags"]["five"]);
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["stats_updates_frequency"]);
+EXPECT_EQ(52, options["configuration"]["routing_rules"]["stats_updates_frequency"]);
 
 EXPECT_NO_THROWS(function() {clusterset = cluster.createClusterSet("clusterset"); });
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("tag:six", 6); });
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", 66); });
 
-options = cluster.routingOptions();
-EXPECT_EQ("number", typeof options["global"]["tags"]["five"]);
-EXPECT_EQ(5, options["global"]["tags"]["five"]);
-EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
-EXPECT_EQ(66, options["global"]["stats_updates_frequency"]);
+options = clusterset.routerOptions();
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["tags"]["six"]);
+EXPECT_EQ(6, options["configuration"]["routing_rules"]["tags"]["six"]);
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["stats_updates_frequency"]);
+EXPECT_EQ(66, options["configuration"]["routing_rules"]["stats_updates_frequency"]);
 
 //@<> check if "stats_updates_frequency", in ClusterSets, defaults to 0
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", 48); });
 
-options = clusterset.routingOptions();
-EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
-EXPECT_EQ(48, options["global"]["stats_updates_frequency"]);
+options = clusterset.routerOptions();
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["stats_updates_frequency"]);
+EXPECT_EQ(48, options["configuration"]["routing_rules"]["stats_updates_frequency"]);
 
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
 EXPECT_TRUE("stats_updates_frequency" in options);
@@ -366,9 +382,8 @@ EXPECT_EQ(48, options["stats_updates_frequency"]);
 
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", null); });
 
-options = clusterset.routingOptions();
-EXPECT_EQ("object", typeof options["global"]["stats_updates_frequency"]);
-EXPECT_EQ(null, options["global"]["stats_updates_frequency"]);
+options = clusterset.routerOptions();
+EXPECT_EQ(false, options["configuration"]["routing_rules"].hasOwnProperty("stats_updates_frequency"));
 
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
 EXPECT_FALSE("stats_updates_frequency" in options);
@@ -377,9 +392,9 @@ set_metadata_version(2, 1, 0);
 
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", 47); });
 
-options = clusterset.routingOptions();
-EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
-EXPECT_EQ(47, options["global"]["stats_updates_frequency"]);
+options = clusterset.routerOptions();
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["stats_updates_frequency"]);
+EXPECT_EQ(47, options["configuration"]["routing_rules"]["stats_updates_frequency"]);
 
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
 EXPECT_TRUE("stats_updates_frequency" in options);
@@ -387,9 +402,9 @@ EXPECT_EQ(47, options["stats_updates_frequency"]);
 
 EXPECT_NO_THROWS(function(){ clusterset.setRoutingOption("stats_updates_frequency", null); });
 
-options = clusterset.routingOptions();
-EXPECT_EQ("number", typeof options["global"]["stats_updates_frequency"]);
-EXPECT_EQ(0, options["global"]["stats_updates_frequency"]);
+options = clusterset.routerOptions();
+EXPECT_EQ("number", typeof options["configuration"]["routing_rules"]["stats_updates_frequency"]);
+EXPECT_EQ(0, options["configuration"]["routing_rules"]["stats_updates_frequency"]);
 
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clustersets").fetchOne()[0]);
 EXPECT_TRUE("stats_updates_frequency" in options);

@@ -30,10 +30,6 @@ DESCRIPTION
         clusterset, or adding an instance to one
       - dba.gtidWaitTimeout: timeout value in seconds to wait for GTIDs to be
         synchronized
-      - dba.logSql: 0..2, log SQL statements executed by AdminAPI operations: 0
-        - logging disabled; 1 - log statements other than SELECT and SHOW; 2 -
-        log all statements. Option takes precedence over --log-sql in Dba.*
-        context, if enabled.
       - dba.restartWaitTimeout: timeout in seconds to wait for MySQL server to
         come back after a restart during clone recovery
       - dba.versionCompatibilityChecks: bool, checks version compatibility for
@@ -78,7 +74,6 @@ DESCRIPTION
         file
       - oci.profile: Specify which section in oci.configFile will be used as
         profile settings
-      - outputFormat: Deprecated, use resultFormat instead
       - pager: string which specifies the external command which is going to be
         used to display the paged output
       - passwordsFromStdin: boolean value that indicates if the shell should

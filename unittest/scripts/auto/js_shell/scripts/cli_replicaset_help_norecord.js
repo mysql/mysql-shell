@@ -27,9 +27,6 @@ callMysqlsh(["--", "rs", "remove-instance", "--help"])
 //@ CLI replicaset remove-router-metadata --help
 callMysqlsh(["--", "rs", "remove-router-metadata", "--help"])
 
-//@ CLI replicaset routing-options --help
-callMysqlsh(["--", "rs", "routing-options", "--help"])
-
 //@ CLI replicaset router-options --help
 callMysqlsh(["--", "rs", "router-options", "--help"])
 

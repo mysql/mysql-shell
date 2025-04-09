@@ -42,11 +42,8 @@ var rgid_router_options = session.runSql("select json_unquote(router_options->'$
 
 EXPECT_EQ(null, rgid_router_options);
 
-var routing_options = cluster.routingOptions();
-EXPECT_EQ(null, routing_options["global"]["guideline"]);
-
 var router_options = cluster.routerOptions();
-EXPECT_EQ(undefined, router_options["configuration"]["routing_rules"]["guideline"]);
+EXPECT_EQ(false, router_options["configuration"]["routing_rules"].hasOwnProperty("guideline"));
 
 // Manually set the guideline as the default
 session.runSql("UPDATE mysql_innodb_cluster_metadata.clusters SET router_options = JSON_SET(router_options, '$.guideline', ?) WHERE cluster_id = ?", [rgid, cid]);
@@ -58,8 +55,8 @@ EXPECT_OUTPUT_CONTAINS(`NOTE: Routing Guideline 'default_cluster_rg' is the guid
 EXPECT_OUTPUT_CONTAINS(`Routing Guideline 'anotherguideline' successfully created.`);
 
 // Verify the new one is not the active one
-var routing_options = cluster.routingOptions();
-EXPECT_EQ("default_cluster_rg", routing_options["global"]["guideline"]);
+var router_options = cluster.routerOptions();
+EXPECT_EQ("default_cluster_rg", router_options["configuration"]["routing_rules"]["guideline"]);
 
 // Run common tests for <RoutingGuideline>
 const expected_default_cluster_guideline_show_output = `
@@ -1982,11 +1979,8 @@ EXPECT_NO_THROWS(function(){ cluster.removeRoutingGuideline("rg2"); });
 EXPECT_NO_THROWS(function(){ test_import = cluster.importRoutingGuideline(test_import_valid);});
 
 // Confirm that the guideline was NOT set as the active one
-var routing_options = cluster.routingOptions();
-EXPECT_EQ(null, routing_options["global"]["guideline"]);
-
 var router_options = cluster.routerOptions();
-EXPECT_EQ(undefined, router_options["configuration"]["routing_rules"]["guideline"]);
+EXPECT_EQ(false, router_options["configuration"]["routing_rules"].hasOwnProperty("guideline"));
 
 //@<> import_routing_guideline() - 'rename' and 'force' cannot be use simultaneously
 EXPECT_THROWS(function(){ cluster.importRoutingGuideline(test_import_valid, {force: true, rename: "foo"});}, "Options 'force' and 'rename' are mutually exclusive");
@@ -2003,11 +1997,8 @@ EXPECT_THROWS(function(){ cluster.importRoutingGuideline(test_import_valid, { re
 EXPECT_NO_THROWS(function(){ test_import = cluster.importRoutingGuideline(test_import_valid, { rename: "test_import_new_name"});});
 
 // Confirm that the guideline was NOT set as the active one
-var routing_options = cluster.routingOptions();
-EXPECT_EQ(null, routing_options["global"]["guideline"]);
-
 var router_options = cluster.routerOptions();
-EXPECT_EQ(undefined, router_options["configuration"]["routing_rules"]["guideline"]);
+EXPECT_EQ(false, router_options["configuration"]["routing_rules"].hasOwnProperty("guideline"));
 
 // Confirm the guideline was renamed
 EXPECT_EQ("test_import_new_name", test_import.name);

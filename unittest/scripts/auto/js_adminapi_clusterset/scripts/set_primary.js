@@ -71,7 +71,7 @@ EXPECT_OUTPUT_NOT_CONTAINS("ERROR");
 EXPECT_THROWS(function(){cs.setPrimaryCluster("cluster3");}, "The cluster with the name 'cluster3' does not exist.");
 
 //@<> Switch primary 1/1 (dryRun)
-shell.options["dba.logSql"] = 2;
+shell.options["logSql"] = "unfiltered";
 
 cs.setPrimaryCluster("cluster2", {dryRun:1});
 
@@ -86,7 +86,7 @@ EXPECT_OUTPUT_CONTAINS("* Acquiring locks in ClusterSet instances");
 
 EXPECT_SHELL_LOG_NOT_CONTAINS("FLUSH TABLES WITH READ LOCK");
 
-shell.options["dba.logSql"] = 0;
+shell.options["logSql"] = "off";
 
 //@<> Switch primary 1/1
 cs.setPrimaryCluster("cluster2");

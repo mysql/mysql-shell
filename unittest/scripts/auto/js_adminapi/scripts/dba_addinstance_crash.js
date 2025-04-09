@@ -9,7 +9,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root")
 
 shell.connect(__sandbox_uri1)
 
-shell.options["dba.logSql"]=1;
+shell.options["logSql"]="on";
 
 var cluster;
 

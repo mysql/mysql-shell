@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2025, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -215,19 +215,19 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   std::string uri_xscheme_db = "mysqlx://" + _uri + "/mysql";
   std::string mysql_uri_scheme_db = "mysql://" + _mysql_uri + "/mysql";
 
-  // FR2_5 : mysqlsh -u <user> -p --port=<mysql_port> -ma
+  // FR2_5 : mysqlsh -u <user> -p --port=<mysql_port>
   execute(
-      {_mysqlsh, "-u", _user.c_str(), "-p", mysql_port.c_str(), "-ma",
+      {_mysqlsh, "-u", _user.c_str(), "-p", mysql_port.c_str(),
        "--interactive=full", "--passwords-from-stdin", "-e", "\\status", NULL},
       _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
-  // FR2_7 : mysqlsh -u <user> -p --port=<mysqlx_port> -ma
+  // FR2_7 : mysqlsh -u <user> -p --port=<mysqlx_port>
   execute(
-      {_mysqlsh, "-u", _user.c_str(), "-p", port.c_str(), "-ma",
-       "--interactive=full", "--passwords-from-stdin", "-e", "\\status", NULL},
+      {_mysqlsh, "-u", _user.c_str(), "-p", port.c_str(), "--interactive=full",
+       "--passwords-from-stdin", "-e", "\\status", NULL},
       _pwd.c_str());
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '");
@@ -239,14 +239,6 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to '");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             X protocol");
-
-  // BUG27363459: Deprecation of -mx
-  execute({_mysqlsh, "--uri", uri_scheme_db.c_str(), "-mx",
-           "--interactive=full", "-e", "\\status", NULL});
-
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "The -mx option was deprecated, please use --mx instead. (Option "
-      "has been processed as --mx).");
 
   // FR_EXTRA_11 : mysqlsh --uri mysqlx://user@host:3306/db --mysqlx
   execute({_mysqlsh, "--uri", mysql_uri_xscheme_db.c_str(), "--mysqlx",
@@ -268,17 +260,9 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
           _mysql_port + "' seems to speak the classic MySQL protocol");
 
-  // FR_EXTRA_15 : mysqlsh --uri mysqlx://user@host:33060/db --mysqlx -ma
-  execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "--mysqlx", "-ma",
+  // FR_EXTRA_16 : mysqlsh --uri mysqlx://user@host:33060/db --mx
+  execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "--mx",
            "--interactive=full", "-e", "\\status", NULL});
-
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
-
-  // FR_EXTRA_16 : mysqlsh --uri mysqlx://user@host:33060/db --mx -ma
-  // BUG27363459: Deprecation of -mc
-  execute({_mysqlsh, "--uri", uri_xscheme_db.c_str(), "--mx", "-ma",
-           "--interactive=full", "-e", "\\status", NULL});
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("The -ma option was deprecated.");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");
 
   // FR_EXTRA_19 : mysqlsh --uri user@host:3306/db --mysqlx
@@ -299,20 +283,9 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
       "Requested session assumes MySQL X Protocol but '" + _host + ":" +
           _mysql_port + "' seems to speak the classic MySQL protocol");
 
-  // FR_EXTRA_SUCCEED_1 : mysqlsh --uri mysql://user@host:3306/db -ma
-  execute({_mysqlsh, "--uri", mysql_uri_scheme_db.c_str(), "-ma",
-           "--interactive=full", "-e", "\\status", NULL});
-
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
-  MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
-
-  // BUG27363459: Deprecation of -mc
-  execute({_mysqlsh, mysql_uri_db.c_str(), "-mc", "--interactive=full", "-e",
-           "\\status", NULL});
-
-  MY_EXPECT_CMD_OUTPUT_CONTAINS(
-      "The -mc option was deprecated, please use --mc instead. (Option "
-      "has been processed as --mc).");
+  // FR_EXTRA_SUCCEED_1 : mysqlsh --uri mysql://user@host:3306/db
+  execute({_mysqlsh, "--uri", mysql_uri_scheme_db.c_str(), "--interactive=full",
+           "-e", "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
@@ -324,8 +297,8 @@ TEST_F(Command_line_connection_test, session_cmdline_options) {
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a Classic session to ");
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Protocol version:             Classic 10");
 
-  // FR_EXTRA_SUCCEED_3 : mysqlsh --uri mysqlx://user@host:33060/db -ma
-  execute({_mysqlsh, uri_xscheme_db.c_str(), "-ma", "--interactive=full", "-e",
+  // FR_EXTRA_SUCCEED_3 : mysqlsh --uri mysqlx://user@host:33060/db
+  execute({_mysqlsh, uri_xscheme_db.c_str(), "--interactive=full", "-e",
            "\\status", NULL});
 
   MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating an X protocol session to ");

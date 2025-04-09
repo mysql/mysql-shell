@@ -38,7 +38,6 @@ validate_members(cluster, [
     'fence_writes',
     'unfence_writes',
     'add_replica_instance',
-    'routing_options',
     'set_routing_option',
     'router_options',
     'create_routing_guideline',

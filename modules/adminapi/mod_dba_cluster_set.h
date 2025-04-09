@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -67,7 +67,6 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   Undefined setupAdminAccount(String user, Dictionary options);
   Undefined setupRouterAccount(String user, Dictionary options);
   Dictionary routerOptions(String router);
-  Dictionary routingOptions(String router);
   Dictionary listRouters(String router);
   Undefined setOption(String option, String value);
   Dictionary options();
@@ -96,7 +95,6 @@ class ClusterSet : public std::enable_shared_from_this<ClusterSet>,
   None setup_admin_account(str user, dict options);
   None setup_router_account(str user, dict options);
   dict router_options(dict options);
-  dict routing_options(str router);
   dict list_routers(str router);
   None set_option(str option, str value);
   dict options();

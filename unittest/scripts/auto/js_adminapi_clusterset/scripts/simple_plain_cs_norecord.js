@@ -304,7 +304,7 @@ CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster)
 // delete sb3 from the metadata so that rescan picks it up
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port3]);
 
-EXPECT_NO_THROWS(function() { cluster.rescan({addInstances: "auto"}); });
+EXPECT_NO_THROWS(function() { cluster.rescan({addUnmanaged: "true"}); });
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 CHECK_PRIMARY_CLUSTER([__sandbox_uri1, __sandbox_uri2, __sandbox_uri3], cluster);
 
@@ -345,7 +345,7 @@ CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster,
 connect_no_timeout(__sandbox_uri1);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name LIKE ?", ["%:"+__mysql_sandbox_port3]);
 
-EXPECT_NO_THROWS(function() { replicacluster.rescan({addInstances: "auto"}); });
+EXPECT_NO_THROWS(function() { replicacluster.rescan({addUnmanaged: "true"}); });
 connect_no_timeout(__sandbox_uri4);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 CHECK_REPLICA_CLUSTER([__sandbox_uri4, __sandbox_uri3], cluster, replicacluster, undefined, __secure_password);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,57 +54,6 @@ Rescan::Rescan(Rescan_options options, Cluster_impl *cluster)
       m_cluster(cluster),
       m_repl_account_mng{*cluster} {
   assert(cluster);
-  assert((m_options.auto_add && m_options.add_instances_list.empty()) ||
-         !m_options.auto_add);
-  assert((m_options.auto_remove && m_options.remove_instances_list.empty()) ||
-         !m_options.auto_remove);
-}
-
-void Rescan::validate_list_duplicates() const {
-  std::set<std::string> add_instances_set, remove_instances_set;
-
-  // Lambda function to check for instance duplicates in list, creating a set
-  // with the instance address to compare later.
-  auto duplicates_check =
-      [](const std::string &option_name,
-         const std::vector<mysqlshdk::db::Connection_options> &in_list,
-         std::set<std::string> *out_set) {
-        for (const auto &cnx_opt : in_list) {
-          std::string instance_address =
-              cnx_opt.as_uri(mysqlshdk::db::uri::formats::only_transport());
-          auto res = out_set->insert(instance_address);
-          if (!res.second) {
-            throw shcore::Exception::argument_error(
-                "Duplicated value found for instance '" + instance_address +
-                "' in '" + option_name + "' option.");
-          }
-        }
-      };
-
-  // Check for duplicates in the addInstances list.
-  duplicates_check("addInstances", m_options.add_instances_list,
-                   &add_instances_set);
-
-  // Check for duplicates in the removeInstances list.
-  duplicates_check("removeInstances", m_options.remove_instances_list,
-                   &remove_instances_set);
-
-  // Find common instance in the two options.
-  std::vector<std::string> repeated_instances;
-  std::set_intersection(add_instances_set.begin(), add_instances_set.end(),
-                        remove_instances_set.begin(),
-                        remove_instances_set.end(),
-                        std::back_inserter(repeated_instances));
-
-  // The same instance cannot be included in both options.
-  if (!repeated_instances.empty()) {
-    std::string plural = (repeated_instances.size() > 1) ? "s" : "";
-    throw shcore::Exception::argument_error(
-        "The same instance" + plural +
-        " cannot be used in both 'addInstances' and 'removeInstances' options: "
-        "'" +
-        shcore::str_join(repeated_instances, ", ") + "'.");
-  }
 }
 
 void Rescan::ensure_unavailable_instances_not_auto_rejoining(
@@ -162,35 +111,11 @@ std::vector<std::string> Rescan::detect_invalid_members(
 }
 
 void Rescan::prepare() {
-  // Validate duplicates in addInstances and removeInstances options.
-  validate_list_duplicates();
-
   auto console = mysqlsh::current_console();
 
-  // All instance to add must be an active member of the GR group.
-  {
-    std::vector<std::string> invalid_add_members =
-        detect_invalid_members(m_options.add_instances_list, true);
-
-    if (!invalid_add_members.empty()) {
-      console->print_error(
-          "The following instances cannot be added because they are not active "
-          "members of the cluster: '" +
-          shcore::str_join(invalid_add_members, ", ") +
-          "'. Please verify if the specified addresses are correct, or if the "
-          "instances are currently inactive.");
-      console->print_info();
-
-      throw shcore::Exception::runtime_error(
-          "The following instances are not active members of the cluster: '" +
-          shcore::str_join(invalid_add_members, ", ") + "'.");
-    }
-  }
-
   // can't add instances if recovery auth isn't password
-  if (((!m_options.add_instances_list.empty() || m_options.auto_add) &&
-       (m_cluster->query_cluster_auth_type() !=
-        Replication_auth_type::PASSWORD))) {
+  if (m_options.auto_add && (m_cluster->query_cluster_auth_type() !=
+                             Replication_auth_type::PASSWORD)) {
     console->print_error(
         "Unrecognized members were detected in the group, but the cluster is "
         "configured to require SSL certificate authentication. Please stop GR "
@@ -203,23 +128,6 @@ void Rescan::prepare() {
         "Can't automatically add unrecognized members to the cluster when "
         "memberAuthType is '%s'.",
         to_string(m_cluster->query_cluster_auth_type()).c_str()));
-  }
-
-  // All instance to remove cannot be an active member of the GR group.
-  std::vector<std::string> invalid_remove_members =
-      detect_invalid_members(m_options.remove_instances_list, false);
-
-  if (!invalid_remove_members.empty()) {
-    console->print_error(
-        "The following instances cannot be removed because they are active "
-        "members of the cluster: '" +
-        shcore::str_join(invalid_remove_members, ", ") +
-        "'. Please verify if the specified addresses are correct.");
-    console->print_info();
-
-    throw shcore::Exception::runtime_error(
-        "The following instances are active members of the cluster: '" +
-        shcore::str_join(invalid_remove_members, ", ") + "'.");
   }
 
   // Check if group_replication_view_change_uuid is supported
@@ -632,26 +540,6 @@ void Rescan::remove_instance_from_metadata(
   console->print_info();
 }
 
-namespace {
-using Instance_list = std::vector<mysqlshdk::db::Connection_options>;
-Instance_list::const_iterator find_in_instance_list(
-    const Instance_list &list, std::string_view instance_address) {
-  if (list.empty()) return list.end();
-
-  // Lambda function (predicate) to check if the instance address
-  // matches.
-  auto in_list =
-      [&instance_address](const mysqlshdk::db::Connection_options &cnx_opt) {
-        std::string address =
-            cnx_opt.as_uri(mysqlshdk::db::uri::formats::only_transport());
-        return mysqlshdk::utils::are_endpoints_equal(address, instance_address);
-      };
-
-  // Return iterator with a matching address (if in the list).
-  return std::find_if(list.begin(), list.end(), in_list);
-}
-}  // namespace
-
 void Rescan::add_metadata_for_instances(
     const std::shared_ptr<shcore::Value::Array_type> &instance_list) {
   if (instance_list->empty()) return;
@@ -675,16 +563,9 @@ void Rescan::add_metadata_for_instances(
     console->print_info("A new instance '" + instance_address +
                         "' was discovered in the cluster.");
 
-    // Check if the new instance belongs to the addInstances list.
-    auto list_iter =
-        find_in_instance_list(m_options.add_instances_list, instance_address);
-
     // Decide to add/remove instance based on given operation options.
     mysqlshdk::db::Connection_options instance_cnx_opts;
-    if (list_iter != m_options.add_instances_list.end()) {
-      instance_cnx_opts = *list_iter;
-      m_options.add_instances_list.erase(list_iter);
-    } else if (m_options.auto_add) {
+    if (m_options.auto_add) {
       instance_cnx_opts = mysqlshdk::db::Connection_options(instance_address);
     } else if (current_shell_options()->get().wizards) {
       if (console->confirm("Would you like to add it to the cluster metadata?",
@@ -711,15 +592,7 @@ void Rescan::remove_metadata_for_instances(
     console->print_info("The instance '" + instance_address +
                         "' is no longer part of the cluster.");
 
-    // Check if the new instance belongs to the addInstances list.
-    // Decide to add/remove instance based on given operation options.
-    auto list_iter = find_in_instance_list(m_options.remove_instances_list,
-                                           instance_address);
-    if (list_iter != m_options.remove_instances_list.end()) {
-      remove_instance_from_metadata(instance_address);
-
-      m_options.remove_instances_list.erase(list_iter);
-    } else if (m_options.auto_remove) {
+    if (m_options.auto_remove) {
       // Remove instance automatically if "auto" was used.
       remove_instance_from_metadata(instance_address);
     } else if (current_shell_options()->get().wizards) {
@@ -1115,26 +988,6 @@ shcore::Value Rescan::execute() {
     add_metadata_for_instances(result->get_array("newlyDiscoveredInstances"));
   }
 
-  // Print warning about not used instances in addInstances.
-  if (!m_options.add_instances_list.empty()) {
-    std::vector<std::string> not_used_add_instances;
-    not_used_add_instances.reserve(m_options.add_instances_list.size());
-
-    for (const auto &cnx_opts : m_options.add_instances_list) {
-      not_used_add_instances.push_back(
-          cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
-    }
-
-    if (!not_used_add_instances.empty()) {
-      console->print_warning(
-          "The following instances were not added to the metadata because they "
-          "are already part of the cluster: '" +
-          shcore::str_join(not_used_add_instances, ", ") +
-          "'. Please verify if the specified value for 'addInstances' option "
-          "is correct.");
-    }
-  }
-
   // Check if there are missing instances
   if (result->has_key("unavailableInstances")) {
     remove_metadata_for_instances(result->get_array("unavailableInstances"));
@@ -1205,26 +1058,6 @@ shcore::Value Rescan::execute() {
   // Ensures group_replication_transaction_size_limit is set to the same value
   // in all cluster members
   ensure_transaction_size_limit_consistency();
-
-  // Print warning about not used instances in removeInstances.
-  if (!m_options.remove_instances_list.empty()) {
-    std::vector<std::string> not_used_remove_instances;
-    not_used_remove_instances.reserve(m_options.remove_instances_list.size());
-
-    for (const auto &cnx_opts : m_options.remove_instances_list) {
-      not_used_remove_instances.push_back(
-          cnx_opts.as_uri(mysqlshdk::db::uri::formats::only_transport()));
-    }
-    if (!not_used_remove_instances.empty()) {
-      console->print_warning(
-          "The following instances were not removed from the metadata because "
-          "they are already not part of the cluster or are running auto-rejoin"
-          ": '" +
-          shcore::str_join(not_used_remove_instances, ", ") +
-          "'. Please verify if the specified value for 'removeInstances' "
-          "option is correct.");
-    }
-  }
 
   // Check if the topology mode changed.
   // NOTE: This must be performed after updating the instances in the metadata,

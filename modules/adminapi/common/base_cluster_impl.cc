@@ -73,32 +73,6 @@ namespace {
 const built_in_tags_map_t k_supported_set_option_tags{
     {"_hidden", shcore::Value_type::Bool},
     {"_disconnect_existing_sessions_when_hidden", shcore::Value_type::Bool}};
-
-Command_conditions::Builder gen_routing_options_builder(Cluster_type type,
-                                                        std::string_view name) {
-  switch (type) {
-    case Cluster_type::GROUP_REPLICATION:
-      return Command_conditions::Builder::gen_cluster(name)
-          .target_instance(TargetType::InnoDBCluster,
-                           TargetType::InnoDBClusterSet)
-          .primary_required()
-          .allowed_on_fence();
-    case Cluster_type::ASYNC_REPLICATION:
-      return Command_conditions::Builder::gen_replicaset(name)
-          .primary_required();
-
-    case Cluster_type::REPLICATED_CLUSTER:
-      return Command_conditions::Builder::gen_clusterset(name)
-          .primary_not_required()
-          .allowed_on_fence();
-
-    default:
-      throw std::logic_error(
-          shcore::str_format("Command context is incorrect for \"%.*s\".",
-                             static_cast<int>(name.size()), name.data()));
-  }
-}
-
 }  // namespace
 
 Base_cluster_impl::Base_cluster_impl(
@@ -1575,35 +1549,42 @@ void Base_cluster_impl::set_routing_option(const std::string &router,
   }
 }
 
-shcore::Dictionary_t Base_cluster_impl::routing_options(
-    const std::string &router) {
-  {
-    auto type = get_type();
-
-    auto b = gen_routing_options_builder(type, "routingOptions");
-    if (type == Cluster_type::GROUP_REPLICATION)
-      b.compatibility_check(
-          metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_0_0);
-
-    check_preconditions(b.build());
-  }
-
-  return mysqlsh::dba::routing_options(get_metadata_storage().get(), get_type(),
-                                       get_id(), router);
-}
-
 shcore::Dictionary_t Base_cluster_impl::router_options(
     const shcore::Option_pack_ref<Router_options_options> &options) {
   {
-    auto type = get_type();
+    Command_conditions conds;
+    switch (get_type()) {
+      case Cluster_type::GROUP_REPLICATION:
+        conds = Command_conditions::Builder::gen_cluster("routerOptions")
+                    .target_instance(TargetType::InnoDBCluster,
+                                     TargetType::InnoDBClusterSet)
+                    .primary_required()
+                    .allowed_on_fence()
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0)
+                    .build();
+        break;
+      case Cluster_type::ASYNC_REPLICATION:
+        conds = Command_conditions::Builder::gen_replicaset("routerOptions")
+                    .primary_required()
+                    .compatibility_check(
+                        metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0)
+                    .build();
+        break;
 
-    auto b = gen_routing_options_builder(type, "routerOptions");
-    if ((type == Cluster_type::GROUP_REPLICATION) ||
-        (type == Cluster_type::ASYNC_REPLICATION))
-      b.compatibility_check(
-          metadata::Compatibility::INCOMPATIBLE_MIN_VERSION_2_1_0);
+      case Cluster_type::REPLICATED_CLUSTER:
+        conds = Command_conditions::Builder::gen_clusterset("routerOptions")
+                    .primary_not_required()
+                    .allowed_on_fence()
+                    .build();
+        break;
 
-    check_preconditions(b.build());
+      default:
+        throw std::logic_error(shcore::str_format(
+            "Command context is incorrect for \"routerOptions\"."));
+    }
+
+    check_preconditions(conds);
   }
 
   return mysqlsh::dba::router_options(get_metadata_storage().get(), get_type(),

@@ -222,169 +222,17 @@ cluster.rescan();
 var final_atts = session.runSql(`SELECT attributes->'$.server_id' AS server_id FROM mysql_innodb_cluster_metadata.instances WHERE address = '${hostname}:${__mysql_sandbox_port3}'`).fetchOneObject();
 EXPECT_EQ(initial_atts.server_id, final_atts.server_id);
 
-//@<> WL10644 - TSF2_6: empty addInstances throw ArgumentError.
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: []});
-}, `The list for 'addInstances' option cannot be empty.`);
-EXPECT_OUTPUT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
+//@<> invalid addUnmanaged and removeObsolete value type throws TypeError
+EXPECT_THROWS_TYPE(function() {
+    cluster.rescan({addUnmanaged: "yes"})
+}, "Argument #1: Option 'addUnmanaged' Bool expected, but value is String", "TypeError");
 
-//@<> WL10644 - TSF2_8: invalid addInstances list throw ArgumentError.
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: [,]});
-}, `Invalid value 'undefined' for 'addInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: ["localhost"]});
-}, `Invalid value 'localhost' for 'addInstances' option: port is missing.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: ["localhost:3300", ":3301"]});
-}, `Invalid value ':3301' for 'addInstances' option: host cannot be empty.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: ["localhost:3300", "@", "myhost:3301"]});
-}, `Invalid value '@' for 'addInstances' option: Invalid URI: Missing user information`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: [{}]});
-}, `Invalid value '{}' for 'addInstances' option: Invalid connection options, no options provided.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: [{host: "myhost"}]});
-}, `Invalid value '{"host": "myhost"}' for 'addInstances' option: port is missing.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: [{host: "myhost", port:3300}, {host: ""}, {host: "localhost", port:3301}]});
-}, `Invalid value '{"host": ""}' for 'addInstances' option: Host value cannot be an empty string.`);
+EXPECT_THROWS_TYPE(function() {
+    cluster.rescan({removeObsolete: "yes"})
+}, "Argument #1: Option 'removeObsolete' Bool expected, but value is String", "TypeError");
 
-//@<> WL10644: Duplicated values for addInstances.
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: ["localhost:3301", "localhost:3300", "localhost:3301"]});
-}, `Duplicated value found for instance 'localhost:3301' in 'addInstances' option.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: [{host: "localhost", port: "3301", user: "root"}, {host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
-}, `Duplicated value found for instance 'localhost:3301' in 'addInstances' option.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: ["localhost:3301", "localhost:3300", {host: "localhost", port: "3301"}]});
-}, `Duplicated value found for instance 'localhost:3301' in 'addInstances' option.`);
-
-//@<> WL10644 - TSF2_9: invalid value with addInstances throw ArgumentError.
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: "invalid"});
-}, `Option 'addInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected.`);
-
-//@<> WL10644 - TSF2_7: "auto" is case insensitive, no error.
-EXPECT_NO_THROWS(function(){ cluster.rescan({addInstances: "AuTo"}); });
-
-//@<> WL10644: Invalid type used for addInstances.
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: {}});
-}, `The 'addInstances' option must be a string or a list of strings.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: true});
-}, `The 'addInstances' option must be a string or a list of strings.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: 123});
-}, `The 'addInstances' option must be a string or a list of strings.`);
-
-//@<> WL10644 - TSF2_10: not active member in addInstances throw RuntimeError.
-cluster.rescan({addInstances: ["localhost:1111"]});
-
-//@<> WL10644 - TSF2_11: warning for already members in addInstances.
-var member_address = hostname + ":" + __mysql_sandbox_port1;
-cluster.rescan({addInstances: [member_address]});
-
-//@<> WL10644 - TSF3_6: empty removeInstances throw ArgumentError.
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: []});
-}, `The list for 'removeInstances' option cannot be empty.`);
-EXPECT_OUTPUT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
-
-//@<> WL10644 - TSF3_8: invalid removeInstances list throw ArgumentError.
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: [,]});
-}, `Invalid value 'undefined' for 'removeInstances' option: Invalid connection options, expected either a URI or a Connection Options Dictionary`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: ["localhost"]});
-}, `Invalid value 'localhost' for 'removeInstances' option: port is missing.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: ["localhost:3300", ":3301"]});
-}, `Invalid value ':3301' for 'removeInstances' option: host cannot be empty.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: ["localhost:3300", "@", "myhost:3301"]});
-}, `Invalid value '@' for 'removeInstances' option: Invalid URI: Missing user information`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: [{}]});
-}, `Invalid value '{}' for 'removeInstances' option: Invalid connection options, no options provided.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: [{host: "myhost"}]});
-}, `Invalid value '{"host": "myhost"}' for 'removeInstances' option: port is missing.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {port:3301}]});
-}, `Invalid value '{"port": 3301}' for 'removeInstances' option: The connection option 'host' has no value.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {user: "root"}, {host: "localhost", port:3301}]});
-}, `Invalid value '{"user": "root"}' for 'removeInstances' option: The connection option 'host' has no value.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: [{host: "myhost", port:3300}, {host: ""}, {host: "localhost", port:3301}]});
-}, `Invalid value '{"host": ""}' for 'removeInstances' option: Host value cannot be an empty string.`);
-
-//@<> WL10644: Duplicated values for removeInstances.
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: ["localhost:3301", "localhost:3300", "localhost:3301"]});
-}, `Duplicated value found for instance 'localhost:3301' in 'removeInstances' option.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: [{host: "localhost", port: "3301", user: "root"}, {host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
-}, `Duplicated value found for instance 'localhost:3301' in 'removeInstances' option.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: ["localhost:3301", "localhost:3300", {host: "localhost", port: "3301"}]});
-}, `Duplicated value found for instance 'localhost:3301' in 'removeInstances' option.`);
-
-//@<> WL10644 - TSF3_9: invalid value with removeInstances throw ArgumentError.
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: "invalid"});
-}, `Option 'removeInstances' only accepts 'auto' as a valid string value, otherwise a list of instances is expected.`);
-
-//@<> WL10644 - TSF3_7: "auto" is case insensitive, no error.
-EXPECT_NO_THROWS(function(){ cluster.rescan({removeInstances: "aUtO"}); });
-
-//@<> WL10644: Invalid type used for removeInstances.
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: {}});
-}, `The 'removeInstances' option must be a string or a list of strings.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: true});
-}, `The 'removeInstances' option must be a string or a list of strings.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: 123});
-}, `The 'removeInstances' option must be a string or a list of strings.`);
-
-//@<> Check bool type for addUnmanaged and removeObsolete
-EXPECT_THROWS(function() {
-    cluster.rescan({addUnmanaged: ""});
-}, `Option 'addUnmanaged' Bool expected, but value is String`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeObsolete: ""});
-}, `Option 'removeObsolete' Bool expected, but value is String`);
-
-//@<> Can't mix both new and deprecated options
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: "auto", addUnmanaged: true});
-}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeObsolete: true, addInstances: "auto"});
-}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeInstances: "auto", addUnmanaged: true});
-}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
-EXPECT_THROWS(function() {
-    cluster.rescan({removeObsolete: true, removeInstances: "auto"});
-}, `Options 'addUnmanaged' and 'removeObsolete' are mutually exclusive with deprecated options 'addInstances' and 'removeInstances'. Mixing either one from both groups isn't allowed.`);
-
-//@<> WL10644 - TSF3_10: active member in removeInstances throw RuntimeError.
-cluster.rescan({removeInstances: [member_address]});
-
-//@<> WL10644 - TSF3_11: warning for not members in removeInstances.
-cluster.rescan({removeInstances: ["localhost:1111"]});
-
-//@ WL10644: Duplicated values between addInstances and removeInstances.
-cluster.rescan({addInstances: ["localhost:3300", "localhost:3302", "localhost:3301"], removeInstances: ["localhost:3301", "localhost:3300"]});
-cluster.rescan({addInstances: [{host: "localhost", port: "3301", user: "root"}], removeInstances: [{host: "localhost", port: "3300"}, {host: "localhost", port: "3301"}]});
-cluster.rescan({addInstances: ["localhost:3301", "localhost:3300"], removeInstances: [{host: "localhost", port: "3301"}]});
+//@<> ensure removeObsolete also accounts for missing server id.
+EXPECT_NO_THROWS(function(){ cluster.rescan({removeObsolete: true}); });
 
 //@<> Remove instance on port 2 and 3 from MD but keep it in the group.
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [hostname+":"+__mysql_sandbox_port2]);
@@ -393,10 +241,8 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
-//@<> WL10644 - TSF2_1: Rescan with addInstances:[complete_valid_list].
-var member_address2 = hostname + ":" + __mysql_sandbox_port2;
-var member_address3 = hostname + ":" + __mysql_sandbox_port3;
-cluster.rescan({addInstances: [member_address2, member_address3]});
+//@<> addUnmanaged must ensure all metadata is updated
+cluster.rescan({addUnmanaged: true});
 
 //@<> WL10644 - TSF2_1: Validate that the instances were added.
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
@@ -428,87 +274,24 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
 
-//@<> WL10644 - TSF2_2: Remove instances on port 2 and 3 from MD again.
+//@<> Make sure that "addUnmanaged: true" works.
+var member_address2 = hostname + ":" + __mysql_sandbox_port2;
+var member_address3 = hostname + ":" + __mysql_sandbox_port3;
+
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
 session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
 
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
-                                   [__mysql_sandbox_port2, "UNMANAGED"],
-                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
-
-//@<> WL10644 - TSF2_2: Rescan with addInstances:[incomplete_valid_list] and interactive:true.
-shell.options.useWizards=1;
-testutil.expectPrompt("Would you like to add it to the cluster metadata? [Y/n]:", "y");
-cluster.rescan({addInstances: [member_address2]});
-shell.options.useWizards=0;
-
-//@<> WL10644 - TSF2_2: Validate that the instances were added.
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
-                                   [__mysql_sandbox_port2, "OK"],
-                                   [__mysql_sandbox_port3, "OK"]]);
-
-//@<> WL10644 - TSF2_3: Remove instances on port 2 and 3 from MD again.
-session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
-session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
-
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED"],
-                                   [__mysql_sandbox_port2, "UNMANAGED"],
-                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
-
-//@<> WL10644 - TSF2_3: Rescan with addInstances:[incomplete_valid_list] and interactive:false.
-cluster.rescan({addInstances: [member_address2]});
-
-//@<> WL10644 - TSF2_3: Validate that the instances were added.
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
-                                   [__mysql_sandbox_port2, "OK"],
-                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
-
-//@<> WL10644 - TSF2_4: Remove instances on port 2 from MD.
-session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SINGLE"],
-                                   [__mysql_sandbox_port2, "UNMANAGED"],
-                                   [__mysql_sandbox_port3, "UNMANAGED"]]);
-
-//@<> WL10644 - TSF2_4: Rescan with addInstances:"auto" and interactive:true.
-shell.options.useWizards=1;
-cluster.rescan({addInstances: "AUTO"});
-
-//@<> WL10644 - TSF2_4: Validate that the instances were added.
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
-                                   [__mysql_sandbox_port2, "OK"],
-                                   [__mysql_sandbox_port3, "OK"]]);
-
-//@<> Make sure that "addUnmanaged: true" behaves as addInstances "auto".
-session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
-session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
-
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SINGLE"],
                                    [__mysql_sandbox_port2, "UNMANAGED"],
                                    [__mysql_sandbox_port3, "UNMANAGED"]]);
 
 cluster.rescan({addUnmanaged: true});
-EXPECT_OUTPUT_NOT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
 
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "OK"],
                                    [__mysql_sandbox_port3, "OK"]]);
 
 shell.options.useWizards=0;
-
-//@<> WL10644 - TSF2_5: Remove instances on port 2 and 3 from MD again.
-session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address2]);
-session.runSql("DELETE FROM mysql_innodb_cluster_metadata.instances WHERE instance_name=?", [member_address3]);
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "RECOVERY_UNUSED_SINGLE"],
-                                   [__mysql_sandbox_port2, "UNMANAGED"],
-                                   [__mysql_sandbox_port2, "UNMANAGED"]]);
-
-//@<> WL10644 - TSF2_5: Rescan with addInstances:"auto" and interactive:false.
-cluster.rescan({addInstances: "auto"});
-
-//@<> WL10644 - TSF2_5: Validate that the instances were added.
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
-                                   [__mysql_sandbox_port2, "OK"],
-                                   [__mysql_sandbox_port3, "OK"]]);
 
 //@<> WL10644 - TSF3_1: Disable GR in persisted settings {VER(>=8.0.11)}.
 //NOTE: GR configurations are not updated on my.cnf therefore GR settings
@@ -534,8 +317,8 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 //@<> WL10644 - TSF3_1: Number of instances in the MD before rescan().
 EXPECT_EQ(3, count_in_metadata_schema());
 
-//@<> WL10644 - TSF3_1: Rescan with removeInstances:[complete_valid_list].
-cluster.rescan({removeInstances: [member_address2, member_address3]});
+//@<> Rescan with removeObsolete: true.
+cluster.rescan({removeObsolete: true});
 
 //@<> WL10644 - TSF3_1: Number of instances in the MD after rescan().
 EXPECT_EQ(1, count_in_metadata_schema());
@@ -577,13 +360,13 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 //@<> WL10644 - TSF3_2: Number of instances in the MD before rescan().
 EXPECT_EQ(3, count_in_metadata_schema());
 
-//@<> WL10644 - TSF3_2: Rescan with removeInstances:[incomplete_valid_list] and interactive:true.
+//@<> Rescan with interactive:true.
 shell.options.useWizards=1;
 
-testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y/n]:", "y");
-var member_fqdn_address2 = hostname + ":" + __mysql_sandbox_port2;
-var member_fqdn_address3 = hostname + ":" + __mysql_sandbox_port3;
-cluster.rescan({removeInstances: [member_fqdn_address2]});
+testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y/n]: ", "y");
+testutil.expectPrompt("Would you like to remove it from the cluster metadata? [Y/n]: ", "y");
+
+cluster.rescan();
 
 shell.options.useWizards=0;
 
@@ -627,45 +410,12 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 //@<> WL10644 - TSF3_3: Number of instances in the MD before rescan().
 EXPECT_EQ(3, count_in_metadata_schema());
 
-//@<> WL10644 - TSF3_3: Rescan with removeInstances:[incomplete_valid_list] and interactive:false.
-cluster.rescan({removeInstances: [member_fqdn_address2]});
+//@<> Rescan with removeObsolete: true and interactive:true.
+var member_fqdn_address2 = hostname + ":" + __mysql_sandbox_port2;
+var member_fqdn_address3 = hostname + ":" + __mysql_sandbox_port3;
 
-//@<> WL10644 - TSF3_3: Number of instances in the MD after rescan().
-EXPECT_EQ(2, count_in_metadata_schema());
-
-//@<> WL10644 - TSF3_3: Validate that the instances were removed.
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
-                                   [__mysql_sandbox_port2, "N/A"],
-                                   [__mysql_sandbox_port3, "MISSING"]]);
-
-//@<> WL10644 - TSF3_4: Start instance on port 2 and add it back to the cluster.
-//NOTE: Not need for instance 3 (no removed from MD in previous test).
-testutil.startSandbox(__mysql_sandbox_port2);
-cluster.addInstance(__hostname_uri2);
-testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
-
-//@<> WL10644 - TSF3_4: Disable GR in persisted settings {VER(>=8.0.11)}.
-//NOTE: GR configurations are not updated on my.cnf therefore GR settings
-//      are lost when the server is stopped.
-var s2 = mysql.getSession(__sandbox_uri2);
-s2.runSql("RESET PERSIST IF EXISTS group_replication_start_on_boot");
-s2.runSql("RESET PERSIST IF EXISTS group_replication_group_name");
-s2.close();
-
-//@<> WL10644 - TSF3_4: Stop instances on port 2 (no metadata MD changes).
-//NOTE: Not need for instance 3 (no removed from MD in previous test).
-testutil.stopSandbox(__mysql_sandbox_port2);
-testutil.waitMemberState(__mysql_sandbox_port2, "(MISSING)");
-validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
-                                   [__mysql_sandbox_port2, "MISSING"],
-                                   [__mysql_sandbox_port3, "MISSING"]]);
-
-//@<> WL10644 - TSF3_4: Number of instances in the MD before rescan().
-EXPECT_EQ(3, count_in_metadata_schema());
-
-//@<> WL10644 - TSF3_4: Rescan with removeInstances:"auto" and interactive:true.
 shell.options.useWizards=1;
-cluster.rescan({removeInstances: "auto"});
+cluster.rescan({removeObsolete: true});
 shell.options.useWizards=0;
 
 //@<> WL10644 - TSF3_4: Number of instances in the MD after rescan().
@@ -705,8 +455,6 @@ shell.options.useWizards=1;
 cluster.rescan({removeObsolete: true});
 shell.options.useWizards=0;
 
-EXPECT_OUTPUT_NOT_CONTAINS("The 'addInstances' and 'removeInstances' options are deprecated. Please use 'addUnmanaged' and/or 'removeObsolete' instead.");
-
 EXPECT_EQ(1, count_in_metadata_schema());
 validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
                                    [__mysql_sandbox_port2, "N/A"],
@@ -745,8 +493,8 @@ validate_status(cluster.status(), [[__mysql_sandbox_port1, "OK"],
 //@<> WL10644 - TSF3_5: Number of instances in the MD before rescan().
 EXPECT_EQ(3, count_in_metadata_schema());
 
-//@<> WL10644 - TSF3_5: Rescan with removeInstances:"auto" and interactive:false.
-cluster.rescan({removeInstances: "AUTO"});
+//@<> Rescan with removeObsolete: true and interactive:false.
+cluster.rescan({removeObsolete: true});
 
 //@<> WL10644 - TSF3_5: Number of instances in the MD after rescan().
 EXPECT_EQ(1, count_in_metadata_schema());
@@ -1024,7 +772,7 @@ EXPECT_OUTPUT_CONTAINS(`Dropping unused recovery account: 'mysql_innodb_cluster_
 status = cluster.status();
 EXPECT_FALSE(check_status_instance_error_msg(status, __mysql_sandbox_port1, `WARNING: Detected an unused recovery account: mysql_innodb_cluster_${instance2_id}. Use Cluster.rescan() to clean up.`));
 
-EXPECT_NO_THROWS(function () { cluster.rescan({addInstances: "auto"}) });
+EXPECT_NO_THROWS(function () { cluster.rescan({addUnmanaged: true}) });
 EXPECT_OUTPUT_CONTAINS(`The instance '${hostname}:${__mysql_sandbox_port2}' was successfully added to the cluster metadata.`);
 
 //@<> Bug #33235502 Check if recreated recovery account has the correct host

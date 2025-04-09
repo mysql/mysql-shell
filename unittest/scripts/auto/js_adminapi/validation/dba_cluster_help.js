@@ -95,13 +95,6 @@ FUNCTIONS
       routingGuidelines()
             Lists the Routing Guidelines defined for the Cluster.
 
-      routingOptions([router])
-            Lists the Cluster Routers configuration options.
-
-            ATTENTION: This function is deprecated and will be removed in a
-                       future release of MySQL Shell. Use
-                       Cluster.routerOptions() instead.
-
       setInstanceOption(instance, option, value)
             Changes the value of an option in a Cluster member.
 
@@ -1181,12 +1174,6 @@ DESCRIPTION
 
       The options dictionary may contain the following attributes:
 
-      - addInstances: List with the connection data of the new active instances
-        to add to the metadata, or "auto" to automatically add missing
-        instances to the metadata. Deprecated.
-      - removeInstances: List with the connection data of the obsolete
-        instances to remove from the metadata, or "auto" to automatically
-        remove obsolete instances from the metadata. Deprecated.
       - upgradeCommProtocol: Boolean. Set to true to upgrade the Group
         Replication communication protocol to the highest version possible.
       - updateViewChangeUuid: Boolean. Indicates if the command should generate
@@ -1202,20 +1189,10 @@ DESCRIPTION
       - repairMetadata: Boolean. Set to true to repair the Metadata if detected
         to be inconsistent.
 
-      The value for 'addInstances' and 'removeInstances' is used to specify
-      which instances to add or remove from the metadata, respectively. Both
-      options accept list connection data. In addition, the "auto" value can be
-      used for both options in order to automatically add or remove the
-      instances in the metadata, without having to explicitly specify them.
-
       'repairMetadata' is used to eliminate any inconsistencies detected in the
       Metadata. These inconsistencies may arise from a few scenarios, such as
       the failure of one or more commands. Clusters detected in the ClusterSet
       Metadata that do not qualify as valid members will be removed.
-
-      ATTENTION: The addInstances and removeInstances options will be removed
-                 in a future release. Use addUnmanaged and removeObsolete
-                 instead.
 
 //@<OUT> Status
 NAME
@@ -1635,27 +1612,6 @@ DESCRIPTION
       By default, if the standard output on which the Shell is running refers
       to a terminal, the recoveryProgress option has the value of 2. Otherwise,
       it has the value of 1.
-
-//@<OUT> routingOptions
-NAME
-      routingOptions - Lists the Cluster Routers configuration options.
-
-SYNTAX
-      <Cluster>.routingOptions([router])
-
-WHERE
-      router: Identifier of the router instance to query for the options.
-
-RETURNS
-      A JSON object describing the configuration options of all router
-      instances of the Cluster and its global options or just the given Router.
-
-DESCRIPTION
-      ATTENTION: This function is deprecated and will be removed in a future
-                 release of MySQL Shell. Use Cluster.routerOptions() instead.
-
-      This function lists the Router configuration options of all Routers of
-      the Cluster or the target Router.
 
 //@<OUT> routerOptions
 NAME

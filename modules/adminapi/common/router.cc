@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -275,59 +275,6 @@ shcore::Value clusterset_list_routers(MetadataStorage *md,
   }
 
   return shcore::Value(std::move(router_list));
-}
-
-shcore::Dictionary_t routing_options(MetadataStorage *md, Cluster_type type,
-                                     const std::string &id,
-                                     const std::string &router_label) {
-  auto router_options = shcore::make_dict();
-  auto romd = md->get_routing_options(type, id);
-
-  if (Cluster_set_id cs_id;
-      (type == Cluster_type::GROUP_REPLICATION) &&
-      md->check_cluster_set(nullptr, nullptr, nullptr, &cs_id)) {
-    // if the Cluster belongs to a ClusterSet, we need to replace the options
-    // in the Cluster with the options in the ClusterSet
-    auto cs_romd =
-        md->get_routing_options(Cluster_type::REPLICATED_CLUSTER, cs_id);
-
-    for (const auto &[option, value] : cs_romd.global) {
-      if (option == "tags") continue;
-
-      auto it = romd.global.find(option);
-      if (it != romd.global.end()) it->second = value;
-    }
-  }
-
-  const auto get_options_dict =
-      [](const std::map<std::string, shcore::Value> &entry) {
-        auto ret = shcore::make_dict();
-        for (const auto &option : entry) (*ret)[option.first] = option.second;
-
-        return shcore::Value(std::move(ret));
-      };
-
-  if (!router_label.empty()) {
-    if (romd.routers.find(router_label) != romd.routers.end()) {
-      const auto &entry = romd.routers[router_label];
-
-      (*router_options)[router_label] = get_options_dict(entry);
-    } else {
-      throw shcore::Exception::argument_error(
-          "Router '" + router_label + "' is not registered in the " +
-          to_display_string(type, Display_form::THING));
-    }
-  } else {
-    auto routers = shcore::make_dict();
-
-    (*router_options)["global"] = get_options_dict(romd.global);
-    for (const auto &entry : romd.routers) {
-      (*routers)[entry.first] = get_options_dict(entry.second);
-    }
-    (*router_options)["routers"] = shcore::Value(routers);
-  }
-
-  return router_options;
 }
 
 shcore::Dictionary_t router_options(MetadataStorage *md, Cluster_type type,

@@ -1,22 +1,31 @@
-//@<OUT> clusterset.routingOptions() with all defaults
+//@<OUT> clusterset.routerOptions() with all defaults
 {
-    "domainName": "clusterset",
-    "global": {
-        "guideline": null,
-        "invalidated_cluster_policy": "drop_all",
-        "read_only_targets": "secondaries",
-        "stats_updates_frequency": null,
-        "tags": {},
-        "target_cluster": "primary",
-        "use_replica_primary_as_rw": false
+    "configuration": {
+        "routing_rules": {
+            "invalidated_cluster_policy": "drop_all",
+            "read_only_targets": "secondaries",
+            "tags": {},
+            "target_cluster": "primary",
+            "use_replica_primary_as_rw": false
+        }
     },
+    "domainName": "clusterset",
     "routers": {
-        "routerhost1::system": {},
-        "routerhost2::": {},
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        "routerhost1::system": {
+            "configuration": {}
+        },
+        "routerhost2::": {
+            "configuration": {}
+        },
+        "routerhost2::another": {
+            "configuration": {}
+        },
+        "routerhost2::system": {
+            "configuration": {}
+        }
     }
 }
+
 
 //@<OUT> clusterset.listRouters (CLI)
 {

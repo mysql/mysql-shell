@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -804,9 +804,9 @@ TEST_F(Shell_cli_operation_test, error_test) {
   std::vector<std::string> env{"MYSQLSH_TERM_COLOR_MODE=nocolor"};
 
   testutil->call_mysqlsh_c(
-      {"--", "cluster", "rescan", "{--addInstances : 'auto'}"}, "", env);
+      {"--", "cluster", "rescan", "{--addUnmanaged : true}"}, "", env);
   MY_EXPECT_STDOUT_CONTAINS(
-      "Error at '--addInstances : 'auto'}'.\n"
+      "Error at '--addUnmanaged : true}'.\n"
       "Invalid format for command line argument. Valid formats are:\n");
   output_handler.wipe_all();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -170,12 +170,6 @@ void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
   // If the level of the log is different than
   // the one set, we don't want to store the message
   if (current_level == entry.level) self->log.emplace_back(entry.message);
-
-  if (entry.domain == "dba.sql") {
-    if (!self->dba_sql_log) self->dba_sql_log = shcore::make_array();
-    self->dba_sql_log->push_back(shcore::Value(
-        std::to_string(entry.timestamp) + " " + std::string(entry.message)));
-  }
 }
 
 bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {

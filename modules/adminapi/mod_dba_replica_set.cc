@@ -104,7 +104,6 @@ void ReplicaSet::init() {
   expose("setupRouterAccount", &ReplicaSet::setup_router_account, "user",
          "?options")
       ->cli();
-  expose("routingOptions", &ReplicaSet::routing_options, "?router")->cli();
   expose("routerOptions", &ReplicaSet::router_options, "?options")->cli();
   expose("setRoutingOption", &ReplicaSet::set_routing_option, "option",
          "value");
@@ -916,21 +915,6 @@ REGISTER_HELP_FUNCTION_TEXT(REPLICASET_SETUPROUTERACCOUNT,
 Undefined ReplicaSet::setupRouterAccount(String user, Dictionary options) {}
 #elif DOXYGEN_PY
 None ReplicaSet::setup_router_account(str user, dict options) {}
-#endif
-
-REGISTER_HELP_FUNCTION(routingOptions, ReplicaSet);
-REGISTER_HELP_FUNCTION_TEXT(REPLICASET_ROUTINGOPTIONS,
-                            ROUTINGOPTIONS_HELP_TEXT);
-
-/**
- * $(REPLICASET_ROUTINGOPTIONS_BRIEF)
- *
- * $(REPLICASET_ROUTINGOPTIONS)
- */
-#if DOXYGEN_JS
-Dictionary ReplicaSet::routingOptions(String router) {}
-#elif DOXYGEN_PY
-dict ReplicaSet::routing_options(str router) {}
 #endif
 
 REGISTER_HELP_FUNCTION(routerOptions, ReplicaSet);

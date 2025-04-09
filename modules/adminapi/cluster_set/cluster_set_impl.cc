@@ -1834,14 +1834,6 @@ shcore::Value Cluster_set_impl::list_routers(const std::string &router) {
   return routers;
 }
 
-shcore::Dictionary_t Cluster_set_impl::routing_options(
-    const std::string &router) {
-  auto dict = Base_cluster_impl::routing_options(router);
-  if (router.empty()) (*dict)["domainName"] = shcore::Value(get_name());
-
-  return dict;
-}
-
 void Cluster_set_impl::delete_async_channel(Cluster_impl *cluster,
                                             bool dry_run) {
   cluster->execute_in_members(

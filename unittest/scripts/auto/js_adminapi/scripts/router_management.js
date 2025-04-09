@@ -22,33 +22,40 @@ var cr_router3 = "routerhost2::";
 
 session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (4, '', 'mysqlrouter', 'routerhost2', '8.1.0', '2023-04-26 11:22:33', '{\"bootstrapTargetType\": \"cluster\"}', ?, NULL, NULL)", [cluster_id]);
 
-//@<> cluster.routingOptions on invalid routers
-EXPECT_THROWS(function(){ cluster.routingOptions("invalid_router"); }, "Router 'invalid_router' is not registered in the cluster");
+//@<> cluster.routerOptions on invalid routers
+EXPECT_THROWS(function(){ cluster.routerOptions({"router": "invalid_router"}); }, "Router 'invalid_router' is not registered in the cluster");
 
-EXPECT_THROWS(function(){ cluster.routingOptions("routerhost2"); }, "Router 'routerhost2' is not registered in the cluster");
+EXPECT_THROWS(function(){ cluster.routerOptions({"router": "routerhost2"}); }, "Router 'routerhost2' is not registered in the cluster");
 
-EXPECT_THROWS(function(){ cluster.routingOptions("another"); }, "Router 'another' is not registered in the cluster");
+EXPECT_THROWS(function(){ cluster.routerOptions({"router": "another"}); }, "Router 'another' is not registered in the cluster");
 
-EXPECT_THROWS(function(){ cluster.routingOptions("::system"); }, "Router '::system' is not registered in the cluster");
+EXPECT_THROWS(function(){ cluster.routerOptions({"router": "::system"}); }, "Router '::system' is not registered in the cluster");
 
-//@<> cluster.routingOptions() with all defaults
-cluster.routingOptions();
+//@<> cluster.routerOptions() with all defaults
+cluster.routerOptions();
 
 EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 {
-    "clusterName": "cluster",
-    "global": {
-        "guideline": null,
-        "read_only_targets": "secondaries",
-        "stats_updates_frequency": null,
-        "tags": {},
-        "unreachable_quorum_allowed_traffic": null
-    },
+    "clusterName": "cluster", 
+    "configuration": {
+        "routing_rules": {
+            "read_only_targets": "secondaries", 
+            "tags": {}
+        }
+    }, 
     "routers": {
-        "routerhost1::system": {},
-        "routerhost2::": {},
-        "routerhost2::another": {},
-        "routerhost2::system": {}
+        "routerhost1::system": {
+            "configuration": {}
+        }, 
+        "routerhost2::": {
+            "configuration": {}
+        }, 
+        "routerhost2::another": {
+            "configuration": {}
+        }, 
+        "routerhost2::system": {
+            "configuration": {}
+        }
     }
 }
 `
@@ -56,43 +63,49 @@ EXPECT_OUTPUT_CONTAINS_MULTILINE(`
 
 //@<> cluster.setRoutingOption, all valid values, tag
 cluster.setRoutingOption(router1, "tag:test_tag", 567);
-EXPECT_JSON_EQ(567, cluster.routingOptions(router1)[router1]["tags"]["test_tag"]);
-EXPECT_JSON_EQ(567, cluster.routingOptions()["routers"][router1]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, cluster.routerOptions({"router": router1, "extended": 2})["routers"][router1]["configuration"]["routing_rules"]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, cluster.routerOptions({"extended": 2})["routers"][router1]["configuration"]["routing_rules"]["tags"]["test_tag"]);
 
 cluster.setRoutingOption("tag:test_tag", 567);
-EXPECT_JSON_EQ(567, cluster.routingOptions()["global"]["tags"]["test_tag"]);
+EXPECT_JSON_EQ(567, cluster.routerOptions()["configuration"]["routing_rules"]["tags"]["test_tag"]);
 
 cluster.setRoutingOption("tag:test_tag", null);
 cluster.setRoutingOption(router1, "tag:test_tag", null);
-EXPECT_JSON_EQ(null, cluster.routingOptions()["routers"][router1]["tags"]["test_tag"]);
-EXPECT_JSON_EQ(null, cluster.routingOptions()["global"]["tags"]["test_tag"]);
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["routers"][router1]["configuration"]["routing_rules"]["tags"]);
+EXPECT_JSON_EQ({}, cluster.routerOptions()["configuration"]["routing_rules"]["tags"]);
+
+cluster.setRoutingOption(router1, "tag:test_tag", 567);
+cluster.setRoutingOption("tag:test_tag", 567);
 
 cluster.setRoutingOption("tags", null);
 cluster.setRoutingOption(router1, "tags", null);
-EXPECT_JSON_EQ(undefined, cluster.routingOptions()["routers"][router1]["tags"]);
-EXPECT_JSON_EQ({}, cluster.routingOptions()["global"]["tags"]);
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["routers"][router1]["configuration"]["routing_rules"]["tags"]);
+EXPECT_JSON_EQ({}, cluster.routerOptions()["configuration"]["routing_rules"]["tags"]);
 
 //@<> cluster.setRoutingOption, all valid values
 function CHECK_SET_ROUTING_OPTION(option, value, expected_value) {
-  orig_options = cluster.routingOptions();
+  orig_options = cluster.routerOptions({"extended": 2});
 
-  router_options = cluster.routingOptions(router1);
-  global_options = cluster.routingOptions();
+  router_options = cluster.routerOptions({"router": router1, "extended": 2});
+  global_options = cluster.routerOptions({"extended": 2});
 
   cluster.setRoutingOption(router1, option, value);
-  router_options[router1][option] = expected_value;
-  global_options["routers"][router1][option] = expected_value;
-  EXPECT_JSON_EQ(router_options, cluster.routingOptions(router1), "router check");
-  EXPECT_JSON_EQ(global_options, cluster.routingOptions(), "router check 2");
+  router_options["routers"][router1]["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][router1]["configuration"]["routing_rules"][option] = expected_value;
+  EXPECT_JSON_EQ(router_options, cluster.routerOptions({"router": router1, "extended": 2}), "router check");
+  EXPECT_JSON_EQ(global_options, cluster.routerOptions({"extended": 2}), "router check 2");
 
   cluster.setRoutingOption(option, value);
-  global_options["global"][option] = expected_value;
-  EXPECT_JSON_EQ(global_options, cluster.routingOptions(), "global check");
+  global_options["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][router2]["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][router3]["configuration"]["routing_rules"][option] = expected_value;
+  global_options["routers"][cr_router3]["configuration"]["routing_rules"][option] = expected_value;
+  EXPECT_JSON_EQ(global_options, cluster.routerOptions({"extended": 2}), "global check");
 
   // setting option to null should reset to default
   cluster.setRoutingOption(option, null);
   cluster.setRoutingOption(router1, option, null);
-  EXPECT_JSON_EQ(orig_options, cluster.routingOptions(), "original check");
+  EXPECT_JSON_EQ(orig_options, cluster.routerOptions({"extended": 2}), "original check");
 }
 
 CHECK_SET_ROUTING_OPTION("read_only_targets", "all", "all");
@@ -102,42 +115,52 @@ CHECK_SET_ROUTING_OPTION("read_only_targets", "secondaries", "secondaries");
 CHECK_SET_ROUTING_OPTION('tags', {}, {});
 CHECK_SET_ROUTING_OPTION('tags', { "a": 123 }, { "a": 123 });
 
-//@<> default values filled in when metadata is missing some option (e.g. upgrade)
-var full_options = cluster.routingOptions();
+//@<> default values are not filled in when metadata is missing some option (e.g. upgrade)
+var full_options = cluster.routerOptions({"extended": 2});
+
+EXPECT_EQ(full_options["configuration"]["routing_rules"].hasOwnProperty("read_only_targets"),true)
+EXPECT_EQ(full_options["configuration"]["routing_rules"].hasOwnProperty("tags"),true)
 
 var router_options = session.runSql("select router_options from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]
 session.runSql("update mysql_innodb_cluster_metadata.clusters set router_options='{}'");
 
-EXPECT_JSON_EQ(full_options, cluster.routingOptions());
+EXPECT_EQ(cluster.routerOptions({"extended": 2})["configuration"]["routing_rules"].hasOwnProperty("read_only_targets"),false)
+EXPECT_EQ(cluster.routerOptions({"extended": 2})["configuration"]["routing_rules"].hasOwnProperty("tags"),false)
+
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["routers"][router1]["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["routers"][router2]["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["routers"][router3]["configuration"]["routing_rules"])
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["routers"][cr_router3]["configuration"]["routing_rules"])
 
 session.runSql("update mysql_innodb_cluster_metadata.clusters set router_options=?", [router_options]);
-EXPECT_JSON_EQ(full_options, cluster.routingOptions());
+EXPECT_JSON_EQ(full_options, cluster.routerOptions({"extended": 2}));
 
 //@<> reset option
 cluster.setRoutingOption("read_only_targets", "read_replicas");
 cluster.setRoutingOption(router1, "read_only_targets", "all");
-var orig = cluster.routingOptions();
+var orig = cluster.routerOptions();
 
 cluster.setRoutingOption(router1, "read_only_targets", null);
 delete orig["routers"][router1]["read_only_targets"];
-EXPECT_JSON_EQ(orig, cluster.routingOptions());
+EXPECT_JSON_EQ(orig, cluster.routerOptions());
 
 //@<> set individual tags
 cluster.setRoutingOption("tags", {"old":"oldvalue"});
 cluster.setRoutingOption("tag:test_tag", 1234);
 cluster.setRoutingOption("tag:bla", "test");
-EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, cluster.routingOptions()["global"]["tags"]);
+EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, cluster.routerOptions()["configuration"]["routing_rules"]["tags"]);
 
 cluster.setRoutingOption("tags", {});
-EXPECT_JSON_EQ({}, cluster.routingOptions()["global"]["tags"]);
+EXPECT_JSON_EQ({}, cluster.routerOptions()["configuration"]["routing_rules"]["tags"]);
 
 cluster.setRoutingOption(router1, "tags", {"old":"oldvalue"});
 cluster.setRoutingOption(router1, "tag:test_tag", 1234);
 cluster.setRoutingOption(router1, "tag:bla", "test");
-EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, cluster.routingOptions()["routers"][router1]["tags"]);
+EXPECT_JSON_EQ({"old":"oldvalue", "test_tag":1234, "bla": "test"}, cluster.routerOptions({"extended": 2})["routers"][router1]["configuration"]["routing_rules"]["tags"]);
 
 cluster.setRoutingOption(router1, "tags", {});
-EXPECT_JSON_EQ({}, cluster.routingOptions()["routers"][router1]["tags"]);
+EXPECT_JSON_EQ({}, cluster.routerOptions({"extended": 2})["routers"][router1]["configuration"]["routing_rules"]["tags"]);
 
 //@<> cluster.setRoutingOption for a router, invalid values
 EXPECT_THROWS(function(){ cluster.setRoutingOption(router1, "read_only_targets", 'any_not_supported_value'); },
@@ -158,8 +181,8 @@ EXPECT_THROWS(function(){ cluster.setRoutingOption("another", 'read_only_targets
 EXPECT_THROWS(function(){ cluster.setRoutingOption("::system", 'read_only_targets', 'all'); }, "Router '::system' is not part of this topology");
 
 //@<> check types of cluster router option values
-options = cluster.routingOptions();
-EXPECT_EQ("string", typeof options["global"]["read_only_targets"]);
+options = cluster.routerOptions();
+EXPECT_EQ("string", typeof options["configuration"]["routing_rules"]["read_only_targets"]);
 
 options = JSON.parse(session.runSql("select router_options from mysql_innodb_cluster_metadata.clusters").fetchOne()[0]);
 EXPECT_EQ("string", typeof options["read_only_targets"]);

@@ -536,16 +536,9 @@ if (__version_num >= 80023) {
     EXPECT_NO_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri3, { certSubject: `/CN=${hostname}` }); });
 }
 
-//@<> FR17 test if rescan with addInstances errors out
+//@<> FR17 test if rescan with addUnmanaged errors out
 EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: [`${hostname}:${__mysql_sandbox_port2}`]});
-}, "Can't automatically add unrecognized members to the cluster when memberAuthType is 'CERT_SUBJECT_PASSWORD'.");
-EXPECT_OUTPUT_CONTAINS("Unrecognized members were detected in the group, but the cluster is configured to require SSL certificate authentication. Please stop GR on those members and then add them to the cluster using cluster.addInstance() with the appropriate authentication options.");
-
-WIPE_OUTPUT();
-
-EXPECT_THROWS(function() {
-    cluster.rescan({addInstances: "auto"});
+    cluster.rescan({addUnmanaged: true});
 }, "Can't automatically add unrecognized members to the cluster when memberAuthType is 'CERT_SUBJECT_PASSWORD'.");
 EXPECT_OUTPUT_CONTAINS("Unrecognized members were detected in the group, but the cluster is configured to require SSL certificate authentication. Please stop GR on those members and then add them to the cluster using cluster.addInstance() with the appropriate authentication options.");
 
