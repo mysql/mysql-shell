@@ -1,4 +1,4 @@
-# Copyright (c) 2024, Oracle and/or its affiliates.
+# Copyright (c) 2024, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -251,7 +251,7 @@ function(create_parser_plugin)
         set_target_properties(${PLUGIN_NAME} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${CONF_UPPER} "${CMAKE_BINARY_DIR}/${CONF}/${PLUGIN_INSTALL_DIR}")
     endforeach()
 
-    if(NOT WIN32 AND NOT APPLE)
+    if(NOT WIN32 AND NOT APPLE AND NOT CMAKE_POSITION_INDEPENDENT_CODE)
         # test executable
         set(TEST_NAME "parser_test_${VERSION_MAJOR_MINOR}")
         # no need to copy the source file, it uses the public interface of the plugin
