@@ -2,7 +2,7 @@
 
 //@<> Setup
 if (debugAuthPlugins()) {
-  testutil.setenv("AUTHENTICATION_LDAP_CLIENT_LOG", "5");
+    testutil.setenv("AUTHENTICATION_LDAP_CLIENT_LOG", "5");
 }
 
 testutil.deployRawSandbox(__mysql_sandbox_port1, 'root', getAuthServerConfig('LDAP_KERBEROS'));
@@ -35,15 +35,15 @@ var test_list = {
     "SELECT @@local.proxy_user": `'${LDAP_KERBEROS_USER}@${LDAP_KERBEROS_DOMAIN}'@'%'`,
 };
 
-// Cleans the Kerberos cache
-testutil.callMysqlsh(["--py", "-i", "-e", `import os;os.system('${__os_type == 'windows' ? 'klist purge' : 'kdestroy'}')`]);
+//@<> Cleans the Kerberos cache
+destroy_kerberos_cache();
 
 //@<> WL14553-TSFR_8_2 - Kerberos session with no user/password, should fail as there's no cached TGT {ldap_kerberos_available}
 args = ["--mysql", "--host=localhost",
     `--port=${__mysql_sandbox_port1}`,
     '--schema=test_user_db',
     '--auth-method=authentication_ldap_sasl_client',
-    "--credential-store-helper=plaintext"]
+    "--credential-store-helper=<disabled>"]
 
 // WL14553-TSFR_9_4 - No user/password provided
 testutil.callMysqlsh(args.concat(["-i", "-e", "SELECT 1"]));

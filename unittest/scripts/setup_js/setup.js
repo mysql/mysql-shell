@@ -249,6 +249,8 @@ function hasAuthEnvironment(context) {
                  'LDAP_KERBEROS_SERVER_PORT',
                  'LDAP_KERBEROS_BIND_BASE_DN',
                  'LDAP_KERBEROS_USER_SEARCH_ATTR',
+                 'LDAP_KERBEROS_BIND_ROOT_DN',
+                 'LDAP_KERBEROS_BIND_ROOT_PWD',
                  'LDAP_KERBEROS_USER',
                  'LDAP_KERBEROS_PWD',
                  'LDAP_KERBEROS_AUTH_STRING',
@@ -332,7 +334,7 @@ function getAuthServerConfig(context) {
 
     return {
       "plugin-load-add": `authentication_kerberos.${ext}`,
-      "loose-authentication_kerberos_service_principal": `mysql_service/kerberos_auth_host@${LDAP_KERBEROS_DOMAIN}`,
+      "loose-authentication_kerberos_service_principal": `mysql_service/kerberos_auth_host@${KERBEROS_DOMAIN}`,
       "loose-authentication_kerberos_service_key_tab": keytab_file,
       "net_read_timeout": 360,
       "connect_timeout": 360,
@@ -383,9 +385,9 @@ function isAuthMethodSupported(context, uri=__mysqluripwd) {
   try {
     ensure_plugin_enabled(plugin, s);
   } catch (error) {
-    plugin_supported = error.code == PLUGIN_ALREADY_EXISTS;
+    plugin_supported = get_exception_code(error) == PLUGIN_ALREADY_EXISTS;
     if (!plugin_supported) {
-      shell.log('warning', `Unable to get ${plugin} installed: Error ${error.code}: ${error.message}`)
+      shell.log('warning', `Unable to get ${plugin} installed: Error ${get_exception_code(error)}: ${get_exception_message(error)}`)
     }
   }
 
@@ -402,6 +404,25 @@ function isAuthMethodSupported(context, uri=__mysqluripwd) {
   s.close();
 
   return plugin_supported;
+}
+
+
+function destroy_kerberos_cache() {
+  var command;
+
+  if ("windows" == __os_type) {
+    command = "klist purge";
+  } else {
+    command = os.path.join(__bin_dir, "kdestroy");
+
+    if (!os.path.isfile(command)) {
+      command = "kdestroy";
+    }
+  }
+
+  WIPE_OUTPUT();
+  testutil.callMysqlsh(["--py", "-i", "-e", `import os;print('result:',os.system('${command}'))`]);
+  EXPECT_STDOUT_CONTAINS("result: 0");
 }
 
 
@@ -1101,6 +1122,14 @@ function get_exception_message(exception) {
   return exception.message
 }
 
+function get_exception_code(exception){
+  if (exception.cause != undefined) {
+    if (exception.cause.code != undefined) {
+      return exception.cause.code;
+    }
+  }
+  return exception.code;
+}
 
 function EXPECT_THROWS(func, etext) {
   if (typeof(etext) != "string" && typeof(etext) != "object") {
