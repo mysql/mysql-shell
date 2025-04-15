@@ -247,6 +247,8 @@ function hasAuthEnvironment(context) {
       'LDAP_KERBEROS_SERVER_PORT',
       'LDAP_KERBEROS_BIND_BASE_DN',
       'LDAP_KERBEROS_USER_SEARCH_ATTR',
+      'LDAP_KERBEROS_BIND_ROOT_DN',
+      'LDAP_KERBEROS_BIND_ROOT_PWD',
       'LDAP_KERBEROS_USER',
       'LDAP_KERBEROS_PWD',
       'LDAP_KERBEROS_AUTH_STRING',
@@ -334,7 +336,7 @@ function getAuthServerConfig(context) {
 
     return {
       "plugin-load-add": `authentication_kerberos.${ext}`,
-      "authentication_kerberos_service_principal": `mysql_service/kerberos_auth_host@${LDAP_KERBEROS_DOMAIN}`,
+      "authentication_kerberos_service_principal": `mysql_service/kerberos_auth_host@${KERBEROS_DOMAIN}`,
       "authentication_kerberos_service_key_tab": keytab_file,
       "net_read_timeout": 360,
       "connect_timeout": 360,
@@ -400,6 +402,25 @@ function isAuthMethodSupported(context) {
   s.close();
 
   return plugin_supported;
+}
+
+
+function destroy_kerberos_cache() {
+  var command;
+
+  if ("windows" == __os_type) {
+    command = "klist purge";
+  } else {
+    command = os.path.join(__bin_dir, "kdestroy");
+
+    if (!os.path.isfile(command)) {
+      command = "kdestroy";
+    }
+  }
+
+  WIPE_OUTPUT();
+  testutil.callMysqlsh(["--py", "-i", "-e", `import os;print('result:',os.system('${command}'))`]);
+  EXPECT_STDOUT_CONTAINS("result: 0");
 }
 
 

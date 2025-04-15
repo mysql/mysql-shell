@@ -1048,11 +1048,11 @@ IF(MYSQL_BUILD_DIR)
 
   IF(AUTH_CLIENT_PLUGINS)
     SET(AUTH_CLIENT_PLUGINS_COPY ${AUTH_CLIENT_PLUGINS})
-    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_ldap_sasl_client" "authentication_oci_client")
-
-    IF(NOT APPLE)
-      LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_kerberos_client")
-    ENDIF()
+    SET(EXPECTED_AUTH_CLIENT_PLUGINS
+      "authentication_kerberos_client"
+      "authentication_ldap_sasl_client"
+      "authentication_oci_client"
+    )
 
     IF(${OPENSSL_MAJOR_MINOR_FIX_VERSION} VERSION_GREATER_EQUAL "1.1.1")
       LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_fido_client")
@@ -1159,7 +1159,7 @@ FUNCTION(SET_BUNDLED_OPEN_SSL)
     FOREACH(TOKEN ${TOKENS})
       STRING(STRIP "${TOKEN}" TOKEN)
 
-      IF(TOKEN MATCHES "${CRYPTO_VERSION}|${OPENSSL_VERSION}|@executable_path|@loader_path")
+      IF(TOKEN MATCHES "${CRYPTO_VERSION}|${OPENSSL_VERSION}|@executable_path|@loader_path|/usr/local/mysql/lib/")
         SET(ENTRY "${TOKEN}")
         STRING(FIND "${ENTRY}" "/" POS REVERSE)
 

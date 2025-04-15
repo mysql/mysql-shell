@@ -396,14 +396,51 @@ ENDIF()
 # to prevent the shell from having different openssl dependencies (system one/bundled one)
 IF(BUNDLED_KRB5_DIR)
   IF(WIN32)
-    FILE(GLOB _KRB5_LIBRARIES "${BUNDLED_KRB5_DIR}/bin/*.dll")
+    SET(_KRB5_LIB_DIR "${BUNDLED_KRB5_DIR}/bin")
+    SET(_KRB5_BUNDLED_LIBS
+      "krb5_64.dll"
+      "k5sprt64.dll"
+      "comerr64.dll"
+      "xpprof64.dll"
+      "krbcc64.dll"
+      "gssapi64.dll"
+    )
   ELSE()
-    FILE(GLOB _KRB5_LIBRARIES "${BUNDLED_KRB5_DIR}/lib/lib*")
+    SET(_KRB5_LIB_DIR "${BUNDLED_KRB5_DIR}/lib")
+    SET(_KRB5_BUNDLED_LIBS
+      "libkrb5.*"
+      "libcom_err.*"
+      "libgssapi_krb5.*"
+      "libk5crypto.*"
+      "libkrb5support.*"
+    )
   ENDIF()
 
-  IF(NOT _KRB5_LIBRARIES)
-    MESSAGE(FATAL_ERROR "Could not find the bundled krb5 libraries")
-  ENDIF()
+  SET(_KRB5_LIBRARIES "")
+
+  FOREACH(_pattern ${_KRB5_BUNDLED_LIBS})
+    FILE(GLOB _libs "${_KRB5_LIB_DIR}/${_pattern}")
+
+    IF(NOT _libs)
+      MESSAGE(FATAL_ERROR "Could not find the bundled krb5 library: ${_pattern}")
+    ENDIF()
+
+    LIST(APPEND _KRB5_LIBRARIES ${_libs})
+
+    IF(APPLE)
+      FOREACH(_lib ${_libs})
+        IF(NOT IS_SYMLINK "${_lib}")
+          # reset the ID to something predictible
+          get_filename_component(_lib_name "${_lib}" NAME)
+          EXECUTE_PROCESS(COMMAND install_name_tool -id "${_lib_name}" "${_lib}" RESULT_VARIABLE COMMAND_RESULT)
+
+          IF(NOT "${COMMAND_RESULT}" STREQUAL "0")
+            MESSAGE(FATAL_ERROR "Failed to execute: install_name_tool -id ${_lib_name} ${_lib}")
+          ENDIF()
+        ENDIF()
+      ENDFOREACH()
+    ENDIF()
+  ENDFOREACH()
 
   install_bundled_binaries(BINARIES ${_KRB5_LIBRARIES} DESTINATION "${INSTALL_LIBDIR}" TARGET mysqlsh)
 ENDIF()
