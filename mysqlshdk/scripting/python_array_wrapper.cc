@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -347,13 +347,12 @@ PyObject *ao_remove_all(Array_object *self);
 PyObject *ao_reverse(Array_object *self);
 PyObject *ao_sort(Array_object *self, PyObject *args, PyObject *kwds);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 static PyMethodDef array_object_methods[] = {
     {"__getitem__", (PyCFunction)ao_subscript, METH_O | METH_COEXIST,
@@ -375,9 +374,9 @@ static PyMethodDef array_object_methods[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 ////////////////////////////////////////////////////////////////////////////////
 // Array_object_type
@@ -545,13 +544,12 @@ PyObject *ao_iter_length(Array_object_iterator *self);
 PyObject *ao_iter_reduce(Array_object_iterator *self);
 PyObject *ao_iter_setstate(Array_object_iterator *self, PyObject *state);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 static PyMethodDef ao_iter_methods[] = {
     {"__length_hint__", (PyCFunction)ao_iter_length, METH_NOARGS,
@@ -561,9 +559,9 @@ static PyMethodDef ao_iter_methods[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 ////////////////////////////////////////////////////////////////////////////////
 // Array_object_iterator_type
@@ -701,13 +699,12 @@ PyObject *ao_rev_iter_length(Array_object_iterator *self);
 PyObject *ao_rev_iter_reduce(Array_object_iterator *self);
 PyObject *ao_rev_iter_setstate(Array_object_iterator *self, PyObject *state);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 static PyMethodDef ao_riter_methods[] = {
     {"__length_hint__", (PyCFunction)ao_rev_iter_length, METH_NOARGS,
@@ -717,9 +714,9 @@ static PyMethodDef ao_riter_methods[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 ////////////////////////////////////////////////////////////////////////////////
 // Array_object_reverse_iterator_type
