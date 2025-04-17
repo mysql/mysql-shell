@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -217,13 +217,12 @@ PyObject *set_default(dict::Object *self, PyObject *args);
 PyObject *update(dict::Object *self, PyObject *args, PyObject *kwds);
 PyObject *values(dict::Object *self);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 PyMethodDef methods[] = {
     {"__contains__", (PyCFunction)has_key, METH_O | METH_COEXIST, contains_doc},
@@ -248,9 +247,9 @@ PyMethodDef methods[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 ////////////////////////////////////////////////////////////////////////////////
 // dict::Type
@@ -468,13 +467,12 @@ PyObject *length(dict::Iterator_base<It> *self);
 template <typename It>
 PyObject *reduce(dict::Iterator_base<It> *self);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 template <typename It>
 PyMethodDef methods[] = {
@@ -483,9 +481,9 @@ PyMethodDef methods[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 }  // namespace iter
 
@@ -737,13 +735,12 @@ PyDoc_STRVAR(reversed_keys_doc,
 PyObject *iterator(dict::View *self);
 PyObject *reversed(dict::View *self, PyObject *);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 PyMethodDef methods[] = {
     {"isdisjoint", (PyCFunction)isdisjoint, METH_O, isdisjoint_doc},
@@ -751,9 +748,9 @@ PyMethodDef methods[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 }  // namespace view::keys
 
@@ -935,22 +932,21 @@ PyDoc_STRVAR(reversed_values_doc,
 PyObject *iterator(dict::View *self);
 PyObject *reversed(dict::View *self, PyObject *);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 PyMethodDef methods[] = {
     {"__reversed__", (PyCFunction)reversed, METH_NOARGS, reversed_values_doc},
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 }  // namespace view::values
 
@@ -1134,13 +1130,12 @@ PyDoc_STRVAR(reversed_items_doc,
 PyObject *iterator(dict::View *self);
 PyObject *reversed(dict::View *self, PyObject *);
 
-#if __GNUC__ > 7 && !defined(__clang__)
-// -Wcast-function-type was added in GCC 8.0, needs to be suppressed here,
-// because we're casting functions with different number of parameters to
-// PyCFunction
+#ifdef __GNUC__
+// -Wcast-function-type needs to be suppressed here, because we're casting
+// functions with different number of parameters to PyCFunction
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 PyMethodDef methods[] = {
     {"isdisjoint", (PyCFunction)isdisjoint, METH_O, isdisjoint_doc},
@@ -1148,9 +1143,9 @@ PyMethodDef methods[] = {
     {nullptr, nullptr, 0, nullptr},
 };
 
-#if __GNUC__ > 7 && !defined(__clang__)
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
-#endif  // __GNUC__ > 7 && !defined(__clang__)
+#endif  // __GNUC__
 
 }  // namespace view::items
 
