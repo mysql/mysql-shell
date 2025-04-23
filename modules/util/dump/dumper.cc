@@ -4763,20 +4763,32 @@ void Dumper::fetch_server_information() {
   DBUG_EXECUTE_IF("dumper_binlog_disabled", { m_binlog_enabled = false; });
   DBUG_EXECUTE_IF("dumper_gtid_disabled", { m_gtid_enabled = false; });
 
-  // given that minor versions may introduce breaking changes, we disallow
-  // dumps starting with the next minor version (8.0.x -> 8.1.0, 8.4.0 -> 8.5.0
-  // -> does not exist, but handles also 9.0.0)
-  const auto unsupported_version =
-      Version{k_shell_version.get_major(), k_shell_version.get_minor() + 1, 0};
+  // BUG#37866205 disallow dumps from server with a greater major version
+  DBUG_EXECUTE_IF("dumper_unsupported_server_version", {
+    m_server_version.number = Version(k_shell_version.get_major() + 1, 0, 0);
+  });
 
-  DBUG_EXECUTE_IF("dumper_unsupported_server_version",
-                  { m_server_version.number = unsupported_version; });
-
-  if (m_server_version.number >= unsupported_version) {
+  if (m_server_version.number.get_major() > k_shell_version.get_major()) {
     throw std::runtime_error(
         shcore::str_format("Unsupported MySQL Server %s detected, please "
                            "upgrade the MySQL Shell first",
                            m_server_version.number.get_base().c_str()));
+  }
+
+  // BUG#36701854 given that minor versions may introduce breaking changes, we
+  // warn if server has a greater minor version (8.0.x -> 8.1.0, 8.4.0 -> 8.5.0
+  // -> does not exist, but handles also 9.0.0)
+  const auto newer_version =
+      Version{k_shell_version.get_major(), k_shell_version.get_minor() + 1, 0};
+
+  DBUG_EXECUTE_IF("dumper_newer_server_version",
+                  { m_server_version.number = newer_version; });
+
+  if (m_server_version.number >= newer_version) {
+    current_console()->print_warning(shcore::str_format(
+        "MySQL Server %s detected, which is newer than the MySQL Shell. Please "
+        "upgrade the MySQL Shell if dump or load operation fails.",
+        m_server_version.number.get_base().c_str()));
   }
 }
 

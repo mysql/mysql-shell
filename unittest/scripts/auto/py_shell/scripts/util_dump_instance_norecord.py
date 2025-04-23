@@ -4437,11 +4437,26 @@ EXPECT_STDOUT_CONTAINS("Checksumming enabled.")
 #@<> WL15947 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
-#@<> BUG#36701854 - dumps from a server with a greater minor version are disallowed {not __dbug_off}
+#@<> BUG#36701854 - dumps from a server with a greater minor version are allowed, but a warning is printed {VER(>=8.0.0) and not __dbug_off}
+testutil.dbug_set("+d,dumper_newer_server_version")
+
+newer_version = __mysh_version_no_extra.split(".")
+newer_version[1] = str(int(newer_version[1]) + 1)
+newer_version[2] = "0"
+newer_version = ".".join(newer_version)
+
+# trying to dump from an newer version results in a warning
+EXPECT_SUCCESS(None, test_output_absolute, { "dryRun": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(f"WARNING: MySQL Server {newer_version} detected, which is newer than the MySQL Shell. Please upgrade the MySQL Shell if dump or load operation fails.")
+
+testutil.dbug_set("")
+
+#@<> BUG#37866205 - dumps from a server with a greater major version are disallowed {not __dbug_off}
 testutil.dbug_set("+d,dumper_unsupported_server_version")
 
 unsupported_version = __mysh_version_no_extra.split(".")
-unsupported_version[1] = str(int(unsupported_version[1]) + 1)
+unsupported_version[0] = str(int(unsupported_version[0]) + 1)
+unsupported_version[1] = "0"
 unsupported_version[2] = "0"
 unsupported_version = ".".join(unsupported_version)
 
