@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,7 +30,7 @@ namespace secret_store {
 namespace api {
 
 bool Secret_spec::operator==(const Secret_spec &r) const noexcept {
-  return type == r.type && url == r.url;
+  return type == r.type && id == r.id;
 }
 
 bool Secret_spec::operator!=(const Secret_spec &r) const noexcept {

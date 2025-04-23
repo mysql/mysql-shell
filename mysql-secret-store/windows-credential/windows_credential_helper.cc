@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <WinCred.h>
 
 #include <memory>
+#include <string_view>
 #include <utility>
 
 #include "mysqlshdk/libs/utils/utils_file.h"
@@ -72,22 +73,24 @@ void Windows_credential_helper::check_requirements() {
 }
 
 void Windows_credential_helper::store(const common::Secret &secret) {
-  auto url_keyword = get_url_keyword();
-  auto secret_type_keyword = get_secret_type_keyword();
+  const auto id_keyword = "password" == secret.id.secret_type
+                              ? get_url_keyword()
+                              : get_id_keyword();
+  const auto secret_type_keyword = get_secret_type_keyword();
 
   CREDENTIAL_ATTRIBUTE attributes[2];
 
-  attributes[0].Keyword = (LPSTR)url_keyword.c_str();
+  attributes[0].Keyword = (LPSTR)id_keyword.c_str();
   attributes[0].Flags = 0;
-  attributes[0].ValueSize = secret.id.url.length();
-  attributes[0].Value = (LPBYTE)secret.id.url.c_str();
+  attributes[0].ValueSize = secret.id.id.length();
+  attributes[0].Value = (LPBYTE)secret.id.id.c_str();
 
   attributes[1].Keyword = (LPSTR)secret_type_keyword.c_str();
   attributes[1].Flags = 0;
   attributes[1].ValueSize = secret.id.secret_type.length();
   attributes[1].Value = (LPBYTE)secret.id.secret_type.c_str();
 
-  auto name = get_name(secret.id);
+  const auto name = get_name(secret.id);
   CREDENTIAL cred;
 
   cred.Flags = 0;  // no flags
@@ -111,7 +114,7 @@ void Windows_credential_helper::store(const common::Secret &secret) {
 
 void Windows_credential_helper::get(const common::Secret_id &id,
                                     std::string *secret) {
-  auto name = get_name(id);
+  const auto name = get_name(id);
   PCREDENTIAL cred = nullptr;
 
   if (!CredRead(name.c_str(), k_credential_type, 0, &cred)) {
@@ -130,7 +133,7 @@ void Windows_credential_helper::get(const common::Secret_id &id,
 }
 
 void Windows_credential_helper::erase(const common::Secret_id &id) {
-  auto name = get_name(id);
+  const auto name = get_name(id);
 
   if (!CredDelete(name.c_str(), k_credential_type, 0)) {
     if (GetLastError() == ERROR_NOT_FOUND) {
@@ -142,10 +145,11 @@ void Windows_credential_helper::erase(const common::Secret_id &id) {
   }
 }
 
-void Windows_credential_helper::list(std::vector<common::Secret_id> *secrets) {
+void Windows_credential_helper::list(std::vector<common::Secret_id> *secrets,
+                                     std::optional<std::string> type) {
   PCREDENTIAL *credentials = nullptr;
   DWORD count = 0;
-  auto filter = get_search_pattern();
+  const auto filter = get_search_pattern();
 
   if (!CredEnumerate(filter.c_str(), 0, &count, &credentials)) {
     if (GetLastError() == ERROR_NOT_FOUND) {
@@ -159,30 +163,35 @@ void Windows_credential_helper::list(std::vector<common::Secret_id> *secrets) {
     const std::unique_ptr<PCREDENTIAL, decltype(&CredFree)> deleter{credentials,
                                                                     CredFree};
     const auto url_keyword = get_url_keyword();
+    const auto id_keyword = get_id_keyword();
     const auto secret_type_keyword = get_secret_type_keyword();
 
     for (DWORD i = 0; i < count; ++i) {
-      std::string url;
+      std::string id;
       std::string secret_type;
 
       for (DWORD j = 0; j < credentials[i]->AttributeCount; ++j) {
         const auto &attribute = credentials[i]->Attributes[j];
-        const auto keyword = std::string{attribute.Keyword};
-        auto value = std::string(reinterpret_cast<char *>(attribute.Value),
-                                 attribute.ValueSize);
+        const auto keyword = std::string_view{attribute.Keyword};
+        auto value =
+            std::string(reinterpret_cast<const char *>(attribute.Value),
+                        attribute.ValueSize);
 
-        if (keyword == url_keyword) {
-          url = std::move(value);
+        if (keyword == url_keyword || keyword == id_keyword) {
+          id = std::move(value);
         } else if (keyword == secret_type_keyword) {
           secret_type = std::move(value);
         }
       }
 
-      if (url.empty() || secret_type.empty()) {
+      if (id.empty() || secret_type.empty()) {
         throw Helper_exception{"Invalid entry detected"};
       }
 
-      secrets->emplace_back(common::Secret_id{secret_type, url});
+      if (!type.has_value() || *type == secret_type) {
+        secrets->emplace_back(
+            common::Secret_id{std::move(secret_type), std::move(id)});
+      }
     }
   }
 }
@@ -195,7 +204,7 @@ std::string Windows_credential_helper::get_name_prefix() const {
 std::string Windows_credential_helper::get_name(
     const common::Secret_id &id) const {
   return shcore::str_join(
-      std::vector<std::string>{get_name_prefix(), id.secret_type, id.url},
+      std::vector<std::string>{get_name_prefix(), id.secret_type, id.id},
       k_name_separator);
 }
 
@@ -211,6 +220,10 @@ std::string Windows_credential_helper::get_keyword_prefix() const {
 
 std::string Windows_credential_helper::get_url_keyword() const {
   return get_keyword_prefix() + "url";
+}
+
+std::string Windows_credential_helper::get_id_keyword() const {
+  return get_keyword_prefix() + "id";
 }
 
 std::string Windows_credential_helper::get_secret_type_keyword() const {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,9 +26,15 @@
 #include "mysqlshdk/shellcore/credential_manager.h"
 
 #include <algorithm>
+#include <memory>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
 #include "mysql-secret-store/include/mysql-secret-store/api.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/libs/utils/utils_encoding.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -66,6 +72,8 @@ constexpr auto k_save_passwords_prompt = "prompt";
 
 constexpr auto k_no_such_secret_error = "Could not find the secret";
 constexpr auto k_invalid_url_error = "Invalid URL";
+constexpr auto k_invalid_secret_error =
+    "Secret contains a disallowed character";
 
 Helper_name get_helper_by_name(const std::string &name) {
   auto helpers = get_available_helpers();
@@ -126,7 +134,7 @@ Credential_manager::Save_passwords to_save_passwords(const std::string &str) {
     return Credential_manager::Save_passwords::PROMPT;
   } else {
     throw Exception::value_error(
-        "The option " + std::string{k_save_passwords_option} +
+        "The option " + std::string(k_save_passwords_option) +
         " must be one of: " +
         str_join(std::vector<std::string>{k_save_passwords_always,
                                           k_save_passwords_prompt,
@@ -151,6 +159,18 @@ std::string to_string(Credential_manager::Save_passwords val) {
   throw std::runtime_error{"Unknown Save_passwords value"};
 }
 
+const char *to_message(Secret_type type) {
+  switch (type) {
+    case Secret_type::PASSWORD:
+      return "credential";
+
+    case Secret_type::GENERIC:
+      return "secret";
+  }
+
+  throw std::runtime_error{"Unknown Secret_type value"};
+}
+
 }  // namespace
 
 Credential_manager::Credential_manager() {
@@ -165,7 +185,7 @@ Credential_manager &Credential_manager::get() {
 void Credential_manager::initialize() {
   if (!m_is_initialized) {
     set_logger([](std::string_view msg) {
-      log_debug2("%.*s", (int)msg.size(), msg.data());
+      log_debug2("%.*s", static_cast<int>(msg.size()), msg.data());
     });
 
     if (k_disabled_helper_name == m_helper_string) {
@@ -248,7 +268,7 @@ void Credential_manager::register_options(Options *options) {
           return filters;
         } catch (const std::exception &ex) {
           throw Exception::value_error("The option " +
-                                       std::string{k_exclude_filters_option} +
+                                       std::string(k_exclude_filters_option) +
                                        " must be an array of strings");
         }
       },
@@ -303,7 +323,7 @@ bool Credential_manager::get_password(mysqlshdk::IConnection *options) const {
     std::string password;
     auto secret_spec = get_secret_spec(*options);
     log_debug2("Retrieving password from credential manager for '%s'",
-               secret_spec.url.c_str());
+               secret_spec.id.c_str());
     bool ret = m_helper->get(secret_spec, &password);
 
     if (ret) {
@@ -356,10 +376,7 @@ bool Credential_manager::remove_password(
 
 bool Credential_manager::get_credential(const std::string &url,
                                         std::string *credential) const {
-  if (!m_helper) {
-    throw Exception::runtime_error(
-        "Cannot get the credential, current credential helper is invalid");
-  }
+  check_helper("get the credential");
 
   bool ret = m_helper->get({Secret_type::PASSWORD, url}, credential);
   if (!ret) {
@@ -372,88 +389,156 @@ bool Credential_manager::get_credential(const std::string &url,
   return ret;
 }
 
-void Credential_manager::store_credential(const std::string &url,
-                                          const std::string &credential) {
-  if (!m_helper) {
-    throw Exception::runtime_error(
-        "Cannot save the credential, current credential helper is invalid");
-  }
+void Credential_manager::store_secret(const std::string &id,
+                                      const std::string &secret) {
+  // we prepend 'r' for a unmodified secret and 'b' for a base64-encoded secret
+  // we encode the secret if helper reports an error when storing the raw secret
+  try {
+    store_secret(Secret_type::GENERIC, id, "r" + secret);
+  } catch (const std::exception &e) {
+    if (std::string::npos ==
+        std::string_view{e.what()}.find(k_invalid_secret_error)) {
+      throw;
+    }
 
-  if (!m_helper->store({Secret_type::PASSWORD, url}, credential)) {
-    auto error = m_helper->get_last_error();
+    std::string base64;
+
+    if (!shcore::encode_base64(secret, &base64)) {
+      // in case of encoding errors, just throw the original exception
+      throw;
+    }
+
+    store_secret(Secret_type::GENERIC, id, "b" + base64);
+  }
+}
+
+void Credential_manager::store_secret(Secret_type type, const std::string &id,
+                                      const std::string &secret) {
+  check_helper(str_format("save the %s", to_message(type)));
+
+  if (!m_helper->store({type, id}, secret)) {
+    const auto error = m_helper->get_last_error();
 
     if (std::string::npos != error.find(k_invalid_url_error)) {
       throw Exception::argument_error(error);
     } else {
-      throw Exception::runtime_error("Failed to save the credential: " + error);
+      throw Exception::runtime_error(str_format(
+          "Failed to save the %s: %s", to_message(type), error.c_str()));
     }
   }
 }
 
-void Credential_manager::delete_credential(const std::string &url) {
-  if (!m_helper) {
-    throw Exception::runtime_error(
-        "Cannot delete the credential, current credential helper is invalid");
+std::string Credential_manager::read_secret(const std::string &id) {
+  auto secret = read_secret(Secret_type::GENERIC, id);
+
+  if (secret.empty()) {
+    return secret;
   }
 
-  if (!m_helper->erase({Secret_type::PASSWORD, url})) {
-    auto error = m_helper->get_last_error();
+  switch (secret.front()) {
+    case 'r':
+      return secret.substr(1);
+
+    case 'b': {
+      std::string decoded;
+
+      if (!shcore::decode_base64(secret.substr(1), &decoded)) {
+        // if decoding fails, just return the whole secret
+        return secret;
+      }
+
+      return decoded;
+    }
+
+    default:
+      return secret;
+  }
+}
+
+std::string Credential_manager::read_secret(Secret_type type,
+                                            const std::string &id) {
+  check_helper(str_format("read the %s", to_message(type)));
+
+  std::string secret;
+
+  if (!m_helper->get({type, id}, &secret)) {
+    const auto error = m_helper->get_last_error();
 
     if (std::string::npos != error.find(k_invalid_url_error)) {
       throw Exception::argument_error(error);
     } else {
-      throw Exception::runtime_error("Failed to delete the credential: " +
-                                     error);
+      throw Exception::runtime_error(str_format(
+          "Failed to read the %s: %s", to_message(type), error.c_str()));
+    }
+  }
+
+  return secret;
+}
+
+void Credential_manager::delete_secret(Secret_type type,
+                                       const std::string &id) {
+  check_helper(str_format("delete the %s", to_message(type)));
+
+  if (!m_helper->erase({type, id})) {
+    const auto error = m_helper->get_last_error();
+
+    if (std::string::npos != error.find(k_invalid_url_error)) {
+      throw Exception::argument_error(error);
+    } else {
+      throw Exception::runtime_error(str_format(
+          "Failed to delete the %s: %s", to_message(type), error.c_str()));
     }
   }
 }
 
-void Credential_manager::delete_all_credentials() {
-  if (!m_helper) {
-    throw Exception::runtime_error(
-        "Cannot delete all credentials, current credential helper is invalid");
-  }
+void Credential_manager::delete_all_secrets(Secret_type type) {
+  check_helper(str_format("delete all %ss", to_message(type)));
 
   std::vector<Secret_spec> specs;
 
-  if (!m_helper->list(&specs)) {
+  if (!m_helper->list(&specs, type)) {
     throw Exception::runtime_error(
-        "Failed to obtain list of credentials to delete: " +
-        m_helper->get_last_error());
+        str_format("Failed to obtain list of %ss to delete: %s",
+                   to_message(type), m_helper->get_last_error().c_str()));
   }
 
   std::vector<std::string> errors;
 
   for (const auto &s : specs) {
-    if (!m_helper->erase(s)) {
-      errors.emplace_back("Failed to delete '" + s.url +
-                          "': " + m_helper->get_last_error());
+    if (type == s.type) {
+      if (!m_helper->erase(s)) {
+        errors.emplace_back("Failed to delete '" + s.id +
+                            "': " + m_helper->get_last_error());
+      }
     }
   }
 
   if (!errors.empty()) {
-    throw Exception::runtime_error("Failed to delete all credentials:\n" +
-                                   shcore::str_join(errors, "\n"));
+    throw Exception::runtime_error(
+        str_format("Failed to delete all %ss:\n%s", to_message(type),
+                   shcore::str_join(errors, "\n").c_str()));
   }
 }
 
-std::vector<std::string> Credential_manager::list_credentials() const {
-  if (!m_helper) {
+std::vector<std::string> Credential_manager::list_secrets(
+    Secret_type type) const {
+  check_helper(str_format("list %ss", to_message(type)));
+
+  std::vector<Secret_spec> specs;
+
+  if (!m_helper->list(&specs, type)) {
     throw Exception::runtime_error(
-        "Cannot list credentials, current credential helper is invalid");
+        str_format("Failed to list %ss: %s", to_message(type),
+                   m_helper->get_last_error().c_str()));
   }
 
   std::vector<std::string> ret;
-  std::vector<Secret_spec> specs;
 
-  if (!m_helper->list(&specs)) {
-    throw Exception::runtime_error("Failed to list credentials: " +
-                                   m_helper->get_last_error());
-  }
-
-  for (const auto &s : specs) {
-    if (s.type == Secret_type::PASSWORD) {
-      ret.emplace_back(s.url);
+  for (auto &s : specs) {
+    // type was added to the list() command by WL#16958, helpers may not support
+    // it, double check the type
+    if (type == s.type) {
+      ret.emplace_back(std::move(s.id));
     }
   }
 
@@ -511,6 +596,13 @@ bool Credential_manager::is_ignored_url(const std::string &url) const {
   }
 
   return false;
+}
+
+void Credential_manager::check_helper(const std::string &context) const {
+  if (!m_helper) {
+    throw Exception::runtime_error(str_format(
+        "Cannot %s, current credential helper is invalid", context.c_str()));
+  }
 }
 
 }  // namespace shcore

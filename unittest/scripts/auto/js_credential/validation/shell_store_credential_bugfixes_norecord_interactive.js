@@ -1,5 +1,5 @@
 //@ Initialization
-|plaintext|
+|login-path|
 
 //@ BUG#28597766 store a password - line feed character
-||Failed to save the credential: Unable to store password with a newline character (RuntimeError)
+||Failed to save the credential: Secret contains a disallowed character (RuntimeError)

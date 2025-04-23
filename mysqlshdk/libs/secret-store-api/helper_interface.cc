@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <rapidjson/writer.h>
 
 #include <set>
+#include <utility>
 #include <vector>
 
 #include "mysql-secret-store/include/helper.h"
@@ -51,11 +52,14 @@ namespace {
 
 constexpr auto k_secret = "Secret";
 constexpr auto k_secret_type = "SecretType";
+constexpr auto k_secret_id = "SecretID";
+// TODO(pawel): this is deprecated, remove it at some point
 constexpr auto k_server_url = "ServerURL";
 
 constexpr auto k_secret_type_password = "password";
+constexpr auto k_secret_type_generic = "generic";
 
-void throw_json_error(const std::string &msg) {
+[[noreturn]] void throw_json_error(const std::string &msg) {
   throw std::runtime_error{"Failed to parse JSON output: " + msg};
 }
 
@@ -135,19 +139,13 @@ std::string validate_url(const std::string &url) {
   return options.as_uri(tokens);
 }
 
-void validate_secret(Secret_type type, const std::string &secret) {
-  if (Secret_type::PASSWORD == type) {
-    if (std::string::npos != secret.find_first_of("\r\n")) {
-      throw std::runtime_error{
-          "Unable to store password with a newline character"};
-    }
-  }
-}
-
 std::string to_string(Secret_type type) {
   switch (type) {
     case Secret_type::PASSWORD:
       return k_secret_type_password;
+
+    case Secret_type::GENERIC:
+      return k_secret_type_generic;
   }
 
   throw std::runtime_error{"Unknown secret type"};
@@ -158,8 +156,12 @@ Secret_type to_secret_type(const std::string &type) {
     return Secret_type::PASSWORD;
   }
 
+  if (type == k_secret_type_generic) {
+    return Secret_type::GENERIC;
+  }
+
   throw_json_error("Unknown secret type: \"" + type + "\"");
-  // to silence compiler complains
+  // to silence compiler's complains
   return Secret_type::PASSWORD;
 }
 
@@ -170,21 +172,24 @@ std::string to_string(rapidjson::Document *doc) {
   return std::string{buffer.GetString(), buffer.GetSize()};
 }
 
-void validate_object(const rapidjson::Value &object,
-                     const std::set<std::string> &members) {
+void validate_object(const rapidjson::Value &object) {
   if (!object.IsObject()) {
     throw_json_error("Expected object");
   }
+}
 
-  for (const auto &m : members) {
-    if (!object.HasMember(m.c_str())) {
-      throw_json_error("Missing member: \"" + m + "\"");
-    }
+std::string required(const rapidjson::Value &object, const char *name) {
+  const auto it = object.FindMember(name);
 
-    if (!object[m.c_str()].IsString()) {
-      throw_json_error("Member \"" + m + "\" is not a string");
-    }
+  if (object.MemberEnd() == it) {
+    throw_json_error("Missing member: \"" + std::string(name) + "\"");
   }
+
+  if (!it->value.IsString()) {
+    throw_json_error("Member \"" + std::string(name) + "\" is not a string");
+  }
+
+  return std::string{it->value.GetString(), it->value.GetStringLength()};
 }
 
 rapidjson::Document parse(const std::string &json) {
@@ -199,19 +204,37 @@ rapidjson::Document parse(const std::string &json) {
   return doc;
 }
 
-rapidjson::Document to_object(const Secret_spec &spec) {
+rapidjson::Document to_object(Secret_type type) {
   rapidjson::Document doc{rapidjson::Type::kObjectType};
   auto &allocator = doc.GetAllocator();
 
   doc.AddMember(rapidjson::StringRef(k_secret_type),
-                {to_string(spec.type).c_str(), allocator}, allocator);
-  doc.AddMember(rapidjson::StringRef(k_server_url),
-                {validate_url(spec.url).c_str(), allocator}, allocator);
+                {to_string(type).c_str(), allocator}, allocator);
 
   return doc;
 }
 
-std::string to_string(const Secret_spec &spec, const std::string &secret) {
+rapidjson::Document to_object(const Secret_spec &spec) {
+  const auto &spec_id =
+      Secret_type::PASSWORD == spec.type ? validate_url(spec.id) : spec.id;
+
+  auto doc = to_object(spec.type);
+  auto &allocator = doc.GetAllocator();
+
+  doc.AddMember(rapidjson::StringRef(k_secret_id), {spec_id.c_str(), allocator},
+                allocator);
+  doc.AddMember(rapidjson::StringRef(k_server_url),
+                {spec_id.c_str(), allocator}, allocator);
+
+  return doc;
+}
+
+std::string to_json(Secret_type type) {
+  auto doc = to_object(type);
+  return to_string(&doc);
+}
+
+std::string to_json(const Secret_spec &spec, const std::string &secret) {
   auto doc = to_object(spec);
   auto &allocator = doc.GetAllocator();
 
@@ -222,21 +245,30 @@ std::string to_string(const Secret_spec &spec, const std::string &secret) {
   return to_string(&doc);
 }
 
-std::string to_string(const Secret_spec &spec) {
+std::string to_json(const Secret_spec &spec) {
   auto doc = to_object(spec);
   return to_string(&doc);
 }
 
 Secret_spec to_secret_spec(const rapidjson::Value &spec) {
-  validate_object(spec, {k_secret_type, k_server_url});
+  validate_object(spec);
 
-  return {to_secret_type(spec[k_secret_type].GetString()),
-          spec[k_server_url].GetString()};
+  std::string id;
+
+  // we first check for the deprecated key, to have a meaningful message if the
+  // new key is missing
+  try {
+    id = required(spec, k_server_url);
+  } catch (...) {
+    id = required(spec, k_secret_id);
+  }
+
+  return {to_secret_type(required(spec, k_secret_type)), std::move(id)};
 }
 
 void to_secret_spec_list(const std::string &spec,
                          std::vector<Secret_spec> *list) {
-  auto doc = parse(spec);
+  const auto doc = parse(spec);
 
   if (!doc.IsArray()) {
     throw_json_error("Expected array");
@@ -248,11 +280,11 @@ void to_secret_spec_list(const std::string &spec,
 }
 
 std::pair<Secret_spec, std::string> to_secret(const std::string &secret) {
-  auto doc = parse(secret);
+  const auto doc = parse(secret);
 
-  validate_object(doc, {k_secret});
+  validate_object(doc);
 
-  return std::make_pair(to_secret_spec(doc), doc[k_secret].GetString());
+  return std::make_pair(to_secret_spec(doc), required(doc, k_secret));
 }
 
 }  // namespace
@@ -266,10 +298,8 @@ class Helper_interface::Helper_interface_impl {
 
   bool store(const Secret_spec &spec, const std::string &secret) noexcept {
     try {
-      validate_secret(spec.type, secret);
-
       std::string output;
-      bool ret = m_invoker.store(to_string(spec, secret), &output);
+      bool ret = m_invoker.store(to_json(spec, secret), &output);
 
       if (ret) {
         clear_last_error();
@@ -292,7 +322,7 @@ class Helper_interface::Helper_interface_impl {
 
     try {
       std::string output;
-      bool ret = m_invoker.get(to_string(spec), &output);
+      bool ret = m_invoker.get(to_json(spec), &output);
 
       if (ret) {
         *secret = to_secret(output).second;
@@ -311,7 +341,7 @@ class Helper_interface::Helper_interface_impl {
   bool erase(const Secret_spec &spec) noexcept {
     try {
       std::string output;
-      bool ret = m_invoker.erase(to_string(spec), &output);
+      bool ret = m_invoker.erase(to_json(spec), &output);
 
       if (ret) {
         clear_last_error();
@@ -326,15 +356,22 @@ class Helper_interface::Helper_interface_impl {
     }
   }
 
-  bool list(std::vector<Secret_spec> *specs) const noexcept {
+  bool list(std::vector<Secret_spec> *specs,
+            std::optional<Secret_type> type = {}) const noexcept {
     if (nullptr == specs) {
       set_last_error("Invalid pointer");
       return false;
     }
 
     try {
+      std::string input;
+
+      if (type.has_value()) {
+        input = to_json(*type);
+      }
+
       std::string output;
-      bool ret = m_invoker.list(&output);
+      bool ret = m_invoker.list(&output, input);
 
       if (ret) {
         to_secret_spec_list(output, specs);
@@ -382,8 +419,9 @@ bool Helper_interface::erase(const Secret_spec &spec) noexcept {
   return m_impl->erase(spec);
 }
 
-bool Helper_interface::list(std::vector<Secret_spec> *specs) const noexcept {
-  return m_impl->list(specs);
+bool Helper_interface::list(std::vector<Secret_spec> *specs,
+                            std::optional<Secret_type> type) const noexcept {
+  return m_impl->list(specs, type);
 }
 
 std::string Helper_interface::get_last_error() const noexcept {

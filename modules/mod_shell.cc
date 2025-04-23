@@ -25,6 +25,8 @@
 #include "modules/mod_shell.h"
 
 #include <memory>
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "modules/devapi/mod_mysqlx_schema.h"
@@ -216,6 +218,11 @@ void Shell::init() {
       ->cli(false);
   expose("listSqlHandlers", &Shell::list_sql_handlers)->cli(true);
   expose("createResult", &Shell::create_result, "?data")->cli(false);
+  expose("storeSecret", &Shell::store_secret, "key", "?value")->cli();
+  expose("readSecret", &Shell::read_secret, "key")->cli();
+  expose("deleteSecret", &Shell::delete_secret, "key")->cli();
+  expose("deleteAllSecrets", &Shell::delete_all_secrets)->cli();
+  expose("listSecrets", &Shell::list_secrets)->cli();
 }
 
 Shell::~Shell() {}
@@ -1254,27 +1261,30 @@ None Shell::status() {}
 void Shell::status() { _shell->cmd_status({}); }
 
 REGISTER_HELP_FUNCTION(listCredentialHelpers, shell);
-REGISTER_HELP(SHELL_LISTCREDENTIALHELPERS_BRIEF,
-              "Returns a list of strings, where each string is a name of a "
-              "helper available on the current platform.");
-REGISTER_HELP(
-    SHELL_LISTCREDENTIALHELPERS_RETURNS,
-    "@returns A list of string with names of available credential helpers.");
-REGISTER_HELP(SHELL_LISTCREDENTIALHELPERS_DETAIL,
-              "The special values \"default\" and \"@<disabled>\" "
-              "are not on the list.");
-REGISTER_HELP(SHELL_LISTCREDENTIALHELPERS_DETAIL1,
-              "Only values on this list (plus \"default\" and "
-              "\"@<disabled>\") can be used to set the "
-              "\"credentialStore.helper\" option.");
+REGISTER_HELP_FUNCTION_TEXT(SHELL_LISTCREDENTIALHELPERS, R"*(
+Returns a list of strings, where each string is a name of a helper available on
+the current platform.
+
+@returns A list of string with names of available credential helpers.
+
+The special values "default" and "<disabled>" are not on the list.
+
+Only values on this list (plus "default" and "<disabled>") can be used to set
+the "credentialStore.helper" %Shell option.
+
+<b>Limitations:</b>
+@li The <b>login-path</b> helper cannot store secrets longer than 78 characters.
+@li The <b>login-path</b> helper cannot store the following characters: '\\0',
+    '0x03', '0x04', '\\n', '\\r', '0x0F', '0x11', '0x12', '0x13', '0x15',
+    '0x16', '0x17', '0x19', '0x1A', '0x1C', '0x7F'.
+@li The <b>keychain</b> helper cannot store the following characters: '\\0',
+    '\\n'.
+)*");
 
 /**
  * $(SHELL_LISTCREDENTIALHELPERS_BRIEF)
  *
- * $(SHELL_LISTCREDENTIALHELPERS_RETURNS)
- *
- * $(SHELL_LISTCREDENTIALHELPERS_DETAIL)
- * $(SHELL_LISTCREDENTIALHELPERS_DETAIL1)
+ * $(SHELL_LISTCREDENTIALHELPERS)
  */
 #if DOXYGEN_JS
 List Shell::listCredentialHelpers() {}
@@ -2420,6 +2430,141 @@ std::shared_ptr<ShellResult> Shell::create_result(
   }
 
   throw std::runtime_error("Invalid data for ShellResult");
+}
+
+namespace {
+
+void validate_key(const std::string &key) {
+  if (key.empty()) {
+    throw std::invalid_argument{"Key cannot be empty."};
+  }
+}
+
+}  // namespace
+
+REGISTER_HELP_FUNCTION(storeSecret, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_STORESECRET, R"*(
+Stores given secret using the configured helper.
+
+@param key A key that uniquely identifies the secret.
+@param value Optional value for the given key.
+
+If value is not provided, displays a prompt to enter the secret.
+
+If secret with the given key is already in the storage, its value is overwritten.
+
+The current helper is set by the <b>credentialStore.helper</b> %Shell option.
+
+The limitations of helpers on allowed characters do not apply to secrets stored
+by <<<storeSecret>>>().
+)*");
+
+/**
+ * $(SHELL_STORESECRET_BRIEF)
+ *
+ * $(SHELL_STORESECRET)
+ */
+#if DOXYGEN_JS
+Undefined Shell::storeSecret(String key, String value) {}
+#elif DOXYGEN_PY
+None Shell::store_secret(str key, str value) {}
+#endif
+void Shell::store_secret(const std::string &key,
+                         std::optional<std::string> value) {
+  validate_key(key);
+
+  std::string secret_to_store;
+
+  if (!value.has_value()) {
+    if (current_console()->prompt_password(
+            "Please provide the secret to store: ", &secret_to_store) !=
+        shcore::Prompt_result::Ok) {
+      throw shcore::cancelled("Cancelled");
+    }
+  } else {
+    secret_to_store = std::move(*value);
+  }
+
+  shcore::Credential_manager::get().store_secret(key, secret_to_store);
+}
+
+REGISTER_HELP_FUNCTION(readSecret, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_READSECRET, R"*(
+Reads secret for the given key using the configured helper.
+
+@param key A key of the secret to read.
+
+@returns Secret associated with the given key.
+)*");
+
+/**
+ * $(SHELL_READSECRET_BRIEF)
+ *
+ * $(SHELL_READSECRET)
+ */
+#if DOXYGEN_JS
+String Shell::readSecret(String key) {}
+#elif DOXYGEN_PY
+str Shell::read_secret(str key) {}
+#endif
+std::string Shell::read_secret(const std::string &key) {
+  validate_key(key);
+  return shcore::Credential_manager::get().read_secret(key);
+}
+
+REGISTER_HELP_FUNCTION(deleteSecret, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_DELETESECRET, R"*(
+Deletes secret for the given key using the configured helper.
+
+@param key A key of the secret to delete.
+)*");
+
+/**
+ * $(SHELL_DELETESECRET_BRIEF)
+ *
+ * $(SHELL_DELETESECRET)
+ */
+#if DOXYGEN_JS
+Undefined Shell::deleteSecret(String key) {}
+#elif DOXYGEN_PY
+None Shell::delete_secret(str key) {}
+#endif
+void Shell::delete_secret(const std::string &key) {
+  validate_key(key);
+  shcore::Credential_manager::get().delete_secret(key);
+}
+
+REGISTER_HELP_FUNCTION(deleteAllSecrets, shell);
+REGISTER_HELP(SHELL_DELETEALLSECRETS_BRIEF,
+              "Deletes all secrets managed by the configured helper.");
+
+/**
+ * $(SHELL_DELETEALLSECRETS_BRIEF)
+ */
+#if DOXYGEN_JS
+Undefined Shell::deleteAllSecrets() {}
+#elif DOXYGEN_PY
+None Shell::delete_all_secrets() {}
+#endif
+void Shell::delete_all_secrets() {
+  shcore::Credential_manager::get().delete_all_secrets();
+}
+
+REGISTER_HELP_FUNCTION(listSecrets, shell);
+REGISTER_HELP(
+    SHELL_LISTSECRETS_BRIEF,
+    "Retrieves a list of all secrets' keys stored by the configured helper.");
+
+/**
+ * $(SHELL_LISTSECRETS_BRIEF)
+ */
+#if DOXYGEN_JS
+List Shell::listSecrets() {}
+#elif DOXYGEN_PY
+list Shell::list_secrets() {}
+#endif
+shcore::Array_t Shell::list_secrets() {
+  return shcore::make_array(shcore::Credential_manager::get().list_secrets());
 }
 
 }  // namespace mysqlsh

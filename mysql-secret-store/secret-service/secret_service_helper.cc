@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,7 +25,10 @@
 
 #include "mysql-secret-store/secret-service/secret_service_helper.h"
 
+#include <algorithm>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -42,15 +45,18 @@ namespace {
 
 #define SECRET_TYPE_KEY "secret_type"
 #define SECRET_URL_KEY "secret_url"
+#define SECRET_ID_KEY "secret_id"
 
 #define MAKE_ATTRIBUTE(key) "attribute." key
 
 constexpr auto k_secret_store_key = "secret_store";
 constexpr auto k_secret_type_key = SECRET_TYPE_KEY;
 constexpr auto k_secret_url_key = SECRET_URL_KEY;
+constexpr auto k_secret_id_key = SECRET_ID_KEY;
 
 constexpr auto k_secret_type_attribute = MAKE_ATTRIBUTE(SECRET_TYPE_KEY);
 constexpr auto k_secret_url_attribute = MAKE_ATTRIBUTE(SECRET_URL_KEY);
+constexpr auto k_secret_id_attribute = MAKE_ATTRIBUTE(SECRET_ID_KEY);
 
 #undef MAKE_ATTRIBUTE
 #undef SECRET_TYPE_KEY
@@ -74,15 +80,16 @@ void parse_list(const std::string &list,
         secrets->emplace_back();
         needs_type = needs_url = true;
       } else {
-        auto option = shcore::str_split(line, "=", -1, true);
+        auto option = shcore::str_split(line, "=", 1, true);
         auto key = shcore::str_strip(option[0]);
         auto value = shcore::str_strip(option[1]);
 
         if (k_secret_type_attribute == key) {
           secrets->back().secret_type = value;
           needs_type = false;
-        } else if (k_secret_url_attribute == key) {
-          secrets->back().url = value;
+        } else if (k_secret_url_attribute == key ||
+                   k_secret_id_attribute == key) {
+          secrets->back().id = value;
           needs_url = false;
         }
       }
@@ -90,6 +97,10 @@ void parse_list(const std::string &list,
   }
 
   verify_secret_id();
+}
+
+bool validate_string(const std::string &str) {
+  return shcore::is_valid_utf8(str);
 }
 
 }  // namespace
@@ -106,6 +117,14 @@ void Secret_service_helper::check_requirements() {
 }
 
 void Secret_service_helper::store(const common::Secret &secret) {
+  if (!validate_string(secret.id.id)) {
+    throw get_helper_exception(Helper_exception_code::INVALID_SECRET_ID);
+  }
+
+  if (!validate_string(secret.secret)) {
+    throw get_helper_exception(Helper_exception_code::INVALID_SECRET);
+  }
+
   m_invoker.store(get_label(secret.id), get_attributes(secret.id),
                   secret.secret);
 }
@@ -123,8 +142,18 @@ void Secret_service_helper::erase(const common::Secret_id &id) {
   m_invoker.erase(attributes);
 }
 
-void Secret_service_helper::list(std::vector<common::Secret_id> *secrets) {
+void Secret_service_helper::list(std::vector<common::Secret_id> *secrets,
+                                 std::optional<std::string> secret_type) {
   parse_list(list(), secrets);
+
+  if (secret_type.has_value()) {
+    secrets->erase(std::remove_if(secrets->begin(), secrets->end(),
+                                  [secret_type = *secret_type](
+                                      const common::Secret_id &id) {
+                                    return id.secret_type != secret_type;
+                                  }),
+                   secrets->end());
+  }
 }
 
 Secret_tool_invoker::Attributes Secret_service_helper::get_attributes(
@@ -133,13 +162,18 @@ Secret_tool_invoker::Attributes Secret_service_helper::get_attributes(
 
   attributes.emplace(std::make_pair(k_secret_store_key, name()));
   attributes.emplace(std::make_pair(k_secret_type_key, id.secret_type));
-  attributes.emplace(std::make_pair(k_secret_url_key, id.url));
+
+  if ("password" == id.secret_type) {
+    attributes.emplace(std::make_pair(k_secret_url_key, id.id));
+  } else {
+    attributes.emplace(std::make_pair(k_secret_id_key, id.id));
+  }
 
   return attributes;
 }
 
 std::string Secret_service_helper::get_label(const common::Secret_id &id) {
-  return "Secret for " + id.url + " (" + id.secret_type + ")";
+  return "Secret for " + id.id + " (" + id.secret_type + ")";
 }
 
 std::string Secret_service_helper::get(
@@ -161,7 +195,7 @@ std::string Secret_service_helper::get(const common::Secret_id &id) {
 }
 
 std::string Secret_service_helper::list() {
-  return m_invoker.list({{k_secret_store_key, name()}});
+  return shcore::str_strip(m_invoker.list({{k_secret_store_key, name()}}));
 }
 
 }  // namespace secret_service

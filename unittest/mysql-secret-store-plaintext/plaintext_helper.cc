@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -48,7 +48,7 @@ namespace {
 
 constexpr auto k_secret = "Secret";
 constexpr auto k_secret_type = "SecretType";
-constexpr auto k_server_url = "ServerURL";
+constexpr auto k_secret_id = "SecretID";
 
 std::string to_string(rapidjson::Document *doc) {
   rapidjson::StringBuffer buffer;
@@ -80,9 +80,12 @@ std::vector<common::Secret> load_file(const std::string &path) {
 
     if (doc.IsArray()) {
       for (const auto &s : doc.GetArray()) {
-        secrets.emplace_back(s[k_secret].GetString(),
-                             common::Secret_id{s[k_secret_type].GetString(),
-                                               s[k_server_url].GetString()});
+        secrets.emplace_back(
+            std::string{s[k_secret].GetString(), s[k_secret].GetStringLength()},
+            common::Secret_id{{s[k_secret_type].GetString(),
+                               s[k_secret_type].GetStringLength()},
+                              {s[k_secret_id].GetString(),
+                               s[k_secret_id].GetStringLength()}});
       }
     }
   }
@@ -106,8 +109,8 @@ void save_file(const std::string &path,
                 rapidjson::StringRef(s.id.secret_type.c_str(),
                                      s.id.secret_type.length()),
                 allocator);
-    v.AddMember(rapidjson::StringRef(k_server_url),
-                rapidjson::StringRef(s.id.url.c_str(), s.id.url.length()),
+    v.AddMember(rapidjson::StringRef(k_secret_id),
+                rapidjson::StringRef(s.id.id.c_str(), s.id.id.length()),
                 allocator);
     doc.PushBack(v, allocator);
   }
@@ -121,7 +124,7 @@ std::vector<common::Secret>::iterator find_secret(
     const common::Secret_id &id, std::vector<common::Secret> *secrets) {
   return std::find_if(
       secrets->begin(), secrets->end(), [&id](const common::Secret &s) {
-        return s.id.secret_type == id.secret_type && s.id.url == id.url;
+        return s.id.secret_type == id.secret_type && s.id.id == id.id;
       });
 }
 
@@ -172,11 +175,14 @@ void Plaintext_helper::erase(const common::Secret_id &id) {
   save_file(path, data);
 }
 
-void Plaintext_helper::list(std::vector<common::Secret_id> *secrets) {
+void Plaintext_helper::list(std::vector<common::Secret_id> *secrets,
+                            std::optional<std::string> secret_type) {
   auto data = load_file(get_file_name());
 
   for (auto &s : data) {
-    secrets->emplace_back(std::move(s.id));
+    if (!secret_type.has_value() || s.id.secret_type == *secret_type) {
+      secrets->emplace_back(std::move(s.id));
+    }
   }
 }
 

@@ -77,11 +77,23 @@ shell.help("deleteAllCredentials")
 //@ Help on deleteAllCredentials, \? [USE:Help on deleteAllCredentials]
 \? deleteAllCredentials
 
+//@ Help on deleteAllSecrets
+shell.help("deleteAllSecrets")
+
+//@ Help on deleteAllSecrets, \? [USE: Help on deleteAllSecrets]
+\? deleteAllSecrets
+
 //@ Help on deleteCredential
 shell.help("deleteCredential")
 
 //@ Help on deleteCredential, \? [USE:Help on deleteCredential]
 \? shell.deleteCredential
+
+//@ Help on deleteSecret
+shell.help("deleteSecret")
+
+//@ Help on deleteSecret, \? [USE: Help on deleteSecret]
+\? shell.deleteSecret
 
 //@ Help on disablePager
 shell.help("disablePager")
@@ -119,6 +131,12 @@ shell.help("listCredentials")
 //@ Help on listCredentials, \? [USE:Help on listCredentials]
 \? shell.listCredentials
 
+//@ Help on listSecrets
+shell.help("listSecrets")
+
+//@ Help on listSecrets, \? [USE: Help on listSecrets]
+\? shell.listSecrets
+
 //@ Help on listSshConnections
 shell.help("listSshConnections")
 
@@ -148,6 +166,12 @@ shell.help("disconnect")
 
 //@ Help on disconnect [USE: Help on shell.disconnect]
 \? shell.disconnect
+
+//@ Help on readSecret
+shell.help("readSecret")
+
+//@ Help on readSecret, \? [USE: Help on readSecret]
+\? readSecret
 
 //@ Help on reconnect
 shell.help("reconnect")
@@ -207,6 +231,12 @@ shell.help("storeCredential")
 
 //@ Help on storeCredential, \? [USE:Help on storeCredential]
 \? storeCredential
+
+//@ Help on storeSecret
+shell.help("storeSecret")
+
+//@ Help on storeSecret, \? [USE: Help on storeSecret]
+\? storeSecret
 
 //@ BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, before session
 \? connection

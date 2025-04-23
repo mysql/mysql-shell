@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,7 +49,8 @@ class Windows_credential_helper : public common::Helper {
 
   void erase(const common::Secret_id &) override;
 
-  void list(std::vector<common::Secret_id> *) override;
+  void list(std::vector<common::Secret_id> *,
+            std::optional<std::string>) override;
 
  private:
   std::string get_name_prefix() const;
@@ -61,6 +62,8 @@ class Windows_credential_helper : public common::Helper {
   std::string get_keyword_prefix() const;
 
   std::string get_url_keyword() const;
+
+  std::string get_id_keyword() const;
 
   std::string get_secret_type_keyword() const;
 

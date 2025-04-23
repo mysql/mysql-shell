@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,8 @@
  */
 
 #include "mysql-secret-store/keychain/security_invoker.h"
+
+#include <utility>
 
 #include "mysql-secret-store/include/helper.h"
 #include "mysqlshdk/libs/utils/process_launcher.h"
@@ -80,6 +82,7 @@ std::string hex2string(const std::string &in) {
 void Security_invoker::validate() { invoke({"help"}); }
 
 void Security_invoker::store(const Entry &entry, const std::string &secret) {
+  // NOTE: primary key of a generic password is account + service
   std::vector<std::string> args{"add-generic-password"};
   get_args(entry, &args, true);
   args.emplace_back("-U");
@@ -176,7 +179,7 @@ std::vector<Security_invoker::Entry> Security_invoker::list() {
     }
 
     if (should_add) {
-      result.emplace_back(entry);
+      result.emplace_back(std::move(entry));
     }
   }
 
@@ -200,8 +203,9 @@ std::string Security_invoker::invoke(const std::vector<std::string> &args,
 
   if (!input.empty()) {
     app.write(input.c_str(), input.length());
-    app.finish_writing();
   }
+
+  app.finish_writing();
 
   std::string output = shcore::str_strip(app.read_all());
   const auto exit_code = app.wait();

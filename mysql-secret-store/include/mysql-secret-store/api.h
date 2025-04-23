@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,20 +28,16 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "mysql-secret-store/include/mysql-secret-store/secret_type.h"
+
 namespace mysql {
 namespace secret_store {
 namespace api {
-
-/**
- * Types of secrets.
- */
-enum class Secret_type {
-  PASSWORD /**< Secret is a password */
-};
 
 /**
  * Specification of a secret, uniquely identifies a secret.
@@ -59,7 +55,7 @@ struct Secret_spec {
   bool operator!=(const Secret_spec &r) const noexcept;
 
   Secret_type type; /**< Secret's type. */
-  std::string url;  /**< Secret's URL. */
+  std::string id;   /**< Secret's ID. */
 };
 
 /**
@@ -177,10 +173,12 @@ class Helper_interface final {
    * helper.
    *
    * @param specs Retrieved list of secret specifications.
+   * @param type If given, only secrets of this type are retrieved.
    *
    * @returns true if list was successfully retrieved.
    */
-  bool list(std::vector<Secret_spec> *specs) const noexcept;
+  bool list(std::vector<Secret_spec> *specs,
+            std::optional<Secret_type> type = {}) const noexcept;
 
   /**
    * Provides error message of the previous operation (store/get/erase/list)

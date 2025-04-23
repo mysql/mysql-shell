@@ -51,8 +51,14 @@ The following operations are available at 'shell':
    delete-all-credentials
       Deletes all credentials managed by the configured helper.
 
+   delete-all-secrets
+      Deletes all secrets managed by the configured helper.
+
    delete-credential
       Deletes credential for the given URL using the configured helper.
+
+   delete-secret
+      Deletes secret for the given key using the configured helper.
 
    list-credential-helpers
       Returns a list of strings, where each string is a name of a helper
@@ -61,14 +67,23 @@ The following operations are available at 'shell':
    list-credentials
       Retrieves a list of all URLs stored by the configured helper.
 
+   list-secrets
+      Retrieves a list of all secrets' keys stored by the configured helper.
+
    list-sql-handlers
       Lists the name and description of any registered SQL handlers.
+
+   read-secret
+      Reads secret for the given key using the configured helper.
 
    status
       Shows connection status info for the shell.
 
    store-credential
       Stores given credential using the configured helper.
+
+   store-secret
+      Stores given secret using the configured helper.
 
 //@<OUT> CLI shell options --help
 The following operations are available at 'shell options':
@@ -2431,3 +2446,54 @@ OPTIONS
             tables are processed the command will either wait for more data,
             the dump is marked as completed or the given timeout (in seconds)
             passes. <= 0 disables waiting. Default: 0.
+
+//@<OUT> CLI shell delete-all-secrets --help
+NAME
+      delete-all-secrets - Deletes all secrets managed by the configured
+                           helper.
+
+SYNTAX
+      shell delete-all-secrets
+
+//@<OUT> CLI shell delete-secret --help
+NAME
+      delete-secret - Deletes secret for the given key using the configured
+                      helper.
+
+SYNTAX
+      shell delete-secret <key>
+
+WHERE
+      key: A key of the secret to delete.
+
+//@<OUT> CLI shell list-secrets --help
+NAME
+      list-secrets - Retrieves a list of all secrets' keys stored by the
+                     configured helper.
+
+SYNTAX
+      shell list-secrets
+
+//@<OUT> CLI shell read-secret --help
+NAME
+      read-secret - Reads secret for the given key using the configured helper.
+
+SYNTAX
+      shell read-secret <key>
+
+WHERE
+      key: A key of the secret to read.
+
+RETURNS
+      Secret associated with the given key.
+
+//@<OUT> CLI shell store-secret --help
+NAME
+      store-secret - Stores given secret using the configured helper.
+
+SYNTAX
+      shell store-secret <key> [<value>]
+
+WHERE
+      key: A key that uniquely identifies the secret.
+      value: Value for the given key.

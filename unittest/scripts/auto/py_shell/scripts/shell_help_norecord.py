@@ -72,6 +72,15 @@ shell.help('delete_all_credentials')
 #@ global help for delete_all_credentials [USE:shell.delete_all_credentials]
 \help Shell.delete_all_credentials
 
+#@ shell.delete_all_secrets
+shell.help('delete_all_secrets')
+
+#@ global ? for delete_all_secrets [USE: shell.delete_all_secrets]
+\? Shell.delete_all_secrets
+
+#@ global help for delete_all_secrets [USE: shell.delete_all_secrets]
+\help Shell.delete_all_secrets
+
 #@ shell.delete_credential
 shell.help('delete_credential')
 
@@ -80,6 +89,15 @@ shell.help('delete_credential')
 
 #@ global help for delete_credential [USE:shell.delete_credential]
 \help Shell.delete_credential
+
+#@ shell.delete_secret
+shell.help('delete_secret')
+
+#@ global ? for delete_secret [USE: shell.delete_secret]
+\? Shell.delete_secret
+
+#@ global help for delete_secret [USE: shell.delete_secret]
+\help Shell.delete_secret
 
 #@ shell.disable_pager
 shell.help('disable_pager')
@@ -135,6 +153,15 @@ shell.help('list_credentials')
 #@ global help for list_credentials [USE:shell.list_credentials]
 \help Shell.list_credentials
 
+#@ shell.list_secrets
+shell.help('list_secrets')
+
+#@ global ? for list_secrets [USE: shell.list_secrets]
+\? Shell.list_secrets
+
+#@ global help for list_secrets [USE: shell.list_secrets]
+\help Shell.list_secrets
+
 #@ shell.list_ssh_connections
 shell.help('list_ssh_connections')
 
@@ -188,6 +215,15 @@ shell.help('disconnect')
 
 #@ global help for disconnect[USE:shell.disconnect]
 \help Shell.disconnect
+
+#@ shell.read_secret
+shell.help('read_secret')
+
+#@ global ? for read_secret [USE: shell.read_secret]
+\? Shell.read_secret
+
+#@ global help for read_secret [USE: shell.read_secret]
+\help Shell.read_secret
 
 #@ shell.reconnect
 shell.help('reconnect')
@@ -283,6 +319,15 @@ shell.help('store_credential')
 
 #@ global help for store_credential [USE:shell.store_credential]
 \help Shell.store_credential
+
+#@ shell.store_secret
+shell.help('store_secret')
+
+#@ global ? for store_secret [USE: shell.store_secret]
+\? Shell.store_secret
+
+#@ global help for store_secret [USE: shell.store_secret]
+\help Shell.store_secret
 
 #@ shell.create_context
 shell.help('create_context')

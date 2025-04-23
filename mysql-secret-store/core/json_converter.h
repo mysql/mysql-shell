@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,6 +39,8 @@ namespace converter {
 common::Secret to_secret(const std::string &secret);
 
 common::Secret_id to_secret_id(const std::string &secret_id);
+
+std::string to_secret_type(const std::string &secret_type);
 
 std::string to_string(const common::Secret &secret);
 

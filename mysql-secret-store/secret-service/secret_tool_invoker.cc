@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -95,16 +95,18 @@ std::string Secret_tool_invoker::invoke(const std::vector<std::string> &args,
 
   if (has_password) {
     app.write(password.c_str(), password.length());
-    app.finish_writing();
   }
 
-  std::string output = shcore::str_strip(app.read_all());
+  app.finish_writing();
+
+  std::string output = app.read_all();
   const auto exit_code = app.wait();
 
   if (0 != exit_code) {
     throw Helper_exception{"Process \"" + std::string{process_args[0]} +
                            "\" finished with exit code " +
-                           std::to_string(exit_code) + ": " + output};
+                           std::to_string(exit_code) + ": " +
+                           shcore::str_strip(output)};
   }
 
   return output;

@@ -254,3 +254,67 @@ callMysqlsh(["--", "util", "importTable", "-h"])
 
 //@ CLI util loadDump -h [USE:CLI util load-dump --help]
 callMysqlsh(["--", "util", "loadDump", "-h"])
+
+
+//@ CLI shell delete-all-secrets --help
+callMysqlsh(["--", "shell", "delete-all-secrets", "--help"])
+
+//@ CLI shell delete-secret --help
+callMysqlsh(["--", "shell", "delete-secret", "--help"])
+
+//@ CLI shell list-secrets --help
+callMysqlsh(["--", "shell", "list-secrets", "--help"])
+
+//@ CLI shell read-secret --help
+callMysqlsh(["--", "shell", "read-secret", "--help"])
+
+//@ CLI shell store-secret --help
+callMysqlsh(["--", "shell", "store-secret", "--help"])
+
+
+//@ CLI shell delete-all-secrets -h [USE: CLI shell delete-all-secrets --help]
+callMysqlsh(["--", "shell", "delete-all-secrets", "-h"])
+
+//@ CLI shell delete-secret -h [USE: CLI shell delete-secret --help]
+callMysqlsh(["--", "shell", "delete-secret", "-h"])
+
+//@ CLI shell list-secrets -h [USE: CLI shell list-secrets --help]
+callMysqlsh(["--", "shell", "list-secrets", "-h"])
+
+//@ CLI shell read-secret -h [USE: CLI shell read-secret --help]
+callMysqlsh(["--", "shell", "read-secret", "--help"])
+
+//@ CLI shell store-secret -h [USE: CLI shell store-secret --help]
+callMysqlsh(["--", "shell", "store-secret", "-h"])
+
+
+//@ CLI shell deleteAllSecrets --help [USE: CLI shell delete-all-secrets --help]
+callMysqlsh(["--", "shell", "deleteAllSecrets", "--help"])
+
+//@ CLI shell deleteSecret --help [USE: CLI shell delete-secret --help]
+callMysqlsh(["--", "shell", "deleteSecret", "--help"])
+
+//@ CLI shell listSecrets --help [USE: CLI shell list-secrets --help]
+callMysqlsh(["--", "shell", "listSecrets", "--help"])
+
+//@ CLI shell readSecret --help [USE: CLI shell read-secret --help]
+callMysqlsh(["--", "shell", "readSecret", "--help"])
+
+//@ CLI shell storeSecret --help [USE: CLI shell store-secret --help]
+callMysqlsh(["--", "shell", "storeSecret", "--help"])
+
+
+//@ CLI shell deleteAllSecrets -h [USE: CLI shell delete-all-secrets --help]
+callMysqlsh(["--", "shell", "deleteAllSecrets", "-h"])
+
+//@ CLI shell deleteSecret -h [USE: CLI shell delete-secret --help]
+callMysqlsh(["--", "shell", "deleteSecret", "-h"])
+
+//@ CLI shell listSecrets -h [USE: CLI shell list-secrets --help]
+callMysqlsh(["--", "shell", "listSecrets", "-h"])
+
+//@ CLI shell readSecret -h [USE: CLI shell read-secret --help]
+callMysqlsh(["--", "shell", "readSecret", "-h"])
+
+//@ CLI shell storeSecret -h [USE: CLI shell store-secret --help]
+callMysqlsh(["--", "shell", "storeSecret", "-h"])

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,13 +33,19 @@ Helper_exception get_helper_exception(Helper_exception_code code) {
   switch (code) {
     case Helper_exception_code::NO_SUCH_SECRET:
       return Helper_exception{"Could not find the secret"};
+
+    case Helper_exception_code::INVALID_SECRET:
+      return Helper_exception{"Secret contains a disallowed character"};
+
+    case Helper_exception_code::INVALID_SECRET_ID:
+      return Helper_exception{"Secret's ID contains a disallowed character"};
   }
 
   throw std::runtime_error{"Unknown exception code"};
 }
 
 bool Secret_id::operator==(const Secret_id &r) const noexcept {
-  return secret_type == r.secret_type && url == r.url;
+  return secret_type == r.secret_type && id == r.id;
 }
 
 bool Secret_id::operator!=(const Secret_id &r) const noexcept {

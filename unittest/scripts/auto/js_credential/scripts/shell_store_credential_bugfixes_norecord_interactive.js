@@ -1,5 +1,7 @@
+//@ {shell.listCredentialHelpers().includes("login-path")}
+
 //@ Initialization
-shell.options["credentialStore.helper"] = "plaintext";
+shell.options["credentialStore.helper"] = "login-path";
 
 // BUG#28597766 NEWLINES PRODUCE ERROR IN PASSWORD HELPER
 

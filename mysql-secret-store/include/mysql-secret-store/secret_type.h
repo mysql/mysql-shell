@@ -23,40 +23,23 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "mysql-secret-store/core/list_command.h"
-
-#include <optional>
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-
-#include "mysql-secret-store/core/json_converter.h"
+#ifndef MYSQL_SECRET_STORE_INCLUDE_MYSQL_SECRET_STORE_SECRET_TYPE_H_
+#define MYSQL_SECRET_STORE_INCLUDE_MYSQL_SECRET_STORE_SECRET_TYPE_H_
 
 namespace mysql {
 namespace secret_store {
-namespace core {
+namespace api {
 
-std::string List_command::help() const { return "Lists the secrets."; }
+/**
+ * Types of secrets.
+ */
+enum class Secret_type {
+  PASSWORD, /**< Secret is a password, Secret's ID is expected to be a URL. */
+  GENERIC,  /**< Generic secret. */
+};
 
-void List_command::execute(std::istream *input, std::ostream *output) {
-  std::optional<std::string> secret_type;
-
-  {
-    std::stringstream buffer;
-    buffer << input->rdbuf();
-
-    if (const auto s = std::move(buffer).str(); !s.empty()) {
-      secret_type = converter::to_secret_type(s);
-    }
-  }
-
-  std::vector<common::Secret_id> secrets;
-  helper()->list(&secrets, std::move(secret_type));
-
-  *output << converter::to_string(secrets);
-}
-
-}  // namespace core
+}  // namespace api
 }  // namespace secret_store
 }  // namespace mysql
+
+#endif  // MYSQL_SECRET_STORE_INCLUDE_MYSQL_SECRET_STORE_SECRET_TYPE_H_

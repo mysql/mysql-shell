@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,6 +96,11 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   List listSqlHandlers();
   ShellResult createResult(Dictionary data);
   ShellResult createResult(List data);
+  Undefined storeSecret(String key, String value);
+  String readSecret(String key);
+  Undefined deleteSecret(String key);
+  Undefined deleteAllSecrets();
+  List listSecrets();
 
  private:
 #elif DOXYGEN_PY
@@ -136,6 +141,11 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   list list_sql_handlers();
   ShellResult create_result(dict data);
   ShellResult create_result(list data);
+  None store_secret(str key, str value);
+  str read_secret(str key);
+  None delete_secret(str key);
+  None delete_all_secrets();
+  list list_secrets();
 
  private:
 #endif
@@ -243,6 +253,12 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
       const std::string &statement,
       const shcore::Option_pack_ref<mysqlshdk::Auto_complete_sql_options>
           &options) const;
+
+  void store_secret(const std::string &key, std::optional<std::string> value);
+  std::string read_secret(const std::string &key);
+  void delete_secret(const std::string &key);
+  void delete_all_secrets();
+  shcore::Array_t list_secrets();
 
  protected:
   void init();

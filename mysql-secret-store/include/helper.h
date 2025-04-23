@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024 Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #ifndef MYSQL_SECRET_STORE_INCLUDE_HELPER_H_
 #define MYSQL_SECRET_STORE_INCLUDE_HELPER_H_
 
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -49,7 +50,9 @@ class Helper_exception : public std::runtime_error {
  * Codes used to translate errors to Helper_exceptions.
  */
 enum class Helper_exception_code {
-  NO_SUCH_SECRET /**< Requested secret does not exist. */
+  NO_SUCH_SECRET,    /**< Requested secret does not exist. */
+  INVALID_SECRET,    /**< Secret contains disallowed character(s). */
+  INVALID_SECRET_ID, /**< Secret's ID contains disallowed character(s). */
 };
 
 /**
@@ -76,7 +79,7 @@ struct Secret_id {
   bool operator!=(const Secret_id &r) const noexcept;
 
   std::string secret_type; /**< Secret's type. */
-  std::string url;         /**< Secret's URL. */
+  std::string id;          /**< Secret's ID. */
 };
 
 /**
@@ -174,10 +177,12 @@ class Helper {
    * Retrieves all secrets stored by this secret store helper.
    *
    * @param secrets Retrieved IDs of stored secrets.
+   * @param secret_type If given, only secrets of this type are retrieved.
    *
    * @throws Helper_exception in case of an error.
    */
-  virtual void list(std::vector<Secret_id> *secrets) = 0;
+  virtual void list(std::vector<Secret_id> *secrets,
+                    std::optional<std::string> secret_type = {}) = 0;
 
  private:
   std::string m_name;

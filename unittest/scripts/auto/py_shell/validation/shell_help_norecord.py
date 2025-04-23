@@ -40,8 +40,14 @@ FUNCTIONS
       delete_all_credentials()
             Deletes all credentials managed by the configured helper.
 
+      delete_all_secrets()
+            Deletes all secrets managed by the configured helper.
+
       delete_credential(url)
             Deletes credential for the given URL using the configured helper.
+
+      delete_secret(key)
+            Deletes secret for the given key using the configured helper.
 
       disable_pager()
             Disables pager for the current scripting mode.
@@ -69,6 +75,10 @@ FUNCTIONS
       list_credentials()
             Retrieves a list of all URLs stored by the configured helper.
 
+      list_secrets()
+            Retrieves a list of all secrets' keys stored by the configured
+            helper.
+
       list_sql_handlers()
             Lists the name and description of any registered SQL handlers.
 
@@ -86,6 +96,9 @@ FUNCTIONS
 
       prompt(message[, options])
             Utility function to prompt data from the user.
+
+      read_secret(key)
+            Reads secret for the given key using the configured helper.
 
       reconnect()
             Reconnect the global session.
@@ -111,6 +124,9 @@ FUNCTIONS
 
       store_credential(url[, password])
             Stores given credential using the configured helper.
+
+      store_secret(key[, value])
+            Stores given secret using the configured helper.
 
       unparse_uri(options)
             Formats the given connection options to a URI string suitable for
@@ -480,6 +496,14 @@ EXCEPTIONS
       - if configured credential helper is invalid.
       - if deleting the credentials fails.
 
+#@<OUT> shell.delete_all_secrets
+NAME
+      delete_all_secrets - Deletes all secrets managed by the configured
+                           helper.
+
+SYNTAX
+      shell.delete_all_secrets()
+
 #@<OUT> shell.delete_credential
 NAME
       delete_credential - Deletes credential for the given URL using the
@@ -501,6 +525,17 @@ EXCEPTIONS
 
       - if configured credential helper is invalid.
       - if deleting the credential fails.
+
+#@<OUT> shell.delete_secret
+NAME
+      delete_secret - Deletes secret for the given key using the configured
+                      helper.
+
+SYNTAX
+      shell.delete_secret(key)
+
+WHERE
+      key: A key of the secret to delete.
 
 #@<OUT> shell.disable_pager
 NAME
@@ -579,7 +614,16 @@ DESCRIPTION
       The special values "default" and "<disabled>" are not on the list.
 
       Only values on this list (plus "default" and "<disabled>") can be used to
-      set the "credentialStore.helper" option.
+      set the "credentialStore.helper" Shell option.
+
+      Limitations:
+
+      - The login-path helper cannot store secrets longer than 78 characters.
+      - The login-path helper cannot store the following characters: '\0',
+        '0x03', '0x04', '\n', '\r', '0x0F', '0x11', '0x12', '0x13', '0x15',
+        '0x16', '0x17', '0x19', '0x1A', '0x1C', '0x7F'.
+      - The keychain helper cannot store the following characters: '\0',
+        '\n'.
 
 #@<OUT> shell.list_credentials
 NAME
@@ -597,6 +641,14 @@ EXCEPTIONS
 
       - if configured credential helper is invalid.
       - if listing the URLs fails.
+
+#@<OUT> shell.list_secrets
+NAME
+      list_secrets - Retrieves a list of all secrets' keys stored by the
+                     configured helper.
+
+SYNTAX
+      shell.list_secrets()
 
 #@<OUT> shell.list_ssh_connections
 NAME
@@ -903,6 +955,19 @@ NAME
 
 SYNTAX
       shell.disconnect()
+
+#@<OUT> shell.read_secret
+NAME
+      read_secret - Reads secret for the given key using the configured helper.
+
+SYNTAX
+      shell.read_secret(key)
+
+WHERE
+      key: A key of the secret to read.
+
+RETURNS
+      Secret associated with the given key.
 
 #@<OUT> shell.reconnect
 NAME
@@ -1260,6 +1325,28 @@ EXCEPTIONS
 
       - if configured credential helper is invalid.
       - if storing the credential fails.
+
+#@<OUT> shell.store_secret
+NAME
+      store_secret - Stores given secret using the configured helper.
+
+SYNTAX
+      shell.store_secret(key[, value])
+
+WHERE
+      key: A key that uniquely identifies the secret.
+      value: Value for the given key.
+
+DESCRIPTION
+      If value is not provided, displays a prompt to enter the secret.
+
+      If secret with the given key is already in the storage, its value is
+      overwritten.
+
+      The current helper is set by the credentialStore.helper Shell option.
+
+      The limitations of helpers on allowed characters do not apply to secrets
+      stored by store_secret().
 
 #@<OUT> shell.create_context
 NAME

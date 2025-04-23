@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,8 +81,8 @@ bool Helper_invoker::erase(const std::string &input,
   return invoke("erase", input, output);
 }
 
-bool Helper_invoker::list(std::string *output) const {
-  return invoke("list", {}, output);
+bool Helper_invoker::list(std::string *output, const std::string &input) const {
+  return invoke("list", input, output);
 }
 
 bool Helper_invoker::version() const {
@@ -110,8 +110,9 @@ bool Helper_invoker::invoke(const char *command, const std::string &input,
 
     if (!input.empty()) {
       app.write(input.c_str(), input.length());
-      app.finish_writing();
     }
+
+    app.finish_writing();
 
     *output = shcore::str_strip(app.read_all());
 

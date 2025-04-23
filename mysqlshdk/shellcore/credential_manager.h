@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "mysql-secret-store/include/mysql-secret-store/secret_type.h"
 #include "mysqlshdk/include/shellcore/shell_notifications.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/connection.h"
@@ -82,21 +83,59 @@ class Credential_manager : public NotificationObserver {
 
   std::vector<std::string> list_credential_helpers() const;
 
-  void store_credential(const std::string &url, const std::string &credential);
+  inline void store_credential(const std::string &url,
+                               const std::string &credential) {
+    store_secret(Secret_type::PASSWORD, url, credential);
+  }
 
-  void delete_credential(const std::string &url);
+  inline void delete_credential(const std::string &url) {
+    delete_secret(Secret_type::PASSWORD, url);
+  }
 
-  void delete_all_credentials();
+  inline void delete_all_credentials() {
+    delete_all_secrets(Secret_type::PASSWORD);
+  }
 
-  std::vector<std::string> list_credentials() const;
+  inline std::vector<std::string> list_credentials() const {
+    return list_secrets(Secret_type::PASSWORD);
+  }
+
+  void store_secret(const std::string &id, const std::string &secret);
+
+  std::string read_secret(const std::string &id);
+
+  inline void delete_secret(const std::string &id) {
+    delete_secret(Secret_type::GENERIC, id);
+  }
+
+  inline void delete_all_secrets() { delete_all_secrets(Secret_type::GENERIC); }
+
+  inline std::vector<std::string> list_secrets() const {
+    return list_secrets(Secret_type::GENERIC);
+  }
 
  private:
+  using Secret_type = ::mysql::secret_store::api::Secret_type;
+
   Credential_manager();
   ~Credential_manager() = default;
+
+  void check_helper(const std::string &context) const;
 
   void add_ignore_filter(const std::string &filter);
 
   bool is_ignored_url(const std::string &url) const;
+
+  void store_secret(Secret_type type, const std::string &id,
+                    const std::string &secret);
+
+  std::string read_secret(Secret_type type, const std::string &id);
+
+  void delete_secret(Secret_type type, const std::string &id);
+
+  void delete_all_secrets(Secret_type type);
+
+  std::vector<std::string> list_secrets(Secret_type type) const;
 
   std::unique_ptr<::mysql::secret_store::api::Helper_interface> m_helper;
   std::string m_helper_string;
