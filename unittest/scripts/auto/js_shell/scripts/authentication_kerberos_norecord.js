@@ -1,9 +1,9 @@
-//@ {hasAuthEnvironment('KERBEROS') && __version_num >= 80026 && __os_type != 'macos'}
+//@ {hasAuthEnvironment('KERBEROS') && __version_num >= 80026}
 
 //@<> Setup
 if (debugAuthPlugins()) {
-  dba.verbose = 1;
-  testutil.setenv("AUTHENTICATION_KERBEROS_CLIENT_LOG", "5");
+    dba.verbose = 1;
+    testutil.setenv("AUTHENTICATION_KERBEROS_CLIENT_LOG", "5");
 }
 
 var server_conf = getAuthServerConfig('KERBEROS');
@@ -36,15 +36,15 @@ var test_list = {
     "SELECT @@local.external_user": null
 };
 
-// Cleans the Kerberos cache
-testutil.callMysqlsh(["--py", "-i", "-e", `import os;os.system('${__os_type == 'windows' ? 'klist purge' : 'kdestroy'}')`]);
+//@<> Cleans the Kerberos cache
+destroy_kerberos_cache();
 
 //@<> WL14553-TSFR_8_2 - Kerberos session with no user/password, should fail as there's no cached TGT {kerberos_available}
 args = ["--mysql", "--host=localhost",
     `--port=${__mysql_sandbox_port1}`,
     '--schema=test_user_db',
     '--auth-method=authentication_kerberos_client',
-    "--credential-store-helper=plaintext"]
+    "--credential-store-helper=<disabled>"]
 
 // WL14553-TSFR_9_4 - No user/password provided
 testutil.callMysqlsh(args.concat(["-i", "--sql", "-e", "SELECT current_user()"]));

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, Oracle and/or its affiliates.
+# Copyright (c) 2024, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -28,7 +28,9 @@ else()
 endif()
 
 FOREACH(bin ${binaries})
-  SET(pattern "@executable_path|@loader_path")
+  # the /usr/local/mysql/lib/ is present in dependencies of Kerberos libraries
+  # built in PB2
+  SET(pattern "@executable_path|@loader_path|/usr/local/mysql/lib/")
 
   IF(NOT bin MATCHES "${CRYPTO_VERSION}")
     STRING(APPEND pattern "|${CRYPTO_VERSION}")

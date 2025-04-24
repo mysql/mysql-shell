@@ -1085,11 +1085,13 @@ IF(MYSQL_BUILD_DIR)
 
   IF(AUTH_CLIENT_PLUGINS)
     SET(AUTH_CLIENT_PLUGINS_COPY ${AUTH_CLIENT_PLUGINS})
-    SET(EXPECTED_AUTH_CLIENT_PLUGINS "authentication_ldap_sasl_client" "authentication_oci_client" "mysql_native_password" "authentication_openid_connect_client")
-
-    IF(NOT APPLE)
-      LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_kerberos_client")
-    ENDIF()
+    SET(EXPECTED_AUTH_CLIENT_PLUGINS
+      "authentication_kerberos_client"
+      "authentication_ldap_sasl_client"
+      "authentication_oci_client"
+      "authentication_openid_connect_client"
+      "mysql_native_password"
+    )
 
     IF(${OPENSSL_MAJOR_MINOR_FIX_VERSION} VERSION_GREATER_EQUAL "1.1.1")
       IF(${MYSQL_VERSION} VERSION_GREATER_EQUAL "8.2.0")
