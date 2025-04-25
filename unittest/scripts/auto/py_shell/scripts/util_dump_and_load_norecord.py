@@ -78,7 +78,8 @@ session1.run_sql("/*!80021 alter instance disable innodb redo_log */")
 shell.connect(__sandbox_uri1)
 util.dump_instance(os.path.join(outdir, "dump_instance"), {"showProgress": False})
 
-prepare(__mysql_sandbox_port2)
+# BUG#34566034 - load failed when performance_schema was disabled
+prepare(__mysql_sandbox_port2, options={"performance_schema": "OFF"})
 session2 = mysql.get_session(__sandbox_uri2)
 session2.run_sql("set names utf8mb4")
 session2.run_sql("/*!80021 alter instance disable innodb redo_log */")
@@ -3104,25 +3105,42 @@ compare_schema(session1, session2, tested_schema, check_rows=True)
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
-#@<> BUG#34566034 - load failed if "deferTableIndexes": "all", "ignoreExistingObjects": True options were set and instance contained existing tables with indexes {VER(>=8.0.0)}
+#@<> BUG#34566034 - load failed if "deferTableIndexes": "all", "ignoreExistingObjects": True options were set and instance contained existing tables with indexes
 # constants
 dump_dir = os.path.join(outdir, "bug_34566034")
+tested_schema = "tested_schema"
+tested_table = "tested_table"
 
 # setup
 shell.connect(__sandbox_uri2)
-wipeout_server(session)
-c = dba.create_cluster("C")
+session.run_sql("DROP SCHEMA IF EXISTS !", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql("""
+CREATE TABLE IF NOT EXISTS !.! (
+  `cluster_id` CHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci,
+  `cluster_name` VARCHAR(63) NOT NULL,
+  `description` TEXT,
+  `options` JSON,
+  `attributes` JSON,
+  `cluster_type` ENUM('gr', 'ar') NOT NULL,
+  `primary_mode` ENUM('pm', 'mm') NOT NULL DEFAULT 'pm',
+  `router_options` JSON,
+  `clusterset_id` VARCHAR(36) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  PRIMARY KEY(cluster_id),
+  UNIQUE KEY(cluster_name)
+) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
+""", [ tested_schema, tested_table ])
 
 # dump
 EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "showProgress": False }), "Dump should not fail")
 
 # load
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "deferTableIndexes": "all", "ignoreExistingObjects": True, "showProgress": False }), "Load should not fail")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{tested_schema}` already contains a table named `{tested_table}`")
+EXPECT_STDOUT_CONTAINS("NOTE: One or more objects in the dump already exist in the destination database but will be ignored because the 'ignoreExistingObjects' option was enabled.")
 
-#@<> BUG#34566034 - cleanup {VER(>=8.0.0)}
+#@<> BUG#34566034 - cleanup
 shell.connect(__sandbox_uri2)
-c.dissolve({ 'force': True })
-reset_instance(session)
 wipeout_server(session)
 
 #@<> BUG#35304391 - loader should notify if rows were replaced during load
