@@ -31,6 +31,7 @@
 #include <array>
 #include <cassert>
 #include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <iterator>
 #include <list>
@@ -611,7 +612,7 @@ class Dump_loader::Bulk_load_support {
   std::size_t compatible_tables() const noexcept { return m_compatible_tables; }
 
   void on_bulk_load_start(Worker *worker, Worker::Bulk_load_task *task) {
-    {
+    if (worker->thread_id()) {
       std::lock_guard lock{m_monitored_threads_mutex};
 
       // we want to avoid bloating the progress file with progress update
@@ -1919,28 +1920,31 @@ void Dump_loader::Worker::connect() {
 
 uint64_t Dump_loader::Worker::current_thread_id() const {
   const auto query = [this](std::string_view q) {
-    // no reconnection - session setup step
-    return sql::query(session(), q)->fetch_one_or_throw()->get_uint(0);
+    try {
+      // no reconnection - session setup step
+      const auto result = sql::query(session(), q);
+
+      if (const auto row = result->fetch_one()) {
+        return row->get_uint(0);
+      } else {
+        throw std::runtime_error("Query returned an empty set");
+      }
+    } catch (const std::exception &e) {
+      log_warning("Unable to fetch thread ID for connection ID '%" PRIu64
+                  "': %s",
+                  m_connection_id, e.what());
+      return UINT64_C(0);
+    }
   };
 
   if (session()->get_server_version() >= Version(8, 0, 16)) {
     return query("SELECT PS_CURRENT_THREAD_ID()");
   }
 
-  try {
-    return query(
-        "SELECT THREAD_ID FROM performance_schema.threads WHERE "
-        "PROCESSLIST_ID=" +
-        std::to_string(connection_id()));
-  } catch (const mysqlshdk::db::Error &e) {
-    if (ER_TABLEACCESS_DENIED_ERROR != e.code()) {
-      throw;
-    }
-  }
-
-  log_warning("Unable to fetch thread ID for connection ID: %" PRIu64,
-              m_connection_id);
-  return 0;
+  return query(
+      "SELECT THREAD_ID FROM performance_schema.threads WHERE "
+      "PROCESSLIST_ID=" +
+      std::to_string(connection_id()));
 }
 
 void Dump_loader::Worker::schedule(std::unique_ptr<Task> task) {

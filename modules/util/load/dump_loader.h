@@ -380,6 +380,7 @@ class Dump_loader {
 
     std::shared_ptr<mysqlshdk::db::mysql::Session> m_session;
     uint64_t m_connection_id = 0;
+    // will be set to 0 if it's not possible to fetch the thread ID
     uint64_t m_thread_id = 0;
     Reconnect m_reconnect_callback;
 
