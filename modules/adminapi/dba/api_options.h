@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,7 @@ struct Deploy_sandbox_options final : public Common_sandbox_options {
   std::optional<int> xport;
   std::string allow_root_from{"%"};
   bool ignore_ssl_error{false};
+  std::string mysqld_path;
   shcore::Array_t mysqld_options;
 };
 

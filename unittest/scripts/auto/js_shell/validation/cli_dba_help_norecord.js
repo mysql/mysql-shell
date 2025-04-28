@@ -374,6 +374,10 @@ OPTIONS
             List of MySQL configuration options to write to the my.cnf file, as
             option=value strings.
 
+--mysqldPath=<str>
+            Specify the path to the mysqld binary to be used in the sandbox
+            deployment.
+
 --password=<str>
             Password for the MySQL root user on the new instance.
 

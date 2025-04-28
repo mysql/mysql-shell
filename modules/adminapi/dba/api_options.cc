@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -46,6 +46,7 @@ constexpr shcore::Option_data<std::string> kOptionAllowRootFrom{
 constexpr shcore::Option_data<bool> kOptionIgnoreSSLError{"ignoreSslError"};
 constexpr shcore::Option_data<shcore::Array_t> kOptionMysqldOptions{
     "mysqldOptions"};
+constexpr shcore::Option_data<std::string> kOptionMysqldPath{"mysqldPath"};
 }  // namespace
 
 const shcore::Option_pack_def<Common_sandbox_options>
@@ -101,6 +102,7 @@ const shcore::Option_pack_def<Deploy_sandbox_options>
     b.optional(kOptionAllowRootFrom, &Deploy_sandbox_options::allow_root_from);
     b.optional(kOptionIgnoreSSLError,
                &Deploy_sandbox_options::ignore_ssl_error);
+    b.optional(kOptionMysqldPath, &Deploy_sandbox_options::mysqld_path);
     b.optional(kOptionMysqldOptions, &Deploy_sandbox_options::mysqld_options);
 
     return b.build();
