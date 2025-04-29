@@ -844,8 +844,8 @@ DESCRIPTION
         address pattern (default: %).
       - ignoreSslError: ignore errors when adding SSL support for the new
         instance, by default: true.
-      - mysqldPath: specify the path to the mysqld binary to be used in the
-        sandbox deployment.
+      - mysqldPath: path to the mysqld binary, or the MySQL installation root.
+        Used to locate the server binary for sandbox deployment.
       - mysqldOptions: list of MySQL configuration options to write to the
         my.cnf file, as option=value strings.
 
