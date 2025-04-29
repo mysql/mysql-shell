@@ -409,7 +409,6 @@ def create_sandbox(**kwargs):
                     start: if true leave the sandbox running after its creation
     :type kwargs:    dict
     """
-    basedir = None
     # get mandatory values
     try:
         port = int(kwargs["port"])
@@ -441,15 +440,24 @@ def create_sandbox(**kwargs):
                                      u"".format(sandbox_dir))
     # If no value is provided for mysqld, search value on PATH and default
     # mysqld paths.
+    mysqld_base_dir = None
     try:
-        mysqld_path = kwargs.get("mysqld_path",
-                                 tools.get_tool_path(
-                                     basedir, "mysqld", search_path=True,
-                                     required=True,
-                                     check_tool_func=server.is_valid_mysqld))
+        mysqld_path = kwargs.get("mysqld_path")
+
+        # If the value of mysqld_path is a directory, then it will be used as
+        # basedir to search for the binary.
+        if mysqld_path is not None and os.path.isdir(mysqld_path):
+            mysqld_base_dir = mysqld_path
+            mysqld_path = None
+
+        if mysqld_path is None:
+            mysqld_path = tools.get_tool_path(
+                mysqld_base_dir, "mysqld", search_path=True,
+                required=True,
+                check_tool_func=server.is_valid_mysqld)
 
         # Will use the found mysqld as basedir to locate the other tools
-        basedir = os.path.dirname(mysqld_path)
+        mysqld_base_dir = os.path.dirname(mysqld_path)
     except exceptions.GadgetError as err:
         if err.errno == 1:
             raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
@@ -466,9 +474,10 @@ def create_sandbox(**kwargs):
 
     # If no value is provided for mysqladmin, by default search value on PATH
     mysqladmin_path = kwargs.get("mysqladmin_path",
-                                 tools.get_tool_path(basedir, "mysqladmin",
+                                 tools.get_tool_path(mysqld_base_dir, "mysqladmin",
                                                      search_path=True,
                                                      required=False))
+
     if not mysqladmin_path:
         raise exceptions.GadgetError(_ERROR_CANNOT_FIND_TOOL.format(
             exec_name="mysqladmin", path_var_name=PATH_ENV_VAR))
@@ -498,8 +507,10 @@ def create_sandbox(**kwargs):
         # If no value is provided for mysql_ssl_rsa_setup, by default search value
         # on PATH
         mysql_ssl_rsa_setup_path = kwargs.get(
-            "mysql_ssl_rsa_setup_path", tools.get_tool_path(
-                basedir, "mysql_ssl_rsa_setup", search_path=True, required=False))
+            "mysql_ssl_rsa_setup_path", tools.get_tool_path(mysqld_base_dir,
+                                                            "mysql_ssl_rsa_setup",
+                                                            search_path=True,
+                                                            required=False))
 
         if not mysql_ssl_rsa_setup_path and not ignore_ssl_error:
             raise exceptions.GadgetError(
