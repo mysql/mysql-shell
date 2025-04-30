@@ -193,6 +193,7 @@ if(WITH_TESTS)
     get_property(run_unit_tests_SOURCES TARGET run_unit_tests PROPERTY SOURCES)
     source_group(TREE "${PROJECT_SOURCE_DIR}" FILES ${run_unit_tests_SOURCES})
 
+    add_subdirectory(kdestroy)
 else()
   message(WARNING "Skipping tests. To enable unit-tests use -DWITH_TESTS=1")
 endif()
