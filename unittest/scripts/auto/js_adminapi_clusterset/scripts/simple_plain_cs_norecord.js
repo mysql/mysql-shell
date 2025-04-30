@@ -110,7 +110,10 @@ function END_CHECK_NO_ZOMBIES(cs) {
 function connect_no_timeout(uri) {
     shell.connect(uri);
     session.runSql("SET SESSION wait_timeout = 28800");
+    session.runSql("/*!80300 set session gtid_next='AUTOMATIC:test'*/");
 }
+
+var original_gtids = session1.runSql("select @@gtid_executed").fetchOne()[0]
 
 //@<> create Primary Cluster
 connect_no_timeout(__sandbox_uri1);
@@ -427,6 +430,19 @@ dba.rebootClusterFromCompleteOutage();
 connect_no_timeout(__sandbox_uri1);
 cs = dba.getClusterSet();
 cs.rejoinCluster("replicacluster");
+
+//@<> check adminapi tag is in our GTIDs {VER(>=8.3.0)}
+var row = session1.runSql("select gtid_subtract(@@gtid_executed, ?), @@group_replication_group_name, @@server_uuid", [original_gtids]).fetchOne();
+var gtids = row[0].replace("\n","").split(",");
+
+// all gtid ranges must be tagged either with :test or :mysqlsh
+var expected_re1 = "^"+row[1]+":mysqlsh:[0-9]+-[0-9]+(:[0-9-]+)?(:test:[0-9-]+)?$";
+var expected_re2 = "^"+row[2]+":mysqlsh:[0-9]+-[0-9]+(:[0-9-]+)?(:test:[0-9-]+)?$";
+
+for (var i = 0; i < gtids.length; i++) {
+    println(gtids[i]);
+    EXPECT_TRUE(gtids[i].match(expected_re1) || gtids[i].match(expected_re2));
+}
 
 //@<> disconnect
 cs.disconnect();

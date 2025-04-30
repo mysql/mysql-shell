@@ -72,6 +72,7 @@ function admin_uri(port, nopwd) {
 function connect_no_timeout(uri) {
     shell.connect(uri);
     session.runSql("SET SESSION wait_timeout = 28800");
+    session.runSql("/*!80300 set session gtid_next='AUTOMATIC:test'*/");
 }
 
 //@<> Setup
@@ -83,6 +84,12 @@ if (__version_num > 80000) {
     pwd = __secure_password;
     pwdAdmin = "C0mPL1CAT3D_pa22w0rd_adm1n";
     pwdExtra = "C0mPL1CAT3D_pa22w0rd_3x7ra";
+}
+
+function connect(uri, pwd) {
+    session = mysql.getSession(uri, pwd);
+    session.runSql("/*!80300 set session gtid_next='AUTOMATIC:test'*/");
+    return session;
 }
 
 // override default sql_mode to test that we always override it
@@ -97,6 +104,8 @@ session2 = mysql.getSession(__sandbox_uri2, pwd);
 
 expected_pids1 = get_open_sessions(session1);
 expected_pids2 = get_open_sessions(session2);
+
+var original_gtids = session1.runSql("select @@gtid_executed").fetchOne()[0]
 
 //@<> configureInstance (__mysql_sandbox_port1)
 EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureInstance, root_uri(__mysql_sandbox_port1), {mycnfPath: testutil.getSandboxConfPath(__mysql_sandbox_port1)});
@@ -114,7 +123,7 @@ check_open_sessions(session2, expected_pids2);
 
 testutil.restartSandbox(__mysql_sandbox_port1);
 
-session1 = mysql.getSession(__sandbox_uri1, pwd);
+session1 = connect(__sandbox_uri1, pwd);
 expected_pids1 = get_open_sessions(session1);
 
 //@<> configureInstance (__mysql_sandbox_port2)
@@ -180,7 +189,7 @@ EXPECT_NO_THROWS(function(){ cluster.addInstance(admin_uri(__mysql_sandbox_port2
 EXPECT_OUTPUT_CONTAINS(`Clone based recovery selected through the recoveryMethod option`);
 EXPECT_OUTPUT_CONTAINS(`The instance '127.0.0.1:${__mysql_sandbox_port2}' was successfully added to the cluster.`);
 
-session2 = mysql.getSession(__sandbox_uri2, pwd);
+session2 = connect(__sandbox_uri2, pwd);
 expected_pids2 = get_open_sessions(session2);
 
 check_open_sessions(session1, expected_pids1);
@@ -239,7 +248,7 @@ EXPECT_NO_THROWS(function(){ cluster.forceQuorumUsingPartitionOf(admin_uri(__mys
 check_open_sessions(session1, expected_pids1);
 
 testutil.startSandbox(__mysql_sandbox_port2);
-session2 = mysql.getSession(__sandbox_uri2, pwd);
+session2 = connect(__sandbox_uri2, pwd);
 
 expected_pids2 = get_open_sessions(session2);
 
@@ -355,11 +364,25 @@ check_open_sessions(session2, expected_pids2);
 
 cluster.status();
 
+//@<> check adminapi tag is in our GTIDs {VER(>=8.3.0)}
+var row = session1.runSql("select gtid_subtract(@@gtid_executed, ?), @@group_replication_group_name, @@server_uuid", [original_gtids]).fetchOne();
+var gtids = row[0].replace("\n","").split(",");
+
+// all gtid ranges must be tagged either with :test or :mysqlsh
+var expected_re1 = "^"+row[1]+":mysqlsh:[0-9]+-[0-9]+(:[0-9-]+)?(:test:[0-9-]+)?$";
+var expected_re2 = "^"+row[2]+":mysqlsh:[0-9]+-[0-9]+(:[0-9-]+)?(:test:[0-9-]+)?$";
+
+for (var i = 0; i < gtids.length; i++) {
+    println(gtids[i]);
+    EXPECT_TRUE(gtids[i].match(expected_re1) || gtids[i].match(expected_re2));
+}
+
 //@<> dissolve
 EXPECT_NO_THROWS(function(){ cluster.dissolve(); });
 
 check_open_sessions(session1, expected_pids1);
 check_open_sessions(session2, expected_pids2);
+
 
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);

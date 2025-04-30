@@ -389,7 +389,7 @@ The instance '127.0.0.1:<<<__mysql_sandbox_port1>>>' is valid for InnoDB Cluster
 | ROLE_ADMIN                 | YES          |
 | SELECT                     | YES          |
 | SHUTDOWN                   | YES          |
-| SYSTEM_VARIABLES_ADMIN     | YES          |
+| SYSTEM_VARIABLES_ADMIN     | YES          |<<<(__version_num>=80300) ?  "\n| TRANSACTION_GTID_TAG       | YES          |":"">>>
 +----------------------------+--------------+
 
 //@<OUT> check schema privileges of cluster admin

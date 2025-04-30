@@ -280,24 +280,30 @@ The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 
     "replicaSetName": "myrs",
     "routers": {
         "routerhost1::system": {
+            "currentRoutingGuideline": null,
             "hostname": "routerhost1",
             "lastCheckIn": "2019-01-01 11:22:33",
+            "localCluster": null,
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
             "rwSplitPort": null,
             "rwXPort": null,
+            "supportedRoutingGuidelinesVersion": null,
             "upgradeRequired": true,
             "version": "8.0.18"
         },
         "routerhost2::system": {
+            "currentRoutingGuideline": null,
             "hostname": "routerhost2",
             "lastCheckIn": "2019-01-01 11:22:33",
+            "localCluster": null,
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
             "rwSplitPort": null,
             "rwXPort": null,
+            "supportedRoutingGuidelinesVersion": null,
             "upgradeRequired": true,
             "version": "8.0.18"
         }
@@ -309,13 +315,16 @@ The instance '<<<__address3>>>' rejoined the replicaset and is replicating from 
     "replicaSetName": "myrs",
     "routers": {
         "routerhost2::system": {
+            "currentRoutingGuideline": null,
             "hostname": "routerhost2",
             "lastCheckIn": "2019-01-01 11:22:33",
+            "localCluster": null,
             "roPort": null,
             "roXPort": null,
             "rwPort": null,
             "rwSplitPort": null,
             "rwXPort": null,
+            "supportedRoutingGuidelinesVersion": null,
             "upgradeRequired": true,
             "version": "8.0.18"
         }

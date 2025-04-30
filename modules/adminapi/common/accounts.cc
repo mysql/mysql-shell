@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -136,7 +136,8 @@ const std::vector<Privilege_versions> k_admin_global_privileges{
     {"REPLICATION_SLAVE_ADMIN", Version(8, 0, 0), Version()},
     {"GROUP_REPLICATION_ADMIN", Version(8, 0, 0), Version()},
     {"ROLE_ADMIN", Version(8, 0, 0), Version()},
-    {"CONNECTION_ADMIN", Version(8, 0, 0), Version()}};
+    {"CONNECTION_ADMIN", Version(8, 0, 0), Version()},
+    {"TRANSACTION_GTID_TAG", Version(8, 3, 0), Version()}};
 
 // Schema privileges needed on the metadata schema
 // NOTE: SELECT *.* required (BUG#29743910), thus no longer needed here.

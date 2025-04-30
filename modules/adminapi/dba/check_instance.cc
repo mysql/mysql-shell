@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -192,7 +192,7 @@ shcore::Value Check_instance::do_run() {
   auto console = mysqlsh::current_console();
 
   // Establish a session to the target instance
-  m_target_instance = Instance::connect(m_instance_cnx_opts);
+  m_target_instance = Instance::connect(m_instance_cnx_opts, false);
 
   std::string target = m_target_instance->descr();
 

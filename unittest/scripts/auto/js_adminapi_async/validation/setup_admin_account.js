@@ -32,7 +32,7 @@ Invalid user syntax: Invalid user name: foo@bar (ArgumentError)
 | ROLE_ADMIN                 | YES          |
 | SELECT                     | YES          |
 | SHUTDOWN                   | YES          |
-| SYSTEM_VARIABLES_ADMIN     | YES          |
+| SYSTEM_VARIABLES_ADMIN     | YES          |<<<(__version_num>=80300) ?  "\n| TRANSACTION_GTID_TAG       | YES          |":"">>>
 +----------------------------+--------------+
 
 //@<OUT> WL#13536 TSFR3_2 check schema privileges of created user

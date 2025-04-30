@@ -1781,7 +1781,6 @@ shcore::Value Dba::check_instance_configuration(
   Scoped_instance_pool ipool(
       current_shell_options()->get().wizards,
       Instance_pool::Auth_options(instance->get_connection_options()));
-
   {
     auto conds =
         Command_conditions::Builder::gen_dba("checkInstanceConfiguration")
@@ -2608,7 +2607,6 @@ void Dba::do_configure_instance(mysqlshdk::db::Connection_options instance_def,
   Scoped_instance_pool ipool(
       current_shell_options()->get().wizards,
       Instance_pool::Auth_options(target_instance->get_connection_options()));
-
   // Check the function preconditions
   Cluster_check_info state;
   if (options.cluster_type == Cluster_type::ASYNC_REPLICATION) {

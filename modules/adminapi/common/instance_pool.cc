@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,6 +58,8 @@ constexpr char k_lock_name_instance[] = "AdminAPI_instance";
 // default wait_timeout
 constexpr uint64_t k_default_wait_timeout = 28800;
 
+constexpr const char k_mysqlsh_tag_gtid_next[] = "AUTOMATIC:mysqlsh";
+
 int64_t default_adminapi_connect_timeout() {
   return mysqlsh::current_shell_options()->get().dba_connect_timeout * 1000;
 }
@@ -100,6 +102,25 @@ std::shared_ptr<Instance> Instance::connect(
 
 void Instance::prepare_session() {
   // prepare the session to be used by the AdminAPI
+  auto version = get_version();
+
+  // make transactions executed by us be tagged with :mysqlsh:
+  if (version >= mysqlshdk::utils::Version("8.3.0")) {
+    try {
+      set_sysvar("gtid_next", std::string{k_mysqlsh_tag_gtid_next},
+                 mysqlshdk::mysql::Var_qualifier::SESSION);
+    } catch (const mysqlshdk::db::Error &e) {
+      if (e.code() == ER_SPECIFIC_ACCESS_DENIED) {
+        // a warning is already logged
+      } else if (
+          e.code() ==
+          ER_CANT_SET_GTID_NEXT_TO_AUTOMATIC_TAGGED_WHEN_GTID_MODE_IS_OFF) {
+        // ignore as it will be caught and handled elsewhere
+      } else {
+        throw;
+      }
+    }
+  }
 
   // change autocommit to the default value, which we assume throughout the
   // code, but can be changed globally by the user
@@ -111,8 +132,6 @@ void Instance::prepare_session() {
   // non-standard and incompatible setting
   set_sysvar("sql_mode", std::string(k_default_sql_mode),
              mysqlshdk::mysql::Var_qualifier::SESSION);
-
-  auto version = get_version();
 
   // Handle the consistency levels != "EVENTUAL" and
   // "BEFORE_ON_PRIMARY_FAILOVER" on the target instance session:

@@ -1,4 +1,4 @@
-//@ {VER(>=8.0.11) && VER(<8.0.24)}
+//@ {VER(>=8.0.11)}
 
 // Plain replicaset setup test, use as a template for other tests that check
 // a specific feature/aspect across the whole API
@@ -51,6 +51,7 @@ function check_open_sessions(session, ignore_pids) {
 function connect_no_timeout(uri, pwd) {
     shell.connect(uri, pwd);
     session.runSql("SET SESSION wait_timeout = 28800");
+    session.runSql("/*!80300 set session gtid_next='AUTOMATIC:test'*/");
 }
 
 //@<> Setup
@@ -74,6 +75,8 @@ session3 = mysql.getSession(__sandbox_uri3, __secure_password);
 expected_pids1 = get_open_sessions(session1);
 expected_pids2 = get_open_sessions(session2);
 expected_pids3 = get_open_sessions(session3);
+
+var original_gtids = session1.runSql("select @@gtid_executed").fetchOne()[0]
 
 //@ configureReplicaSetInstance + create admin user
 EXPECT_DBA_THROWS_PROTOCOL_ERROR(dba.configureReplicaSetInstance, __sandbox_uri_secure_password1, {clusterAdmin:"admin", clusterAdminPassword:pwdAdmin});
@@ -343,7 +346,19 @@ EXPECT_SHELL_LOG_CONTAINS_COUNT("No updates required.", 3);
 //@<> dissolve
 EXPECT_NO_THROWS(function(){ desc = rs.dissolve(); });
 
-//@<> createReplicaSet without ssl in seed
+//@<> check adminapi tag is in our GTIDs {VER(>=8.3.0)}
+var row = session1.runSql("select gtid_subtract(@@gtid_executed, ?), @@server_uuid", [original_gtids]).fetchOne();
+var gtids = row[0].replace("\n","").split(",");
+
+// all gtid ranges must be tagged either with :test or :mysqlsh
+var expected_re1 = "^"+row[1]+":mysqlsh:[0-9]+-[0-9]+(:[0-9-]+)?(:test:[0-9-]+)?$";
+
+for (var i = 0; i < gtids.length; i++) {
+    println(gtids[i]);
+    EXPECT_TRUE(gtids[i].match(expected_re1));
+}
+
+//@<> createReplicaSet without ssl in seed {VER(<8.0.24)}
 testutil.changeSandboxConf(__mysql_sandbox_port1, "require_secure_transport", "0");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "skip_ssl", "1");
 testutil.changeSandboxConf(__mysql_sandbox_port2, "require_secure_transport", "0");
@@ -370,7 +385,7 @@ rs.addInstance(__sandbox_uri_secure_password1);
 rs.setPrimaryInstance(__sandbox_uri_secure_password1);
 rs.setPrimaryInstance(__sandbox_uri_secure_password2);
 
-//@<> createReplicaSet with ssl in seed
+//@<> createReplicaSet with ssl in seed {VER(<8.0.24)}
 EXPECT_NO_THROWS(function(){ desc = rs.dissolve(); });
 
 connect_no_timeout(__sandbox_uri1, __secure_password);

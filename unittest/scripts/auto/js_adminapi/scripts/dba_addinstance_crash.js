@@ -114,7 +114,8 @@ if (__version_num >= 80027) {
   cluster.dissolve({force: 1});
   cluster = dba.createCluster("mycluster", {communicationStack: "mysql"});
 
-  skip = 30;
+  // NOTE: adjustments to this may be needed when new SQL is executed
+  skip = 31;
 
   for (iter = 10; iter < 100; iter += skip) {
     println();

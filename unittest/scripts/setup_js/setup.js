@@ -1728,6 +1728,8 @@ function ClusterScenario(ports, create_cluster_options, sandboxConfiguration) {
 
   this.cluster = dba.createCluster("cluster", create_cluster_options);
 
+  this.session.runSql("/*!80300 set session gtid_next='AUTOMATIC:test'*/");
+
   add_instance_options = {}
   if ('ipAllowlist' in create_cluster_options) {
     add_instance_options["ipAllowlist"] = create_cluster_options["ipAllowlist"];

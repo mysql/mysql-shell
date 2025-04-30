@@ -219,7 +219,7 @@ read_replica1 = status["defaultReplicaSet"]["topology"][__endpoint1]["readReplic
 EXPECT_EQ(__endpoint4, read_replica1["address"]);
 EXPECT_EQ("ERROR", read_replica1["status"]);
 
-var regexp = /WARNING: Read Replica's replication channel stopped with an error: 'Worker \d+ failed executing transaction '[0-9a-f-]+:\d+' at source log [a-z0-9\-\.]+, end_log_pos \d+; Error '.+' on query\. Default database: '.+'\..+\. Use Cluster\.rejoinInstance\(\) to restore it\./;
+var regexp = /WARNING: Read Replica's replication channel stopped with an error: 'Worker \d+ failed executing transaction '[0-9a-f-]+(:test)?:\d+' at source log [a-z0-9\-\.]+, end_log_pos \d+; Error '.+' on query\. Default database: '.+'\..+\. Use Cluster\.rejoinInstance\(\) to restore it\./;
 
 EXPECT_TRUE(read_replica1["instanceErrors"][0].match(regexp))
 
@@ -466,7 +466,7 @@ read_replica1 = status["defaultReplicaSet"]["topology"][__endpoint1]["readReplic
 EXPECT_EQ(__endpoint5, read_replica1["address"]);
 EXPECT_EQ("ERROR", read_replica1["status"]);
 
-var regexp = /WARNING: Read Replica's replication channel stopped with a connection error: 'Got fatal error \d+ from source when reading data from binary log: 'Cannot replicate because the source purged required binary logs\. Replicate the missing transactions from elsewhere, or provision a new replica from backup\. Consider increasing the source's binary log expiration period\. The GTID set sent by the replica is '[0-9a-f-:,\s]+', and the missing transactions are '[0-9a-f-:,\s]+'''\. Use Cluster\.rejoinInstance\(\) to restore it\./;
+var regexp = /WARNING: Read Replica's replication channel stopped with a connection error: 'Got fatal error \d+ from source when reading data from binary log: 'Cannot replicate because the source purged required binary logs\. Replicate the missing transactions from elsewhere, or provision a new replica from backup\. Consider increasing the source's binary log expiration period\. The GTID set sent by the replica is '[^']+', and the missing transactions are '[^']+'''\. Use Cluster\.rejoinInstance\(\) to restore it\./;
 
 EXPECT_TRUE(read_replica1["instanceErrors"][0].match(regexp));
 

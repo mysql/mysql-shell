@@ -254,8 +254,8 @@
 |     Last_SQL_Error_Timestamp: |
 |               <<<__source_keyword_capital>>>_SSL_Crl: |
 |           <<<__source_keyword_capital>>>_SSL_Crlpath: |
-|           Retrieved_Gtid_Set: 5ef81566-9395-11e9-87e9-111111111111:1-|
-|            Executed_Gtid_Set: 5ef81566-9395-11e9-87e9-111111111111:1-|
+|           Retrieved_Gtid_Set: 5ef81566-9395-11e9-87e9-111111111111:mysqlsh:1-|
+|            Executed_Gtid_Set: 5ef81566-9395-11e9-87e9-111111111111:mysqlsh:1-|
 |                Auto_Position: 1|
 |         Replicate_Rewrite_DB: |
 |                 Channel_Name: |

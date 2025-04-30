@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -842,28 +842,9 @@ bool wait_for_gtid_set_from(const mysqlshdk::mysql::IInstance &target,
 }
 
 size_t estimate_gtid_set_size(const std::string &gtid_set) {
-  size_t count = 0;
-  shcore::str_itersplit(
-      gtid_set,
-      [&count](std::string_view s) {
-        size_t p = s.find(':');
-        if (p == std::string::npos) return true;
+  auto gs = mysqlshdk::mysql::Gtid_set::from_normalized_string(gtid_set);
 
-        std::string range{s};
-        size_t begin, end;
-        switch (sscanf(&range[p + 1], "%zu-%zu", &begin, &end)) {
-          case 2:
-            count += end - begin + 1;
-            break;
-          case 1:
-            count++;
-            break;
-        }
-
-        return true;
-      },
-      ",");
-  return count;
+  return gs.count();
 }
 
 std::string get_executed_gtid_set(const mysqlshdk::mysql::IInstance &server) {

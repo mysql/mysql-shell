@@ -425,6 +425,7 @@ EXPECT_THROWS(function(){
 }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.");
 EXPECT_OUTPUT_CONTAINS(`WARNING: None of the online Cluster members are compatible with the recipient (${__endpoint2}) for cloning due to version/platform incompatibilities. Therefore, no instance is available to serve as a valid donor for cloning`);
 
+//@<> Cleanup
 testutil.dbugSet("");
 
 scene.destroy();

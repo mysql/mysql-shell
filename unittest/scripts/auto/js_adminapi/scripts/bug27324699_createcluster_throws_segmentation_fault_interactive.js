@@ -4,7 +4,7 @@ shell.connect({user: 'root', password: 'root', host: 'localhost', port: __mysql_
 
 // create user which doesn't have enough privileges to be a cluster admin
 session.runSql("CREATE USER ic@localhost IDENTIFIED BY 'icpass'");
-session.runSql("GRANT SELECT, RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, CREATE USER ON *.* TO 'ic'@'localhost' WITH GRANT OPTION");
+session.runSql("GRANT SELECT, RELOAD, SHUTDOWN, PROCESS, FILE, SUPER, REPLICATION SLAVE, REPLICATION CLIENT, SESSION_VARIABLES_ADMIN, TRANSACTION_GTID_TAG, CREATE USER ON *.* TO 'ic'@'localhost' WITH GRANT OPTION");
 session.runSql("GRANT SELECT, INSERT, UPDATE, DELETE ON `mysql`.* TO 'ic'@'localhost' WITH GRANT OPTION");
 
 // log in as created user
