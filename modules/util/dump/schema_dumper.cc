@@ -3562,7 +3562,7 @@ Schema_dumper::preprocess_users_script(
                         const std::string & /*column_list*/,
                         const std::string &object_type,
                         const std::string &priv_level) {
-                if (object_type != "" &&
+                if (!object_type.empty() &&
                     !shcore::str_caseeq(object_type, "TABLE"))
                   return true;
                 return !strip_privilege_cb(priv_type, priv_level);

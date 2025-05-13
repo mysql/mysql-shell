@@ -478,7 +478,7 @@ EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "invalid",
 #@<> BUG#34952027 - same as above, ignore the error
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "ignore", "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
 EXPECT_STDOUT_CONTAINS(f"""
-ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
+ERROR: While applying grants to user accounts: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
 NOTE: The above error was ignored, the load operation will continue.
 """)
 EXPECT_STDOUT_CONTAINS("1 accounts were loaded, 1 GRANT statement errors were ignored")
@@ -494,7 +494,7 @@ EXPECT_EQ(expected_accounts, actual_accounts)
 #@<> BUG#34952027 - same as above, drop the account
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "drop_account", "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
 EXPECT_STDOUT_CONTAINS(f"""
-ERROR: While executing user accounts SQL: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
+ERROR: While applying grants to user accounts: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
 NOTE: Due to the above error the account 'user_34952027'@'localhost' was dropped, the load operation will continue.
 """)
 EXPECT_STDOUT_CONTAINS("0 accounts were loaded, 1 accounts were dropped due to GRANT statement errors")
@@ -3723,12 +3723,12 @@ session.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 dump_dir = os.path.join(outdir, "bug_36561962")
 progress_file = os.path.join(dump_dir, "progress.json")
 test_schema = "test_schema"
-test_user = "test_user"
+tested_user = "test_user"
 
 # setup
 def create_user(s):
-    s.run_sql(f"DROP USER IF EXISTS {test_user}")
-    s.run_sql(f"CREATE USER {test_user}")
+    s.run_sql(f"DROP USER IF EXISTS {tested_user}")
+    s.run_sql(f"CREATE USER {tested_user}")
 
 def create_objects(s, schema):
     s.run_sql("DROP SCHEMA IF EXISTS !", [ schema ])
@@ -3743,7 +3743,7 @@ def create_objects(s, schema):
         s.run_sql("CREATE LIBRARY !.l LANGUAGE JAVASCRIPT AS $$ $$", [ schema ])
 
 def alter_user(s):
-    s.run_sql(f"ALTER USER {test_user} IDENTIFIED BY 'password1@'")
+    s.run_sql(f"ALTER USER {tested_user} IDENTIFIED BY 'password1@'")
 
 def alter_table(s, schema):
     s.run_sql("ALTER TABLE !.t COMMENT 'modified'", [ schema ])
@@ -3769,7 +3769,7 @@ create_user(session1)
 create_objects(session1, test_schema)
 
 shell.connect(__sandbox_uri1)
-EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [test_schema], "includeUsers": [test_user], "showProgress": False }), "Dump should not throw")
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [test_schema], "includeUsers": [tested_user], "showProgress": False }), "Dump should not throw")
 
 shell.connect(__sandbox_uri2)
 
@@ -3793,7 +3793,7 @@ WIPE_OUTPUT()
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "resetProgress": True, "loadUsers": True, "showProgress": False }), "Load should not throw")
 
 EXPECT_STDOUT_CONTAINS("Checking for pre-existing objects...")
-EXPECT_STDOUT_CONTAINS(f"NOTE: Account '{test_user}'@'%' already exists, dropping...")
+EXPECT_STDOUT_CONTAINS(f"NOTE: Account '{tested_user}'@'%' already exists, dropping...")
 EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a table named `t`, dropping...")
 EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a view named `v`, dropping...")
 EXPECT_STDOUT_CONTAINS(f"NOTE: Schema `{test_schema}` already contains a trigger named `tt`, dropping...")
@@ -3889,7 +3889,7 @@ os.remove(progress_file)
 
 #@<> BUG#36561962 - cleanup
 session1.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
-session1.run_sql(f"DROP USER IF EXISTS {test_user}")
+session1.run_sql(f"DROP USER IF EXISTS {tested_user}")
 
 #@<> WL16731-TSFR_2_4_2 - dump without libraries, load into instance with an existing library {instance_supports_libraries}
 # constants
@@ -3937,6 +3937,59 @@ shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
 wipe_dir(dump_dir)
+
+#@<> BUG#37669785 - load would fail if user loading the dump doesn't have ALLOW_NONEXISTENT_DEFINER {VER(>=8.2.0)}
+# constants
+dump_dir = os.path.join(outdir, "bug_37669785")
+tested_schema = "tested_schema"
+tested_user = "'user'@'localhost'"
+
+# setup
+shell.connect(__sandbox_uri1)
+
+session.run_sql(f"DROP USER IF EXISTS {tested_user}")
+session.run_sql(f"CREATE USER {tested_user}")
+session.run_sql(f"GRANT ALL ON *.* TO {tested_user}")
+# this user needs to have the same privileges as the user loading the dump, otherwise load will fail when applying the grants
+session.run_sql(f"REVOKE SUPER, ALLOW_NONEXISTENT_DEFINER ON *.* FROM {tested_user}")
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+session.run_sql("CREATE TABLE !.t (id INT)", [tested_schema])
+
+session.run_sql(f"CREATE DEFINER = {tested_user} PROCEDURE !.p() DETERMINISTIC BEGIN END", [tested_schema])
+session.run_sql(f"CREATE DEFINER = {tested_user} FUNCTION !.f() RETURNS INT DETERMINISTIC RETURN 1", [tested_schema])
+session.run_sql(f"CREATE DEFINER = {tested_user} TRIGGER !.tt AFTER DELETE ON !.t FOR EACH ROW BEGIN END", [tested_schema, tested_schema])
+session.run_sql(f"CREATE DEFINER = {tested_user} EVENT !.e ON SCHEDULE EVERY 1 YEAR DO BEGIN END", [tested_schema])
+session.run_sql(f"CREATE DEFINER = {tested_user} VIEW !.v AS SELECT * FROM !.t", [tested_schema, tested_schema])
+
+# dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+
+# create the test user
+shell.connect(__sandbox_uri2)
+wipeout_server(session)
+
+session.run_sql(f"CREATE USER {test_user_account} IDENTIFIED BY ?", [test_user_pwd])
+session.run_sql(f"GRANT ALL ON *.* TO {test_user_account} WITH GRANT OPTION")
+session.run_sql(f"REVOKE SUPER, ALLOW_NONEXISTENT_DEFINER ON *.* FROM {test_user_account}")
+
+# this is required, otherwise load will fail when creating the function:
+# MySQL Error 1419 (HY000): You do not have the SUPER privilege and binary logging is enabled (you *might* want to use the less safe log_bin_trust_function_creators variable)
+session.run_sql("SET @@GLOBAL.log_bin_trust_function_creators = 1")
+
+# load
+shell.connect(test_user_uri(__mysql_sandbox_port2))
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not fail")
+
+#@<> BUG#37669785 - cleanup
+shell.connect(__sandbox_uri1)
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql(f"DROP USER IF EXISTS {tested_user}")
+
+shell.connect(__sandbox_uri2)
+session.run_sql("SET @@GLOBAL.log_bin_trust_function_creators = 0")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)

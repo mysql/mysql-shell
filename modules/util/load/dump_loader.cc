@@ -100,6 +100,7 @@ namespace {
 
 using Session_ptr = std::shared_ptr<mysqlshdk::db::mysql::Session>;
 using Reconnect = Dump_loader::Reconnect;
+using dump::Schema_dumper;
 
 constexpr auto k_temp_table_comment =
     "mysqlsh-tmp-218ffeec-b67b-4886-9a8c-d7812a1f93eb";
@@ -341,6 +342,11 @@ void execute_script(
           current_console()->print_error(std::string{err});
         });
   });
+}
+
+void drop_account(const Session_ptr &session, const std::string &account) {
+  const auto drop = "DROP USER IF EXISTS " + account;
+  execute_statement(session, drop, "While dropping the account " + account);
 }
 
 std::string format_table(std::string_view schema, std::string_view table,
@@ -2932,21 +2938,21 @@ void Dump_loader::show_summary() {
 
   if (m_options.load_users()) {
     std::string msg =
-        std::to_string(m_loaded_accounts) + " accounts were loaded";
+        std::to_string(m_users.loaded_accounts()) + " accounts were loaded";
 
-    if (m_ignored_plugin_errors) {
-      msg += ", " + std::to_string(m_ignored_plugin_errors) +
+    if (m_users.ignored_plugin_errors) {
+      msg += ", " + std::to_string(m_users.ignored_plugin_errors) +
              " accounts failed to load due to unsupported authentication "
              "plugin errors";
     }
 
-    if (m_ignored_grant_errors) {
-      msg += ", " + std::to_string(m_ignored_grant_errors) +
+    if (m_users.ignored_grant_errors) {
+      msg += ", " + std::to_string(m_users.ignored_grant_errors) +
              " GRANT statement errors were ignored";
     }
 
-    if (m_dropped_accounts) {
-      msg += ", " + std::to_string(m_dropped_accounts) +
+    if (m_users.dropped_accounts) {
+      msg += ", " + std::to_string(m_users.dropped_accounts) +
              " accounts were dropped due to GRANT statement errors";
     }
 
@@ -4221,6 +4227,10 @@ void Dump_loader::execute_table_ddl_tasks() {
 }
 
 void Dump_loader::execute_view_ddl_tasks() {
+  if (!m_options.load_ddl()) {
+    return;
+  }
+
   m_ddl_executed = 0;
   std::atomic<uint64_t> ddl_to_execute = 0;
   std::atomic<bool> all_tasks_scheduled = false;
@@ -4374,7 +4384,16 @@ void Dump_loader::execute_tasks(bool testing) {
       // NOTE: this assumes that all DDL files are already present
 
       if (m_options.load_ddl() || m_options.load_deferred_indexes()) {
+        // reads the SQL file, parses it, prepares for execution
+        if (!m_worker_interrupt.test()) read_users_sql();
+
         if (!m_worker_interrupt.test()) execute_drop_ddl_tasks();
+
+        if (!m_worker_interrupt.test()) drop_existing_accounts();
+
+        // user accounts have to be created first, because creating an object
+        // with the DEFINER clause requires that account to exist
+        if (!m_worker_interrupt.test()) create_accounts();
 
         if (!m_worker_interrupt.test()) execute_schema_ddl_tasks();
 
@@ -4382,17 +4401,14 @@ void Dump_loader::execute_tasks(bool testing) {
         // thousands of tables from remote storage can be slow)
         if (!m_worker_interrupt.test()) execute_table_ddl_tasks();
 
-        // users have to be loaded after all objects and view placeholders are
-        // created, because GRANTs on specific objects require the objects to
-        // exist
-        // users have to be loaded before view placeholders are replaced with
-        // views, because creating a view which uses another view with the
-        // DEFINER clause requires that user to exist
-        if (!m_worker_interrupt.test()) load_users();
+        // grants are applied before view placeholders are replaced with views,
+        // because creating a view which uses another view with the DEFINER
+        // clause requires that user to exist and to have appropriate privileges
+        // for that view
+        if (!m_worker_interrupt.test()) apply_grants();
 
         // exec DDL for all views after all tables and users are created
-        if (!m_worker_interrupt.test() && m_options.load_ddl())
-          execute_view_ddl_tasks();
+        if (!m_worker_interrupt.test()) execute_view_ddl_tasks();
       }
 
       if (!m_worker_interrupt.test() && !testing) setup_temp_tables();
@@ -5309,13 +5325,12 @@ Dump_loader::Task_ptr Dump_loader::checksum(
   return std::make_unique<Worker::Checksum_task>(data);
 }
 
-void Dump_loader::load_users() {
+void Dump_loader::read_users_sql() {
   if (!m_options.load_users()) {
     return;
   }
 
-  const auto stage =
-      m_progress_thread.start_stage("Executing user accounts SQL");
+  const auto stage = m_progress_thread.start_stage("Reading user accounts SQL");
   shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
   std::function<bool(const std::string &, const std::string &)>
@@ -5325,125 +5340,156 @@ void Dump_loader::load_users() {
     strip_revoked_privilege = filter_user_script_for_mds();
   }
 
-  const auto statements = dump::Schema_dumper::preprocess_users_script(
+  m_users.statements = Schema_dumper::preprocess_users_script(
       m_dump->users_script(),
       [this](const std::string &account) {
         return m_options.filters().users().is_included(account);
       },
       strip_revoked_privilege);
 
+  std::string new_stmt;
+
+  for (auto &group : m_users.statements) {
+    if (!group.account.empty()) {
+      m_users.all_accounts.emplace(group.account);
+    }
+
+    for (auto &stmt : group.statements) {
+      if (m_default_sql_transforms(stmt, &new_stmt)) {
+        stmt = std::move(new_stmt);
+        new_stmt.clear();
+      }
+    }
+  }
+}
+
+void Dump_loader::drop_existing_accounts() {
+  if (!m_options.load_users() || m_options.dry_run() ||
+      !m_options.drop_existing_objects()) {
+    return;
+  }
+
+  sql::ar::run(m_reconnect_callback, [this]() {
+    for (const auto &group : m_users.statements) {
+      if (Schema_dumper::User_statements::Type::CREATE_USER == group.type) {
+        drop_account(m_session, group.account);
+      }
+    }
+  });
+}
+
+void Dump_loader::create_accounts() {
+  if (!m_options.load_users()) {
+    return;
+  }
+
+  const auto stage = m_progress_thread.start_stage("Creating user accounts");
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+
   if (m_options.dry_run()) {
     return;
   }
 
-  const auto drop_account = [this](const std::string &account) {
-    const auto drop = "DROP USER IF EXISTS " + account;
-    execute_statement(m_session, drop, "While dropping the account " + account);
-  };
+  sql::ar::run(m_reconnect_callback, [this]() {
+    for (const auto &group : m_users.statements) {
+      if (Schema_dumper::User_statements::Type::CREATE_USER != group.type ||
+          m_users.ignored_accounts.count(group.account) > 0) {
+        continue;
+      }
 
-  if (m_options.drop_existing_objects()) {
-    sql::ar::run(m_reconnect_callback, [&]() {
-      for (const auto &group : statements) {
-        if (dump::Schema_dumper::User_statements::Type::CREATE_USER ==
-            group.type) {
-          drop_account(group.account);
+      for (const auto &stmt : group.statements) {
+        // check again if account is ignored to stop executing statements if one
+        // of them failed and account became ignored
+        if (stmt.empty() || m_users.ignored_accounts.count(group.account) > 0) {
+          continue;
+        }
+
+        try {
+          execute_statement(m_session, stmt, "While creating user accounts");
+        } catch (const mysqlshdk::db::Error &e) {
+          // BUG#36552764 - if target is MHS, ignore errors about missing
+          // plugins and continue
+          if (!m_options.is_mds() || ER_PLUGIN_IS_NOT_LOADED != e.code()) {
+            throw;
+          }
+
+          current_console()->print_warning(
+              "Due to the above error the account " + group.account +
+              " was not created, the load operation will continue.");
+          m_users.ignored_accounts.emplace(group.account);
+          ++m_users.ignored_plugin_errors;
         }
       }
-    });
+    }
+  });
+}
+
+void Dump_loader::apply_grants() {
+  if (!m_options.load_users()) {
+    return;
   }
 
-  std::unordered_set<std::string> all_accounts;
-  std::unordered_set<std::string> ignored_accounts;
+  const auto stage =
+      m_progress_thread.start_stage("Applying grants to user accounts");
+  shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
+
+  if (m_options.dry_run()) {
+    return;
+  }
 
   const auto reconnect = [&, this]() {
     m_reconnect_callback();
-
-    m_dropped_accounts = 0;
-    m_ignored_grant_errors = 0;
-    m_ignored_plugin_errors = 0;
-    all_accounts.clear();
-    ignored_accounts.clear();
+    m_users.ignored_grant_errors = 0;
   };
 
   const auto console = current_console();
 
-  sql::ar::run(reconnect, [&]() {
-    std::string new_stmt;
-
-    for (const auto &group : statements) {
-      if (!group.account.empty()) {
-        all_accounts.emplace(group.account);
-      }
-
-      if (ignored_accounts.count(group.account) > 0) {
+  sql::ar::run(reconnect, [this]() {
+    for (const auto &group : m_users.statements) {
+      if (Schema_dumper::User_statements::Type::CREATE_USER == group.type ||
+          m_users.ignored_accounts.count(group.account) > 0) {
         continue;
       }
 
-      for (std::string_view stmt : group.statements) {
-        // repeated to stop executing statements if one of the grants fails
-        if (ignored_accounts.count(group.account) > 0) {
-          continue;
-        }
-
-        if (m_default_sql_transforms(stmt, &new_stmt)) {
-          stmt = std::move(new_stmt);
-        }
-
-        if (stmt.empty()) {
+      for (const auto &stmt : group.statements) {
+        // check again if account is ignored to stop executing statements if one
+        // of them failed and account became ignored
+        if (stmt.empty() || m_users.ignored_accounts.count(group.account) > 0) {
           continue;
         }
 
         try {
           execute_statement(m_session, stmt,
-                            "While executing user accounts SQL");
+                            "While applying grants to user accounts");
         } catch (const mysqlshdk::db::Error &e) {
-          switch (group.type) {
-            case dump::Schema_dumper::User_statements::Type::CREATE_USER:
-              // BUG#36552764 - if target is MHS, ignore errors about missing
-              // plugins and continue
-              if (!m_options.is_mds() || ER_PLUGIN_IS_NOT_LOADED != e.code()) {
-                throw;
-              }
+          if (Schema_dumper::User_statements::Type::GRANT != group.type) {
+            throw;
+          }
 
-              console->print_warning(
-                  "Due to the above error the account " + group.account +
-                  " was not created, the load operation will continue.");
-              ignored_accounts.emplace(group.account);
-              ++m_ignored_plugin_errors;
-              break;
-
-            case dump::Schema_dumper::User_statements::Type::GRANT:
-              switch (m_options.on_grant_errors()) {
-                case Load_dump_options::Handle_grant_errors::ABORT:
-                  throw;
-
-                case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT:
-                  console->print_note(
-                      "Due to the above error the account " + group.account +
-                      " was dropped, the load operation will continue.");
-                  ignored_accounts.emplace(group.account);
-                  drop_account(group.account);
-                  ++m_dropped_accounts;
-                  break;
-
-                case Load_dump_options::Handle_grant_errors::IGNORE:
-                  console->print_note(
-                      "The above error was ignored, the load operation will "
-                      "continue.");
-                  ++m_ignored_grant_errors;
-                  break;
-              }
-              break;
-
-            default:
+          switch (m_options.on_grant_errors()) {
+            case Load_dump_options::Handle_grant_errors::ABORT:
               throw;
+
+            case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT:
+              current_console()->print_note(
+                  "Due to the above error the account " + group.account +
+                  " was dropped, the load operation will continue.");
+              drop_account(m_session, group.account);
+              m_users.ignored_accounts.emplace(group.account);
+              ++m_users.dropped_accounts;
+              break;
+
+            case Load_dump_options::Handle_grant_errors::IGNORE:
+              current_console()->print_note(
+                  "The above error was ignored, the load operation will "
+                  "continue.");
+              ++m_users.ignored_grant_errors;
+              break;
           }
         }
       }
     }
   });
-
-  m_loaded_accounts = all_accounts.size() - ignored_accounts.size();
 }
 
 void Dump_loader::show_metadata(bool force) const {

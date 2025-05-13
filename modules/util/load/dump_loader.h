@@ -45,6 +45,7 @@
 
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/progress_thread.h"
+#include "modules/util/dump/schema_dumper.h"
 
 #include "modules/util/load/dump_reader.h"
 #include "modules/util/load/load_dump_options.h"
@@ -575,7 +576,13 @@ class Dump_loader {
 
   Task_ptr checksum(const dump::common::Checksums::Checksum_data *data) const;
 
-  void load_users();
+  void read_users_sql();
+
+  void drop_existing_accounts();
+
+  void create_accounts();
+
+  void apply_grants();
 
   bool bulk_load_supported(const Dump_reader::Table_chunk &chunk) const;
 
@@ -690,6 +697,22 @@ class Dump_loader {
     std::vector<Container> m_tasks;
   };
 
+  struct User_accounts {
+    std::size_t loaded_accounts() const {
+      return all_accounts.size() - ignored_accounts.size();
+    }
+
+    // data
+    std::vector<dump::Schema_dumper::User_statements> statements;
+    std::unordered_set<std::string> all_accounts;
+    std::unordered_set<std::string> ignored_accounts;
+
+    // stats
+    std::size_t dropped_accounts = 0;
+    std::size_t ignored_grant_errors = 0;
+    std::size_t ignored_plugin_errors = 0;
+  };
+
   class Bulk_load_support;
 
   class Monitoring;
@@ -780,10 +803,7 @@ class Dump_loader {
   dump::Progress_thread::Stage *m_analyze_tables_stage = nullptr;
   dump::Progress_thread::Stage *m_checksum_tables_stage = nullptr;
 
-  std::size_t m_loaded_accounts = 0;
-  std::size_t m_dropped_accounts = 0;
-  std::size_t m_ignored_grant_errors = 0;
-  std::size_t m_ignored_plugin_errors = 0;
+  User_accounts m_users;
 
   std::size_t m_checksum_errors = 0;
 
