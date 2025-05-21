@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -82,6 +82,8 @@ TEST(String_prefix_matcher, test_matching) {
                 "Sample   table"));
   EXPECT_FALSE(m.matches(
       "/* sample comment */ create /* unfinished comment Sample   table"));
+  EXPECT_TRUE(m.matches("# full line comment\n create Sample   table"));
+  EXPECT_TRUE(m.matches("-- full line comment\n create Sample   table"));
   EXPECT_TRUE(m.matches("Create\t\t\tSAMPLE\n\ntable"));
   EXPECT_TRUE(m.matches("   create   sample     table"));
   EXPECT_TRUE(m.matches("\n\tdelete   sample  view"));

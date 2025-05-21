@@ -331,6 +331,37 @@ list tables like 'func'
 Tables_in_mysql (func)
 """)
 
+
+#@<> SQL Handler - Comment Handling API
+def my_handler(session, sql):
+    "Logger for list statements"
+    print(f"====> SQL HANDLER: {sql}")
+    return session.run_sql(sql.replace('list', 'show'))
+
+shell.register_sql_handler('listHandler', 'testing sql handler', ["LIST DATABASES", "LIST TABLES"], my_handler)
+shell.connect(__mysqluripwd)
+
+
+session.run_sql("/* prefix comment */ list databases")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list databases""")
+WIPE_OUTPUT()
+
+session.run_sql("list /* middle comment */ databases")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: list /* middle comment */ databases""")
+WIPE_OUTPUT()
+
+session.run_sql("/* prefix comment */ list /* middle comment */ databases")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: /* prefix comment */ list /* middle comment */ databases""")
+WIPE_OUTPUT()
+
+session.run_sql("# Full line comment\nlist databases")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: # Full line comment\nlist databases""")
+WIPE_OUTPUT()
+
+session.run_sql("-- Full line comment\nlist databases")
+EXPECT_STDOUT_CONTAINS("""====> SQL HANDLER: -- Full line comment\nlist databases""")
+WIPE_OUTPUT()
+
 # @<> Finalization
 testutil.rmfile(script_path)
 testutil.rmdir(plugins_path, True)

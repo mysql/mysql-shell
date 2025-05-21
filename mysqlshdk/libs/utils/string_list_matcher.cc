@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,14 +43,25 @@ size_t count_spaces(const char *data, size_t size, size_t offset = 0) {
 
 size_t span_comment(const char *data, const char *end, size_t offset) {
   size_t position = offset;
+  std::optional<size_t> comment_end;
+
   if (*(data + offset) == '/' && (data + offset + 1) < end &&
       *(data + offset + 1) == '*') {
-    auto comment_end =
+    comment_end =
         mysqlshdk::utils::span_cstyle_comment(std::string_view(data), offset);
-    if (comment_end == std::string_view::npos) {
+  } else if (*(data + offset) == '-' && (data + offset + 2) < end &&
+             *(data + offset + 1) == '-' &&
+             std::isspace(*(data + offset + 2))) {
+    comment_end = mysqlshdk::utils::span_to_eol(std::string_view(data), offset);
+  } else if (*(data + offset) == '#') {
+    comment_end = mysqlshdk::utils::span_to_eol(std::string_view(data), offset);
+  }
+
+  if (comment_end.has_value()) {
+    if (*comment_end == std::string_view::npos) {
       position = end - data;
     } else {
-      position = comment_end;
+      position = *comment_end;
     }
   }
 
