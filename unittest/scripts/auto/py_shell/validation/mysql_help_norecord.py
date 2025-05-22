@@ -43,6 +43,9 @@ FUNCTIONS
       split_script(script)
             Split a SQL script into individual statements.
 
+      tokenize_statement(statement)
+            Lexes a MySQL statement into a list of tokens.
+
       unquote_identifier(s)
             Unquote a MySQL identifier.
 

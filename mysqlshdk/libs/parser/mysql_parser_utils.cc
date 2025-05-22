@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -58,8 +58,11 @@ class Parser_error_listener : public antlr4::BaseErrorListener {
                    antlr4::Token *offendingSymbol, size_t line,
                    size_t charPositionInLine, const std::string &msg,
                    std::exception_ptr /* e */) override {
-    throw Sql_syntax_error(msg, std::string(offendingSymbol->getText()), line,
-                           charPositionInLine);
+    throw Sql_syntax_error(msg,
+                           offendingSymbol
+                               ? std::string(offendingSymbol->getText())
+                               : std::string{},
+                           line, charPositionInLine);
   }
 };
 
@@ -176,6 +179,59 @@ class Parser_context {
   const antlr4::dfa::Vocabulary &m_vocabulary;
 };
 
+class Tokenizer_context {
+ public:
+  Tokenizer_context(std::string_view stmt, const Parser_config &config)
+      : m_input(stmt),
+        m_lexer(&m_input),
+        m_rule_names(m_lexer.getRuleNames()),
+        m_vocabulary(m_lexer.getVocabulary()) {
+    configure(config);
+
+    m_lexer.removeErrorListeners();
+    m_lexer.addErrorListener(&m_error_listener);
+  }
+
+  bool traverse(
+      const std::function<bool(std::string_view, std::string_view)> &visitor) {
+    for (;;) {
+      auto token = m_lexer.nextToken();
+      if (token->getType() == antlr4::Token::EOF) break;
+
+      if (!visitor(m_vocabulary.getSymbolicName(token->getType()),
+                   token->getText()))
+        return false;
+    }
+    return true;
+  }
+
+ private:
+  void configure(const Parser_config &config) {
+    using SqlMode = parsers::MySQLRecognizerCommon::SqlMode;
+
+    SqlMode mode = SqlMode::NoMode;
+
+    // TODO(alfredo) stop forcing ansi_quotes when BUG#37018247 is fixed
+    if (config.ansi_quotes || true) {
+      mode = SqlMode(mode | SqlMode::AnsiQuotes);
+    }
+
+    if (config.no_backslash_escapes) {
+      mode = SqlMode(mode | SqlMode::NoBackslashEscapes);
+    }
+
+    m_lexer.sqlMode = mode;
+    m_lexer.serverVersion =
+        (config.mysql_version ? config.mysql_version : utils::k_shell_version)
+            .numeric();
+  }
+
+  ANTLRInputStream m_input;
+  MySQLLexer m_lexer;
+  const std::vector<std::string> &m_rule_names;
+  const antlr4::dfa::Vocabulary &m_vocabulary;
+  Parser_error_listener m_error_listener;
+};
 }  // namespace
 
 void traverse_statement_ast(std::string_view stmt, const Parser_config &config,
@@ -218,6 +274,14 @@ void traverse_script_ast(
 
 void check_sql_syntax(const std::string &script, const Parser_config &config) {
   traverse_script_ast(script, config, {}, nullptr);
+}
+
+bool tokenize_statement(
+    std::string_view stmt, const Parser_config &config,
+    const std::function<bool(std::string_view, std::string_view)> &visitor) {
+  Tokenizer_context context{stmt, config};
+
+  return context.traverse(visitor);
 }
 
 bool Table_reference::operator==(const Table_reference &other) const {

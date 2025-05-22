@@ -19,6 +19,68 @@ Argument #1 is expected to be a string (TypeError)
 ||mismatched input 'this' expecting {<EOF>, '(', ALTER_SYMBOL, ANALYZE_SYMBOL, BEGIN_SYMBOL, BINLOG_SYMBOL, CACHE_SYMBOL, CALL_SYMBOL, CHANGE_SYMBOL, CHECKSUM_SYMBOL, CHECK_SYMBOL, COMMIT_SYMBOL, CREATE_SYMBOL, DEALLOCATE_SYMBOL, DELETE_SYMBOL, DESC_SYMBOL, DESCRIBE_SYMBOL, DO_SYMBOL, DROP_SYMBOL, EXECUTE_SYMBOL, EXPLAIN_SYMBOL, FLUSH_SYMBOL, GET_SYMBOL, GRANT_SYMBOL, HANDLER_SYMBOL, HELP_SYMBOL, IMPORT_SYMBOL, INSERT_SYMBOL, INSTALL_SYMBOL, KILL_SYMBOL, LOAD_SYMBOL, LOCK_SYMBOL, OPTIMIZE_SYMBOL, PREPARE_SYMBOL, PURGE_SYMBOL, RELEASE_SYMBOL, RENAME_SYMBOL, REPAIR_SYMBOL, REPLACE_SYMBOL, RESET_SYMBOL, RESIGNAL_SYMBOL, REVOKE_SYMBOL, ROLLBACK_SYMBOL, SAVEPOINT_SYMBOL, SELECT_SYMBOL, SET_SYMBOL, SHOW_SYMBOL, SHUTDOWN_SYMBOL, SIGNAL_SYMBOL, START_SYMBOL, STOP_SYMBOL, TABLE_SYMBOL, TRUNCATE_SYMBOL, UNINSTALL_SYMBOL, UNLOCK_SYMBOL, UPDATE_SYMBOL, USE_SYMBOL, VALUES_SYMBOL, WITH_SYMBOL, XA_SYMBOL, CLONE_SYMBOL, RESTART_SYMBOL} (RuntimeError)
 ||no viable alternative at input 'SELECT' (RuntimeError)
 
+//@<OUT> tokenizeStatement
+[
+    {
+        "token": "select",
+        "type": "SELECT_SYMBOL"
+    },
+    {
+        "token": " ",
+        "type": "WHITESPACE"
+    },
+    {
+        "token": "*",
+        "type": "MULT_OPERATOR"
+    },
+    {
+        "token": " ",
+        "type": "WHITESPACE"
+    },
+    {
+        "token": "from",
+        "type": "FROM_SYMBOL"
+    },
+    {
+        "token": " ",
+        "type": "WHITESPACE"
+    },
+    {
+        "token": "/* comment */",
+        "type": "BLOCK_COMMENT"
+    },
+    {
+        "token": " ",
+        "type": "WHITESPACE"
+    },
+    {
+        "token": "foo",
+        "type": "IDENTIFIER"
+    },
+    {
+        "token": ".",
+        "type": "DOT_SYMBOL"
+    },
+    {
+        "token": "bar",
+        "type": "IDENTIFIER"
+    },
+    {
+        "token": " ",
+        "type": "WHITESPACE"
+    },
+    {
+        "token": "/* `\"'` '*/",
+        "type": "BLOCK_COMMENT"
+    }
+]
+
+//@<ERR> tokenizeStatement errors
+token recognition error at: ''' (RuntimeError)
+token recognition error at: '`' (RuntimeError)
+token recognition error at: '"' (RuntimeError)
+token recognition error at: '\' (RuntimeError)
+
 //@<OUT> splitScript
 [
     "select 1"

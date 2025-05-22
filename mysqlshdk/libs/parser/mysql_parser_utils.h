@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -142,6 +142,10 @@ void traverse_script_ast(
 
 void check_sql_syntax(const std::string &script,
                       const Parser_config &config = {});
+
+bool tokenize_statement(
+    std::string_view stmt, const Parser_config &config,
+    const std::function<bool(std::string_view, std::string_view)> &visitor);
 
 struct Table_reference {
   std::string schema;

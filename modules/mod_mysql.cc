@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,6 +39,7 @@
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/parser/mysql_parser_utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
+#include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
 
 #include "errmsg.h"  // NOLINT
@@ -211,6 +212,7 @@ REGISTER_MODULE(Mysql, mysql) {
 
   expose("splitScript", &Mysql::split_script, "script");
   expose("parseStatementAst", &Mysql::parse_statement_ast, "statement");
+  expose("tokenizeStatement", &Mysql::tokenize_statement, "statement");
 
   expose("quoteIdentifier", &Mysql::quote_identifier, "string");
   expose("unquoteIdentifier", &Mysql::unquote_identifier, "string");
@@ -421,6 +423,40 @@ shcore::Value Mysql::parse_statement_ast(const std::string &sql) const {
   mysqlshdk::parser::traverse_script_ast(sql, {}, {}, &listener);
 
   return listener.ast();
+}
+
+REGISTER_HELP_FUNCTION(tokenizeStatement, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_TOKENIZESTATEMENT, R"*(
+Lexes a MySQL statement into a list of tokens.
+
+@param statement SQL statement to be tokenized
+
+@returns A list of objects with type and token fields
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_TOKENIZESTATEMENT_BRIEF)
+ *
+ * $(MYSQL_TOKENIZESTATEMENT)
+ */
+#if DOXYGEN_JS
+Array tokenizeStatement(String statement) {}
+#elif DOXYGEN_PY
+list tokenize_statement(str statement) {}
+#endif
+shcore::Value Mysql::tokenize_statement(const std::string &sql) const {
+  shcore::Array_t tokens = shcore::make_array();
+  mysqlshdk::parser::Parser_config config;
+
+  mysqlshdk::parser::tokenize_statement(
+      sql, config, [&tokens](std::string_view type, std::string_view token) {
+        tokens->push_back(shcore::Value(shcore::make_dict(
+            "type", shcore::Value(type), "token", shcore::Value(token))));
+        return true;
+      });
+
+  return shcore::Value(tokens);
 }
 
 REGISTER_HELP_FUNCTION(quoteIdentifier, mysql);

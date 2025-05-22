@@ -17,6 +17,7 @@ validateMembers(mysql, [
     'getSession',
     'help',
     'parseStatementAst',
+    'tokenizeStatement',
     'quoteIdentifier',
     'splitScript',
     'unquoteIdentifier'])
@@ -44,6 +45,16 @@ mysql.parseStatementAst({});
 mysql.parseStatementAst("this is not valid sql");
 mysql.parseStatementAst("");
 mysql.parseStatementAst("SELECT");
+
+//@ tokenizeStatement
+mysql.tokenizeStatement("select * from /* comment */ foo.bar /* `\"'` '*/")
+
+//@# tokenizeStatement errors
+mysql.tokenizeStatement("/*")
+mysql.tokenizeStatement("'")
+mysql.tokenizeStatement("`")
+mysql.tokenizeStatement('"')
+mysql.tokenizeStatement('\\')
 
 //@<> BUG#37018247 - quoted literals when ANSI quotes is disabled - TODO
 EXPECT_NO_THROWS(function () { mysql.parseStatementAst('SELECT "1"'); });

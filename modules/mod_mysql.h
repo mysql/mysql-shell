@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,6 +80,7 @@ ClassicSession getClassicSession(ConnectionData connectionData,
 ClassicSession getSession(ConnectionData connectionData, String password);
 Array splitScript(String script);
 Dictionary parseStatementAst(String statements);
+Array tokenizeStatement(String statement);
 String quoteIdentifier(String s);
 String unquoteIdentifier(String s);
 #elif DOXYGEN_PY
@@ -87,6 +88,7 @@ ClassicSession get_classic_session(ConnectionData connectionData, str password);
 ClassicSession get_session(ConnectionData connectionData, str password);
 list split_script(str script);
 dict parse_statement_ast(str statements);
+list tokenize_statement(str statement);
 str quote_identifier(str s);
 str unquote_identifier(str s);
 #endif
@@ -104,6 +106,7 @@ virtual shcore::Value get_member(const std::string &prop) const;
 
 shcore::Value split_script(const std::string &script) const;
 shcore::Value parse_statement_ast(const std::string &statement) const;
+shcore::Value tokenize_statement(const std::string &statement) const;
 
 std::string quote_identifier(const std::string &s) const;
 std::string unquote_identifier(const std::string &s) const;

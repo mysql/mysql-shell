@@ -18,6 +18,7 @@ validate_members(mysql, [
   'Type',
   'help',
   'parse_statement_ast',
+  'tokenize_statement',
   'quote_identifier',
   'split_script',
   'unquote_identifier'])

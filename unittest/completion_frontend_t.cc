@@ -1184,6 +1184,7 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"unquoteIdentifier", "(`a`)"},
       {"splitScript", "('a;b;')"},
       {"parseStatementAst", "('select 1')"},
+      {"tokenizeStatement", "('select 1')"},
       {"help", ""},
       {"getClassicSession", "('" + _mysql_uri + "')"},
       {"getSession", "('" + _mysql_uri + "')"}};
