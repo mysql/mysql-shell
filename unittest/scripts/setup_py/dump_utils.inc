@@ -404,6 +404,11 @@ def create_invisible_pks_auto_increment_conflict(schema, table):
     fixed = ""
     return Compatibility_issue(error, fixed)
 
+def create_invisible_pks_partitioned_table(schema, table):
+    error = f"Table `{schema}`.`{table}` does not have a Primary Key, this cannot be fixed automatically because the table is partitioned (this issue needs to be fixed manually)"
+    fixed = ""
+    return Compatibility_issue(error, fixed)
+
 def ignore_missing_pks(schema, table):
     error = f"Table `{schema}`.`{table}` does not have a Primary Key, which is required for High Availability in MySQL HeatWave Service"
     fixed = f"Table `{schema}`.`{table}` does not have a Primary Key, this is ignored"

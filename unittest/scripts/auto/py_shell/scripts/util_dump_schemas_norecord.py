@@ -3189,6 +3189,34 @@ Loading them in a system that uses lower_case_table_names=0 (such as in the MySQ
 #@<> BUG#36509026 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
+#@<> BUG#37892879 - error out when dumping with `create_invisible_pks` compatibility option and partitioned table doesn't have a primary key
+schema_name = "test_37892879"
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA !", [schema_name])
+
+session.run_sql("""
+CREATE TABLE !.t1 (
+    col1 INT NOT NULL,
+    col2 DATE NOT NULL,
+    col3 INT NOT NULL,
+    col4 INT NOT NULL,
+    UNIQUE KEY (col1)
+)
+PARTITION BY HASH(col1)
+PARTITIONS 4;
+""", [schema_name])
+
+#@<> BUG#37892879 - test with ocimds:true - table is reported as invalid, as it does not contain a PK
+EXPECT_FAIL("Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_absolute, { "ocimds": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(create_invisible_pks(schema_name, "t1").error())
+
+#@<> BUG#37892879 - test `create_invisible_pks` compatibility option - table is reported as invalid, as it's partitioned and does not contain a PK
+EXPECT_FAIL("Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_absolute, { "compatibility": [ "create_invisible_pks" ], "ocimds": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(create_invisible_pks_partitioned_table(schema_name, "t1").error())
+
+#@<> BUG#37892879 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

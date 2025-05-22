@@ -1303,6 +1303,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
   bool has_pk = false;
   bool has_my_row_id = false;
   bool has_auto_increment = false;
+  bool has_partitions = false;
   const auto my_row_id = "my_row_id";
   const std::string auto_increment = "auto_increment";
 
@@ -1695,12 +1696,25 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
     }
   }
 
+  if (opt_create_invisible_pks) {
+    if (m_cache) {
+      has_partitions =
+          !m_cache->schemas.at(db).tables.at(table).partitions.empty();
+    } else {
+      result = query_log_and_throw(shcore::sqlformat(
+          "SELECT COUNT(*) FROM information_schema.partitions WHERE "
+          "TABLE_SCHEMA=? AND TABLE_NAME=? AND PARTITION_NAME IS NOT NULL",
+          db, table));
+      has_partitions = result->fetch_one_or_throw()->get_uint(0);
+    }
+  }
+
   if (!has_pk) {
     const auto prefix =
         "Table " + quote(db, table) + " does not have a Primary Key, ";
 
     if (opt_create_invisible_pks) {
-      if (has_my_row_id || has_auto_increment) {
+      if (has_my_row_id || has_auto_increment || has_partitions) {
         if (has_my_row_id) {
           res.emplace_back(prefix +
                                "this cannot be fixed automatically because the "
@@ -1715,6 +1729,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
                   "this cannot be fixed automatically because the table has a "
                   "column with 'AUTO_INCREMENT' attribute",
               Issue::Status::FIX_MANUALLY);
+        }
+
+        if (has_partitions) {
+          res.emplace_back(prefix +
+                               "this cannot be fixed automatically because the "
+                               "table is partitioned",
+                           Issue::Status::FIX_MANUALLY);
         }
       } else {
         res.emplace_back(prefix + "this will be fixed when the dump is loaded",
