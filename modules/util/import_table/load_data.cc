@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -800,7 +800,7 @@ void Load_data_worker::execute(
         throw std::exception(e);
       }
 
-      const std::string task = fi.filehandler->filename();
+      const auto filename = fi.filehandler->filename();
       std::shared_ptr<mysqlshdk::db::IResult> load_result = nullptr;
       const std::string query_prefix = shcore::sqlformat(
           "LOAD DATA LOCAL INFILE ? ", fi.filehandler->full_path().masked());
@@ -862,7 +862,8 @@ void Load_data_worker::execute(
       {
         const char *mysql_info = session->get_mysql_info();
         const auto status =
-            worker_name + task + ": " + (mysql_info ? mysql_info : "ERROR") +
+            worker_name + filename + ": " +
+            (mysql_info ? mysql_info : "ERROR") +
             ((options.max_trx_size == 0 && max_trx_size == 0)
                  ? ""
                  : (fi.continuation
@@ -892,49 +893,54 @@ void Load_data_worker::execute(
         }
 
         if (warnings_num > 0) {
-          // show first k warnings, where k = warnings_to_show
-          constexpr int warnings_to_show = 5;
-          auto w = load_result->fetch_one_warning();
+          // number of warnings to show
+          constexpr std::size_t k_warnings_to_show = 5;
+          std::size_t warnings_count = 0;
 
-          for (int i = 0; w && i < warnings_to_show;
-               w = load_result->fetch_one_warning(), i++) {
-            const std::string msg =
-                task + " error " + std::to_string(w->code) + ": " + w->msg;
+          while (const auto w = load_result->fetch_one_warning()) {
+            const std::string msg = shcore::str_format(
+                "LOAD DATA error for `%s`.`%s` in file '%s', error %" PRIu32
+                ": %s",
+                m_opt.schema().c_str(), m_opt.table().c_str(), filename.c_str(),
+                w->code, w->msg.c_str());
 
-            switch (w->level) {
-              case mysqlshdk::db::Warning::Level::Error:
-                mysqlsh::current_console()->print_error(msg);
-                break;
-              case mysqlshdk::db::Warning::Level::Warn:
-                mysqlsh::current_console()->print_warning(msg);
-                break;
-              case mysqlshdk::db::Warning::Level::Note:
-                mysqlsh::current_console()->print_note(msg);
-                break;
+            if (warnings_count++ < k_warnings_to_show) {
+              // show first k warnings
+              switch (w->level) {
+                case mysqlshdk::db::Warning::Level::Error:
+                  mysqlsh::current_console()->print_error(msg);
+                  break;
+
+                case mysqlshdk::db::Warning::Level::Warn:
+                  mysqlsh::current_console()->print_warning(msg);
+                  break;
+
+                case mysqlshdk::db::Warning::Level::Note:
+                  mysqlsh::current_console()->print_note(msg);
+                  break;
+              }
+            } else {
+              // log remaining warnings
+              switch (w->level) {
+                case mysqlshdk::db::Warning::Level::Error:
+                  log_error("%s", msg.c_str());
+                  break;
+
+                case mysqlshdk::db::Warning::Level::Warn:
+                  log_warning("%s", msg.c_str());
+                  break;
+
+                case mysqlshdk::db::Warning::Level::Note:
+                  log_info("%s", msg.c_str());
+                  break;
+              }
             }
           }
 
-          // log remaining warnings
-          size_t remaining_warnings_count = 0;
-          for (; w; w = load_result->fetch_one_warning()) {
-            remaining_warnings_count++;
-            const std::string msg =
-                task + " error " + std::to_string(w->code) + ": " + w->msg;
+          if (warnings_count > k_warnings_to_show) {
+            const auto remaining_warnings_count =
+                warnings_count - k_warnings_to_show;
 
-            switch (w->level) {
-              case mysqlshdk::db::Warning::Level::Error:
-                log_error("%s", msg.c_str());
-                break;
-              case mysqlshdk::db::Warning::Level::Warn:
-                log_warning("%s", msg.c_str());
-                break;
-              case mysqlshdk::db::Warning::Level::Note:
-                log_info("%s", msg.c_str());
-                break;
-            }
-          }
-
-          if (remaining_warnings_count > 0) {
             mysqlsh::current_console()->print_info(
                 "Check mysqlsh.log for " +
                 std::to_string(remaining_warnings_count) + " more warning" +
