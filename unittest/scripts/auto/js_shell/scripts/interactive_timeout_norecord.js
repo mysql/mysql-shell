@@ -1,6 +1,6 @@
 //@<> Setup
 testutil.deployRawSandbox(__mysql_sandbox_port1, "root", {interactive_timeout: 1});
-if (__version_num >= 80000) {
+if (__version_num >= 80000 && __os_type != 'windows') {
     error = "The client was disconnected by the server because of inactivity. See wait_timeout and interactive_timeout for configuring this behavior.";
 } else {
     error = "Lost connection to MySQL server during query";
