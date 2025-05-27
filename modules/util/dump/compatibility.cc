@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,6 +57,7 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "INSERT",
     "LOCK TABLES",
     "PROCESS",
+    "PROXY",  // this privilege is granted to the initial user account itself
     "REFERENCES",
     "REPLICATION CLIENT",
     "REPLICATION SLAVE",
@@ -71,11 +72,15 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "BACKUP_ADMIN",
     "CONNECTION_ADMIN",
     "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_PRIVILEGES",
     "FLUSH_STATUS",
     "FLUSH_TABLES",
     "FLUSH_USER_RESOURCES",
+    "OPTION_TRACKER_OBSERVER",
     "REPLICATION_APPLIER",
     "ROLE_ADMIN",
+    "SHOW_ROUTINE",
+    "TRANSACTION_GTID_TAG",
     "XA_RECOVER_ADMIN",
 };
 

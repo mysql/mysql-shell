@@ -82,6 +82,7 @@ allowed_privileges = [
     "INSERT",
     "LOCK TABLES",
     "PROCESS",
+    "PROXY",
     "REFERENCES",
     "REPLICATION CLIENT",
     "REPLICATION SLAVE",
@@ -96,11 +97,15 @@ allowed_privileges = [
     "BACKUP_ADMIN",
     "CONNECTION_ADMIN",
     "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_PRIVILEGES",
     "FLUSH_STATUS",
     "FLUSH_TABLES",
     "FLUSH_USER_RESOURCES",
+    "OPTION_TRACKER_OBSERVER",
     "REPLICATION_APPLIER",
     "ROLE_ADMIN",
+    "SHOW_ROUTINE",
+    "TRANSACTION_GTID_TAG",
     "XA_RECOVER_ADMIN",
 ]
 
@@ -140,35 +145,55 @@ all_privileges = [
     "UPDATE",
     "USAGE",
     # dynamic privileges
+    "ALLOW_NONEXISTENT_DEFINER",
     "APPLICATION_PASSWORD_ADMIN",
+    "AUDIT_ABORT_EXEMPT",
     "AUDIT_ADMIN",
+    "AUTHENTICATION_POLICY_ADMIN",
     "BACKUP_ADMIN",
     "BINLOG_ADMIN",
     "BINLOG_ENCRYPTION_ADMIN",
     "CLONE_ADMIN",
     "CONNECTION_ADMIN",
+    "CREATE_SPATIAL_REFERENCE_SYSTEM",
     "ENCRYPTION_KEY_ADMIN",
+    "EXPORT_QUERY_RESULTS",
     "FIREWALL_ADMIN",
+    "FIREWALL_EXEMPT",
     "FIREWALL_USER",
     "FLUSH_OPTIMIZER_COSTS",
+    "FLUSH_PRIVILEGES",
     "FLUSH_STATUS",
     "FLUSH_TABLES",
     "FLUSH_USER_RESOURCES",
     "GROUP_REPLICATION_ADMIN",
+    "GROUP_REPLICATION_STREAM",
     "INNODB_REDO_LOG_ARCHIVE",
+    "INNODB_REDO_LOG_ENABLE",
+    "MASKING_DICTIONARIES_ADMIN",
     "NDB_STORED_USER",
+    "OPTIMIZE_LOCAL_TABLE",
+    "OPTION_TRACKER_OBSERVER",
+    "OPTION_TRACKER_UPDATER",
+    "PASSWORDLESS_USER_ADMIN",
     "PERSIST_RO_VARIABLES_ADMIN",
     "REPLICATION_APPLIER",
     "REPLICATION_SLAVE_ADMIN",
     "RESOURCE_GROUP_ADMIN",
     "RESOURCE_GROUP_USER",
     "ROLE_ADMIN",
+    "SENSITIVE_VARIABLES_OBSERVER",
     "SESSION_VARIABLES_ADMIN",
+    "SET_ANY_DEFINER",
     "SET_USER_ID",
     "SHOW_ROUTINE",
+    "SKIP_QUERY_REWRITE",
     "SYSTEM_USER",
     "SYSTEM_VARIABLES_ADMIN",
     "TABLE_ENCRYPTION_ADMIN",
+    "TELEMETRY_LOG_ADMIN",
+    "TP_CONNECTION_ADMIN",
+    "TRANSACTION_GTID_TAG",
     "VERSION_TOKEN_ADMIN",
     "XA_RECOVER_ADMIN",
 ]
@@ -307,10 +332,14 @@ def create_users():
     session.run_sql("CREATE USER IF NOT EXISTS " + account_name + " IDENTIFIED BY 'pwd'")
     for privilege in disallowed_privileges:
         try:
-            session.run_sql("GRANT {0} ON *.* TO {1}".format(privilege, account_name))
+            if "PROXY" == privilege:
+                session.run_sql(f"GRANT PROXY ON {test_user_account} TO {account_name}")
+            else:
+                session.run_sql(f"GRANT {privilege} ON *.* TO {account_name}")
             disallowed.append(privilege)
         except Exception as e:
             # ignore exceptions on non-existing privileges
+            print(f"Failed to grant privilege {privilege}:", e)
             pass
     disallowed_privileges = disallowed
 
