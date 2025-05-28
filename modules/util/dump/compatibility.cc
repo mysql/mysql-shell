@@ -78,6 +78,7 @@ const std::set<std::string> k_mysqlaas_allowed_privileges = {
     "FLUSH_STATUS",
     "FLUSH_TABLES",
     "FLUSH_USER_RESOURCES",
+    "OPTION_TRACKER_OBSERVER",
     "REPLICATION_APPLIER",
     "ROLE_ADMIN",
     "SHOW_ROUTINE",
