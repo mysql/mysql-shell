@@ -1,8 +1,12 @@
 import os
-from mysqlsh import globals
 
+g = globals
+
+from mysqlsh import globals
 shell_ = globals.shell
 testutil_ = globals.testutil
+
+globals = g
 
 # Reads the configuration from the env vars
 SSH_URI = os.environ["SSH_URI"]

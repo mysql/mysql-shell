@@ -1089,11 +1089,15 @@ std::shared_ptr<shcore::Object_bridge> Session::create(
                                      mysqlshdk::db::kSslModeRequired);
   }
 
-  // before creating a normal session we need to establish ssh if needed:
   co.set_default_data();
-  auto &ssh = co.get_ssh_options_handle(mysqlshdk::db::k_default_mysql_x_port);
-  if (ssh.has_data()) {
-    mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
+  co.get_ssh_options().set_fallback_remote_port(
+      mysqlshdk::db::k_default_mysql_x_port);
+
+  mysqlshdk::ssh::Ssh_tunnel tunnel;
+
+  if (auto &ssh = co.get_ssh_options(); ssh.has_data()) {
+    // before creating a normal session we need to establish ssh if needed:
+    tunnel = mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
   }
 
   const auto session = std::make_shared<Session>();

@@ -85,7 +85,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
 
   void set_login_options_from(const Connection_options &options);
   void set_ssl_options(const Ssl_options &options);
-  void set_ssh_options(const ssh::Ssh_connection_options &options);
+  void set_ssh_options(ssh::Ssh_connection_options &&options);
   const std::string &get_schema() const { return get_value(kSchema); }
   const std::string &get_socket() const { return get_value(kSocket); }
   const std::string &get_pipe() const { return get_value(kPipe); }
@@ -113,7 +113,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
     return m_ssh_options;
   }
 
-  ssh::Ssh_connection_options &get_ssh_options_handle(int fallback_port = 0);
+  ssh::Ssh_connection_options &get_ssh_options() { return m_ssh_options; }
 
   const std::vector<std::string> &get_warnings() const { return m_warnings; }
   bool has_password() const override { return has_value(kPassword); }

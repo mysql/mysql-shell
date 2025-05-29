@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -77,8 +77,16 @@ class Ssh_tunnel_manager : public Ssh_thread {
    *
    */
   void poke_wakeup_socket();
-  void use_tunnel(const Ssh_connection_options &config);
-  void release_tunnel(const Ssh_connection_options &config);
+
+  void use_tunnel(int local_port);
+
+  /**
+   * @returns true If tunnel was closed.
+   */
+  bool release_tunnel(int local_port);
+
+  bool has_tunnel(int local_port) const;
+
   std::vector<Ssh_session_info> list_tunnels();
 
  private:
@@ -87,17 +95,21 @@ class Ssh_tunnel_manager : public Ssh_thread {
     int socket_handle;
   };
 
+  using Sockets = std::map<int, std::unique_ptr<Ssh_tunnel_handler>>;
+
   Sock_info create_socket(int backlog = 1);
-  std::unique_lock<std::recursive_mutex> lock_socket_list();
+  std::unique_lock<std::recursive_mutex> lock_socket_list() const;
   void run() override;
   void local_socket_handler();
   std::vector<pollfd> get_socket_list();
   void disconnect(mysqlshdk::ssh::Ssh_tunnel_handler *tunnel_handler);
 
+  Sockets::const_iterator find_tunnel(int local_port) const;
+
   mutable std::recursive_mutex m_socket_mtx;
   uint16_t m_wakeup_socket_port;
   int m_wakeup_socket;
-  std::map<int, std::unique_ptr<Ssh_tunnel_handler>> m_socket_list;
+  Sockets m_socket_list;
 };
 
 }  // namespace ssh

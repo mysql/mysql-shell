@@ -37,29 +37,29 @@ Query_attribute::Query_attribute(
 
 void ISession::connect(const mysqlshdk::db::Connection_options &data) {
   do_connect(data);
+
   if (is_open()) {
-    const auto &ssh = data.get_ssh_options();
-    if (ssh.has_data()) {
-      mysqlshdk::ssh::current_ssh_manager()->port_usage_increment(ssh);
+    if (const auto &ssh = data.get_ssh_options(); ssh.has_data()) {
+      mysqlshdk::ssh::current_ssh_manager()->get_tunnel(ssh).ref();
     }
   }
 }
 
 void ISession::close() {
-  auto connection_options = get_connection_options();
-  bool was_open = is_open();
-  do_close();
-  if (was_open) {
-    try {
-      const auto &ssh = connection_options.get_ssh_options();
-      if (ssh.has_data()) {
-        mysqlshdk::ssh::current_ssh_manager()->port_usage_decrement(ssh);
-      }
-    } catch (const std::exception &ex) {
-      log_error("An error occurred while closing connection: %s", ex.what());
-      // no op
+  mysqlshdk::ssh::Ssh_tunnel tunnel;
+
+  if (is_open()) {
+    if (const auto &ssh = get_connection_options().get_ssh_options();
+        ssh.has_data()) {
+      // need to fetch the tunnel before closing the connection, as connection
+      // options could be reset as part of that step
+      tunnel = mysqlshdk::ssh::current_ssh_manager()->get_tunnel(ssh);
     }
   }
+
+  do_close();
+
+  tunnel.unref();
 }
 
 void ISession::set_sql_mode(const std::string &sql_mode) {

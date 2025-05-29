@@ -354,15 +354,11 @@ std::string ShellBaseSession::get_default_schema() {
 }
 
 void ShellBaseSession::reconnect() {
-  const auto &ssh_data = _connection_options.get_ssh_options();
+  // we need to hold the reference to the SSH tunnel while we reconnect, to
+  // prevent it from being closed when the session closes
+  const auto ssh = mysqlshdk::ssh::current_ssh_manager()->get_tunnel(
+      _connection_options.get_ssh_options());
 
-  // we need to increment port usage and decrement it later cause during
-  // reconnect, the decrement will be called, so tunnel would be lost
-  mysqlshdk::ssh::current_ssh_manager()->port_usage_increment(ssh_data);
-
-  shcore::Scoped_callback scoped([ssh_data] {
-    mysqlshdk::ssh::current_ssh_manager()->port_usage_decrement(ssh_data);
-  });
   connect(_connection_options);
 }
 

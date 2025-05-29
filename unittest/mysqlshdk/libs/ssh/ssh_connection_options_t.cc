@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -281,6 +281,23 @@ TEST_F(Ssh_connection_options_t, remote_port_functions) {
   EXPECT_NO_THROW(ssh_config.clear_remote_port());
   EXPECT_FALSE(ssh_config.has_remote_port());
   msg = "Internal option 'ssh-remote-port' has no value.";
+  EXPECT_THROW_LIKE(ssh_config.get_remote_port(), std::runtime_error,
+                    msg.c_str());
+
+  EXPECT_NO_THROW(ssh_config.set_fallback_remote_port(4406));
+  EXPECT_TRUE(ssh_config.has_remote_port());
+  EXPECT_EQ(4406, ssh_config.get_remote_port());
+
+  EXPECT_NO_THROW(ssh_config.set_remote_port(3306));
+  EXPECT_TRUE(ssh_config.has_remote_port());
+  EXPECT_EQ(3306, ssh_config.get_remote_port());
+
+  EXPECT_NO_THROW(ssh_config.clear_remote_port());
+  EXPECT_TRUE(ssh_config.has_remote_port());
+  EXPECT_EQ(4406, ssh_config.get_remote_port());
+
+  EXPECT_NO_THROW(ssh_config.clear_fallback_remote_port());
+  EXPECT_FALSE(ssh_config.has_remote_port());
   EXPECT_THROW_LIKE(ssh_config.get_remote_port(), std::runtime_error,
                     msg.c_str());
 }

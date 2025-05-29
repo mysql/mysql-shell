@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -84,9 +84,9 @@ Ssh_tunnel_manager::~Ssh_tunnel_manager() {
   }
 }
 
-std::unique_lock<std::recursive_mutex> Ssh_tunnel_manager::lock_socket_list() {
-  std::unique_lock<std::recursive_mutex> mtx(m_socket_mtx);
-  return mtx;
+std::unique_lock<std::recursive_mutex> Ssh_tunnel_manager::lock_socket_list()
+    const {
+  return std::unique_lock{m_socket_mtx};
 }
 
 void Ssh_tunnel_manager::run() { local_socket_handler(); }
@@ -320,28 +320,32 @@ void Ssh_tunnel_manager::poke_wakeup_socket() {
   ssh_close_socket(sock);
 }
 
-void Ssh_tunnel_manager::use_tunnel(const Ssh_connection_options &config) {
-  auto sock_lock = lock_socket_list();
-  for (auto &it : m_socket_list) {
-    if (it.second->config().compare_connection(config)) {
-      it.second->use();
-    }
+void Ssh_tunnel_manager::use_tunnel(int local_port) {
+  const auto sock_lock = lock_socket_list();
+
+  if (const auto sock = find_tunnel(local_port); m_socket_list.end() != sock) {
+    sock->second->use();
   }
 }
 
-void Ssh_tunnel_manager::release_tunnel(const Ssh_connection_options &config) {
-  auto sock_lock = lock_socket_list();
-  for (auto &it : m_socket_list) {
-    if (it.second->config().compare_connection(config)) {
-      auto usage = it.second->release();
+bool Ssh_tunnel_manager::release_tunnel(int local_port) {
+  const auto sock_lock = lock_socket_list();
 
-      if (usage == 0) {
-        disconnect(it.second.get());
-        m_socket_list.erase(it.first);
-        break;
-      }
+  if (const auto sock = find_tunnel(local_port); m_socket_list.end() != sock) {
+    if (sock->second->release() == 0) {
+      disconnect(sock->second.get());
+      m_socket_list.erase(sock->first);
+      return true;
     }
   }
+
+  return false;
+}
+
+bool Ssh_tunnel_manager::has_tunnel(int local_port) const {
+  const auto sock_lock = lock_socket_list();
+
+  return m_socket_list.end() != find_tunnel(local_port);
 }
 
 void Ssh_tunnel_manager::disconnect(
@@ -363,6 +367,14 @@ std::vector<Ssh_session_info> Ssh_tunnel_manager::list_tunnels() {
   }
 
   return ret_val;
+}
+
+Ssh_tunnel_manager::Sockets::const_iterator Ssh_tunnel_manager::find_tunnel(
+    int local_port) const {
+  return std::find_if(m_socket_list.begin(), m_socket_list.end(),
+                      [local_port](const auto &s) {
+                        return local_port == s.second->local_port();
+                      });
 }
 
 }  // namespace ssh

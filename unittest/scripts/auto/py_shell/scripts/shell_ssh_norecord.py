@@ -1,4 +1,4 @@
-#@ {has_ssh_environment() and __version_num >= 80000}
+#@ {has_ssh_environment() and __version_num >= __mysh_version_num}
 
 from _ssh_utils import *
 from pathlib import Path
@@ -24,7 +24,7 @@ else:
   key_with_pw_uri = "file:/{}".format(key_with_pw)
 
 shell.options["credentialStore.helper"] = "plaintext"
-shell.delete_all_credentials()
+EXPECT_NO_THROWS(lambda: shell.delete_all_credentials())
 
 #@<> Check config file permission
 default_config = f"""
@@ -641,3 +641,9 @@ EXPECT_STDERR_CONTAINS('Malformed option value.')
 WIPE_OUTPUT()
 
 EXPECT_THROWS(lambda: shell.options.set("ssh.bufferSize", -1), "ValueError: ssh.bufferSize: value out of range")
+
+#@<> BUG#33564687 all tunnels should be closed at this point
+EXPECT_EQ(0, len(shell.list_ssh_connections()))
+
+#@<> cleanup
+EXPECT_NO_THROWS(lambda: shell.delete_all_credentials())
