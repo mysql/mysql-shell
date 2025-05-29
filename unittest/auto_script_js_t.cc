@@ -370,6 +370,14 @@ constexpr auto k_third_password = "retroper";
 class Credential_store_test : public Auto_script_js {
  protected:
   void SetUp() override {
+    if (Shell_test_env::get_target_server_version() <
+        mysqlshdk::utils::k_shell_version) {
+      // this is needed to prevent gtest from invoking the body of a test
+      GTEST_SKIP();
+      SKIP_TEST("This test is only executed once, with latest server");
+      return;
+    }
+
     prepare_session();
     Auto_script_js::SetUp();
 
@@ -384,6 +392,10 @@ class Credential_store_test : public Auto_script_js {
   }
 
   void TearDown() override {
+    if (this->IsSkipped()) {
+      return;
+    }
+
     execute(
         "(function(){var a = shell.listCredentialHelpers();"
         "for (var i = 0; i < a.length; ++i) {"

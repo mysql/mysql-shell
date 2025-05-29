@@ -250,6 +250,7 @@ endforeach()
 file(WRITE "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "usr/bin/mysqlsh
 usr/bin/mysql-secret-store-login-path
+usr/bin/mysql-secret-store-secret-service
 usr/share/mysqlsh/LICENSE    usr/share/doc/mysqlsh
 usr/share/mysqlsh/README     usr/share/doc/mysqlsh
 usr/share/mysqlsh/Docs/INFO_SRC     usr/share/mysqlsh/Docs
