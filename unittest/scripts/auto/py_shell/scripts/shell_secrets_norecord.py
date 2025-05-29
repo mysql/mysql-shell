@@ -5,6 +5,8 @@ from contextlib import ExitStack
 # constants
 current_helper = shell.options["credentialStore.helper"]
 has_login_path = "login-path" in shell.list_credential_helpers()
+used_helpers = ["plaintext", "login-path"]
+
 test_key = "my-key"
 test_secret = "my-secret"
 actual_secret = ""
@@ -16,9 +18,11 @@ def set_helper(helper):
 
 def wipe_all_secrets():
     for helper in shell.list_credential_helpers():
-        set_helper(helper)
-        shell.delete_all_credentials()
-        shell.delete_all_secrets()
+        if helper in used_helpers:
+            print("--> removing all secrets from:", helper)
+            set_helper(helper)
+            shell.delete_all_credentials()
+            shell.delete_all_secrets()
 
 def read_secret(key):
     global actual_secret

@@ -26,7 +26,10 @@
 #include "mysql-secret-store/secret-service/secret_service_helper.h"
 
 #include <algorithm>
+#include <array>
+#include <chrono>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -125,8 +128,16 @@ void Secret_service_helper::store(const common::Secret &secret) {
     throw get_helper_exception(Helper_exception_code::INVALID_SECRET);
   }
 
-  m_invoker.store(get_label(secret.id), get_attributes(secret.id),
-                  secret.secret);
+  const auto attributes = get_attributes(secret.id);
+
+  m_invoker.store(get_label(secret.id), attributes, secret.secret);
+
+  // wait till DBUS propagates the message, but don't report any errors, secret
+  // was successfully stored
+  try {
+    get(attributes);
+  } catch (...) {
+  }
 }
 
 void Secret_service_helper::get(const common::Secret_id &id,
@@ -178,14 +189,27 @@ std::string Secret_service_helper::get_label(const common::Secret_id &id) {
 
 std::string Secret_service_helper::get(
     const Secret_tool_invoker::Attributes &attributes) {
-  try {
-    return m_invoker.get(attributes);
-  } catch (const Helper_exception &ex) {
-    if (ex.what() ==
-        std::string{"Process \"secret-tool\" finished with exit code 1: "}) {
-      throw get_helper_exception(Helper_exception_code::NO_SUCH_SECRET);
-    } else {
-      throw;
+  static constexpr std::array k_retry_times = {200, 400};
+
+  auto sleep_time = k_retry_times.begin();
+
+  while (true) {
+    try {
+      return m_invoker.get(attributes);
+    } catch (const Helper_exception &ex) {
+      if (k_retry_times.end() != sleep_time) {
+        // retry in case of an error, DBUS sometimes is slow to process messages
+        std::this_thread::sleep_for(std::chrono::milliseconds{*sleep_time});
+        ++sleep_time;
+        continue;
+      }
+
+      if (ex.what() ==
+          std::string{"Process \"secret-tool\" finished with exit code 1: "}) {
+        throw get_helper_exception(Helper_exception_code::NO_SUCH_SECRET);
+      } else {
+        throw;
+      }
     }
   }
 }

@@ -1279,6 +1279,7 @@ the "credentialStore.helper" %Shell option.
     '0x16', '0x17', '0x19', '0x1A', '0x1C', '0x7F'.
 @li The <b>keychain</b> helper cannot store the following characters: '\\0',
     '\\n'.
+@li The <b>secret-service</b> helper can only store UTF-8 encoded strings.
 )*");
 
 /**

@@ -254,6 +254,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README}
 %doc README
 %{_bindir}/mysqlsh
 %{_bindir}/mysql-secret-store-login-path
+%{_bindir}/mysql-secret-store-secret-service
 %if 0%{?bundled_mysql_config_editor:1}
 %{_libexecdir}/mysqlsh/mysql_config_editor
 %endif

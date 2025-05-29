@@ -50,6 +50,7 @@
 #include "mysqlshdk/libs/utils/version.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
+#include "unittest/test_utils/shell_test_env.h"
 #include "unittest/test_utils/shell_test_wrapper.h"
 
 using mysql::secret_store::api::get_available_helpers;
@@ -176,7 +177,9 @@ class Mysql_secret_store_api_tester : public Helper_tester {
     ASSERT_NE(nullptr, m_helper);
     EXPECT_TRUE(m_helper->list(&specs, type));
     expect_no_error();
+
     for (const auto &spec : specs) {
+      SCOPED_TRACE("erasing: " + spec.id);
       EXPECT_TRUE(m_helper->erase(spec));
       expect_no_error();
     }
@@ -1004,6 +1007,14 @@ class Parametrized_helper_test : public ::testing::TestWithParam<std::string> {
 
  protected:
   void SetUp() override {
+    if (Shell_test_env::get_target_server_version() <
+        mysqlshdk::utils::k_shell_version) {
+      // this is needed to prevent gtest from invoking the body of a test
+      GTEST_SKIP();
+      SKIP_TEST("This test is only executed once, with latest server");
+      return;
+    }
+
     if (tester.uses_wrapper()) {
       m_wrapper = std::make_unique<Shell_test_wrapper>(false);
       tester.use_wrapper(m_wrapper.get());
@@ -1021,6 +1032,10 @@ class Parametrized_helper_test : public ::testing::TestWithParam<std::string> {
   }
 
   void TearDown() override {
+    if (this->IsSkipped()) {
+      return;
+    }
+
     clear_store();
 
     if (::getenv("TEST_DEBUG")) {
@@ -1199,9 +1214,8 @@ void verify_available_helpers(const std::set<std::string> &helpers) {
 #else  // ! _WIN32
 #ifdef __APPLE__
   expected.emplace("keychain");
-#else   // ! __APPLE__
-  expected.emplace("login-path");
 #endif  // ! __APPLE__
+  expected.emplace("login-path");
 #endif  // ! _WIN32
 
   std::set<std::string> missing;
