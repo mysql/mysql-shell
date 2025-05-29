@@ -1,4 +1,4 @@
-#@ {has_ssh_environment() and __version_num == __mysh_version_num}
+#@ {has_ssh_environment() and __version_num >= __mysh_version_num}
 
 from _ssh_utils import *
 from pathlib import Path
@@ -214,8 +214,9 @@ EXPECT_NO_THROWS(lambda: util.load_dump(os.path.join(outdir, "dump_from_local"),
 if __mysh_version_num >= mysql_over_ssh_version:
   # Creates a dump using X protocol
   EXPECT_NO_THROWS(lambda: util.dump_instance(os.path.join(outdir, "dump_from_ssh_x")), "Unable to dump instance")
-  session.close()
   EXPECT_STDOUT_CONTAINS("Schemas dumped: 1")
+
+session.close()
 
 # Clean the data
 remote_session = mysql.get_session({"uri": MYSQL_OVER_SSH_URI, "ssh": SSH_URI_NOPASS, "ssh-password": SSH_PASS, "ssh-config-file": config_file})
@@ -225,3 +226,6 @@ remote_session.close()
 #@<>check if ssh connections are properly closed, since util.*dump create multiple connections.
 testutil.stop_sandbox(__mysql_sandbox_port1, {"wait":1})
 testutil.destroy_sandbox(__mysql_sandbox_port1)
+
+#@<> BUG#33564687 all tunnels should be closed at this point
+EXPECT_EQ(0, len(shell.list_ssh_connections()))

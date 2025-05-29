@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,9 +28,11 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "mysqlshdk/libs/ssh/ssh_common.h"
 #include "mysqlshdk/libs/ssh/ssh_connection_options.h"
 
@@ -39,10 +41,48 @@ namespace ssh {
 class Ssh_tunnel_manager;
 
 /**
+ * Holds a reference to a tunnel, automatically releases it when goes out of
+ * scope.
+ */
+class Ssh_tunnel final {
+ public:
+  Ssh_tunnel() : Ssh_tunnel(nullptr, 0) {}
+
+  Ssh_tunnel(const Ssh_tunnel &) = delete;
+  Ssh_tunnel(Ssh_tunnel &&other);
+
+  Ssh_tunnel &operator=(const Ssh_tunnel &) = delete;
+  Ssh_tunnel &operator=(Ssh_tunnel &&other);
+
+  ~Ssh_tunnel() { unref(); }
+
+  /**
+   * Manually increases the reference count. The `unref()` needs to be called
+   * afterwards, or tunnel will never be deleted.
+   */
+  void ref();
+
+  /**
+   * Manually decreases the reference count.
+   */
+  void unref();
+
+ private:
+  friend class Ssh_manager;
+
+  Ssh_tunnel(Ssh_tunnel_manager *manager, int port)
+      : m_manager(manager), m_port(port) {
+    ref();
+  }
+
+  Ssh_tunnel_manager *m_manager;
+  int m_port;
+};
+
+/**
  * @brief This is the main entrypoint for SSH connections. Ssh_manager takes
  * care of tunnel connection and tracks it's usage so then the tunnel is
  * automatically closed if not needed.
- *
  */
 class Ssh_manager final {
  public:
@@ -52,22 +92,6 @@ class Ssh_manager final {
   Ssh_manager(Ssh_manager &&other) = delete;
   Ssh_manager &operator=(const Ssh_manager &other) = delete;
   Ssh_manager &operator=(Ssh_manager &&other) = delete;
-
-  /**
-   * @brief this function must be called when someone want to use a tunnel
-   * port so the manager can track it. By default it's automatically called once
-   * by the create_tunnel.
-   *
-   * @param config Ssh_connection_config SSH connection configuration data
-   */
-  void port_usage_increment(const Ssh_connection_options &config);
-  /**
-   * @brief this function must be called when tunnel port is no longer used, so
-   * the manager can clean it up.
-   *
-   * @param config Ssh_connection_config SSH connection configuration data
-   */
-  void port_usage_decrement(const Ssh_connection_options &config);
 
   /**
    * @brief creates an SSH tunnel connection to the remote machine and open
@@ -80,7 +104,14 @@ class Ssh_manager final {
    * This function will succeed if tunnel creation succeed or there's existing
    * tunnel that can be used.
    */
-  void create_tunnel(Ssh_connection_options *ssh_config);
+  [[nodiscard]] Ssh_tunnel create_tunnel(Ssh_connection_options *ssh_config);
+
+  /**
+   * Looks up tunnel for the given SSH config, increases its reference count if
+   * found.
+   */
+  [[nodiscard]] Ssh_tunnel get_tunnel(
+      const Ssh_connection_options &config) const;
 
   /**
    * @brief create a list of active SSH tunnel connections
@@ -93,6 +124,7 @@ class Ssh_manager final {
   void start();
   void shutdown();
 
+  std::mutex m_create_tunnel_mutex;
   std::unique_ptr<Ssh_tunnel_manager> m_manager;
 };
 

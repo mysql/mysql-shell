@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -151,6 +151,8 @@ void Ssh_connection_options::dump_config() const {
   log_debug2("SSH: remote host: %s", get_remote_host().c_str());
   if (m_remote_port.has_value())
     log_debug2("SSH remote port: %d", *m_remote_port);
+  if (m_fallback_remote_port.has_value())
+    log_debug2("SSH fallback remote port: %d", *m_fallback_remote_port);
   log_debug2("SSH: remote ssh host: %s", get_host().c_str());
   if (has_port()) {
     log_debug2("SSH: remote ssh port: %d", get_port());

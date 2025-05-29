@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -185,10 +185,7 @@ Connection_options get_connection_options(
 
   // The ssh has to be set as the last step cause we need the host and port to
   // be set, otherwise we can't use the tunneling.
-  auto ssh_data = get_ssh_options(instance_def);
-  // don't use has_data here as there's no remote_host yet in the
-  // ssh_connection_options, those will be set inside of the set_ssh_options.
-  if (ssh_data.has_host()) ret_val.set_ssh_options(ssh_data);
+  ret_val.set_ssh_options(get_ssh_options(instance_def));
 
   for (const auto &warning : ret_val.get_warnings())
     mysqlsh::current_console()->print_warning(warning);
@@ -220,12 +217,17 @@ mysqlshdk::ssh::Ssh_connection_options get_ssh_options(
   shcore::Argument_map connection_map(*instance_def);
   mysqlshdk::ssh::Ssh_connection_options ssh_config;
 
-  for (auto &option : *instance_def) {
+  // first we need to find the SSH URI, so it doesn't get overwritten by the
+  // second loop
+  for (const auto &option : *instance_def) {
     if (ssh_config.compare(option.first, mysqlshdk::db::kSsh) == 0) {
       ssh_config = mysqlshdk::ssh::Ssh_connection_options(
           connection_map.string_at(option.first));
-    } else if (ssh_config.compare(option.first,
-                                  mysqlshdk::db::kSshConfigFile) == 0) {
+    }
+  }
+
+  for (const auto &option : *instance_def) {
+    if (ssh_config.compare(option.first, mysqlshdk::db::kSshConfigFile) == 0) {
       ssh_config.set_config_file(connection_map.string_at(option.first));
     } else if (ssh_config.compare(option.first,
                                   mysqlshdk::db::kSshIdentityFile) == 0) {
@@ -519,9 +521,10 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
 
     copy.set_default_data();
 
-    auto &ssh = copy.get_ssh_options_handle();
-    if (ssh.has_data()) {
-      mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
+    mysqlshdk::ssh::Ssh_tunnel tunnel;
+
+    if (auto &ssh = copy.get_ssh_options(); ssh.has_data()) {
+      tunnel = mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
     }
 
     // TODO(alfredo) - password storage for MFA needs to be figured out
@@ -637,9 +640,9 @@ Connection_options get_classic_connection_options(
 
       co.set_port(row->get_int(0));
 
-      // if we're here, we clear up local port, so establish session will find
-      // the correct ssh tunnel or make a new one
-      co.get_ssh_options_handle().clear_local_port();
+      // if we're here, we clear up local port to make sure that SSH manager
+      // finds the correct SSH tunnel or makes a new one
+      co.get_ssh_options().clear_local_port();
     } else {
       // if we're here then socket was used
       const auto result =

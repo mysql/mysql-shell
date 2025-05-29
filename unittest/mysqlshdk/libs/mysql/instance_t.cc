@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,8 +65,6 @@ TEST_F(Instance_test, get_session) {
 TEST_F(Instance_test, get_sysvar_string_existing_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
@@ -109,8 +107,6 @@ TEST_F(Instance_test, get_sysvar_string_existing_variable) {
 TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -140,8 +136,6 @@ TEST_F(Instance_test, get_sysvar_string_unexisting_variable) {
 TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -195,8 +189,6 @@ TEST_F(Instance_test, get_sysvar_boolean_existing_variable) {
 TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -226,8 +218,6 @@ TEST_F(Instance_test, get_sysvar_boolean_unexisting_variable) {
 TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -252,8 +242,6 @@ TEST_F(Instance_test, get_sysvar_boolean_invalid_variable) {
 TEST_F(Instance_test, get_sysvar_int_existing_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -309,8 +297,6 @@ TEST_F(Instance_test, get_sysvar_int_existing_variable) {
 TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -340,8 +326,6 @@ TEST_F(Instance_test, get_sysvar_int_unexisting_variable) {
 TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   session
@@ -366,8 +350,6 @@ TEST_F(Instance_test, get_sysvar_int_invalid_variable) {
 TEST_F(Instance_test, get_sysvar_invalid_qualifier) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
@@ -402,8 +384,6 @@ TEST_F(Instance_test, get_sysvar_invalid_qualifier) {
 TEST_F(Instance_test, set_sysvar) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -715,8 +695,6 @@ TEST_F(Instance_test, set_sysvar) {
 TEST_F(Instance_test, set_sysvar_default) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
   // Test set_sysvar_default with different scopes (GLOBAL and SESSION).
@@ -820,8 +798,6 @@ TEST_F(Instance_test, set_sysvar_default) {
 TEST_F(Instance_test, install_plugin_win) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -847,8 +823,6 @@ TEST_F(Instance_test, install_plugin_win) {
 TEST_F(Instance_test, install_plugin_lin) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -890,8 +864,6 @@ TEST_F(Instance_test, install_plugin_lin) {
 TEST_F(Instance_test, get_plugin_status) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -933,8 +905,6 @@ TEST_F(Instance_test, get_plugin_status) {
 TEST_F(Instance_test, uninstall_plugin) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   mysqlshdk::mysql::Instance instance(_session);
@@ -955,8 +925,6 @@ TEST_F(Instance_test, uninstall_plugin) {
 TEST_F(Instance_test, create_user) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1036,8 +1004,6 @@ TEST_F(Instance_test, create_user) {
 TEST_F(Instance_test, create_user_ssl_options) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1102,8 +1068,6 @@ TEST_F(Instance_test, create_user_ssl_options) {
 TEST_F(Instance_test, get_user_privileges_user_exists) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
 
   // user with some privileges
@@ -1140,8 +1104,6 @@ TEST_F(Instance_test, get_user_privileges_user_exists) {
 TEST_F(Instance_test, drop_user) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1180,8 +1142,6 @@ TEST_F(Instance_test, drop_user) {
 TEST_F(Instance_test, get_system_variables_like) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1267,8 +1227,6 @@ TEST_F(Instance_test, get_system_variables_like) {
 TEST_F(Instance_test, is_set_persist_supported) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 
@@ -1312,8 +1270,6 @@ TEST_F(Instance_test, is_set_persist_supported) {
 TEST_F(Instance_test, get_persisted_value) {
   EXPECT_CALL(session, do_connect(_connection_options));
   EXPECT_CALL(session, is_open()).WillOnce(Return(false));
-  const mysqlshdk::db::Connection_options opts;
-  EXPECT_CALL(session, get_connection_options()).WillOnce(ReturnRef(opts));
   _session->connect(_connection_options);
   mysqlshdk::mysql::Instance instance(_session);
 

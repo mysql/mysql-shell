@@ -309,37 +309,35 @@ void Connection_options::clear_needs_password(int factor) {
 }
 
 void Connection_options::set_ssh_options(
-    const mysqlshdk::ssh::Ssh_connection_options &options) {
-  m_ssh_options = options;
-}
+    mysqlshdk::ssh::Ssh_connection_options &&options) {
+  m_ssh_options = std::move(options);
 
-ssh::Ssh_connection_options &Connection_options::get_ssh_options_handle(
-    int fallback_port) {
-  if (m_ssh_options.has_data()) {
-    int mysql_port = fallback_port;
-    if (m_port.has_value()) {
-      mysql_port = *m_port;
-    } else if (has_scheme()) {
-      if (get_scheme() == "mysql") {
-        mysql_port = k_default_mysql_port;
-      } else if (get_scheme() == "mysqlx") {
-        mysql_port = k_default_mysql_x_port;
-      }
-    }
+  if (!m_ssh_options.has_data()) {
+    return;
+  }
 
-    if (has_host() && mysql_port != 0) {
-      m_ssh_options.set_remote_host(get_host());
+  // set the remote host & port if already available
 
-      m_ssh_options.clear_remote_port();
-      m_ssh_options.set_remote_port(mysql_port);
-    } else {
-      throw std::invalid_argument(
-          "Host and port for database are required in advance when using "
-          "SSH tunneling functionality");
+  if (has_host()) {
+    m_ssh_options.set_remote_host(get_host());
+  }
+
+  int mysql_port = 0;
+
+  if (m_port.has_value()) {
+    mysql_port = *m_port;
+  } else if (has_scheme()) {
+    if (get_scheme() == "mysql") {
+      mysql_port = k_default_mysql_port;
+    } else if (get_scheme() == "mysqlx") {
+      mysql_port = k_default_mysql_x_port;
     }
   }
 
-  return m_ssh_options;
+  if (mysql_port) {
+    m_ssh_options.clear_remote_port();
+    m_ssh_options.set_remote_port(mysql_port);
+  }
 }
 
 bool Connection_options::has_data() const {
@@ -425,11 +423,21 @@ void Connection_options::set_host(const std::string &host) {
     m_transport_type = Transport_type::Tcp;
   }
 #endif  // _WIN32
+
+  if (m_ssh_options.has_data()) {
+    m_ssh_options.clear_remote_host();
+    m_ssh_options.set_remote_host(host);
+  }
 }
 
 void Connection_options::set_port(int port) {
   m_port = port;
   m_default_transport_type = Transport_type::Tcp;
+
+  if (m_ssh_options.has_data()) {
+    m_ssh_options.clear_remote_port();
+    m_ssh_options.set_remote_port(port);
+  }
 }
 
 bool Connection_options::is_extra_option(const std::string &option) {

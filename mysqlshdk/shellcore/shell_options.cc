@@ -85,6 +85,8 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
 
   if (!ssh.uri.empty()) {
     auto ssh_dict = shcore::make_dict();
+    (*ssh_dict)[mysqlshdk::db::kSsh] = shcore::Value(ssh.uri);
+
     if (!ssh.identity_file.empty()) {
       (*ssh_dict)[mysqlshdk::db::kSshIdentityFile] =
           shcore::Value(ssh.identity_file);
@@ -95,13 +97,11 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
           shcore::Value(ssh.config_file);
     }
 
-    (*ssh_dict)[mysqlshdk::db::kSsh] = shcore::Value(ssh.uri);
     if (!ssh.pwd.empty()) {
       (*ssh_dict)[mysqlshdk::db::kSshPassword] = shcore::Value(ssh.pwd);
     }
 
-    auto ssh_options = mysqlsh::get_ssh_options(ssh_dict);
-    target_server.set_ssh_options(ssh_options);
+    target_server.set_ssh_options(mysqlsh::get_ssh_options(ssh_dict));
   }
 
   if (has_multi_passwords()) {

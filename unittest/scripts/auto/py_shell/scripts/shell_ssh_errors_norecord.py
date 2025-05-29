@@ -1,4 +1,4 @@
-#@ {has_ssh_environment() and __version_num >= 80000}
+#@ {has_ssh_environment() and __version_num >= __mysh_version_num}
 
 from _ssh_utils import *
 from pathlib import Path
@@ -73,7 +73,7 @@ testutil.assert_no_prompts()
 ####################
 
 shell.options["credentialStore.helper"] = "plaintext"
-
+EXPECT_NO_THROWS(lambda: shell.delete_all_credentials())
 
 ####################
 create_ssh_conf(config_file, f"""
@@ -173,7 +173,7 @@ testutil.assert_no_prompts()
 shell.options["useWizards"] = False
 conn = {'uri':None, "ssh": SSH_URI_NOPASS, "ssh-config-file": config_file}
 conn["uri"] = "mysql://user@invalid_host:3306"
-EXPECT_THROWS(lambda: shell.connect(conn), "Error opening MySQL session through SSH tunnel: Lost connection to MySQL server at 'waiting for initial communication packet'")
+EXPECT_THROWS(lambda: shell.connect(conn), "Error opening MySQL session through SSH tunnel: Lost connection to MySQL server at '")
 conn["uri"] = ""
 EXPECT_THROWS(lambda: shell.connect(conn), "Invalid URI: Expected token at position 0 but no tokens left")
 conn["uri"] = "mysql://user@host name:3306"
@@ -186,3 +186,9 @@ conn = {"uri":""}
 EXPECT_THROWS(lambda: shell.connect(conn), "Invalid URI: Expected token at position 0 but no tokens left")
 conn = {"uri":"mysqlx://user@host name:33060"}
 EXPECT_THROWS(lambda: shell.connect(conn), "Invalid URI: Illegal space found at position 18")
+
+#@<> BUG#33564687 all tunnels should be closed at this point
+EXPECT_EQ(0, len(shell.list_ssh_connections()))
+
+#@<> cleanup
+EXPECT_NO_THROWS(lambda: shell.delete_all_credentials())

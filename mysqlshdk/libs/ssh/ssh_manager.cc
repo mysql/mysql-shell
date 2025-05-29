@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,8 +24,11 @@
  */
 
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
+
 #include <string>
+#include <utility>
 #include <vector>
+
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/libs/ssh/ssh_session.h"
 #include "mysqlshdk/libs/ssh/ssh_tunnel_manager.h"
@@ -34,6 +37,38 @@
 
 namespace mysqlshdk {
 namespace ssh {
+
+Ssh_tunnel::Ssh_tunnel(Ssh_tunnel &&other) { *this = std::move(other); }
+
+Ssh_tunnel &Ssh_tunnel::operator=(Ssh_tunnel &&other) {
+  m_manager = std::exchange(other.m_manager, nullptr);
+  m_port = other.m_port;
+
+  return *this;
+}
+
+void Ssh_tunnel::ref() {
+  if (!m_manager) {
+    return;
+  }
+
+  m_manager->use_tunnel(m_port);
+}
+
+void Ssh_tunnel::unref() {
+  if (!m_manager) {
+    return;
+  }
+
+  try {
+    if (m_manager->release_tunnel(m_port)) {
+      // tunnel has been closed, stop managing it
+      m_manager = nullptr;
+    }
+  } catch (const std::exception &ex) {
+    log_error("An error occurred while closing the tunnel: %s", ex.what());
+  }
+}
 
 Ssh_manager::Ssh_manager() {}
 
@@ -49,17 +84,15 @@ void Ssh_manager::shutdown() {
   m_manager->poke_wakeup_socket();
 }
 
-void Ssh_manager::port_usage_increment(const Ssh_connection_options &config) {
-  if (m_manager) m_manager->use_tunnel(config);
-}
-
-void Ssh_manager::port_usage_decrement(const Ssh_connection_options &config) {
-  if (m_manager) m_manager->release_tunnel(config);
-}
-
-void Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
+Ssh_tunnel Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
   // This function can only be called if there's SSH data
   assert(ssh_config->has_data());
+
+  if (!ssh_config->has_remote_host() || !ssh_config->has_remote_port()) {
+    throw std::invalid_argument(
+        "Host and port for database are required in advance when using SSH "
+        "tunneling functionality");
+  }
 
   // There can be only one Ssh_manager per application and it cannot be started
   // twice. Access to it can be done only through
@@ -68,7 +101,9 @@ void Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
 
   std::call_once(manager_start_once, [this] { start(); });
 
+  std::lock_guard lock{m_create_tunnel_mutex};
   int tunnel_port = m_manager->lookup_tunnel(*ssh_config);
+
   if (tunnel_port > 0) {
     mysqlsh::current_console()->print_info(
         "Existing SSH tunnel found, connecting...");
@@ -103,6 +138,7 @@ void Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
                     static_cast<int>(port));
           ssh_config->set_local_port(port);
           connected = true;
+          tunnel_port = port;
           break;
         }
         case ssh::Ssh_return_type::INVALID_AUTH_DATA: {
@@ -162,6 +198,25 @@ void Ssh_manager::create_tunnel(Ssh_connection_options *ssh_config) {
         }
       }
     }
+  }
+
+  return {m_manager.get(), tunnel_port};
+}
+
+Ssh_tunnel Ssh_manager::get_tunnel(const Ssh_connection_options &config) const {
+  int tunnel_port = 0;
+
+  if (m_manager && config.has_local_port()) {
+    if (const auto local_port = config.get_local_port();
+        m_manager->has_tunnel(local_port)) {
+      tunnel_port = local_port;
+    }
+  }
+
+  if (tunnel_port) {
+    return {m_manager.get(), tunnel_port};
+  } else {
+    return {};
   }
 }
 

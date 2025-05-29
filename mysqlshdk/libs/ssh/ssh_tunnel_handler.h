@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,7 +68,12 @@ class Ssh_tunnel_handler : public Ssh_thread {
   void use() { ++m_usage; }
   int release() {
     assert(m_usage > 0);
-    return --m_usage;
+
+    if (m_usage > 0) {
+      --m_usage;
+    }
+
+    return m_usage;
   }
   Ssh_session_info get_tunnel_info() const {
     return m_session->get_session_info();

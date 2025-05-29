@@ -1994,14 +1994,11 @@ bool Mysql_shell::reconnect_if_needed(bool force) {
 
     while (!ret_val && attempts > 0 && !interrupt.test()) {
       try {
-        const auto &ssh_data = co.get_ssh_options();
-        // we need to increment port usage and decrement it later cause during
-        // reconnect, the decrement will be called, so tunnel would be lost
-        mysqlshdk::ssh::current_ssh_manager()->port_usage_increment(ssh_data);
+        // we need to hold the reference to the SSH tunnel while we reconnect,
+        // to prevent it from being closed when the session closes
+        const auto ssh = mysqlshdk::ssh::current_ssh_manager()->get_tunnel(
+            co.get_ssh_options());
 
-        shcore::Scoped_callback scoped([&ssh_data] {
-          mysqlshdk::ssh::current_ssh_manager()->port_usage_decrement(ssh_data);
-        });
         session->connect(co);
         ret_val = true;
       } catch (const shcore::Exception &e) {
