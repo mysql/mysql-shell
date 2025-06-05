@@ -107,6 +107,8 @@ struct Instance_cache {
     uint64_t row_count = 0;
     uint64_t average_row_length = 0;
     std::string engine;
+    // upper case name of the secondary engine
+    std::string secondary_engine;
     std::string create_options;
     std::string comment;
     std::unordered_map<std::string, Index> indexes;

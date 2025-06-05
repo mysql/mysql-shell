@@ -470,6 +470,8 @@ class Dumper {
   common::Binlog binlog(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
+  std::string optimizer_hints(const Instance_cache::Table *info) const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 #ifndef NDEBUG

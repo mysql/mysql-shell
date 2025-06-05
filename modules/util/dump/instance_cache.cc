@@ -30,6 +30,7 @@
 #include <algorithm>
 #include <iterator>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/console.h"
@@ -408,39 +409,55 @@ void Instance_cache_builder::filter_tables() {
   info.table_name = "tables";
   info.where = m_query_helper.table_filter(schema_column, table_column);
 
-  iterate_schemas(
-      info, [this](const std::string &, Instance_cache::Schema *schema,
-                   const mysqlshdk::db::IRow *row) {
-        const auto table_type = row->get_string(2);  // TABLE_TYPE
+  iterate_schemas(info, [this](const std::string &,
+                               Instance_cache::Schema *schema,
+                               const mysqlshdk::db::IRow *row) {
+    const auto table_type = row->get_string(2);  // TABLE_TYPE
 
-        if ("SYSTEM VIEW" == table_type) {
-          return;
+    if ("SYSTEM VIEW" == table_type) {
+      return;
+    }
+
+    const auto table_name = row->get_string(1);  // TABLE_NAME
+    const auto is_table = "BASE TABLE" == table_type;
+    Instance_cache::Table &target =
+        is_table ? schema->tables[table_name] : schema->views[table_name];
+
+    target.row_count = row->get_uint(3, 0);           // TABLE_ROWS
+    target.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
+    target.engine = row->get_string(5, "");           // ENGINE
+    target.create_options = row->get_string(6, "");   // CREATE_OPTIONS
+    target.comment = row->get_string(7, "");          // TABLE_COMMENT
+
+    if (is_table) {
+      set_has_tables();
+
+      ++m_cache.filtered.tables;
+
+      DBUG_EXECUTE_IF("dumper_average_row_length_0",
+                      { target.average_row_length = 0; });
+    } else {
+      set_has_views();
+
+      ++m_cache.filtered.views;
+    }
+
+    if (!target.create_options.empty()) {
+      static constexpr std::string_view k_secondary_engine =
+          "SECONDARY_ENGINE=\"";
+
+      if (auto pos = target.create_options.find(k_secondary_engine);
+          std::string::npos != pos) {
+        pos += k_secondary_engine.length();
+
+        if (const auto end = target.create_options.find('"', pos);
+            std::string::npos != end) {
+          target.secondary_engine = shcore::str_upper(
+              std::string_view{target.create_options}.substr(pos, end - pos));
         }
-
-        const auto table_name = row->get_string(1);  // TABLE_NAME
-        const auto is_table = "BASE TABLE" == table_type;
-        Instance_cache::Table &target =
-            is_table ? schema->tables[table_name] : schema->views[table_name];
-
-        target.row_count = row->get_uint(3, 0);           // TABLE_ROWS
-        target.average_row_length = row->get_uint(4, 0);  // AVG_ROW_LENGTH
-        target.engine = row->get_string(5, "");           // ENGINE
-        target.create_options = row->get_string(6, "");   // CREATE_OPTIONS
-        target.comment = row->get_string(7, "");          // TABLE_COMMENT
-
-        if (is_table) {
-          set_has_tables();
-
-          ++m_cache.filtered.tables;
-
-          DBUG_EXECUTE_IF("dumper_average_row_length_0",
-                          { target.average_row_length = 0; });
-        } else {
-          set_has_views();
-
-          ++m_cache.filtered.views;
-        }
-      });
+      }
+    }
+  });
 
   // the total number of tables and views within the filtered schemas
   m_cache.total.tables = count(info, "'BASE TABLE'=TABLE_TYPE");
