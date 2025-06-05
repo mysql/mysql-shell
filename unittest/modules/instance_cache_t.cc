@@ -1093,6 +1093,9 @@ TEST_F(Instance_cache_test, schema_collation) {
 }
 
 TEST_F(Instance_cache_test, table_metadata) {
+  const auto supports_secondary_engine =
+      m_session->get_server_version().numeric() >= 80013;
+
   {
     // setup
     m_session->execute("CREATE SCHEMA first;");
@@ -1112,6 +1115,14 @@ TEST_F(Instance_cache_test, table_metadata) {
         "ENGINE = BLACKHOLE "
         "COMMENT = 'important table'"
         ";");
+
+    if (supports_secondary_engine) {
+      m_session->execute(
+          "CREATE TABLE second.four (id INT) "
+          "ENGINE = InnoDB "
+          "secondary_ENGINE = 'raPID'"
+          ";");
+    }
   }
 
   {
@@ -1123,6 +1134,7 @@ TEST_F(Instance_cache_test, table_metadata) {
     {
       const auto &one = cache.schemas.at("first").tables.at("one");
       EXPECT_EQ("InnoDB", one.engine);
+      EXPECT_EQ("", one.secondary_engine);
       EXPECT_EQ("", one.comment);
       EXPECT_EQ("partitioned", one.create_options);
     }
@@ -1130,6 +1142,7 @@ TEST_F(Instance_cache_test, table_metadata) {
     {
       const auto &two = cache.schemas.at("first").tables.at("two");
       EXPECT_EQ("MyISAM", two.engine);
+      EXPECT_EQ("", two.secondary_engine);
       EXPECT_EQ("qwerty'asdfg", two.comment);
       EXPECT_EQ("", two.create_options);
     }
@@ -1137,8 +1150,18 @@ TEST_F(Instance_cache_test, table_metadata) {
     {
       const auto &three = cache.schemas.at("second").tables.at("three");
       EXPECT_EQ("BLACKHOLE", three.engine);
+      EXPECT_EQ("", three.secondary_engine);
       EXPECT_EQ("important table", three.comment);
       EXPECT_EQ("", three.create_options);
+    }
+
+    if (supports_secondary_engine) {
+      const auto &four = cache.schemas.at("second").tables.at("four");
+      EXPECT_EQ("InnoDB", four.engine);
+      EXPECT_EQ("RAPID", four.secondary_engine);
+      EXPECT_EQ("", four.comment);
+      EXPECT_NE(std::string::npos,
+                four.create_options.find("SECONDARY_ENGINE=\"raPID\""));
     }
   }
 }

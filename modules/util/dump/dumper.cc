@@ -842,7 +842,7 @@ class Dumper::Table_worker final {
       const Table_data_task &table,
       std::vector<Dump_writer::Encoding_type> *out_pre_encoded_columns) const {
     const auto base64 = m_dumper->m_options.use_base64();
-    std::string query = "SELECT SQL_NO_CACHE ";
+    std::string query = "SELECT " + m_dumper->optimizer_hints(table.info);
 
     for (const auto &column : table.info->columns) {
       if (column->csv_unsafe) {
@@ -1273,7 +1273,8 @@ class Dumper::Table_worker final {
     const auto row_count = [&info, &comment, this](const auto begin,
                                                    const auto end) {
       return row_count_from_explain(
-          query("EXPLAIN FORMAT=JSON SELECT COUNT(*) FROM " +
+          query("EXPLAIN FORMAT=JSON SELECT " +
+                m_dumper->optimizer_hints(info.table->info) + "COUNT(*) FROM " +
                 info.table->quoted_name + info.partition +
                 where(*info.table, between(info, begin, end)) + info.order_by +
                 comment)
@@ -1464,8 +1465,9 @@ class Dumper::Table_worker final {
         shcore::str_join(columns.begin() + info.index_column, columns.end(),
                          ",", [](const auto &c) { return c->quoted_name; });
 
-    const auto select = "SELECT SQL_NO_CACHE " + index + " FROM " +
-                        info.table->quoted_name + info.partition + " ";
+    const auto select =
+        "SELECT " + m_dumper->optimizer_hints(info.table->info) + index +
+        " FROM " + info.table->quoted_name + info.partition + " ";
     const auto order_by_and_limit = info.order_by + " LIMIT " +
                                     std::to_string(info.rows_per_chunk - 1) +
                                     ",2 ";
@@ -1514,7 +1516,7 @@ class Dumper::Table_worker final {
       return info.row_count / info.rows_per_chunk + 1;
     }
 
-    const auto sql = "SELECT SQL_NO_CACHE " +
+    const auto sql = "SELECT " + m_dumper->optimizer_hints(info.table->info) +
                      info.table->index.info->columns_sql() + " FROM " +
                      info.table->quoted_name + info.partition + where(info);
 
@@ -4919,6 +4921,27 @@ std::string Dumper::gtid_executed(
 common::Binlog Dumper::binlog(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   return common::binlog(session, m_server_version, true);
+}
+
+std::string Dumper::optimizer_hints(const Instance_cache::Table *info) const {
+  if (!m_server_version.is_8_0) {
+    return "SQL_NO_CACHE ";
+  } else if ("RAPID" == info->secondary_engine) {
+    // disable off-loading to heatwave
+    std::string hint = "/*+ SET_VAR(use_secondary_engine='OFF') ";
+
+    // disable hypergraph optimizer as a workaround for BUG#35443375
+    if (const auto version = m_server_version.number.numeric();
+        version >= 80400 && version < 90000) {
+      hint += "SET_VAR(optimizer_switch='hypergraph_optimizer=OFF') ";
+    }
+
+    hint += "*/ ";
+
+    return hint;
+  } else {
+    return {};
+  }
 }
 
 }  // namespace dump

@@ -3217,6 +3217,37 @@ EXPECT_STDOUT_CONTAINS(create_invisible_pks_partitioned_table(schema_name, "t1")
 #@<> BUG#37892879 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
+#@<> BUG#37904121 - disable off-loading to HeatWave
+# setup
+schema_name = "test_37904121"
+table_name = "t1"
+heatwave_table_name = "t2"
+supports_secondary_engine = __version_num >= 80013
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA !", [schema_name])
+
+session.run_sql("CREATE TABLE !.! (a int primary key)", [schema_name, table_name])
+
+if supports_secondary_engine:
+    session.run_sql("CREATE TABLE !.! (a int primary key) SECONDARY_engine='raPID'", [schema_name, heatwave_table_name])
+
+old_log_sql = shell.options["logSql"]
+shell.options["logSql"] = "unfiltered"
+
+#@<> BUG#37904121 - test
+WIPE_SHELL_LOG()
+EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "showProgress": False })
+EXPECT_SHELL_LOG_CONTAINS(f"SELECT {"SQL_NO_CACHE " if __version_num < 80000 else ""}`a` FROM `{schema_name}`.`{table_name}` ORDER BY `a` LIMIT 1")
+
+if supports_secondary_engine:
+    EXPECT_SHELL_LOG_CONTAINS(f"SELECT /*+ SET_VAR(use_secondary_engine='OFF') {"SET_VAR(optimizer_switch='hypergraph_optimizer=OFF') " if __version_num >= 80400 and __version_num < 90000 else ""}*/ `a` FROM `{schema_name}`.`{heatwave_table_name}` ORDER BY `a` LIMIT 1")
+
+#@<> BUG#37904121 - cleanup
+shell.options["logSql"] = old_log_sql
+
+session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
