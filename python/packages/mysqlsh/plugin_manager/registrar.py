@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,12 @@ import mysqlsh
 #
 # Where definition is an instance of FunctionData
 _registration_callbacks = []
+
+# Function definition registry, enables shell clients
+# to access all plugin function definitions despite their
+# availability configuration (in special web only plugin functions)
+_registry = []
+get_registry = lambda: _registry
 
 
 def add_registration_callback(callback):
@@ -677,6 +683,9 @@ class PluginRegistrar:
             fully_qualified_name=fully_qualified_name,
             cli=cli,
             web=web)
+
+        # Registers definition in the global registry
+        _registry.append(definition)
 
         try:
             if shell:

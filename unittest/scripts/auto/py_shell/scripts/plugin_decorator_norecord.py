@@ -673,6 +673,22 @@ def listdata2(four, five, six):
         A list of users
     """
     pass
+
+@plugin_function('plugin2.list.webData', shell=False, cli=False, web=True)
+def listdata3(four, five, six):
+    """Lists users
+
+    Lists all users of a given compartment.
+
+    Args:
+        four (object): An OCI config object or None.
+        five (bool): If set to false exceptions are raised
+        six (bool): If set to true, a list object is returned.
+
+    Returns:
+        A list of users
+    """
+    pass
 '''
 
 
@@ -685,6 +701,26 @@ rc = call_mysqlsh_py_e("\\? plugin1.list.data")
 #@ plugin2.list.data
 rc = call_mysqlsh_py_e("\\? plugin2.list.data")
 
+#@<> plugin2.list.webData
+rc = call_mysqlsh_py_e("\\? plugin2.list.webData")
+EXPECT_STDOUT_CONTAINS("No help items found matching 'plugin2.list.webData'")
+
+
+#@<> Ensure web only plugin is available
+web_plugins_code = """
+from mysqlsh.plugin_manager import registrar
+
+for definition in registrar.get_registry():
+    if definition.web and not definition.shell:
+        print(f"Found web only plugin: {definition.fully_qualified_name}")
+"""
+
+testutil.create_file("web_plugins.py", web_plugins_code)
+testutil.call_mysqlsh(["--quiet-start=2", "--py", "-f", "web_plugins.py"])
+EXPECT_STDOUT_CONTAINS("Found web only plugin: plugin2.list.webData")
+
+
 #@<> Finalization
 testutil.rmdir(plugins_path, True)
 testutil.rmfile("my-script.py")
+testutil.rmfile("web_plugins.py")
