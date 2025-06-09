@@ -718,6 +718,21 @@
     ]
   },
   {
+    "name": "connection_control_failed_connections_threshold",
+    "version": "5.6.35",
+    "deprecation": "9.2.0"
+  },
+  {
+    "name": "connection_control_max_connection_delay",
+    "version": "5.6.35",
+    "deprecation": "9.2.0"
+  },
+  {
+    "name": "connection_control_min_connection_delay",
+    "version": "5.6.35",
+    "deprecation": "9.2.0"
+  },
+  {
     "name": "connection_memory_chunk_size",
     "version": "8.0.28",
     "initial": {
@@ -2278,6 +2293,71 @@
     "removal": "8.4.0"
   },
   {
+    "name": "keyring_hashicorp_auth_path",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_ca_path",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_caching",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_commit_auth_path",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_commit_ca_path",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_commit_caching",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_commit_role_id",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_commit_server_url",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_commit_store_path",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_role_id",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_secret_id",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_server_url",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
+    "name": "keyring_hashicorp_store_path",
+    "version": "8.0.18",
+    "deprecation": "9.3.0"
+  },
+  {
     "name": "keyring_oci_ca_certificate",
     "version": "8.0.22",
     "deprecation": "8.0.31",
@@ -3227,6 +3307,76 @@
               "engine_condition_pushdown={on|off}",
               "firstmatch={on|off}",
               "hash_join={on|off}",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "prefer_ordering_index={on|off}",
+              "semijoin={on|off}",
+              "skip_scan={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "subquery_to_derived={on|off}",
+              "use_index_extensions={on|off}",
+              "use_invisible_indexes={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "9.3.0",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_condition_pushdown={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "hash_join={on|off}",
+              "hypergraph_optimizer=off",
+              "index_condition_pushdown={on|off}",
+              "index_merge={on|off}",
+              "index_merge_intersection={on|off}",
+              "index_merge_sort_union={on|off}",
+              "index_merge_union={on|off}",
+              "loosescan={on|off}",
+              "materialization={on|off}",
+              "mrr={on|off}",
+              "mrr_cost_based={on|off}",
+              "prefer_ordering_index={on|off}",
+              "semijoin={on|off}",
+              "skip_scan={on|off}",
+              "subquery_materialization_cost_based={on|off}",
+              "subquery_to_derived={on|off}",
+              "use_index_extensions={on|off}",
+              "use_invisible_indexes={on|off}"
+            ]
+          }
+        }
+      },
+      {
+        "version": "9.3.1",
+        "all": {
+          "allowed": {
+            "all": [
+              "batched_key_access={on|off}",
+              "block_nested_loop={on|off}",
+              "condition_fanout_filter={on|off}",
+              "derived_condition_pushdown={on|off}",
+              "derived_merge={on|off}",
+              "duplicateweedout={on|off}",
+              "engine_condition_pushdown={on|off}",
+              "firstmatch={on|off}",
+              "hash_join={on|off}",
+              "hypergraph_optimizer=on",
               "index_condition_pushdown={on|off}",
               "index_merge={on|off}",
               "index_merge_intersection={on|off}",
@@ -4937,12 +5087,14 @@
   {
     "name": "version_tokens_session",
     "version": "5.7.8",
-    "deprecation": "9.2.0"
+    "deprecation": "9.2.0",
+    "removal": "9.3.0"
   },
   {
     "name": "version_tokens_session_number",
     "version": "5.7.8",
-    "deprecation": "9.2.0"
+    "deprecation": "9.2.0",
+    "removal": "9.3.0"
   },
   {
     "name": "performance_schema_consumer_events_transactions_current",
