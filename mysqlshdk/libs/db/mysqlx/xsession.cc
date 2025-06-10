@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -179,6 +179,12 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
     _mysql.reset();
     throw std::runtime_error(
         "X Protocol: Option server-public-key-path is not supported.");
+  }
+
+  if (_connection_options.has(mysqlshdk::db::kLocalInfile)) {
+    _mysql.reset();
+    throw std::runtime_error(
+        "X Protocol: LOAD DATA LOCAL INFILE is not supported.");
   }
 
   auto &ssl_options(_connection_options.get_ssl_options());

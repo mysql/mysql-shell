@@ -348,7 +348,8 @@ void Session_impl::connect(
   }
 
   if (connection_options.has(mysqlshdk::db::kLocalInfile)) {
-    const int local_infile = 1;
+    const int local_infile =
+        connection_options.is_enabled(mysqlshdk::db::kLocalInfile);
     mysql_options(_mysql, MYSQL_OPT_LOCAL_INFILE, &local_infile);
   }
 

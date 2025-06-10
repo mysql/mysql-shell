@@ -836,4 +836,35 @@ TEST_F(Command_line_connection_test, kerberos_auth_mode) {
 #endif
 }
 
+TEST_F(Command_line_connection_test, local_infile) {
+  // X protocol is not supported
+  execute({_mysqlsh, _uri.c_str(), "--local-infile", "--interactive=full",
+           nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '" + _uri_nopasswd +
+                                "?local-infile=true'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(
+      "X Protocol: LOAD DATA LOCAL INFILE is not supported.");
+
+  // classic protocol is supported
+  execute({_mysqlsh, _mysql_uri.c_str(), "--local-infile", "--interactive=full",
+           "-e", "\\status", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '" +
+                                _mysql_uri_nopasswd + "?local-infile=true'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connection Id:");
+
+  // last option wins, --local-infile is last
+  execute({_mysqlsh, (_mysql_uri + "?local-infile=0").c_str(), "--local-infile",
+           "--interactive=full", "-e", "\\status", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '" +
+                                _mysql_uri_nopasswd + "?local-infile=true'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connection Id:");
+
+  // last option wins, URI is last
+  execute({_mysqlsh, "--local-infile", (_mysql_uri + "?local-infile=0").c_str(),
+           "--interactive=full", "-e", "\\status", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Creating a session to '" +
+                                _mysql_uri_nopasswd + "?local-infile=0'");
+  MY_EXPECT_CMD_OUTPUT_CONTAINS("Connection Id:");
+}
+
 }  // namespace tests

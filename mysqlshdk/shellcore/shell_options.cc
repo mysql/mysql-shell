@@ -452,6 +452,15 @@ Shell_options::Shell_options(
             throw std::invalid_argument(
                 "The value of 'compression-level' must be an integer.");
           }
+        })
+    (cmdline("--local-infile"),
+        "Enable LOAD DATA LOCAL INFILE. (classic protocol only)",
+        [this](const std::string&, const char*) {
+          if (storage.connection_data.has(mysqlshdk::db::kLocalInfile)) {
+            storage.connection_data.remove(mysqlshdk::db::kLocalInfile);
+          }
+
+          storage.connection_data.set(mysqlshdk::db::kLocalInfile, "true");
         });
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
