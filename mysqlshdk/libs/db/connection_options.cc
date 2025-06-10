@@ -492,7 +492,8 @@ void Connection_options::set(const std::string &name,
   }
 #endif
   else if (is_extra_option(name)) {
-    if (name == kGetServerPublicKey || name == kClientInteractive) {
+    if (name == kGetServerPublicKey || name == kClientInteractive ||
+        name == kLocalInfile) {
       if (!is_bool_value(value)) {
         throw std::invalid_argument(
             shcore::str_format("Invalid value '%s' for '%s'. Allowed "

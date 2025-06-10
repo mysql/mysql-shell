@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2025, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -769,6 +769,45 @@ TEST(Connection_options, invalid_options_after_WL10912) {
       "sslCipher", "sslCert", "sslKey",    "authMethod", "sslTlsVersion"};
 
   for (auto property : invalid_options) combine(property, callback);
+}
+
+TEST(Connection_options, local_infile) {
+  // Test rejection of invalid values
+  auto invalid_values = {"on", "off", "whatever", ""};
+
+  for (const auto &value : invalid_values) {
+    std::string uri("root@host?local-infile=");
+    uri.append(value);
+
+    std::string msg("Invalid value '");
+    msg.append(value);
+    msg.append("' for 'local-infile'. Allowed values: true, false, 1, 0.");
+
+    std::string uri_msg("Invalid URI: ");
+    uri_msg.append(msg);
+    MY_EXPECT_THROW(std::invalid_argument, uri_msg.c_str(),
+                    { mysqlshdk::db::Connection_options data(uri); });
+
+    mysqlshdk::db::Connection_options sample;
+    MY_EXPECT_THROW(std::invalid_argument, msg.c_str(),
+                    sample.set(mysqlshdk::db::kLocalInfile, value));
+  }
+
+  std::vector<std::string> valid_values = {"1", "true", "0", "false"};
+
+  for (const auto &value : valid_values) {
+    std::string uri("root@host?local-infile=");
+    uri.append(value);
+
+    EXPECT_NO_THROW({
+      mysqlshdk::db::Connection_options data(uri);
+      EXPECT_EQ(value, data.get(mysqlshdk::db::kLocalInfile));
+    });
+
+    mysqlshdk::db::Connection_options sample;
+    EXPECT_NO_THROW(sample.set(mysqlshdk::db::kLocalInfile, value));
+    EXPECT_EQ(value, sample.get(mysqlshdk::db::kLocalInfile));
+  }
 }
 
 }  // namespace testing

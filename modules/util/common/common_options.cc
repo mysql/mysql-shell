@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025 Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -119,7 +119,7 @@ void Common_options::set_session(
       m_connection_options.remove(mysqlshdk::db::kLocalInfile);
     }
 
-    m_connection_options.set(mysqlshdk::db::kLocalInfile, "true");
+    m_connection_options.set(mysqlshdk::db::kLocalInfile, "1");
   }
 }
 

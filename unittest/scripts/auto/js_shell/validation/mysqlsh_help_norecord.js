@@ -91,6 +91,8 @@ Usage: mysqlsh [OPTIONS] [URI]
   --zstd-compression-level=<int>   client/server protocol. Supported by X
                                    protocol and zstd compression in classic
                                    protocol.
+  --local-infile                   Enable LOAD DATA LOCAL INFILE. (classic
+                                   protocol only)
   -D, --schema=<name>              Schema to use.
   --database=<name>                Same as --schema.
   --register-factor=<name>         Specifies authentication factor, for which
