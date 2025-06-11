@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -59,11 +59,14 @@ class Aws_config_file final {
   /**
    * Loads the configuration from the file.
    *
+   * @param require_profile_prefix If true, only 'default' section and sections
+   * prefixed with 'profile ' are returned.
+   *
    * @returns Loaded profiles, if the requested file exists
    *
    * @throws std::runtime_error if file is malformed
    */
-  std::optional<Profiles> load() const;
+  std::optional<Profiles> load(bool require_profile_prefix) const;
 
  private:
   std::string m_path;

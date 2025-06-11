@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -111,7 +111,8 @@ class Aws_s3_bucket_config_test : public testing::Test {
 
   [[nodiscard]] static Cleanup write_default_credentials(
       const std::string &contents) {
-    return write_file(default_credentials_file(), contents);
+    return write_file(default_credentials_file(),
+                      shcore::str_replace(contents, "[profile ", "["));
   }
 
   [[nodiscard]] static Cleanup write_file(const std::string &path,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -80,15 +80,78 @@ aws_secret_access_key=key1
 TEST_F(Aws_config_file_test, missing_file) {
   Aws_config_file config{"some-random-non-existing-file.txt"};
 
-  EXPECT_FALSE(config.load());
+  EXPECT_FALSE(config.load(false));
 }
 
-TEST_F(Aws_config_file_test, existing_file) {
+TEST_F(Aws_config_file_test, existing_config_file) {
   const std::string path = "zażółć";
   create_config(path);
   Aws_config_file config{path};
 
-  const auto profiles = config.load();
+  // require profile sections to be prefixed
+  const auto profiles = config.load(true);
+  ASSERT_TRUE(profiles);
+
+  {
+    const std::string profile_name = "default";
+    EXPECT_TRUE(profiles->exists(profile_name));
+
+    const auto profile = profiles->get(profile_name);
+    ASSERT_NE(nullptr, profile);
+
+    EXPECT_TRUE(profile->access_key_id());
+    EXPECT_EQ("id", *profile->access_key_id());
+    EXPECT_FALSE(profile->has("aws_access_key_id"));
+
+    EXPECT_TRUE(profile->secret_access_key());
+    EXPECT_EQ("key", *profile->secret_access_key());
+    EXPECT_FALSE(profile->has("aws_secret_access_key"));
+
+    EXPECT_FALSE(profile->session_token());
+    EXPECT_FALSE(profile->has("aws_session_token"));
+
+    EXPECT_FALSE(profile->has("region"));
+
+    ASSERT_TRUE(profile->has("max_attempts"));
+    EXPECT_EQ("7", *profile->get("max_attempts"));
+  }
+
+  // the 'oci' profile section is not prefixed, it's not in the profiles
+  EXPECT_FALSE(profiles->exists("oci"));
+  EXPECT_EQ(nullptr, profiles->get("oci"));
+
+  {
+    const std::string profile_name = "xyz";
+    EXPECT_TRUE(profiles->exists(profile_name));
+
+    const auto profile = profiles->get(profile_name);
+    ASSERT_NE(nullptr, profile);
+
+    EXPECT_FALSE(profile->access_key_id());
+    EXPECT_FALSE(profile->has("aws_access_key_id"));
+
+    EXPECT_FALSE(profile->secret_access_key());
+    EXPECT_FALSE(profile->has("aws_secret_access_key"));
+
+    EXPECT_TRUE(profile->session_token());
+    EXPECT_EQ("", *profile->session_token());
+    EXPECT_FALSE(profile->has("aws_session_token"));
+
+    ASSERT_TRUE(profile->has("region"));
+    EXPECT_EQ("eu-central-1", *profile->get("region"));
+  }
+
+  EXPECT_FALSE(profiles->exists("missing"));
+  EXPECT_EQ(nullptr, profiles->get("missing"));
+}
+
+TEST_F(Aws_config_file_test, existing_credentials_file) {
+  const std::string path = "zażółć";
+  create_config(path);
+  Aws_config_file config{path};
+
+  // load all sections
+  const auto profiles = config.load(false);
   ASSERT_TRUE(profiles);
 
   {
@@ -137,8 +200,13 @@ TEST_F(Aws_config_file_test, existing_file) {
     EXPECT_FALSE(profile->has("region"));
   }
 
+  // all profiles are loaded, and profile prefix is not removed, 'xyz' profile
+  // is not in the profiles
+  EXPECT_FALSE(profiles->exists("xyz"));
+  EXPECT_EQ(nullptr, profiles->get("xyz"));
+
   {
-    const std::string profile_name = "xyz";
+    const std::string profile_name = "profile xyz";
     EXPECT_TRUE(profiles->exists(profile_name));
 
     const auto profile = profiles->get(profile_name);
@@ -171,7 +239,7 @@ region=eu-central-1
 )");
     Aws_config_file config{path};
 
-    EXPECT_THROW_MSG(config.load(), std::runtime_error,
+    EXPECT_THROW_MSG(config.load(false), std::runtime_error,
                      "Failed to parse config file '" + path +
                          "': setting without an associated profile, in line 1: "
                          "line without profile");
@@ -185,7 +253,7 @@ region=eu-central-1
     Aws_config_file config{path};
 
     EXPECT_THROW_MSG(
-        config.load(), std::runtime_error,
+        config.load(false), std::runtime_error,
         "Failed to parse config file '" + path +
             "': missing closing square bracket, in line 1: [ profile xyz");
   }
@@ -199,7 +267,7 @@ not a setting
     Aws_config_file config{path};
 
     EXPECT_THROW_MSG(
-        config.load(), std::runtime_error,
+        config.load(false), std::runtime_error,
         "Failed to parse config file '" + path +
             "': expected setting-name=value, in line 3: not a setting");
   }
