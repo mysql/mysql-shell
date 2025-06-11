@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -109,7 +109,7 @@ void Settings::load_profiles() {
     const auto context = is_config_file ? "config" : "credentials";
     const auto &path = get_string(s);
 
-    auto loaded_profiles = Aws_config_file{path}.load();
+    auto loaded_profiles = Aws_config_file{path}.load(is_config_file);
 
     if (!loaded_profiles.has_value()) {
       log_warning("Could not open the %s file at '%s': %s.", context,

@@ -170,7 +170,7 @@ with write_profile(local_aws_config_file, "profile " + local_aws_profile, {}):
 #@<> WL14387-TSFR_4_1_1
 with write_profile(default_aws_config_file, "profile " + local_aws_profile, { "aws_access_key_id": "invalid", "aws_secret_access_key": "invalid" }):
     with write_profile(default_aws_credentials_file, local_aws_profile, {}):
-        with write_profile(local_aws_config_file, local_aws_profile, aws_settings):
+        with write_profile(local_aws_config_file, "profile " + local_aws_profile, aws_settings):
             # empty strings cause dumper/loader to use files from the default location
             EXPECT_SUCCESS({ "s3Profile": local_aws_profile, "s3ConfigFile": local_aws_config_file, "s3CredentialsFile": "" })
 
