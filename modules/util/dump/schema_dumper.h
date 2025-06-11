@@ -238,8 +238,6 @@ class Schema_dumper {
   /* have we seen any VIEWs during table scanning? */
   bool seen_views = false;
 
-  std::string m_dump_info;
-
   const Instance_cache *m_cache = nullptr;
   const Filtering_options *m_filters = nullptr;
 

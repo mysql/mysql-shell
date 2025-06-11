@@ -2585,16 +2585,7 @@ Schema_dumper::Schema_dumper(
     const std::vector<std::string> &mysqlaas_supported_charsets)
     : m_mysql(mysql),
       m_mysqlaas_supported_charsets(mysqlaas_supported_charsets),
-      default_charset(MYSQL_UNIVERSAL_CLIENT_CHARSET) {
-  std::time_t t = std::time(nullptr);
-  m_dump_info = ", server " +
-                m_mysql->get_connection_options().as_uri(
-                    mysqlshdk::db::uri::formats::only_transport()) +
-                ", MySQL " + m_mysql->get_server_version().get_full() + " at " +
-                shcore::lexical_cast<std::string>(
-                    std::put_time(std::localtime(&t), "%c %Z")) +
-                "\n";
-}
+      default_charset(MYSQL_UNIVERSAL_CLIENT_CHARSET) {}
 
 void Schema_dumper::dump_all_tablespaces_ddl(IFile *file) {
   dump_all_tablespaces(file);
