@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -894,9 +894,14 @@ std::string Process::read_from_terminal() {
       // Since child does not duplicate it to stdin/stdout/stderr, it will
       // remain closed until the child process opens the controlling terminal
       // (i.e. writes the password prompt and waits for user input).
-      if (++retry_count > 1000000) {
+      if (++retry_count > 1'000) {
         report_error("Controlling terminal seems to be closed");
       } else {
+        // sleep before retrying, we wait up to 10 seconds
+        struct timespec ts;
+        ts.tv_sec = 0;
+        ts.tv_nsec = 10'000'000;  // 10ms
+        nanosleep(&ts, nullptr);
         continue;
       }
     } else {
