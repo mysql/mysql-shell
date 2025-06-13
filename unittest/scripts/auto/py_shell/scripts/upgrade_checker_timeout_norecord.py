@@ -4,6 +4,7 @@
 shell.connect(__mysql_uri)
 session.run_sql("set @OLD_SQL_MODE = @@SQL_MODE;")
 session.run_sql("set @@SQL_MODE = 'NO_AUTO_CREATE_USER,NO_FIELD_OPTIONS,NO_KEY_OPTIONS';")
+session.run_sql("drop schema if exists test;")
 session.run_sql("CREATE SCHEMA test;")
 session.run_sql("USE test;")
 session.run_sql("create table Clone(COMPONENT integer, cube int);")
