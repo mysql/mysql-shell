@@ -231,6 +231,9 @@ class Auto_script_js : public Shell_js_script_tester,
              ";return true;} catch(e) {return false;}})();";
       execute(code);
     }
+
+    code = "var __has_util_plugin = 'visual' in util;";
+    execute(code);
   }
 
   void run_and_check() {

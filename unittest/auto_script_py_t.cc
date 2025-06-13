@@ -207,6 +207,9 @@ class Auto_script_py : public Shell_py_script_tester,
              "' in globals()";
       execute(code);
     }
+
+    code = "__has_util_plugin = hasattr(util, 'visual')";
+    execute(code);
   }
 
   void run_and_check() {

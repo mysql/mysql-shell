@@ -96,10 +96,20 @@ The following operations are available at 'shell options':
       configuration file.
 
 //@<OUT> CLI util --help
+?{__has_util_plugin}
+The following objects provide command line operations at 'util':
+?{}
+?{!__has_util_plugin}
 The following object provides command line operations at 'util':
+?{}
 
    debug
       Debugging and diagnostic utilities.
+?{__has_util_plugin}
+
+   visual
+      Visualization utilities.
+?{}
 
 The following operations are available at 'util':
 
