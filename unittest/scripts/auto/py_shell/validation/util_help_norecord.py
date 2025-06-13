@@ -10,6 +10,11 @@ DESCRIPTION
 PROPERTIES
       debug
             Debugging and diagnostic utilities.
+?{__has_util_plugin}
+
+      visual
+            Visualization utilities.
+?{}
 
 FUNCTIONS
       check_for_server_upgrade([connectionData][, options])
