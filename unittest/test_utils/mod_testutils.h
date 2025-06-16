@@ -373,14 +373,10 @@ class Testutils : public mysqlsh::Extensible_object {
                      const std::vector<std::string> &env = {},
                      const std::string &executable_path = "");
 
-  int call_mysqlsh_async(const shcore::Array_t &args,
-                         const std::string &std_input = std::string{},
-                         const shcore::Array_t &env = nullptr,
-                         const std::string &executable_path = "");
-  int call_mysqlsh_c_async(const std::vector<std::string> &args,
-                           const std::string &std_input = "",
-                           const std::vector<std::string> &env = {},
-                           const std::string &executable_path = "");
+  int call_mysqlsh_async(const std::vector<std::string> &args,
+                         const std::string &std_input = {},
+                         const std::vector<std::string> &env = {},
+                         const std::string &executable_path = {});
   int wait_mysqlsh_async(int id, int seconds = 60);
 
   // Sets the text to return next time an interactive prompt is shown.
@@ -436,22 +432,24 @@ class Testutils : public mysqlsh::Extensible_object {
     bool stop = false;
   };
 
-  struct Async_mysqlsh_run {
-    explicit Async_mysqlsh_run(const std::vector<std::string> &cmdline_,
-                               const std::string &stdin_,
-                               const std::vector<std::string> &env_,
-                               const std::string &mysqlsh_path,
-                               const std::string &executable_path);
-    int run_mysqlsh_in_background();
+  class Async_mysqlsh_run {
+   public:
+    Async_mysqlsh_run(const std::vector<std::string> &cmdline_,
+                      const std::string &stdin_,
+                      const std::vector<std::string> &env_,
+                      const std::string &mysqlsh_path,
+                      const std::string &executable_path);
 
-    std::vector<std::string> cmdline;
-    std::string mysqlsh_found_path;
-    std::vector<const char *> argv;
-    shcore::Process_launcher process;
-    std::string output;
-    std::string std_in;
-    std::vector<std::string> env;
-    std::future<int> task;
+    int wait(int seconds);
+
+    const std::string &cmdline() const noexcept { return m_process_cmdline; }
+
+    const std::string &output() const noexcept { return m_output; }
+
+   private:
+    std::unique_ptr<shcore::Process_launcher> m_process;
+    std::string m_process_cmdline;
+    std::string m_output;
   };
 
   std::vector<std::unique_ptr<Async_mysqlsh_run>> m_shell_runs;

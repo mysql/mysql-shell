@@ -29,4 +29,4 @@
 //@ async mysqlsh
 |Abra|
 |Cadabra|
-|--js' did not finish in time and will be killed|
+|--js' did not finish in time and was killed|

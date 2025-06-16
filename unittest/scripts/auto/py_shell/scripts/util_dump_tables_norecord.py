@@ -1868,29 +1868,13 @@ tested_table = "test_table"
 reason = f"available to the account {test_user_account}" if __version_num >= 80000 else "supported in MySQL 5.7"
 
 # constantly create tables
-def constantly_create_tables():
-    tables_to_create = 500
-    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
-    session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-    for i in range(tables_to_create):
-        session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
-    create_tables = f"""v = {tables_to_create}
-while True:
-    session.run_sql("/* ID: {{0}} */ CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
-    v = v + 1
-session.close()
-"""
-    # run a process which constantly creates tables
-    pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
-    # wait a bit for process to start
-    time.sleep(1)
-    return pid
+constantly_create_tables = Generate_transactions(uri, tested_schema, tested_table)
 
 # connect
 shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> BUG#33697289 create a process which will add tables in the background
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#33697289 test - backup lock is not available
 EXPECT_SUCCESS(tested_schema, [], test_output_absolute, { "all": True, "consistent": True, "showProgress": False, "threads": 1 }, check_number_of_tables = False)
@@ -1900,10 +1884,10 @@ EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a 
 EXPECT_STDOUT_CONTAINS(f"WARNING: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 
 #@<> BUG#33697289 terminate the process immediately
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop()
 
 #@<> BUG#33697289 create a process which will add tables in the background (2) {not __dbug_off}
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#33697289 warning if gtid is disabled and DDL changes {not __dbug_off}
 testutil.dbug_set("+d,dumper_gtid_disabled")
@@ -1917,7 +1901,7 @@ EXPECT_STDOUT_CONTAINS(f"WARNING: Backup lock is not {reason} and DDL changes we
 testutil.dbug_set("")
 
 #@<> BUG#33697289 terminate the process immediately, it will not stop on its own {not __dbug_off}
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop(drop_schema=False)
 
 #@<> BUG#33697289 warning if binlog and gtid are disabled {not __dbug_off}
 testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
@@ -1934,7 +1918,7 @@ The consistency of the dump cannot be guaranteed.
 testutil.dbug_set("")
 
 #@<> BUG#33697289 cleanup
-session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
 #@<> reconnect to the user with full privilages, restore test user account
 setup_session()
@@ -2648,37 +2632,18 @@ session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 #@<> BUG#32954757 setup
 tested_schema = "test_schema"
 tested_table = "test_table"
-
-session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-session.run_sql("CREATE TABLE !.! (data INT PRIMARY KEY);", [ tested_schema, tested_table ])
-for i in range(10):
-    session.run_sql(f"INSERT INTO !.! VALUES (-{i});", [ tested_schema, tested_table ])
-session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
+constantly_update_table = Generate_transactions(uri, tested_schema, tested_table, 0)
 
 #@<> BUG#32954757 - test
 # constantly insert values to the table
-insert_values = f"""v = 1
-while True:
-    session.run_sql("INSERT {tested_schema}.{tested_table} VALUES({{0}})".format(v))
-    v = v + 1
-session.close()
-"""
-
-# run a process which constantly inserts some values
-pid = testutil.call_mysqlsh_async(["--py", uri], insert_values)
-
-# wait a bit for process to start
-time.sleep(1)
+constantly_update_table.generate_data()
 
 # run a dump, expect a warning that gtid_executed has changed
 EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "consistent": False, "threads": 2, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The value of the gtid_executed system variable has changed during the dump, from: ")
 
-# terminate the process immediately, it will not stop on its own
-testutil.wait_mysqlsh_async(pid, 0)
-
 #@<> BUG#32954757 cleanup
-session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+constantly_update_table.stop()
 
 #@<> WL14244 - help entries
 util.help('dump_tables')

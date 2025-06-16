@@ -1737,30 +1737,13 @@ tested_table = "test_table"
 reason = f"available to the account {test_user_account}" if __version_num >= 80000 else "supported in MySQL 5.7"
 
 # constantly create tables
-def constantly_create_tables():
-    tables_to_create = 500
-    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
-    session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-    for i in range(tables_to_create):
-        session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
-    create_tables = f"""v = {tables_to_create}
-session.run_sql("USE {tested_schema}")
-while True:
-    session.run_sql("CREATE TABLE {tested_table}_{{0}} (a int)".format(v))
-    v = v + 1
-session.close()
-"""
-    # run a process which constantly creates tables
-    pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
-    # wait a bit for process to start
-    time.sleep(1)
-    return pid
+constantly_create_tables = Generate_transactions(uri, tested_schema, tested_table)
 
 # connect
 shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> BUG#33697289 create a process which will add tables in the background
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#33697289 test - backup lock is not available
 EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False, "threads": 1 })
@@ -1770,10 +1753,10 @@ EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a 
 EXPECT_STDOUT_CONTAINS(f"WARNING: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 
 #@<> BUG#33697289 terminate the process immediately
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop()
 
 #@<> BUG#33697289 create a process which will add tables in the background (2) {not __dbug_off}
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#33697289 fail if gtid is disabled and DDL changes {not __dbug_off}
 testutil.dbug_set("+d,dumper_gtid_disabled")
@@ -1787,7 +1770,7 @@ EXPECT_STDOUT_CONTAINS(f"WARNING: Backup lock is not {reason} and DDL changes we
 testutil.dbug_set("")
 
 #@<> BUG#33697289 terminate the process immediately, it will not stop on its own {not __dbug_off}
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop(drop_schema=False)
 
 #@<> BUG#33697289 warning if binlog and gtid are disabled {not __dbug_off}
 testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
@@ -1804,7 +1787,7 @@ The consistency of the dump cannot be guaranteed.
 testutil.dbug_set("")
 
 #@<> BUG#33697289 cleanup
-session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
 
 #@<> reconnect to the user with full privilages, restore test user account
 setup_session()

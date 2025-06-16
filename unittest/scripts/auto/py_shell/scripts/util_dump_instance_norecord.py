@@ -2392,29 +2392,13 @@ tested_table = "test_table"
 reason = f"available to the account {test_user_account}" if __version_num >= 80000 else "supported in MySQL 5.7"
 
 # constantly create tables
-def constantly_create_tables():
-    tables_to_create = 500
-    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
-    session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-    for i in range(tables_to_create):
-        session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
-    create_tables = f"""v = {tables_to_create}
-while True:
-    session.run_sql("CREATE TABLE {tested_schema}.{tested_table}_{{0}} (a int)".format(v))
-    v = v + 1
-session.close()
-"""
-    # run a process which constantly creates tables
-    pid = testutil.call_mysqlsh_async(["--py", uri], create_tables)
-    # wait a bit for process to start
-    time.sleep(1)
-    return pid
+constantly_create_tables = Generate_transactions(uri, tested_schema, tested_table)
 
 # connect
 shell.connect(test_user_uri(__mysql_sandbox_port1))
 
 #@<> BUG#33697289 create a process which will add tables in the background
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#33697289 test - backup lock is not available
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False, "threads": 1 }, expect_dir_created = True)
@@ -2428,10 +2412,10 @@ EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only r
 EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Consistency check has failed"))
 
 #@<> BUG#33697289 terminate the process immediately
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop()
 
 #@<> BUG#34556560 create a process which will add tables in the background - skipConsistencyChecks
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#34556560 test - backup lock is not available - skipConsistencyChecks
 EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "skipConsistencyChecks": True, "showProgress": False, "threads": 1 })
@@ -2442,10 +2426,10 @@ EXPECT_STDOUT_CONTAINS("NOTE: The 'skipConsistencyChecks' option is set, assumin
 EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were not blocked. The DDL is consistent, the world may resume now.")
 
 #@<> BUG#34556560 terminate the process immediately - skipConsistencyChecks
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop(drop_schema=False)
 
 #@<> BUG#33697289 create a process which will add tables in the background (2) {not __dbug_off}
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#33697289 fail if gtid is disabled and DDL changes {not __dbug_off}
 testutil.dbug_set("+d,dumper_gtid_disabled")
@@ -2463,10 +2447,10 @@ EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Consistency check has 
 testutil.dbug_set("")
 
 #@<> BUG#33697289 terminate the process immediately, it will not stop on its own {not __dbug_off}
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop()
 
 #@<> BUG#34556560 create a process which will add tables in the background (2) - skipConsistencyChecks {not __dbug_off}
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#34556560 fail if gtid is disabled and DDL changes - skipConsistencyChecks {not __dbug_off}
 testutil.dbug_set("+d,dumper_gtid_disabled")
@@ -2481,7 +2465,7 @@ EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were 
 testutil.dbug_set("")
 
 #@<> BUG#34556560 terminate the process immediately, it will not stop on its own - skipConsistencyChecks {not __dbug_off}
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop(drop_schema=False)
 
 #@<> BUG#33697289 without the process, the dump should succeed
 EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False })
@@ -2505,29 +2489,10 @@ The consistency of the dump cannot be guaranteed.
 testutil.dbug_set("")
 
 #@<> BUG#34556560 GTID-based consistency check if too sensitive - setup
-def constantly_update_table():
-    tables_to_create = 500
-    session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
-    session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
-    for i in range(tables_to_create):
-        session.run_sql(f"CREATE TABLE {tested_schema}.{tested_table}_{i} (a int)")
-    update_table = f"""v = 0
-session.run_sql("DROP SCHEMA IF EXISTS {tested_schema}_2")
-session.run_sql("CREATE SCHEMA {tested_schema}_2")
-session.run_sql("CREATE TABLE {tested_schema}_2.{tested_table} (a int)")
-while True:
-    session.run_sql("INSERT INTO {tested_schema}_2.{tested_table} VALUES ({{0}})".format(v))
-    v = v + 1
-session.close()
-"""
-    # run a process which constantly updates a table
-    pid = testutil.call_mysqlsh_async(["--py", uri], update_table)
-    # wait a bit for process to start
-    time.sleep(1)
-    return pid
+constantly_update_table = Generate_transactions(uri, tested_schema, tested_table)
 
 #@<> BUG#34556560 create a process which will update a table in the background
-pid = constantly_update_table()
+constantly_update_table.generate_data()
 
 #@<> BUG#34556560 - backup lock is not available
 EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False, "threads": 1 })
@@ -2538,10 +2503,10 @@ EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Checking \d+ recent transactions for sc
 EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were not blocked. The DDL is consistent, the world may resume now.")
 
 #@<> BUG#34556560 terminate the process immediately
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_update_table.stop()
 
 #@<> BUG#34556560 create a process which will update a table in the background (2) {not __dbug_off}
-pid = constantly_update_table()
+constantly_update_table.generate_data()
 
 #@<> BUG#34556560 - gtid is disabled {not __dbug_off}
 testutil.dbug_set("+d,dumper_gtid_disabled")
@@ -2556,14 +2521,14 @@ EXPECT_STDOUT_CONTAINS(f"NOTE: Backup lock is not {reason} and DDL changes were 
 testutil.dbug_set("")
 
 #@<> BUG#34556560 terminate the process immediately, it will not stop on its own {not __dbug_off}
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_update_table.stop()
 
 #@<> BUG#34556560 reconnect to the user with full privilages, restore test user account
 setup_session()
 create_users()
 
 #@<> BUG#34556560 create a process which will add tables in the background - backup lock works {VER(>=8.0.0)}
-pid = constantly_create_tables()
+constantly_create_tables.generate_ddl()
 
 #@<> BUG#34556560 test - backup lock works {VER(>=8.0.0)}
 EXPECT_SUCCESS([ tested_schema ], test_output_absolute, { "consistent": True, "showProgress": False, "threads": 1 })
@@ -2572,11 +2537,10 @@ EXPECT_STDOUT_NOT_CONTAINS("Backup lock is not")
 EXPECT_STDOUT_NOT_CONTAINS("skipConsistencyChecks")
 
 #@<> BUG#34556560 terminate the process immediately - backup lock works {VER(>=8.0.0)}
-testutil.wait_mysqlsh_async(pid, 0)
+constantly_create_tables.stop()
 
 #@<> BUG#33697289, BUG#34556560 cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
-session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema + "_2" ])
 
 #@<> An error should occur when dumping using oci+os://
 EXPECT_FAIL("ValueError", "Directory handling for oci+os protocol is not supported.", 'oci+os://sakila')

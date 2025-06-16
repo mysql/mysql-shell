@@ -4337,101 +4337,103 @@ int Testutils::call_mysqlsh_c(const std::vector<std::string> &args,
 }
 
 Testutils::Async_mysqlsh_run::Async_mysqlsh_run(
-    const std::vector<std::string> &cmdline_, const std::string &stdin_,
-    const std::vector<std::string> &env_, const std::string &mysqlsh_path,
-    const std::string &executable_path)
-    : cmdline(cmdline_),
-      mysqlsh_found_path(),
-      argv(prepare_mysqlsh_cmdline(cmdline, executable_path, mysqlsh_path,
-                                   &mysqlsh_found_path)),
-      process(&argv[0]),
-      output(),
-      std_in(stdin_),
-      env(env_),
-      task(std::async(std::launch::async,
-                      &Testutils::Async_mysqlsh_run::run_mysqlsh_in_background,
-                      this)) {}
+    const std::vector<std::string> &cmdline, const std::string &std_in,
+    const std::vector<std::string> &env, const std::string &mysqlsh_path,
+    const std::string &executable_path) {
+  std::string mysqlsh_found_path;
+  const auto argv = prepare_mysqlsh_cmdline(cmdline, executable_path,
+                                            mysqlsh_path, &mysqlsh_found_path);
 
-int Testutils::Async_mysqlsh_run::run_mysqlsh_in_background() {
-  char c;
-  int exit_code = 1;
-  if (!env.empty()) process.set_environment(env);
+  m_process_cmdline = mysqlsh_found_path + ' ' + shcore::str_join(cmdline, " ");
+  m_process = std::make_unique<shcore::Process_launcher>(argv.data());
 
+  if (!env.empty()) m_process->set_environment(env);
 #ifdef _WIN32
-  process.set_create_process_group();
+  m_process->set_create_process_group();
 #endif
-  try {
-    // Starts the process
-    process.start();
+  // read whole output in a background thread
+  m_process->enable_reader_thread();
+  // Start the process
+  m_process->start();
 
-    if (!std_in.empty()) {
-      process.write(&std_in[0], std_in.size());
-      process.finish_writing();  // Reader will see EOF
-    }
-
-    // Reads all produced output, until stdout is closed
-    while (process.read(&c, 1) > 0) {
-      if (g_test_trace_scripts) std::cout << c << std::flush;
-      if (c != '\r') output += c;
-    }
-
-    // Wait until it finishes
-    exit_code = process.wait();
-  } catch (const std::system_error &e) {
-    output += "Exception calling mysqlsh: ";
-    output += e.what();
-    exit_code = 256;  // This error code will indicate an error happened
-                      // launching the process
+  if (!std_in.empty()) {
+    m_process->write(std_in.c_str(), std_in.size());
+    m_process->finish_writing();  // Reader will see EOF
   }
-  return exit_code;
 }
 
-int Testutils::call_mysqlsh_async(const shcore::Array_t &args,
+int Testutils::Async_mysqlsh_run::wait(int seconds) {
+  constexpr int k_wait_time = 100;  // milliseconds
+  auto milliseconds = 1'000 * seconds;
+  bool is_running = false;
+
+  if (!m_process->check()) {
+    // process is still alive
+    is_running = true;
+
+    while (is_running && milliseconds > 0) {
+      shcore::sleep_ms(k_wait_time);
+      milliseconds -= k_wait_time;
+
+      if (m_process->check()) {
+        // process has terminated
+        is_running = false;
+      }
+    }
+  }
+
+  int rc;
+
+  if (is_running) {
+    // process did not finish, terminate it
+    m_process->kill();
+    rc = -1;
+  } else {
+    rc = m_process->wait();
+  }
+
+  m_output = m_process->read_all();
+
+  return rc;
+}
+
+int Testutils::call_mysqlsh_async(const std::vector<std::string> &args,
                                   const std::string &std_input,
-                                  const shcore::Array_t &env,
+                                  const std::vector<std::string> &env,
                                   const std::string &executable_path) {
-  return call_mysqlsh_c_async(
-      shcore::Value(args).to_string_container<std::vector<std::string>>(),
-      std_input,
-      env ? shcore::Value(env).to_string_container<std::vector<std::string>>()
-          : std::vector<std::string>{},
-      executable_path);
-}
-
-int Testutils::call_mysqlsh_c_async(const std::vector<std::string> &args,
-                                    const std::string &std_input,
-                                    const std::vector<std::string> &env,
-                                    const std::string &executable_path) {
   m_shell_runs.emplace_back(std::make_unique<Testutils::Async_mysqlsh_run>(
       args, std_input, env, _mysqlsh_path, executable_path));
   return m_shell_runs.size() - 1;
 }
 
 int Testutils::wait_mysqlsh_async(int id, int seconds) {
-  if (id >= static_cast<int>(m_shell_runs.size()) || !m_shell_runs[id])
+  if (id >= static_cast<int>(m_shell_runs.size()) || !m_shell_runs[id]) {
     throw std::logic_error("No process found with id: " + std::to_string(id));
-
-  auto run = m_shell_runs[id].get();
-
-  auto status = run->task.wait_for(std::chrono::seconds(seconds));
-  std::shared_ptr<mysqlsh::Command_line_shell> shell(_shell.lock());
-  if (status != std::future_status::ready) {
-    auto msg = "Process '" + run->mysqlsh_found_path + " " +
-               shcore::str_join(run->cmdline, " ") +
-               "' did not finish in time and will be killed";
-    if (shell)
-      mysqlsh::current_console()->println(msg);
-    else
-      std::cout << msg << std::endl;
-    run->process.kill();
   }
 
-  int return_code = run->task.get();
-  if (shell)
-    mysqlsh::current_console()->println(run->output);
-  else
-    std::cout << run->output << std::endl;
+  const auto run = m_shell_runs[id].get();
+  const auto shell = _shell.lock();
+  const auto return_code = run->wait(seconds);
+
+  if (return_code < 0) {
+    const auto msg = "Process '" + run->cmdline() +
+                     "' did not finish in time and was killed";
+
+    if (shell) {
+      mysqlsh::current_console()->println(msg);
+    } else {
+      std::cout << msg << std::endl;
+    }
+  }
+
+  if (shell) {
+    mysqlsh::current_console()->println(run->output());
+  } else {
+    std::cout << run->output() << std::endl;
+  }
+
   m_shell_runs[id].reset();
+
   return return_code;
 }
 

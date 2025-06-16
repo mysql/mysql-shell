@@ -7,6 +7,7 @@ import os.path
 import random
 import re
 import threading
+import time
 import urllib.parse
 
 def md5_table(session, schema, table, where = "", partitions = []):
@@ -760,6 +761,52 @@ class Http_test_server:
             self.__stack.close()
     def url(self):
         return f"http://127.0.0.1:{self.__port}"
+
+class Generate_transactions:
+    def __init__(self, uri, schema, table, tables_to_create=500):
+        self.__uri = uri
+        self.__schema = schema
+        self.__table = table
+        self.__tables_to_create = tables_to_create
+        self.__session = self.__pid = None
+    def generate_ddl(self):
+        self.__setup(f"""v = {self.__tables_to_create}
+while True:
+    session.run_sql("CREATE TABLE {self.__schema}.{self.__table}_{{0}} (a int)".format(v))
+    v = v + 1
+session.close()
+""", f"SELECT 1 FROM information_schema.tables WHERE table_schema='{self.__schema}' and table_name='{self.__table}_{self.__tables_to_create}'")
+    def generate_data(self):
+        self.__setup(f"""v = 0
+while True:
+    session.run_sql("INSERT INTO {self.__schema}.{self.__table} VALUES ({{0}})".format(v))
+    v = v + 1
+session.close()
+""", f"SELECT 1 FROM (SELECT COUNT(*) AS c FROM {self.__schema}.{self.__table}) AS s WHERE s.c > 10")
+    def stop(self, drop_schema=True):
+        # terminate the process immediately
+        testutil.wait_mysqlsh_async(self.__pid, 0)
+        if drop_schema:
+            self.__cleanup()
+        self.__session.close()
+        self.__session = self.__pid = None
+    def __setup(self, async_script, wait_condition):
+        self.__session = shell.open_session(self.__uri)
+        self.__cleanup()
+        self.__session.run_sql(f"CREATE SCHEMA {self.__schema}")
+        self.__session.run_sql(f"CREATE TABLE {self.__schema}.{self.__table} (data INT PRIMARY KEY)")
+        self.__session.run_sql(f"INSERT INTO {self.__schema}.{self.__table} VALUES {','.join([f'(-{i+1})' for i in range(10)])}")
+        self.__session.run_sql(f"ANALYZE TABLE {self.__schema}.{self.__table}")
+        for i in range(self.__tables_to_create):
+            self.__session.run_sql(f"CREATE TABLE {self.__schema}.{self.__table}_{i} (data INT PRIMARY KEY)")
+        # run a process
+        self.__pid = testutil.call_mysqlsh_async(["--py", self.__uri], async_script)
+        # wait for process to start
+        time.sleep(1)
+        while not session.run_sql(wait_condition).fetch_one():
+            time.sleep(0.1)
+    def __cleanup(self):
+        self.__session.run_sql(f"DROP SCHEMA IF EXISTS {self.__schema}")
 
 # constants
 test_user = "sample_user"
