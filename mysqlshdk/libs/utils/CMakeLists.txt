@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -72,6 +72,8 @@ IF(CMAKE_BUILD_TYPE STREQUAL Debug)
   LIST(APPEND utils_SOURCE fault_injection.cc)
 ENDIF()
 
+SET(utils_DEPS "")
+
 # platform dependent implementations
 IF(UNIX)
     LIST(APPEND utils_SOURCE syslog_system_unix.cc utils_path_unix.cc)
@@ -82,12 +84,13 @@ ELSEIF(WIN32)
     SET(SYSLOG_EVENT_H  "${CMAKE_CURRENT_BINARY_DIR}/syslog_event.h")
     SET(SYSLOG_EVENT_RC "${CMAKE_CURRENT_BINARY_DIR}/syslog_event.rc"
         CACHE INTERNAL "Path to RC file with message resources")
+    SET(SYSLOG_EVENT_MSG_BIN  "${CMAKE_CURRENT_BINARY_DIR}/MSG00001.bin")
 
     add_custom_command(
         OUTPUT
             "${SYSLOG_EVENT_H}"
             "${SYSLOG_EVENT_RC}"
-            "${CMAKE_CURRENT_BINARY_DIR}/MSG00001.bin"
+            "${SYSLOG_EVENT_MSG_BIN}"
         COMMAND mc -c -n
             "${SYSLOG_EVENT_MC}"
             -h "${CMAKE_CURRENT_BINARY_DIR}"
@@ -96,16 +99,23 @@ ELSEIF(WIN32)
             "${SYSLOG_EVENT_MC}"
     )
 
-    add_custom_target(generate_syslog_event_rc DEPENDS "${SYSLOG_EVENT_RC}")
+    add_custom_target(generate_syslog_event_files
+        DEPENDS
+            "${SYSLOG_EVENT_H}"
+            "${SYSLOG_EVENT_RC}"
+            "${SYSLOG_EVENT_MSG_BIN}"
+    )
 
     LIST(APPEND utils_SOURCE
-        "${SYSLOG_EVENT_H}"
          syslog_system_win32.cc
     )
 
+    LIST(APPEND utils_DEPS
+         generate_syslog_event_files
+    )
 ENDIF()
 
-add_convenience_library(utils ${utils_SOURCE})
+add_convenience_library(utils ${utils_SOURCE} DEPENDENCIES ${utils_DEPS})
 ADD_STAN_TARGET(utils ${utils_SOURCE})
 
 target_link_libraries(utils db)
