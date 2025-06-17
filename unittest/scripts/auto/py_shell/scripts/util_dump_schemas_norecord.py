@@ -3238,7 +3238,7 @@ shell.options["logSql"] = "unfiltered"
 #@<> BUG#37904121 - test
 WIPE_SHELL_LOG()
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "showProgress": False })
-EXPECT_SHELL_LOG_CONTAINS(f"SELECT {"SQL_NO_CACHE " if __version_num < 80000 else ""}`a` FROM `{schema_name}`.`{table_name}` ORDER BY `a` LIMIT 1")
+EXPECT_SHELL_LOG_CONTAINS(f"""SELECT {"SQL_NO_CACHE " if __version_num < 80000 else ""}`a` FROM `{schema_name}`.`{table_name}` ORDER BY `a` LIMIT 1""")
 
 if supports_secondary_engine:
     EXPECT_SHELL_LOG_CONTAINS(f"""SELECT /*+ SET_VAR(use_secondary_engine='OFF') {"SET_VAR(optimizer_switch='hypergraph_optimizer=OFF') " if __version_num >= 80400 and __version_num < 90000 else ""}*/ `a` FROM `{schema_name}`.`{heatwave_table_name}` ORDER BY `a` LIMIT 1""")
