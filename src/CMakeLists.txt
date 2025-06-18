@@ -99,7 +99,7 @@ add_shell_executable(mysqlsh "${mysqlsh_SRC}")
 ADD_STAN_TARGET(mysqlsh mysqlsh/main.cc)
 
 if(WIN32)
-  add_dependencies(mysqlsh generate_syslog_event_rc)
+  add_dependencies(mysqlsh generate_syslog_event_files)
 endif()
 
 set(mysqlsh_SRC
