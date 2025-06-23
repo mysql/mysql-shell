@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -332,23 +332,30 @@ void Dump_options::validate_partitions() const {
 }
 
 void Dump_options::set_target_version(const mysqlshdk::utils::Version &version,
-                                      bool validate) {
-  if (validate) {
-    const auto k_minimum_version = mysqlshdk::utils::Version(8, 0, 25);
+                                      bool fatal) {
+  std::string error;
 
-    if (version > current_version()) {
-      throw std::invalid_argument("Requested MySQL version '" +
-                                  version.get_base() +
-                                  "' is newer than the maximum version '" +
-                                  current_version().get_base() +
-                                  "' supported by this version of MySQL Shell");
-    } else if (version < k_minimum_version) {
-      // 8.0.25 is the minimum MDS version we support
-      throw std::invalid_argument("Requested MySQL version '" +
-                                  version.get_base() +
-                                  "' is older than the minimum version '" +
-                                  k_minimum_version.get_base() +
-                                  "' supported by this version of MySQL Shell");
+  // BUG#38107377 - compare only major.minor version
+  if (version.numeric_version_series() >
+      current_version().numeric_version_series()) {
+    error = "Target MySQL version '" + version.get_base() +
+            "' is newer than the maximum version '" +
+            current_version().get_short() +
+            ".*' supported by this version of MySQL Shell";
+  } else if (const auto k_minimum_version = mysqlshdk::utils::Version(8, 0, 25);
+             version < k_minimum_version) {
+    // 8.0.25 is the minimum MDS version we support
+    error = "Target MySQL version '" + version.get_base() +
+            "' is older than the minimum version '" +
+            k_minimum_version.get_base() +
+            "' supported by this version of MySQL Shell";
+  }
+
+  if (!error.empty()) {
+    if (fatal) {
+      throw std::invalid_argument{error};
+    } else {
+      current_console()->print_warning(error);
     }
   }
 

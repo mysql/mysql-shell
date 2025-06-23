@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -201,7 +201,7 @@ class Dump_options {
   }
 
   void set_target_version(const mysqlshdk::utils::Version &version,
-                          bool validate = true);
+                          bool fatal = true);
 
   void set_where_clause(const std::map<std::string, std::string> &where);
 
