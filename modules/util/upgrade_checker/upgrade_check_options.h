@@ -50,6 +50,7 @@ struct Upgrade_check_options {
   Check_id_set exclude_list;
   bool list_checks = false;
   std::optional<size_t> check_timeout;
+  bool skip_target_version_check = false;
 
   mysqlshdk::utils::Version get_target_version() const;
 

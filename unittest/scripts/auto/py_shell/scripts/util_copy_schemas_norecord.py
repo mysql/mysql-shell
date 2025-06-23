@@ -925,5 +925,30 @@ src_session.run_sql("SET @@GLOBAL.time_zone = SYSTEM")
 #@<> WL15947 - cleanup
 src_session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
+#@<> BUG#38107377 - copy works if target server has an unsupported version and 'ignoreVersion' is enabled {not __dbug_off and VER(>=8.0.0)}
+# setup
+testutil.dbug_set("+d,copy_utils_force_mds,copy_utils_unsupported_target_version")
+
+target_version = __version.split(".")
+target_version[1] = str(int(target_version[1]) + 1)
+target_version = ".".join(target_version)
+
+msg = f"Target MySQL version '{target_version}' is newer than the maximum version '{'.'.join(__mysh_version_no_extra.split('.')[:2])}.*' supported by this version of MySQL Shell"
+
+#@<> BUG#38107377 - copy without 'ignoreVersion' fails {not __dbug_off and VER(>=8.0.0)}
+EXPECT_FAIL("ValueError", msg, __sandbox_uri2)
+
+#@<> BUG#38107377 - copy with 'ignoreVersion' succeeds {not __dbug_off and VER(>=8.0.0)}
+EXPECT_SUCCESS(__sandbox_uri2, { "ignoreVersion": True })
+EXPECT_STDOUT_CONTAINS(f"WARNING: {msg}")
+
+if __version_num == __mysh_version_num:
+    EXPECT_STDOUT_CONTAINS(f"Source MySQL Server {__version} has the same version as the MySQL Shell, skipping upgrade compatibility checks")
+elif __version_num > __mysh_version_num:
+    EXPECT_STDOUT_CONTAINS(f"Source MySQL Server {__version} is newer than the MySQL Shell, skipping upgrade compatibility checks")
+
+#@<> BUG#38107377 - cleanup {not __dbug_off and VER(>=8.0.0)}
+testutil.dbug_set("")
+
 #@<> Cleanup
 cleanup_copy_tests()

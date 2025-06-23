@@ -185,7 +185,7 @@ class Dump_options : public mysqlsh::common::Common_options {
   }
 
   void set_target_version(const mysqlshdk::utils::Version &version,
-                          bool validate = true);
+                          bool fatal = true);
 
   void set_where_clause(const std::map<std::string, std::string> &where);
 

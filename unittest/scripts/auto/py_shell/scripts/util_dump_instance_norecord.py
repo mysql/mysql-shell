@@ -4152,11 +4152,15 @@ for i in range(3):
     version = __mysh_version_no_extra.split(".")
     version[i] = str(int(version[i]) + 1)
     version = ".".join(version)
-    EXPECT_FAIL("ValueError", f"Argument #2: Requested MySQL version '{version}' is newer than the maximum version '{__mysh_version_no_extra}' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": version, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+    if i < 2:
+        EXPECT_FAIL("ValueError", f"Argument #2: Target MySQL version '{version}' is newer than the maximum version '{'.'.join(__mysh_version_no_extra.split('.')[:2])}.*' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": version, "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+    else:
+        # BUG#38107377 - patch version is not checked
+        EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": version, "dryRun": True, "users": False, "showProgress": False })
 
 #@<> WL15887-TSFR_1_3_1 - wrong values - lower
-EXPECT_FAIL("ValueError", "Argument #2: Requested MySQL version '8.0.24' is older than the minimum version '8.0.25' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": "8.0.24", "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
-EXPECT_FAIL("ValueError", "Argument #2: Requested MySQL version '7.9.26' is older than the minimum version '8.0.25' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": "7.9.26", "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+EXPECT_FAIL("ValueError", "Argument #2: Target MySQL version '8.0.24' is older than the minimum version '8.0.25' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": "8.0.24", "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
+EXPECT_FAIL("ValueError", "Argument #2: Target MySQL version '7.9.26' is older than the minimum version '8.0.25' supported by this version of MySQL Shell", test_output_absolute, { "targetVersion": "7.9.26", "includeSchemas": [ schema_name ], "users": False, "showProgress": False })
 
 #@<> WL15887 - valid values
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "targetVersion": "8.0.25", "dryRun": True, "users": False, "showProgress": False })

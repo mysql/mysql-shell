@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -144,18 +144,17 @@ void Upgrade_info::validate(bool listing) const {
                                   "the MySQL Shell version.");
   }
 
-  auto major_minor = [](const Version &version) {
-    return Version(version.get_major(), version.get_minor(), 0);
-  };
-
-  if (target_version < Version(8, 0, 0) ||
-      major_minor(target_version) >
-          major_minor(mysqlshdk::utils::k_shell_version))
-    throw std::invalid_argument(
-        shcore::str_format("This tool supports checking upgrade to MySQL "
-                           "servers of the following versions: 8.0 to %d.%d.*",
-                           mysqlshdk::utils::k_shell_version.get_major(),
-                           mysqlshdk::utils::k_shell_version.get_minor()));
+  if (!skip_target_version_check) {
+    if (target_version < Version(8, 0, 0) ||
+        target_version.numeric_version_series() >
+            mysqlshdk::utils::k_shell_version.numeric_version_series()) {
+      throw std::invalid_argument(shcore::str_format(
+          "This tool supports checking upgrade to MySQL "
+          "servers of the following versions: 8.0 to %d.%d.*",
+          mysqlshdk::utils::k_shell_version.get_major(),
+          mysqlshdk::utils::k_shell_version.get_minor()));
+    }
+  }
 
   if (!listing || server_version) {
     if (server_version >= target_version)

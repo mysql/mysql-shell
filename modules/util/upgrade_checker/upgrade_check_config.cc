@@ -54,6 +54,7 @@ Upgrade_check_config::Upgrade_check_config(const Upgrade_check_options &options)
   m_upgrade_info.target_version = options.get_target_version();
   m_upgrade_info.explicit_target_version = options.target_version.has_value();
   m_upgrade_info.config_path = options.config_path;
+  m_upgrade_info.skip_target_version_check = options.skip_target_version_check;
 
   if (m_output_format.empty()) {
     m_output_format =

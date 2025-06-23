@@ -4822,6 +4822,22 @@ issues::Status_set Dumper::check_for_upgrade_errors() const {
     return {};
   }
 
+  if (m_cache.server.version.number == k_shell_version) {
+    current_console()->print_note(
+        shcore::str_format("Source MySQL Server %s has the same version as the "
+                           "MySQL Shell, skipping upgrade compatibility checks",
+                           m_cache.server.version.number.get_base().c_str()));
+    return {};
+  }
+
+  if (m_cache.server.version.number > k_shell_version) {
+    current_console()->print_note(
+        shcore::str_format("Source MySQL Server %s is newer than the MySQL "
+                           "Shell, skipping upgrade compatibility checks",
+                           m_cache.server.version.number.get_base().c_str()));
+    return {};
+  }
+
   upgrade_checker::Upgrade_check_options options;
   options.target_version = m_options.target_version();
   // It is pointless to perform this check should not be executed in the context
@@ -4834,6 +4850,10 @@ issues::Status_set Dumper::check_for_upgrade_errors() const {
     options.exclude_list.emplace(
         upgrade_checker::ids::k_foreign_key_references);
   }
+
+  // we did our own target version checks, and we're less strict than upgrade
+  // checker, skip its checks
+  options.skip_target_version_check = true;
 
   issues::Status_set status;
   upgrade_checker::Upgrade_check_config config{options};
