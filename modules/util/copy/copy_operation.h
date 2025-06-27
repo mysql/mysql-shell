@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -72,14 +72,21 @@ void copy(const mysqlshdk::db::Connection_options &connection_options,
       storage, common::Storage_options::Storage_type::Memory);
   copy_options->dump_options()->set_url(output->full_path().real());
 
-  const auto version = mysqlshdk::utils::Version(
+  using mysqlshdk::utils::Version;
+  auto version = Version(
       load_session->query("SELECT @@version")->fetch_one()->get_string(0));
   auto is_mds = version.is_mds();
   DBUG_EXECUTE_IF("copy_utils_force_mds", { is_mds = true; });
+  DBUG_EXECUTE_IF("copy_utils_unsupported_target_version", {
+    version = Version(version.get_major(), version.get_minor() + 1,
+                      version.get_patch());
+  });
 
   // if target is MDS, then we want to validate the version, so we won't copy
   // to an unsupported version
-  copy_options->dump_options()->set_target_version(version, is_mds);
+  // BUG#38107377 - but only if ignoreVersion is false
+  copy_options->dump_options()->set_target_version(
+      version, is_mds && !copy_options->load_options()->ignore_version());
 
   // enable MDS checks if target is an MDS instance
   if (is_mds) {
