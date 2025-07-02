@@ -1095,6 +1095,9 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
       new_session->track_system_variable("sql_mode");
     } catch (const mysqlshdk::db::Error &e) {
       // can throw for e.g. ER_MUST_CHANGE_PASSWORD which we should ignore
+    } catch (const std::exception &e) {
+      log_warning("Could not enable session tracking for sql_mode: %s",
+                  e.what());
     }
   }
 
