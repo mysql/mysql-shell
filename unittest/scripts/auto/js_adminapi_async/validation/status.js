@@ -527,7 +527,7 @@
                     "receiverThreadState": "[[*]]",
                     "replicationLag": "applier_queue_applied",
                     "replicationSsl": null,
-                    "replicationSslMode": "DISABLED"
+                    "replicationSslMode": "[[*]]"
                 },
                 "status": "ERROR"
             },

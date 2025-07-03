@@ -75,7 +75,12 @@ shell.connect(__sandbox_uri3);
 session.runSql("STOP group_replication;");
 session.runSql("RESET PERSIST group_replication_local_address");
 session.runSql("RESET PERSIST group_replication_group_seeds");
-session.runSql("RESET PERSIST group_replication_recovery_use_ssl");
+// group_replication_recovery_use_ssl is enabled by default in 9.5.0,
+// so it won't be persisted if we're setting it to the default value,
+// as we only persist variables when the value differs from the default.
+if (__version_num < 90500) {
+  session.runSql("RESET PERSIST group_replication_recovery_use_ssl");
+}
 
 // Bad options in rejoinInstance() (should fail)
 EXPECT_THROWS_TYPE(function() { replica.rejoinInstance(__sandbox_uri3, {ipAllowlist: "localhost"}) }, "Cannot use 'ipAllowlist' when the Cluster's communication stack is 'MYSQL'", "ArgumentError");
