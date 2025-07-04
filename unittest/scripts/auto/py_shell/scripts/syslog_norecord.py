@@ -152,9 +152,10 @@ DROP USER IF EXISTS 'wl14358'@'{0}';
 EXPECT_EQ(0, testutil.call_mysqlsh(["--help"]))
 
 EXPECT_STDOUT_CONTAINS("""
-  --syslog                         Log filtered interactive commands to the
+  --syslog[=<bool>]                Log filtered interactive commands to the
                                    system log. Filtering of commands depends on
                                    the patterns supplied via histignore option.
+                                   Boolean option.
 """)
 
 #@<> WL14358-TSFR_2_1 - 1

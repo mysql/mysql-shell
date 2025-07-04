@@ -47,6 +47,7 @@
 
 //@<OUT> showWarnings option help text
  showWarnings  Automatically display SQL warnings on SQL mode if available.
+               Boolean option, default value "true".
 
 //@<OUT> useWizards option help text
  useWizards  Enables wizard mode.
@@ -63,7 +64,7 @@
  history.sql.ignorePattern  Shell's history ignore list.
  history.sql.syslog         Log filtered interactive commands to the system
                             log. Filtering of commands depends on the patterns
-                            supplied via histignore option.
+                            supplied via histignore option. Boolean option.
 
 //@<OUT> verbose output
  verbose  Enable diagnostic message output to the console: 0 - display no

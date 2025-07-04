@@ -91,8 +91,8 @@ Usage: mysqlsh [OPTIONS] [URI]
   --zstd-compression-level=<int>   client/server protocol. Supported by X
                                    protocol and zstd compression in classic
                                    protocol.
-  --local-infile                   Enable LOAD DATA LOCAL INFILE. (classic
-                                   protocol only)
+  --local-infile[=<bool>]          Enable LOAD DATA LOCAL INFILE. (classic
+                                   protocol only). Boolean option
   -D, --schema=<name>              Schema to use.
   --database=<name>                Same as --schema.
   --register-factor=<name>         Specifies authentication factor, for which
@@ -181,9 +181,10 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    logSql.ignorePatternUnsafe glob pattern;
                                    unfiltered - All SQL statements will be
                                    logged.
-  --syslog                         Log filtered interactive commands to the
+  --syslog[=<bool>]                Log filtered interactive commands to the
                                    system log. Filtering of commands depends on
                                    the patterns supplied via histignore option.
+                                   Boolean option.
   --verbose[={0|1|2|3|4}]          Enable diagnostic message output to the
                                    console: 0 - display no messages; 1 -
                                    display error, warning and informational
@@ -192,8 +193,9 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    assumed.
   --passwords-from-stdin           Read passwords from stdin instead of the
                                    console.
-  --show-warnings={true|false}     Automatically display SQL warnings on SQL
-                                   mode if available.
+  --show-warnings[=<bool>]         Automatically display SQL warnings on SQL
+                                   mode if available. Boolean option, default
+                                   value "true".
   --column-type-info               Display column type information in SQL mode.
                                    Please be aware that output may depend on
                                    the protocol you are using to connect to the
@@ -210,11 +212,14 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    option is disabled by default.
   --mysql-plugin-dir[=<path>]      Directory for client-side authentication
                                    plugins.
-  --name-cache                     Enable database name caching for
-                                   autocompletion and DevAPI (default).
+  --name-cache[=<bool>]            Enable database name caching for
+                                   autocompletion and DevAPI (default). Boolean
+                                   option.
   -A, --no-name-cache              Disable automatic database name caching for
                                    autocompletion and DevAPI. Use \rehash to
                                    load DB names manually.
+  --wizard[=<bool>]                Sets wizard mode. Boolean option, default
+                                   value "true".
   --nw, --no-wizard                Disables wizard mode.
   --no-password                    Sets empty password and disables prompt for
                                    password.

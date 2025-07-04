@@ -34,6 +34,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -67,7 +68,7 @@ class Generic_option {
   // to support rvalues (which is the main access pattern for this class), we
   // receive strings by value and then move them to class fields.
   Generic_option(std::string name, const char *environment_variable,
-                 std::vector<std::string> &&command_line_names,
+                 const std::vector<std::string> &command_line_names,
                  std::string help);
 
   virtual ~Generic_option() = default;
@@ -90,13 +91,20 @@ class Generic_option {
 
   void handle_persisted_value(const char *value);
 
-  virtual std::vector<std::string> get_cmdline_names();
+  virtual std::vector<std::string> get_cmdline_names() const;
 
-  bool is_value_optional() const { return value_optional; }
-  bool accepts_no_cmdline_value() const { return no_cmdline_value; }
+  [[nodiscard]] bool is_value_optional() const {
+    return command_line_properties.value_optional;
+  }
 
-  std::vector<std::string> get_cmdline_help(std::size_t options_width,
-                                            std::size_t help_width) const;
+  [[nodiscard]] bool accepts_no_cmdline_value() const {
+    return command_line_properties.no_value;
+  }
+
+  [[nodiscard]] virtual bool accepts_separate_value() const { return true; }
+
+  [[nodiscard]] std::vector<std::string> get_cmdline_help(
+      std::size_t options_width, std::size_t help_width) const;
 
   const std::string &get_name() const { return name; }
 
@@ -107,12 +115,23 @@ class Generic_option {
   virtual void set(const std::string &new_value, Source source) = 0;
 
  protected:
+  struct Command_line_properties {
+    std::vector<std::string> names;
+    std::vector<std::string> value_definitions;
+    bool no_value = true;
+    bool value_optional = true;
+  };
+
+  static Command_line_properties process_command_line_names(
+      const std::vector<std::string> &command_line_names);
+
+  [[nodiscard]] std::vector<std::string> get_command_line_names_with_defs()
+      const;
+
   const std::string name;
   Source source = Source::Compiled_default;
   const char *environment_variable;
-  std::vector<std::string> command_line_names;
-  bool value_optional = true;
-  bool no_cmdline_value = true;
+  const Command_line_properties command_line_properties;
   const std::string help;
 };
 
@@ -172,10 +191,11 @@ class Concrete_option : public Generic_option {
   void handle_command_line_input(const std::string &option,
                                  const char *value) override {
     if (value == nullptr) {
-      if (value_optional)
+      if (command_line_properties.value_optional) {
         value = "";
-      else
+      } else {
         throw std::invalid_argument("Option " + option + " needs value");
+      }
     } else if (strcmp(value, "") == 0 && !std::is_same<T, std::string>::value) {
       throw std::invalid_argument("Option " + option +
                                   " does not accept empty string as a value");
@@ -184,11 +204,12 @@ class Concrete_option : public Generic_option {
       set(value, Source::Command_line);
     } catch (const std::invalid_argument &e) {
       std::string err_msg(e.what());
-      std::string::size_type it = std::string::npos;
-      if (!name.empty() && (it = err_msg.find(name)) != std::string::npos)
+      if (std::string::size_type it;
+          !name.empty() && (it = err_msg.find(name)) != std::string::npos) {
         err_msg.replace(it, name.length(), option);
-      else
+      } else {
         err_msg = option + ": " + err_msg;
+      }
       throw std::invalid_argument(err_msg);
     }
   }
@@ -200,6 +221,16 @@ class Concrete_option : public Generic_option {
   const T default_value;
   Validator validator;
   Serializer serializer;
+};
+
+class Boolean_option : public Concrete_option<bool> {
+ public:
+  Boolean_option(bool *landing_spot, bool default_value, std::string name,
+                 const char *environment_variable,
+                 std::vector<std::string> &&command_line_names,
+                 std::string help);
+
+  [[nodiscard]] bool accepts_separate_value() const override { return false; }
 };
 
 /* This class is supposed to handle special cases.
@@ -226,7 +257,30 @@ class Proxy_option : public Generic_option {
   void handle_command_line_input(const std::string &option,
                                  const char *value) override;
 
-  std::vector<std::string> get_cmdline_names() override;
+  [[nodiscard]] std::vector<std::string> get_cmdline_names() const override;
+
+ protected:
+  Handler handler;
+};
+
+class Proxy_bool_option : public Generic_option {
+ public:
+  using Handler = std::function<void(const std::string &optname,
+                                     std::optional<bool> new_value)>;
+
+  Proxy_bool_option(const char *environment_variable,
+                    std::vector<std::string> &&command_line_names,
+                    std::string help, Handler handler = nullptr,
+                    std::string name = "");
+
+  void set(const std::string &new_value, Source source) override;
+
+  void handle_command_line_input(const std::string &option,
+                                 const char *value) override;
+
+  [[nodiscard]] std::vector<std::string> get_cmdline_names() const override;
+
+  [[nodiscard]] bool accepts_separate_value() const override { return false; }
 
  protected:
   Handler handler;
@@ -329,6 +383,10 @@ struct Non_negative : public Range<T> {
     }
     return t;
   }
+};
+
+struct Bool_type : Basic_type<bool> {
+  bool operator()(const std::string &data, Source source);
 };
 
 }  // namespace opts
@@ -439,6 +497,50 @@ class Options {
     bool ignore;
   };
 
+  struct Add_named_bool_option_helper {
+    Add_named_bool_option_helper(Options &options, bool ignore_);
+
+    Add_named_bool_option_helper &operator()(
+        bool *landing_spot, bool default_value, const std::string &optname,
+        const std::string &command_line_name, const std::string &help);
+
+    Add_named_bool_option_helper &operator()(
+        bool *landing_spot, bool default_value, const std::string &optname,
+        const char *envname, const std::string &command_line_name,
+        const std::string &help);
+
+    Options &parent;
+    bool ignore;
+  };
+
+  struct Add_startup_bool_option_helper {
+    using Handler =
+        std::function<void(const std::string &optname, bool new_value)>;
+
+    Add_startup_bool_option_helper(Options &options, bool ignore_);
+
+    Add_startup_bool_option_helper &operator()(
+        bool *landing_spot, bool default_value,
+        const std::string &command_line_name, const std::string &help);
+
+    Add_startup_bool_option_helper &operator()(
+        bool *landing_spot, bool default_value, const char *envname,
+        const std::string &command_line_name, const std::string &help);
+
+    // Proxy options - custom cmdline handle/just help definition.
+    Add_startup_bool_option_helper &operator()(
+        const std::string &command_line_name,
+        const std::string &help,  // full help text
+        const Handler &handler = nullptr, const std::string &name = "");
+
+    // Proxy options - deprecated/secret option not appearing in help.
+    Add_startup_bool_option_helper &operator()(
+        const std::string &command_line_name, const Handler &handler = nullptr);
+
+    Options &parent;
+    bool ignore;
+  };
+
  public:
   class Cmdline_iterator {
    public:
@@ -540,6 +642,14 @@ class Options {
   /// Interface for adding options that only appear on command line.
   Add_startup_option_helper add_startup_options(bool enable = true) {
     return Add_startup_option_helper(*this, !enable);
+  }
+
+  Add_named_bool_option_helper add_named_bool_options(bool enable = true) {
+    return Add_named_bool_option_helper(*this, !enable);
+  }
+
+  Add_startup_bool_option_helper add_startup_bool_options(bool enabled = true) {
+    return Add_startup_bool_option_helper(*this, !enabled);
   }
 
   void set(const std::string &option_name, const std::string &new_value);

@@ -452,16 +452,18 @@ Shell_options::Shell_options(
             throw std::invalid_argument(
                 "The value of 'compression-level' must be an integer.");
           }
-        })
-    (cmdline("--local-infile"),
-        "Enable LOAD DATA LOCAL INFILE. (classic protocol only)",
-        [this](const std::string&, const char*) {
-          if (storage.connection_data.has(mysqlshdk::db::kLocalInfile)) {
-            storage.connection_data.remove(mysqlshdk::db::kLocalInfile);
-          }
-
-          storage.connection_data.set(mysqlshdk::db::kLocalInfile, "true");
         });
+
+  add_startup_bool_options(true)
+    ("--local-infile",
+      "Enable LOAD DATA LOCAL INFILE. (classic protocol only). Boolean option",
+      [this](const std::string&, const bool value) {
+        if (storage.connection_data.has(mysqlshdk::db::kLocalInfile)) {
+          storage.connection_data.remove(mysqlshdk::db::kLocalInfile);
+        }
+
+        storage.connection_data.set(mysqlshdk::db::kLocalInfile, value ? "true" : "false");
+      });
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (cmdline("-D", "--schema=<name>", "--database=<name>"), "Schema to use.",
@@ -693,11 +695,16 @@ Shell_options::Shell_options(
           // Accept |val| if |parse_log_level()| not throw
           return val;
         }
-    )
+    );
+
+  add_named_bool_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.history_sql_syslog, false, SHCORE_HISTORY_SQL_SYSLOG,
-        cmdline("--syslog"),
+        "--syslog",
         "Log filtered interactive commands to the system log. Filtering of "
-        "commands depends on the patterns supplied via histignore option.")
+        "commands depends on the patterns supplied via histignore option. "
+        "Boolean option.");
+
+  add_named_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.verbose_level, 0, SHCORE_VERBOSE,
         cmdline("--verbose[={0|1|2|3|4}]"),
         "Enable diagnostic message output to the console: 0 - display no "
@@ -706,10 +713,15 @@ Shell_options::Shell_options(
         " is assumed.", shcore::opts::Range<int>(0, 4))
     (&storage.passwords_from_stdin, false, "passwordsFromStdin",
         cmdline("--passwords-from-stdin"),
-        "Read passwords from stdin instead of the console.")
+        "Read passwords from stdin instead of the console.");
+
+  add_named_bool_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.show_warnings, true, SHCORE_SHOW_WARNINGS,
-        cmdline("--show-warnings={true|false}"),
-        "Automatically display SQL warnings on SQL mode if available.")
+      "--show-warnings",
+      "Automatically display SQL warnings on SQL mode if available. "
+      "Boolean option, default value \"true\".");
+
+  add_named_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&storage.show_column_type_info, false, "showColumnTypeInfo",
         cmdline("--column-type-info"),
         "Display column type information in SQL mode. Please be aware that "
@@ -773,15 +785,17 @@ Shell_options::Shell_options(
         "operations.",
         shcore::opts::Non_negative<double>());
 
+  add_startup_bool_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
+    ("--name-cache",
+      "Enable database name caching for autocompletion and DevAPI (default). "
+      "Boolean option.",
+      [this](const std::string &, const bool value) {
+        storage.db_name_cache = value;
+        storage.db_name_cache_set = true;
+        storage.devapi_schema_object_handles = value;
+      });
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
-    (cmdline("--name-cache"),
-      "Enable database name caching for autocompletion and DevAPI (default).",
-      [this](const std::string &, const char *) {
-        storage.db_name_cache = true;
-        storage.db_name_cache_set = true;
-        storage.devapi_schema_object_handles = true;
-      })
     (cmdline("-A", "--no-name-cache"),
       "Disable automatic database name caching for autocompletion and DevAPI. "
       "Use \\rehash to load DB names manually.",
@@ -789,7 +803,13 @@ Shell_options::Shell_options(
         storage.db_name_cache = false;
         storage.db_name_cache_set = true;
         storage.devapi_schema_object_handles = false;
-      })
+      });
+
+  add_startup_bool_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
+    (&storage.wizards, true, "--wizard", "Sets wizard mode. "
+                                         "Boolean option, default value \"true\".");
+
+  add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (cmdline("--nw", "--no-wizard"), "Disables wizard mode.",
         assign_value(&storage.wizards, false))
     (cmdline("--no-password"),

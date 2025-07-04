@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include "mysqlshdk/libs/utils/options.h"
 #include <rapidjson/error/en.h>
 #include <iostream>
+#include <ranges>
 
 #include "mysqlshdk/libs/textui/textui.h"
 
@@ -59,13 +60,47 @@ std::string to_string(Source s) {
   return "";
 }
 
-Generic_option::Generic_option(std::string name_,
-                               const char *environment_variable_,
-                               std::vector<std::string> &&command_line_names_,
-                               std::string help_)
+Generic_option::Command_line_properties
+Generic_option::process_command_line_names(
+    const std::vector<std::string> &command_line_names) {
+  Command_line_properties result;
+
+  for (const std::string &cmd_name : command_line_names) {
+    if (auto pos = cmd_name.find('='); pos != std::string::npos) {
+      result.no_value = false;
+      if (pos != 0 && cmd_name[pos - 1] == '[') {
+        --pos;
+      } else {
+        result.value_optional = false;
+      }
+      result.names.emplace_back(cmd_name.substr(0, pos));
+      result.value_definitions.emplace_back(cmd_name.substr(pos));
+    } else {
+      result.names.emplace_back(cmd_name);
+      result.value_definitions.emplace_back("");
+    }
+  }
+
+  assert(result.names.size() == result.value_definitions.size());
+  return result;
+}
+
+std::vector<std::string> Generic_option::get_command_line_names_with_defs()
+    const {
+  std::vector<std::string> result(command_line_properties.names.size());
+  for (size_t i = 0; i < command_line_properties.names.size(); ++i) {
+    result[i] = command_line_properties.names[i] +
+                command_line_properties.value_definitions[i];
+  }
+  return result;
+}
+
+Generic_option::Generic_option(
+    std::string name_, const char *environment_variable_,
+    const std::vector<std::string> &command_line_names_, std::string help_)
     : name(std::move(name_)),
       environment_variable(environment_variable_),
-      command_line_names(std::move(command_line_names_)),
+      command_line_properties(process_command_line_names(command_line_names_)),
       help(std::move(help_)) {}
 
 void Generic_option::handle_environment_variable() {
@@ -79,33 +114,20 @@ void Generic_option::handle_persisted_value(const char *value) {
   if (value != nullptr) set(value, Source::Configuration_file);
 }
 
-std::vector<std::string> Generic_option::get_cmdline_names() {
-  std::vector<std::string> res;
-  res.reserve(command_line_names.size());
-
-  for (const std::string &cmd_name : command_line_names) {
-    std::size_t pos = cmd_name.find('=');
-    if (pos != std::string::npos) {
-      no_cmdline_value = false;
-      if (pos != 0 && cmd_name[pos - 1] == '[')
-        --pos;
-      else
-        value_optional = false;
-      res.push_back(cmd_name.substr(0, pos));
-    } else {
-      res.push_back(cmd_name);
-    }
-  }
-  return res;
+std::vector<std::string> Generic_option::get_cmdline_names() const {
+  return command_line_properties.names;
 }
 
 std::vector<std::string> Generic_option::get_cmdline_help(
     std::size_t options_width, std::size_t help_width) const {
   std::vector<std::string> result;
-  if (command_line_names.empty() || help.empty()) return result;
+  if (command_line_properties.names.empty() || help.empty()) {
+    return result;
+  }
 
+  const auto command_line_names = get_command_line_names_with_defs();
   std::string line = command_line_names[0];
-  for (std::size_t i = 1; i < command_line_names.size(); i++)
+  for (std::size_t i = 1; i < command_line_names.size(); i++) {
     if (line.length() + 2 + command_line_names[i].length() < options_width) {
       line += ", " + command_line_names[i];
     } else {
@@ -113,6 +135,7 @@ std::vector<std::string> Generic_option::get_cmdline_help(
       result.push_back(line);
       line = command_line_names[i];
     }
+  }
 
   // If command line options are too wide to fit in the requested range then
   // rest of the help is added in a separate line
@@ -132,11 +155,13 @@ std::vector<std::string> Generic_option::get_cmdline_help(
   } else {
     std::vector<std::string> help_lines =
         shcore::str_break_into_lines(help, help_width);
-    for (std::size_t i = 0; i < help_lines.size(); ++i)
-      if ((i + details_offset) < result.size())
+    for (std::size_t i = 0; i < help_lines.size(); ++i) {
+      if ((i + details_offset) < result.size()) {
         result[(i + details_offset)] += help_lines[i];
-      else
+      } else {
         result.push_back(help_lines[i].insert(0, options_width, ' '));
+      }
+    }
     help_filled = help_lines.size();
   }
 
@@ -149,11 +174,12 @@ std::vector<std::string> Generic_option::get_cmdline_help(
             ? command_line_names[1]
             : command_line_names[0];
 
-    for (size_t i = 0; i < reference_name.size(); ++i)
+    for (size_t i = 0; i < reference_name.size(); ++i) {
       if (reference_name[i] != '-' && !std::isalpha(reference_name[i])) {
         reference_name = reference_name.substr(0, i);
         break;
       }
+    }
 
     std::string msg = "Same as " + reference_name + ".";
     for (; help_filled < result.size(); help_filled++)
@@ -162,6 +188,15 @@ std::vector<std::string> Generic_option::get_cmdline_help(
 
   return result;
 }
+
+Boolean_option::Boolean_option(bool *landing_spot_, bool default_value_,
+                               std::string name_,
+                               const char *environment_variable_,
+                               std::vector<std::string> &&command_line_names_,
+                               std::string help_)
+    : Concrete_option(landing_spot_, default_value_, std::move(name_),
+                      environment_variable_, std::move(command_line_names_),
+                      std::move(help_), Bool_type(), serialize<bool>) {}
 
 Proxy_option::Proxy_option(const char *environment_variable_,
                            std::vector<std::string> &&command_line_names_,
@@ -186,8 +221,80 @@ void Proxy_option::handle_command_line_input(const std::string &option,
   source = Source::Command_line;
 }
 
-std::vector<std::string> Proxy_option::get_cmdline_names() {
-  if (handler == nullptr) return {};
+std::vector<std::string> Proxy_option::get_cmdline_names() const {
+  if (handler == nullptr) {
+    return {};
+  }
+  return Generic_option::get_cmdline_names();
+}
+
+Proxy_bool_option::Proxy_bool_option(
+    const char *environment_variable_,
+    std::vector<std::string> &&command_line_names_, std::string help_,
+    Handler handler_, std::string name_)
+    : Generic_option(std::move(name_), environment_variable_,
+                     std::move(command_line_names_), std::move(help_)),
+      handler(std::move(handler_)) {
+  assert(environment_variable == nullptr || handler != nullptr);
+}
+
+void Proxy_bool_option::set(const std::string &new_value, Source new_source) {
+  assert(handler != nullptr);
+
+  try {
+    auto validator = Bool_type();
+    const auto conv_value = validator(new_value, new_source);
+
+    handler("", conv_value);
+    this->source = new_source;
+  } catch (const std::exception &e) {
+    if (name.empty() || source == Source::Command_line ||
+        strstr(e.what(), name.c_str()))
+      throw std::invalid_argument(e.what());
+    throw std::invalid_argument(name + ": " + e.what());
+  }
+}
+
+void Proxy_bool_option::handle_command_line_input(const std::string &option,
+                                                  const char *value) {
+  assert(handler != nullptr);
+
+  if (value == nullptr) {
+    if (command_line_properties.value_optional) {
+      handler(option, std::nullopt);
+      source = Source::Command_line;
+      return;
+    }
+
+    throw std::invalid_argument("Option " + option + " needs a value");
+  }
+  if (strcmp(value, "") == 0) {
+    throw std::invalid_argument("Option " + option +
+                                " does not accept empty string as a value");
+  }
+
+  try {
+    auto validator = Bool_type();
+
+    const auto conv_value = validator(value, Source::Command_line);
+    handler(option, conv_value);
+    source = Source::Command_line;
+  } catch (const std::invalid_argument &e) {
+    std::string err_msg(e.what());
+    if (std::string::size_type it;
+        !name.empty() && (it = err_msg.find(name)) != std::string::npos) {
+      err_msg.replace(it, name.length(), option);
+    } else {
+      err_msg = option + ": " + err_msg;
+    }
+    throw std::invalid_argument(err_msg);
+  }
+}
+
+std::vector<std::string> Proxy_bool_option::get_cmdline_names() const {
+  if (handler == nullptr) {
+    return {};
+  }
   return Generic_option::get_cmdline_names();
 }
 
@@ -268,7 +375,166 @@ Proxy_option::Handler deprecated(
   };
 }
 
+bool Bool_type::operator()(const std::string &data, Source source) {
+  constexpr std::string_view k_bool_value_on = "on";
+  constexpr std::string_view k_bool_value_off = "off";
+  const auto data_lower = shcore::str_lower(data);
+
+  if (data_lower == k_bool_value_on) {
+    return true;
+  }
+  if (data_lower == k_bool_value_off) {
+    return false;
+  }
+
+  return Basic_type::operator()(data, source);
+}
+
 }  // namespace opts
+
+Options::Add_named_bool_option_helper::Add_named_bool_option_helper(
+    Options &options, bool ignore_)
+    : parent(options), ignore(ignore_) {}
+
+Options::Add_named_bool_option_helper &
+Options::Add_named_bool_option_helper::operator()(
+    bool *landing_spot, bool default_value, const std::string &optname,
+    const std::string &command_line_name, const std::string &help) {
+  return (*this)(landing_spot, default_value, optname, nullptr,
+                 command_line_name, help);
+}
+
+Options::Add_named_bool_option_helper &
+Options::Add_named_bool_option_helper::operator()(
+    bool *landing_spot, bool default_value, const std::string &optname,
+    const char *envname, const std::string &command_line_name,
+    const std::string &help) {
+  assert(command_line_name.starts_with("--"));
+
+  if (ignore) {
+    return *this;
+  }
+
+  const auto cmdline_with_args = command_line_name + "[=<bool>]";
+
+  parent.add_option(
+      new opts::Boolean_option(landing_spot, default_value, optname, envname,
+                               std::vector{cmdline_with_args}, help));
+
+  const auto name_only = command_line_name.substr(2);
+  const auto cmdline_enable = "--enable-" + name_only;
+  const auto cmdline_disable = "--disable-" + name_only;
+  const auto cmdline_skip = "--skip-" + name_only;
+
+  parent.add_option(new opts::Proxy_option(
+      envname, std::vector{cmdline_enable, cmdline_disable, cmdline_skip}, {},
+      [landing_spot, cmdline_enable, cmdline_disable, cmdline_skip](
+          const std::string &opt, const char *) {
+        if (opt == cmdline_enable) {
+          (*landing_spot) = true;
+        } else if (opt == cmdline_disable || opt == cmdline_skip) {
+          (*landing_spot) = false;
+        }
+      }));
+
+  return *this;
+}
+
+Options::Add_startup_bool_option_helper::Add_startup_bool_option_helper(
+    Options &options, bool ignore_)
+    : parent(options), ignore(ignore_) {}
+
+Options::Add_startup_bool_option_helper &
+Options::Add_startup_bool_option_helper::operator()(
+    bool *landing_spot, bool default_value,
+    const std::string &command_line_name, const std::string &help) {
+  return (*this)(landing_spot, default_value, nullptr, command_line_name, help);
+}
+
+Options::Add_startup_bool_option_helper &
+Options::Add_startup_bool_option_helper::operator()(
+    bool *landing_spot, bool default_value, const char *envname,
+    const std::string &command_line_name, const std::string &help) {
+  assert(command_line_name.starts_with("--"));
+
+  if (ignore) {
+    return *this;
+  }
+
+  const auto cmdline_with_args = command_line_name + "[=<bool>]";
+
+  parent.add_option(
+      new opts::Boolean_option(landing_spot, default_value, {}, envname,
+                               std::vector{cmdline_with_args}, help));
+
+  const auto name_only = command_line_name.substr(2);
+  const auto cmdline_enable = "--enable-" + name_only;
+  const auto cmdline_disable = "--disable-" + name_only;
+  const auto cmdline_skip = "--skip-" + name_only;
+
+  parent.add_option(new opts::Proxy_option(
+      envname, std::vector{cmdline_enable, cmdline_disable, cmdline_skip},
+      std::string(),
+      [landing_spot, cmdline_enable, cmdline_disable, cmdline_skip](
+          const std::string &opt, const char *) {
+        if (opt == cmdline_enable) {
+          (*landing_spot) = true;
+        } else if (opt == cmdline_disable || opt == cmdline_skip) {
+          (*landing_spot) = false;
+        }
+      }));
+
+  return *this;
+}
+
+Options::Add_startup_bool_option_helper &
+Options::Add_startup_bool_option_helper::operator()(
+    const std::string &command_line_name, const std::string &help,
+    const Handler &handler, const std::string &name) {
+  assert(command_line_name.starts_with("--"));
+  if (ignore) {
+    return *this;
+  }
+
+  const auto cmdline_with_args = command_line_name + "[=<bool>]";
+  const auto name_only = command_line_name.substr(2);
+  const auto cmdline_enable = "--enable-" + name_only;
+  const auto cmdline_disable = "--disable-" + name_only;
+  const auto cmdline_skip = "--skip-" + name_only;
+
+  auto proxy_handler = [handler, command_line_name, cmdline_enable,
+                        cmdline_disable, cmdline_skip](
+                           const std::string &opt, std::optional<bool> value) {
+    if (value.has_value()) {
+      if (opt == command_line_name) {
+        handler(opt, *value);
+      }
+    } else {
+      if (opt == command_line_name || opt == cmdline_enable) {
+        handler(opt, true);
+      } else if (opt == cmdline_disable || opt == cmdline_skip) {
+        handler(opt, false);
+      }
+    }
+  };
+
+  parent.add_option(new opts::Proxy_bool_option(
+      {}, std::vector{cmdline_with_args}, help, proxy_handler, name));
+  parent.add_option(new opts::Proxy_bool_option(
+      {}, std::vector{cmdline_enable, cmdline_disable, cmdline_skip}, {},
+      proxy_handler));
+
+  return *this;
+}
+
+Options::Add_startup_bool_option_helper &
+Options::Add_startup_bool_option_helper::operator()(
+    const std::string &command_line_name, const Handler &handler) {
+  if (ignore) {
+    return *this;
+  }
+  return (*this)(command_line_name, {}, handler);
+}
 
 Options::Options(const std::string &config_file_) : config_file(config_file_) {}
 
@@ -393,7 +659,9 @@ void Options::handle_cmdline_options(
   Iterator iterator{Cmdline_iterator{argc, argv, 1}};
 
   while (iterator.valid()) {
-    if (custom_cmdline_handler && custom_cmdline_handler(&iterator)) continue;
+    if (custom_cmdline_handler && custom_cmdline_handler(&iterator)) {
+      continue;
+    }
 
     const auto opt = iterator.option();
     const auto it = cmdline_options.find(opt);
@@ -410,8 +678,14 @@ void Options::handle_cmdline_options(
         }
       } else {
         if (iterator.has_non_empty_value() || it->second->is_value_optional()) {
-          it->second->handle_command_line_input(opt, iterator.value());
-          iterator.next();
+          if (Iterator::Type::SEPARATE_VALUE == iterator.type() &&
+              !it->second->accepts_separate_value()) {
+            it->second->handle_command_line_input(opt, nullptr);
+            iterator.next_no_value();
+          } else {
+            it->second->handle_command_line_input(opt, iterator.value());
+            iterator.next();
+          }
         } else {
           throw std::invalid_argument(std::string(argv[0]) + ": option " +
                                       it->first + " requires an argument");
