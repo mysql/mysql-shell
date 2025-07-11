@@ -1889,21 +1889,23 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
   auto old_mode = _shell->interactive_mode();
   auto mode = old_mode;
 
-  auto arg = shcore::str_strip(params[1]);
-  if (arg == "--js" || arg == "--py" || arg == "--sql") {
-    idx++;
-    if (params.size() < 3)
-      throw shcore::Exception::runtime_error("Filename not specified");
+  if (!_shell->is_reentrant_command()) {
+    auto arg = shcore::str_strip(params[1]);
+    if (arg == "--js" || arg == "--py" || arg == "--sql") {
+      idx++;
+      if (params.size() < 3)
+        throw shcore::Exception::runtime_error("Filename not specified");
 
-    if (arg == "--js")
-      mode = shcore::IShell_core::Mode::JavaScript;
-    else if (arg == "--py")
-      mode = shcore::IShell_core::Mode::Python;
-    else
-      mode = shcore::IShell_core::Mode::SQL;
+      if (arg == "--js")
+        mode = shcore::IShell_core::Mode::JavaScript;
+      else if (arg == "--py")
+        mode = shcore::IShell_core::Mode::Python;
+      else
+        mode = shcore::IShell_core::Mode::SQL;
+    }
   }
 
-  // The parameter 0 contains the somplete command as submitted by the user
+  // The parameter 0 contains the complete command as submitted by the user
   // File name would be on parameter 1
   file = shcore::str_strip(params[idx]);
 
@@ -1930,6 +1932,7 @@ bool Mysql_shell::cmd_process_file(const std::vector<std::string> &params) {
     if (old_mode != mode) switch_shell_mode(old_mode, {}, true, false);
   });
   if (old_mode != mode) switch_shell_mode(mode, {}, true, false);
+
   Base_shell::process_file(file, args);
 
   return true;

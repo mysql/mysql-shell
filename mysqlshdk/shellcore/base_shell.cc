@@ -692,6 +692,8 @@ int Base_shell::process_stream(std::istream &stream, const std::string &source,
     // Being interactive, we do not care about the return value
     return 0;
   } else {
+    shcore::Entering_command_guard guard(_shell.get());
+
     return _shell->process_stream(stream, source);
   }
 }
