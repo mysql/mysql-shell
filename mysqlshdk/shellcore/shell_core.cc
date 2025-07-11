@@ -295,6 +295,8 @@ std::vector<std::string> Shell_core::get_all_globals() {
 void Shell_core::clear_input() { _langs[interactive_mode()]->clear_input(); }
 
 bool Shell_core::handle_shell_command(const std::string &line) {
+  Entering_command_guard guard(this);
+
   if (!_langs[_mode]->command_handler()->process(line, _mode)) {
     return m_command_handler.process(line, _mode);
   }
@@ -302,6 +304,8 @@ bool Shell_core::handle_shell_command(const std::string &line) {
 }
 
 size_t Shell_core::handle_inline_shell_command(const std::string &line) {
+  Entering_command_guard guard(this);
+
   size_t skip = _langs[_mode]->command_handler()->process_inline(line, _mode);
   if (skip == 0) {
     skip = m_command_handler.process_inline(line, _mode);

@@ -246,10 +246,28 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
 
   void set_argv(const std::vector<std::string> &args = {}) override;
 
+  bool is_reentrant_command() const {
+    // 0 - no command called at all
+    // 1 - executing a command interactively or from cmdline with -f
+    // 2+ - executing a command while executing another
+    return m_reentrant_command > 1;
+  }
+
  private:
   void init_sql();
   void init_js();
   void init_mode(Mode mode);
+
+  void set_reentering(bool flag) {
+    if (flag) {
+      m_reentrant_command++;
+    } else {
+      assert(m_reentrant_command > 0);
+      m_reentrant_command--;
+    }
+  }
+
+  friend class Entering_command_guard;
 
   Object_registry *_registry;
   std::map<std::string, std::pair<Mode_mask, Value>> _globals;
@@ -264,6 +282,21 @@ class SHCORE_PUBLIC Shell_core : public shcore::IShell_core {
   int m_global_return_code;
   Help_manager m_help;
   bool m_interactive;
+
+ protected:
+  int m_reentrant_command{0};
+};
+
+class Entering_command_guard {
+ public:
+  explicit Entering_command_guard(Shell_core *shell) : m_shell(shell) {
+    m_shell->set_reentering(true);
+  }
+
+  ~Entering_command_guard() { m_shell->set_reentering(false); }
+
+ private:
+  Shell_core *m_shell;
 };
 }  // namespace shcore
 
