@@ -55,10 +55,13 @@ def setup_session(uri):
 
 def analyze_tables(s):
     for schema, in s.run_sql("SHOW SCHEMAS").fetch_all():
-        if schema in ("mysql", "sys", "performance_schema", "information_schema"):
+        if schema in ("mysql", "sys", "performance_schema", "information_schema") or schema.startswith("mysql_"):
             continue
         for table, in s.run_sql("SHOW TABLES IN !", [ schema ]).fetch_all():
-            s.run_sql("ANALYZE TABLE !.!", [ schema, table ])
+            try:
+                s.run_sql("ANALYZE TABLE !.!", [ schema, table ])
+            except Exception as e:
+                print(f"Failed to analyze table {quote_identifier(schema, table)}: {e}")
 
 def dump_and_load_options(options):
     d = options.copy()
