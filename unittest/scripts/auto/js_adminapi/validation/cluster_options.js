@@ -536,10 +536,12 @@
                     "variable": "group_replication_advertise_recovery_endpoints"
                 },
 ?{}
+?{VER(<9.5.0)}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
                 },
+?{}
                 {
                     "value": "7",
                     "variable": "group_replication_auto_increment_increment"
@@ -910,10 +912,12 @@
                     "variable": "group_replication_advertise_recovery_endpoints"
                 },
 ?{}
+?{VER(<9.5.0)}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
                 },
+?{}
                 {
                     "value": "7",
                     "variable": "group_replication_auto_increment_increment"
@@ -1284,10 +1288,12 @@
                     "variable": "group_replication_advertise_recovery_endpoints"
                 },
 ?{}
+?{VER(<9.5.0)}
                 {
                     "value": "OFF",
                     "variable": "group_replication_allow_local_lower_version_join"
                 },
+?{}
                 {
                     "value": "7",
                     "variable": "group_replication_auto_increment_increment"
