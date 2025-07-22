@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -74,11 +74,13 @@ Console_with_progress::Console_with_progress(
     mysqlshdk::textui::IProgress *progress, std::recursive_mutex *mutex)
     : m_progress(progress), m_mutex(mutex), m_console(current_console()) {}
 
+bool Console_with_progress::use_json() const { return m_console->use_json(); }
+
 void Console_with_progress::raw_print(const std::string &text,
-                                      Output_stream stream,
-                                      bool format_json) const {
+                                      Output_stream stream, bool format_json,
+                                      const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
-  m_console->raw_print(text, stream, format_json);
+  m_console->raw_print(text, stream, format_json, attribs);
 }
 
 void Console_with_progress::print(const std::string &text) const {
@@ -91,29 +93,34 @@ void Console_with_progress::println(const std::string &text) const {
   m_console->println(text);
 }
 
-void Console_with_progress::print_error(const std::string &text) const {
+void Console_with_progress::print_error(const std::string &text,
+                                        const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
-  m_console->print_error(text);
+  m_console->print_error(text, attribs);
 }
 
-void Console_with_progress::print_warning(const std::string &text) const {
+void Console_with_progress::print_warning(
+    const std::string &text, const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
-  m_console->print_warning(text);
+  m_console->print_warning(text, attribs);
 }
 
-void Console_with_progress::print_note(const std::string &text) const {
+void Console_with_progress::print_note(const std::string &text,
+                                       const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
-  m_console->print_note(text);
+  m_console->print_note(text, attribs);
 }
 
-void Console_with_progress::print_status(const std::string &text) const {
+void Console_with_progress::print_status(const std::string &text,
+                                         const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
-  m_console->print_status(text);
+  m_console->print_status(text, attribs);
 }
 
-void Console_with_progress::print_info(const std::string &text) const {
+void Console_with_progress::print_info(const std::string &text,
+                                       const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
-  m_console->print_info(text);
+  m_console->print_info(text, attribs);
 }
 
 void Console_with_progress::print_para(const std::string &text) const {

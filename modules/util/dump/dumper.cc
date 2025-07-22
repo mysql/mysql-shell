@@ -2973,6 +2973,11 @@ void Dumper::validate_mds() const {
     return;
   }
 
+  const auto stage_attrib = [](const char *status) {
+    auto ocimds_progress = shcore::make_dict("status", status);
+    return shcore::make_dict("ocimdsProgress", std::move(ocimds_progress));
+  };
+
   const auto console = current_console();
   const auto version = m_options.target_version().get_base();
   issues::Status_set status;
@@ -2982,7 +2987,8 @@ void Dumper::validate_mds() const {
       "available version of MySQL Shell.");
 
   console->print_info(
-      "Checking for compatibility with MySQL HeatWave Service " + version);
+      "Checking for compatibility with MySQL HeatWave Service " + version,
+      stage_attrib("begin"));
 
   if (!m_cache.server.version.is_8_0) {
     console->print_note("MySQL Server " +
@@ -3129,8 +3135,9 @@ void Dumper::validate_mds() const {
   if (status.is_set(issues::Status::ERROR)) {
     console->print_info(
         "Compatibility issues with MySQL HeatWave Service " + version +
-        " were found. Please use the 'compatibility' option to apply "
-        "compatibility adaptations to the dumped DDL.");
+            " were found. Please use the 'compatibility' option to apply "
+            "compatibility adaptations to the dumped DDL.",
+        stage_attrib("error"));
     THROW_ERROR(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
   }
 
@@ -3157,14 +3164,15 @@ void Dumper::validate_mds() const {
   }
 
   if (status.is_set(issues::Status::FIXED)) {
-    console->print_info("Compatibility issues with MySQL HeatWave Service " +
-                        version +
-                        " were found and repaired. Please review the changes "
-                        "made before loading them.");
+    console->print_info(
+        "Compatibility issues with MySQL HeatWave Service " + version +
+            " were found and repaired. Please review the changes "
+            "made before loading them.",
+        stage_attrib("fixed"));
   }
 
   if (status.empty()) {
-    console->print_info("Compatibility checks finished.");
+    console->print_info("Compatibility checks finished.", stage_attrib("end"));
   }
 }
 
@@ -5303,7 +5311,8 @@ void Dumper::handle_mismatched_view_references(issues::Status_set status,
   std::invoke(as_error ? &IConsole::print_error : &IConsole::print_note,
               console,
               "One or more views that reference tables using the wrong case "
-              "were found.");
+              "were found.",
+              IConsole::Json_attributes{});
   console->print_info(
       "Loading them in a system that uses lower_case_table_names=0 (such as "
       "in the MySQL HeatWave Service) will fail unless they are fixed.");

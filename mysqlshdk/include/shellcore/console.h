@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,7 +30,9 @@
 #include <memory>
 #include <string>
 #include <vector>
+
 #include "mysqlshdk/include/scripting/lang_base.h"
+#include "mysqlshdk/include/scripting/types.h"
 
 namespace mysqlsh {
 
@@ -51,17 +53,27 @@ class IPager {
 
 class IConsole {
  public:
+  using Json_attributes = shcore::Dictionary_t;
+
   virtual ~IConsole() {}
 
+  virtual bool use_json() const = 0;
+
   virtual void raw_print(const std::string &text, Output_stream stream,
-                         bool format_json = true) const = 0;
+                         bool format_json = true,
+                         const Json_attributes &attribs = {}) const = 0;
   virtual void print(const std::string &text) const = 0;
   virtual void println(const std::string &text = "") const = 0;
-  virtual void print_error(const std::string &text) const = 0;
-  virtual void print_warning(const std::string &text) const = 0;
-  virtual void print_note(const std::string &text) const = 0;
-  virtual void print_status(const std::string &text) const = 0;
-  virtual void print_info(const std::string &text = "") const = 0;
+  virtual void print_error(const std::string &text,
+                           const Json_attributes &attribs = {}) const = 0;
+  virtual void print_warning(const std::string &text,
+                             const Json_attributes &attribs = {}) const = 0;
+  virtual void print_note(const std::string &text,
+                          const Json_attributes &attribs = {}) const = 0;
+  virtual void print_status(const std::string &text,
+                            const Json_attributes &attribs = {}) const = 0;
+  virtual void print_info(const std::string &text = "",
+                          const Json_attributes &attribs = {}) const = 0;
   virtual void print_para(const std::string &text) const = 0;
 
   virtual void print_value(const shcore::Value &value,

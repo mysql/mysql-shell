@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -81,7 +81,7 @@ class Shell_console : public IConsole {
   explicit Shell_console(shcore::Interpreter_delegate *deleg);
   ~Shell_console() override;
 
-  virtual bool use_json() const;
+  bool use_json() const override;
 
   /**
    * Sends the provided text to the indicated stream.
@@ -101,10 +101,12 @@ class Shell_console : public IConsole {
    * @param text   data to the indicated stream.
    * @param stream where the text will be sent.
    * @param format_json indicates the text should be automatically
+   * @param attribs extra attributes to include in JSON output
    * formatted as JSON when shell output format is json or json/raw.
    */
   void raw_print(const std::string &text, Output_stream stream,
-                 bool format_json = true) const override;
+                 bool format_json = true,
+                 const Json_attributes &attribs = {}) const override;
 
   /**
    * Sends the provided text to the STDOUT.
@@ -136,7 +138,8 @@ class Shell_console : public IConsole {
    * - Otherwise: the raw text will be sent to STDERR prepended with an ERROR:
    *   tag.
    */
-  void print_error(const std::string &text) const override;
+  void print_error(const std::string &text,
+                   const Json_attributes &attribs = {}) const override;
 
   /**
    * Sends the provided text to the STDERR with an error tag.
@@ -155,7 +158,8 @@ class Shell_console : public IConsole {
    * - Otherwise: the raw text will be sent to STDERR prepended with an WARNING:
    *   tag.
    */
-  void print_warning(const std::string &text) const override;
+  void print_warning(const std::string &text,
+                     const Json_attributes &attribs = {}) const override;
 
   /**
    * Sends the provided text to the STDERR with notice formatting.
@@ -165,17 +169,20 @@ class Shell_console : public IConsole {
    * - Otherwise: the raw text will be sent to STDERR with special color if
    *   supported.
    */
-  void print_note(const std::string &text) const override;
+  void print_note(const std::string &text,
+                  const Json_attributes &attribs = {}) const override;
 
   /**
    * Sends the provided text to the STDERR.
    */
-  void print_info(const std::string &text = "") const override;
+  void print_info(const std::string &text = "",
+                  const Json_attributes &attribs = {}) const override;
 
   /**
    * Sends the provided text to the STDERR.
    */
-  void print_status(const std::string &text) const override;
+  void print_status(const std::string &text,
+                    const Json_attributes &attribs = {}) const override;
 
   /**
    * Formats and sends the given text to STDERR.
@@ -298,7 +305,8 @@ class Shell_console : public IConsole {
   bool use_colors() const { return m_use_colors; }
 
  private:
-  void dump_json(const char *tag, const std::string &s) const;
+  void dump_json(const char *tag, const std::string &s,
+                 const Json_attributes &attribs = {}) const;
 
   void delegate_print(const char *msg) const;
 
