@@ -233,6 +233,8 @@ class Cross_check_tests:
     def __init__(self):
         self.__tests = []
     def add_dumper_test(self, tc: Dump_test_case, desc: str):
+        if "checksum" not in tc.options:
+            tc.options["checksum"] = True
         # dumper tests + all loader tests for this dump
         self.__tests.append(((tc, desc), []))
     def add_loader_test(self, tc: Load_test_case, desc: str):
@@ -256,6 +258,8 @@ class Cross_check_tests:
         t = copy.deepcopy(tc)
         t.options["convertInnoDbVectorStore"] = "keep"
         t.error = "" if relative_location else Load_errors.unknown_location
+        if "checksum" not in t.options:
+            t.options["checksum"] = True
         self.add_local_test(t, "local " + describe(t))
         t = copy.deepcopy(tc)
         t.options["convertInnoDbVectorStore"] = "skip"
