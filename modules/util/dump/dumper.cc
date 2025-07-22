@@ -5313,11 +5313,11 @@ Dump_writer::Encoding_type Dumper::encoding_type(
     const Instance_cache::Column *column) const {
   if (column->csv_unsafe) {
     // due to BUG#38166093, storing a vector column using VECTOR_TO_STRING() may
-    // lead to a loss of precision and cause checksum errors, we only use this
-    // encoding when dumping InnoDB-based vector store data
+    // lead to a loss of precision and cause checksum errors, we use Base64
+    // instead
     if (uses_innodb_vector_store() && table->is_innodb_vector_store_table &&
         column->is_innodb_vector_store_column) {
-      return Dump_writer::Encoding_type::VECTOR;
+      return Dump_writer::Encoding_type::BASE64;
     } else {
       return m_options.use_base64() ? Dump_writer::Encoding_type::BASE64
                                     : Dump_writer::Encoding_type::HEX;
