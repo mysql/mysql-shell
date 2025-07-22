@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -69,9 +69,12 @@ class Console_with_prefix final : public IConsole {
 
   ~Console_with_prefix() override = default;
 
+  bool use_json() const override { return m_console->use_json(); }
+
   void raw_print(const std::string &text, Output_stream stream,
-                 bool format_json = true) const override {
-    m_console->raw_print(get_text(text), stream, format_json);
+                 bool format_json = true,
+                 const Json_attributes &attribs = {}) const override {
+    m_console->raw_print(get_text(text), stream, format_json, attribs);
   }
 
   void print(const std::string &text) const override {
@@ -82,24 +85,29 @@ class Console_with_prefix final : public IConsole {
     m_console->println(get_text(text));
   }
 
-  void print_error(const std::string &text) const override {
-    m_console->print_error(get_text(text));
+  void print_error(const std::string &text,
+                   const Json_attributes &attribs = {}) const override {
+    m_console->print_error(get_text(text), attribs);
   }
 
-  void print_warning(const std::string &text) const override {
-    m_console->print_warning(get_text(text));
+  void print_warning(const std::string &text,
+                     const Json_attributes &attribs = {}) const override {
+    m_console->print_warning(get_text(text), attribs);
   }
 
-  void print_note(const std::string &text) const override {
-    m_console->print_note(get_text(text));
+  void print_note(const std::string &text,
+                  const Json_attributes &attribs = {}) const override {
+    m_console->print_note(get_text(text), attribs);
   }
 
-  void print_status(const std::string &text) const override {
-    m_console->print_status(get_text(text));
+  void print_status(const std::string &text,
+                    const Json_attributes &attribs = {}) const override {
+    m_console->print_status(get_text(text), attribs);
   }
 
-  void print_info(const std::string &text = "") const override {
-    m_console->print_info(get_text(text));
+  void print_info(const std::string &text = "",
+                  const Json_attributes &attribs = {}) const override {
+    m_console->print_info(get_text(text), attribs);
   }
 
   void print_para(const std::string &text) const override {

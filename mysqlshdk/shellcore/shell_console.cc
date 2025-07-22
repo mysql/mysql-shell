@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,7 +29,6 @@
 #include <limits>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <utility>
 
 #ifdef __sun
@@ -52,8 +51,7 @@ namespace {
 
 std::string json_obj(
     const char *key, const std::string &value,
-    const std::vector<std::string> &description = {},
-    const std::unordered_map<std::string, std::string> &additional = {},
+    const IConsole::Json_attributes &additional = {},
     const std::function<void(shcore::JSON_dumper *)> &callback = {}) {
   const auto &options = mysqlsh::current_shell_options()->get();
   shcore::JSON_dumper dumper(options.wrap_json == "json", options.binary_limit);
@@ -69,20 +67,10 @@ std::string json_obj(
   }
 
   // Inserts the additional entries into the object
-  for (const auto &entry : additional) {
-    dumper.append_string(entry.first);
-    dumper.append_string(entry.second);
-  }
-
-  // Inserts the description into the object
-  if (!description.empty()) {
-    dumper.append_string("description");
-    dumper.start_array();
-    for (const auto &desc : description) {
-      dumper.append_string(desc);
+  if (additional) {
+    for (const auto &entry : *additional) {
+      dumper.append_value(entry.first, entry.second);
     }
-
-    dumper.end_array();
   }
 
   // Allows defining yet additional entries into the object
@@ -259,12 +247,14 @@ bool Shell_console::use_json() const {
   return mysqlsh::current_shell_options()->get().wrap_json != "off";
 }
 
-void Shell_console::dump_json(const char *tag, const std::string &s) const {
-  delegate_print(json_obj(tag, s).c_str());
+void Shell_console::dump_json(const char *tag, const std::string &s,
+                              const Json_attributes &attribs) const {
+  delegate_print(json_obj(tag, s, attribs).c_str());
 }
 
 void Shell_console::raw_print(const std::string &text, Output_stream stream,
-                              bool format_json) const {
+                              bool format_json,
+                              const Json_attributes &attribs) const {
   using Print_func = void (Shell_console::*)(const char *) const;
   Print_func func = stream == Output_stream::STDOUT
                         ? &Shell_console::delegate_print
@@ -273,7 +263,7 @@ void Shell_console::raw_print(const std::string &text, Output_stream stream,
   // format_json=false means bypass JSON wrapping
   if (use_json() && format_json) {
     const char *tag = stream == Output_stream::STDOUT ? "info" : "error";
-    dump_json(tag, text);
+    dump_json(tag, text, attribs);
   } else {
     (this->*func)(text.c_str());
   }
@@ -336,10 +326,11 @@ void Shell_console::print_diag(const std::string &text) const {
   }
 }
 
-void Shell_console::print_error(const std::string &text) const {
+void Shell_console::print_error(const std::string &text,
+                                const Json_attributes &attribs) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("error", ftext + "\n");
+    dump_json("error", ftext + "\n", attribs);
   } else {
     delegate_print_error(
         (mysqlshdk::textui::error("ERROR: ") + ftext + "\n").c_str());
@@ -350,10 +341,11 @@ void Shell_console::print_error(const std::string &text) const {
   }
 }
 
-void Shell_console::print_warning(const std::string &text) const {
+void Shell_console::print_warning(const std::string &text,
+                                  const Json_attributes &attribs) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("warning", ftext + "\n");
+    dump_json("warning", ftext + "\n", attribs);
   } else {
     delegate_print_error(
         (mysqlshdk::textui::warning("WARNING: ") + ftext + "\n").c_str());
@@ -364,10 +356,11 @@ void Shell_console::print_warning(const std::string &text) const {
   }
 }
 
-void Shell_console::print_note(const std::string &text) const {
+void Shell_console::print_note(const std::string &text,
+                               const Json_attributes &attribs) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("note", ftext + "\n");
+    dump_json("note", ftext + "\n", attribs);
   } else {
     delegate_print_error(
         (mysqlshdk::textui::notice("NOTE: ") + ftext + "\n").c_str());
@@ -378,10 +371,11 @@ void Shell_console::print_note(const std::string &text) const {
   }
 }
 
-void Shell_console::print_info(const std::string &text) const {
+void Shell_console::print_info(const std::string &text,
+                               const Json_attributes &attribs) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("info", ftext + "\n");
+    dump_json("info", ftext + "\n", attribs);
   } else {
     delegate_print_error((ftext + "\n").c_str());
   }
@@ -391,10 +385,11 @@ void Shell_console::print_info(const std::string &text) const {
   }
 }
 
-void Shell_console::print_status(const std::string &text) const {
+void Shell_console::print_status(const std::string &text,
+                                 const Json_attributes &attribs) const {
   std::string ftext = format_vars(text);
   if (use_json()) {
-    dump_json("status", ftext + "\n");
+    dump_json("status", ftext + "\n", attribs);
   } else {
     delegate_print_error((ftext + "\n").c_str());
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,22 +52,30 @@ class Console_with_progress final : public IConsole {
 
   ~Console_with_progress() override = default;
 
+  bool use_json() const override;
+
   void raw_print(const std::string &text, Output_stream stream,
-                 bool format_json = true) const override;
+                 bool format_json = true,
+                 const Json_attributes &attribs = {}) const override;
 
   void print(const std::string &text) const override;
 
   void println(const std::string &text = "") const override;
 
-  void print_error(const std::string &text) const override;
+  void print_error(const std::string &text,
+                   const Json_attributes &attribs = {}) const override;
 
-  void print_warning(const std::string &text) const override;
+  void print_warning(const std::string &text,
+                     const Json_attributes &attribs = {}) const override;
 
-  void print_note(const std::string &text) const override;
+  void print_note(const std::string &text,
+                  const Json_attributes &attribs = {}) const override;
 
-  void print_status(const std::string &text) const override;
+  void print_status(const std::string &text,
+                    const Json_attributes &attribs = {}) const override;
 
-  void print_info(const std::string &text = "") const override;
+  void print_info(const std::string &text = "",
+                  const Json_attributes &attribs = {}) const override;
 
   void print_para(const std::string &text) const override;
 
