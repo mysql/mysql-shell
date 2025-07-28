@@ -2553,8 +2553,7 @@ std::string Dump_reader::get_vector_store_engine_attribute(
                              escape_regex(t->basename) + "@[@]?\\d+\\." +
                              escape_regex(t->data_info[0].extension) + '$');
   json.append("allow_missing_files", false);
-  // this needs to be false, otherwise it's not possible to use BASE64 encoding
-  json.append("is_strict_mode", false);
+  json.append("is_strict_mode", true);
 
   json.end_object();  // file
   json.end_array();   // file
