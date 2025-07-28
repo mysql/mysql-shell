@@ -74,9 +74,12 @@ void Dialect::set_dialect(const std::string & /*option*/,
       *this = json();
     } else if (shcore::str_caseeq(name, "csv-unix")) {
       *this = csv_unix();
+    } else if (shcore::str_caseeq(name, "csv-rfc-unix")) {
+      *this = csv_rfc_unix();
     } else {
       throw shcore::Exception::argument_error(
-          "dialect value must be default, csv, tsv, json or csv-unix.");
+          "dialect value must be default, csv, tsv, json, csv-unix or "
+          "csv-rfc-unix.");
     }
   }
 }
@@ -184,6 +187,17 @@ Dialect Dialect::csv_unix() {
   dialect.fields_terminated_by = std::string{","};
   dialect.fields_enclosed_by = std::string{"\""};
   dialect.fields_optionally_enclosed = false;
+  dialect.lines_starting_by = std::string{""};
+  return dialect;
+}
+
+Dialect Dialect::csv_rfc_unix() {
+  Dialect dialect;
+  dialect.lines_terminated_by = std::string{"\n"};
+  dialect.fields_escaped_by = std::string{""};
+  dialect.fields_terminated_by = std::string{","};
+  dialect.fields_enclosed_by = std::string{"\""};
+  dialect.fields_optionally_enclosed = true;
   dialect.lines_starting_by = std::string{""};
   return dialect;
 }

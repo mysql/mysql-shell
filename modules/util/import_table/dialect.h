@@ -92,6 +92,12 @@ struct Dialect {
    */
   static Dialect csv_unix();
 
+  /**
+   * Returns dialect for LOAD DATA FILE that describes unix variant of CSV
+   * (comma-separated values) file format which is compliant with RFC4180.
+   */
+  static Dialect csv_rfc_unix();
+
  private:
   void on_unpacked_options();
   /**

@@ -98,9 +98,11 @@ class Dump_writer {
 
   void close();
 
-  Dump_write_result write_preamble(
+  void initialize_writing(
       const std::vector<mysqlshdk::db::Column> &metadata,
-      const std::vector<Encoding_type> &pre_encoded_columns = {});
+      const std::vector<Encoding_type> &pre_encoded_columns);
+
+  Dump_write_result write_preamble();
 
   Dump_write_result write_row(const mysqlshdk::db::IRow *row);
 
@@ -166,13 +168,19 @@ class Dump_writer {
   inline Buffer *buffer() const noexcept { return m_buffer.get(); }
 
  private:
-  virtual void store_preamble(
+  virtual void read_metadata(
       const std::vector<mysqlshdk::db::Column> &metadata,
       const std::vector<Encoding_type> &pre_encoded_columns) = 0;
 
+  virtual void store_preamble() {
+    // no preamble
+  }
+
   virtual void store_row(const mysqlshdk::db::IRow *row) = 0;
 
-  virtual void store_postamble() = 0;
+  virtual void store_postamble() {
+    // no postamble
+  }
 
   Dump_write_result write_buffer(const char *context, bool row = false) const;
 

@@ -982,7 +982,7 @@ help_text = """
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
         fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
-        the following values: default, csv, tsv or csv-unix.
+        the following values: default, csv, tsv, csv-unix or csv-rfc-unix.
 """
 EXPECT_TRUE(help_text in util.help("dump_tables"))
 
@@ -995,7 +995,7 @@ TEST_STRING_OPTION("linesTerminatedBy")
 TEST_STRING_OPTION("dialect")
 
 #@<> WL15311_TSFR_5_1_1, WL15311_TSFR_5_2_1 - various predefined dialects and their extensions
-for dialect, ext in { "default": "tsv", "csv": "csv", "tsv": "tsv", "csv-unix": "csv" }.items():
+for dialect, ext in { "default": "tsv", "csv": "csv", "tsv": "tsv", "csv-unix": "csv", "csv-rfc-unix": "csv" }.items():
     TEST_DUMP_AND_LOAD(types_schema, types_schema_tables, { "dialect": dialect })
     EXPECT_TRUE(count_files_with_extension(test_output_relative, f".{ext}.zst") > 0)
 

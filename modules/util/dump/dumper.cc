@@ -454,8 +454,8 @@ class Dumper::Dump_writer_controller {
   virtual Dump_write_result start_writing(
       const std::vector<mysqlshdk::db::Column> &metadata,
       const std::vector<Dump_writer::Encoding_type> &pre_encoded_columns) {
-    return update_stats(
-        m_writer->write_preamble(metadata, pre_encoded_columns));
+    m_writer->initialize_writing(metadata, pre_encoded_columns);
+    return update_stats(m_writer->write_preamble());
   }
 
   virtual Dump_write_result write_row(const mysqlshdk::db::IRow *row) {
@@ -740,6 +740,11 @@ void Dumper::Output_config::init(
     data_file_extension = "tsv";
   } else if (import_table::Dialect::csv_unix() == d) {
     writer_creator = []() { return std::make_unique<Csv_unix_dump_writer>(); };
+    data_file_extension = "csv";
+  } else if (import_table::Dialect::csv_rfc_unix() == d) {
+    writer_creator = []() {
+      return std::make_unique<Csv_rfc_unix_dump_writer>();
+    };
     data_file_extension = "csv";
   } else {
     writer_creator = [this]() {

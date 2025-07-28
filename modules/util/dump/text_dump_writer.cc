@@ -113,14 +113,6 @@ Text_dump_writer::Text_dump_writer(const import_table::Dialect &dialect)
   }
 }
 
-void Text_dump_writer::store_preamble(
-    const std::vector<mysqlshdk::db::Column> &metadata,
-    const std::vector<Encoding_type> &pre_encoded_columns) {
-  read_metadata(metadata, pre_encoded_columns);
-
-  // no preamble
-}
-
 void Text_dump_writer::store_row(const mysqlshdk::db::IRow *row) {
   start_row();
 
@@ -129,10 +121,6 @@ void Text_dump_writer::store_row(const mysqlshdk::db::IRow *row) {
   }
 
   finish_row();
-}
-
-void Text_dump_writer::store_postamble() {
-  // no postamble
 }
 
 void Text_dump_writer::read_metadata(

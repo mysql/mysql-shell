@@ -843,7 +843,7 @@ DESCRIPTION
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
         fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
-        the following values: default, csv, tsv or csv-unix.
+        the following values: default, csv, tsv, csv-unix or csv-rfc-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -983,6 +983,10 @@ DESCRIPTION
         FESC='\', FT=<TAB>, FE='"', FOE=true)
       - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
         FESC='\', FT=",", FE='"', FOE=false)
+      - csv-rfc-unix: optionally quoted, comma-separated, LF line endings, no
+        escapes inside quotes (except for " which is escaped as ""), NULL
+        values encoded as unquoted NULL string, compatible with RFC4180.
+        (LT=<LF>, FESC=<empty>, FT=",", FE='"', FOE=true)
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
@@ -1292,7 +1296,7 @@ DESCRIPTION
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
         fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
-        the following values: default, csv, tsv or csv-unix.
+        the following values: default, csv, tsv, csv-unix or csv-rfc-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -1421,6 +1425,10 @@ DESCRIPTION
         FESC='\', FT=<TAB>, FE='"', FOE=true)
       - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
         FESC='\', FT=",", FE='"', FOE=false)
+      - csv-rfc-unix: optionally quoted, comma-separated, LF line endings, no
+        escapes inside quotes (except for " which is escaped as ""), NULL
+        values encoded as unquoted NULL string, compatible with RFC4180.
+        (LT=<LF>, FESC=<empty>, FT=",", FE='"', FOE=true)
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
@@ -1712,7 +1720,7 @@ DESCRIPTION
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
         fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
-        the following values: default, csv, tsv or csv-unix.
+        the following values: default, csv, tsv, csv-unix or csv-rfc-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -1847,6 +1855,10 @@ DESCRIPTION
         FESC='\', FT=<TAB>, FE='"', FOE=true)
       - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
         FESC='\', FT=",", FE='"', FOE=false)
+      - csv-rfc-unix: optionally quoted, comma-separated, LF line endings, no
+        escapes inside quotes (except for " which is escaped as ""), NULL
+        values encoded as unquoted NULL string, compatible with RFC4180.
+        (LT=<LF>, FESC=<empty>, FT=",", FE='"', FOE=true)
 
       Both the bytesPerChunk and maxRate options support unit suffixes:
 
@@ -2086,7 +2098,7 @@ DESCRIPTION
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
         fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one of
-        the following values: default, csv, tsv or csv-unix.
+        the following values: default, csv, tsv, csv-unix or csv-rfc-unix.
       - maxRate: string (default: "0") - Limit data read throughput to maximum
         rate, measured in bytes per second per thread. Use maxRate="0" to set
         no limit.
@@ -2161,6 +2173,10 @@ DESCRIPTION
         FESC='\', FT=<TAB>, FE='"', FOE=true)
       - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
         FESC='\', FT=",", FE='"', FOE=false)
+      - csv-rfc-unix: optionally quoted, comma-separated, LF line endings, no
+        escapes inside quotes (except for " which is escaped as ""), NULL
+        values encoded as unquoted NULL string, compatible with RFC4180.
+        (LT=<LF>, FESC=<empty>, FT=",", FE='"', FOE=true)
 
       The maxRate option supports unit suffixes:
 
@@ -2347,8 +2363,8 @@ DESCRIPTION
         that matches specific data file format. Can be used as base dialect and
         customized with fieldsTerminatedBy, fieldsEnclosedBy,
         fieldsOptionallyEnclosed, fieldsEscapedBy and linesTerminatedBy
-        options. Must be one of the following values: default, csv, tsv, json
-        or csv-unix.
+        options. Must be one of the following values: default, csv, tsv, json,
+        csv-unix or csv-rfc-unix.
       - decodeColumns: map (default: not set) - A map between columns names and
         SQL expressions to be applied on the loaded data. Column value captured
         in 'columns' by integer is available as user variable '@i', where `i`
@@ -2397,16 +2413,20 @@ DESCRIPTION
       fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy
       (FESC) and linesTerminatedBy (LT) in following manner:
 
-      - default: no quoting, tab-separated, lf line endings. (LT=<LF>,
+      - default: no quoting, tab-separated, LF line endings. (LT=<LF>,
         FESC='\', FT=<TAB>, FE=<empty>, FOE=false)
-      - csv: optionally quoted, comma-separated, crlf line endings.
+      - csv: optionally quoted, comma-separated, CRLF line endings.
         (LT=<CR><LF>, FESC='\', FT=",", FE='"', FOE=true)
-      - tsv: optionally quoted, tab-separated, crlf line endings. (LT=<CR><LF>,
+      - tsv: optionally quoted, tab-separated, CRLF line endings. (LT=<CR><LF>,
         FESC='\', FT=<TAB>, FE='"', FOE=true)
       - json: one JSON document per line. (LT=<LF>, FESC=<empty>, FT=<LF>,
         FE=<empty>, FOE=false)
-      - csv-unix: fully quoted, comma-separated, lf line endings. (LT=<LF>,
+      - csv-unix: fully quoted, comma-separated, LF line endings. (LT=<LF>,
         FESC='\', FT=",", FE='"', FOE=false)
+      - csv-rfc-unix: optionally quoted, comma-separated, LF line endings, no
+        escapes inside quotes (except for " which is escaped as ""), NULL
+        values encoded as unquoted NULL string, compatible with RFC4180.
+        (LT=<LF>, FESC=<empty>, FT=",", FE='"', FOE=true)
 
       If the schema is not provided, an active schema on the global session, if
       set, will be used.

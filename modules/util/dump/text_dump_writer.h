@@ -50,16 +50,11 @@ class Text_dump_writer : public Dump_writer {
   ~Text_dump_writer() override = default;
 
  private:
-  void store_preamble(
-      const std::vector<mysqlshdk::db::Column> &metadata,
-      const std::vector<Encoding_type> &pre_encoded_columns) override;
-
   void store_row(const mysqlshdk::db::IRow *row) override;
 
-  void store_postamble() override;
-
-  void read_metadata(const std::vector<mysqlshdk::db::Column> &metadata,
-                     const std::vector<Encoding_type> &pre_encoded_columns);
+  void read_metadata(
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Encoding_type> &pre_encoded_columns) override;
 
   void start_row();
 

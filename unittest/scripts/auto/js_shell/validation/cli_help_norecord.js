@@ -1058,8 +1058,8 @@ OPTIONS
             format. Can be used as base dialect and customized with
             fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
             fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
-            of the following values: default, csv, tsv or csv-unix. Default:
-            "default".
+            of the following values: default, csv, tsv, csv-unix or
+            csv-rfc-unix. Default: "default".
 
 --dryRun=<bool>
             Print information about what would be dumped, but do not dump
@@ -1326,8 +1326,8 @@ OPTIONS
             format. Can be used as base dialect and customized with
             fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
             fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
-            of the following values: default, csv, tsv or csv-unix. Default:
-            "default".
+            of the following values: default, csv, tsv, csv-unix or
+            csv-rfc-unix. Default: "default".
 
 --dryRun=<bool>
             Print information about what would be dumped, but do not dump
@@ -1582,8 +1582,8 @@ OPTIONS
             format. Can be used as base dialect and customized with
             fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
             fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
-            of the following values: default, csv, tsv or csv-unix. Default:
-            "default".
+            of the following values: default, csv, tsv, csv-unix or
+            csv-rfc-unix. Default: "default".
 
 --dryRun=<bool>
             Print information about what would be dumped, but do not dump
@@ -1760,8 +1760,8 @@ OPTIONS
             format. Can be used as base dialect and customized with
             fieldsTerminatedBy, fieldsEnclosedBy, fieldsEscapedBy,
             fieldsOptionallyEnclosed and linesTerminatedBy options. Must be one
-            of the following values: default, csv, tsv or csv-unix. Default:
-            "default".
+            of the following values: default, csv, tsv, csv-unix or
+            csv-rfc-unix. Default: "default".
 
 --fieldsEnclosedBy=<str>
             This option has the same meaning as the corresponding clause for
@@ -1965,8 +1965,8 @@ OPTIONS
             format. Can be used as base dialect and customized with
             fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
             fieldsEscapedBy and linesTerminatedBy options. Must be one of the
-            following values: default, csv, tsv, json or csv-unix. Default:
-            "default".
+            following values: default, csv, tsv, json, csv-unix or
+            csv-rfc-unix. Default: "default".
 
 --fieldsEnclosedBy=<str>
             This option has the same meaning as the corresponding clause for

@@ -213,6 +213,10 @@ def TEST_LOAD(schema, table, options = {}, source_table = None):
         run_options["decodeColumns"] = import_table_options["decodeColumns"]
     # load in chunks
     run_options["bytesPerChunk"] = "1k"
+    # remove unsupported options
+    for unsupported in ["compression"]:
+        if unsupported in run_options:
+            del run_options[unsupported]
     # load data
     util.import_table(test_output_absolute, run_options)
     # compute CRC
@@ -661,7 +665,7 @@ TEST_STRING_OPTION("dialect")
 # WL13804-TSFR_5_9
 
 #@<> WL13804-FR5.9 - various predefined dialects
-for dialect in [ "default", "csv", "tsv", "csv-unix" ]:
+for dialect in [ "default", "csv", "tsv", "csv-unix", "csv-rfc-unix" ]:
     for table in types_schema_tables:
         TEST_LOAD(types_schema, table, { "dialect": dialect })
 
@@ -1419,6 +1423,101 @@ EXPECT_EQ(md5_table(session, tested_schema, tested_table), md5_table(session, ve
 #@<> export to an HTTP URL - cleanup
 # stop the server
 http_file_server.stop()
+
+#@<> BUG#38245434 - RFC4180-compatible CSV dump - setup
+# setup
+tested_schema = "tested_schema"
+tested_table = "bug_38245434"
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql("CREATE TABLE !.! (id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT, a TEXT NULL, b TEXT NULL)", [ tested_schema, tested_table ])
+
+session.run_sql("""INSERT INTO !.! (a, b) VALUES
+('', ''),
+('a', ''),
+('', 'b'),
+(NULL, 'NULL'),
+('null', NULL),
+(NULL, NULL),
+('NULLable', 'NULL'),
+(',', ',a'),
+('a,', ',ab'),
+('a,b', 'ab,'),
+(',,', 'a,,'),
+(',a,', ',,a'),
+('\n', '\na'),
+('a\n', '\nab'),
+('a\nb', 'ab\n'),
+('\n\n', 'a\n\n'),
+('\na\n', '\n\na'),
+('"', '"a'),
+('a"', '"ab'),
+('a"b', 'ab"'),
+('""', 'a""'),
+('"a"', '""a'),
+('"aa"', '"aaa"'),
+('b"aa"', 'bb"aa"'),
+('bbb"aa"', '"aa"b'),
+('"aa"bb', '"aa"bbb'),
+('"a"b"', 'c"a"b"'),
+('"a"b"d', 'c"a"b"d'),
+('\"""', '"\"""'),
+('foo said: "Where is my bar?"', 'baz said: "Where is my \t char?"')
+""", [ tested_schema, tested_table ])
+
+#@<> BUG#38245434 - test
+TEST_LOAD(tested_schema, tested_table, { "dialect": "csv-rfc-unix", "compression": "none" })
+
+with open(test_output_absolute, "r") as f:
+    EXPECT_EQ("""1,,
+2,a,
+3,,b
+4,NULL,"NULL"
+5,null,NULL
+6,NULL,NULL
+7,NULLable,"NULL"
+8,",",",a"
+9,"a,",",ab"
+10,"a,b","ab,"
+11,",,","a,,"
+12,",a,",",,a"
+13,"
+","
+a"
+14,"a
+","
+ab"
+15,"a
+b","ab
+"
+16,"
+
+","a
+
+"
+17,"
+a
+","
+
+a"
+18,"\""",\"""a"
+19,"a\""",\"""ab"
+20,"a""b","ab\"""
+21,\"""\""","a""\"""
+22,\"""a\""",""\"""a"
+23,\"""aa\""",\"""aaa\"""
+24,"b""aa\""","bb""aa\"""
+25,"bbb""aa\""",\"""aa""b"
+26,\"""aa""bb",\"""aa""bbb"
+27,\"""a""b\""","c""a""b\"""
+28,\"""a""b""d","c""a""b""d"
+29,\"""\"""\"",\"""\"""\"""\"
+30,"foo said: ""Where is my bar?\""","baz said: ""Where is my \t char?\"""
+""", f.read())
+
+#@<> BUG#38245434 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [ tested_schema ])
 
 #@<> Cleanup
 drop_all_schemas()

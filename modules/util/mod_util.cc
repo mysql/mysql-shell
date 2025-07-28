@@ -917,7 +917,7 @@ containing column names.
 that matches specific data file format. Can be used as base dialect and
 customized with fieldsTerminatedBy, fieldsEnclosedBy, fieldsOptionallyEnclosed,
 fieldsEscapedBy and linesTerminatedBy options. Must be one of the following
-values: default, csv, tsv, json or csv-unix.
+values: default, csv, tsv, json, csv-unix or csv-rfc-unix.
 @li <b>decodeColumns</b>: map (default: not set) - A map between columns names
 and SQL expressions to be applied on the loaded data. Column value captured in
 'columns' by integer is available as user variable '@@i', where `i` is that
@@ -935,16 +935,20 @@ ${TOPIC_REMOTE_STORAGE_OPTIONS}
 <b>dialect</b> predefines following set of options fieldsTerminatedBy (FT),
 fieldsEnclosedBy (FE), fieldsOptionallyEnclosed (FOE), fieldsEscapedBy (FESC)
 and linesTerminatedBy (LT) in following manner:
-@li default: no quoting, tab-separated, lf line endings.
+@li default: no quoting, tab-separated, LF line endings.
 (LT=@<LF@>, FESC='\', FT=@<TAB@>, FE=@<empty@>, FOE=false)
-@li csv: optionally quoted, comma-separated, crlf line endings.
+@li csv: optionally quoted, comma-separated, CRLF line endings.
 (LT=@<CR@>@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=true)
-@li tsv: optionally quoted, tab-separated, crlf line endings.
+@li tsv: optionally quoted, tab-separated, CRLF line endings.
 (LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='&quot;', FOE=true)
 @li json: one JSON document per line.
 (LT=@<LF@>, FESC=@<empty@>, FT=@<LF@>, FE=@<empty@>, FOE=false)
-@li csv-unix: fully quoted, comma-separated, lf line endings.
+@li csv-unix: fully quoted, comma-separated, LF line endings.
 (LT=@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=false)
+@li csv-rfc-unix: optionally quoted, comma-separated, LF line endings, no
+escapes inside quotes (except for &quot; which is escaped as &quot;&quot;),
+NULL values encoded as unquoted NULL string, compatible with RFC4180.
+(LT=@<LF@>, FESC=@<empty@>, FT=",", FE='&quot;', FOE=true)
 
 If the <b>schema</b> is not provided, an active schema on the global session, if
 set, will be used.
@@ -1003,6 +1007,11 @@ threads used.
  * @code{.unparsed}
  * "1","20.1000","foo said: \"Where is my bar?\""<LF>
  * "2","-12.5000","baz said: \"Where is my <TAB> char?\""<LF>
+ * @endcode
+ * @li csv-rfc-unix:
+ * @code{.unparsed}
+ * 1,20.1000,"foo said: ""Where is my bar?"""<LF>
+ * 2,-12.5000,"baz said: ""Where is my <TAB> char?"""<LF>
  * @endcode
  *
  * Examples of <b>decodeColumns</b> usage:
@@ -1648,7 +1657,7 @@ that matches specific data file format. Can be used as base dialect and
 customized with <b>fieldsTerminatedBy</b>, <b>fieldsEnclosedBy</b>,
 <b>fieldsEscapedBy</b>, <b>fieldsOptionallyEnclosed</b> and
 <b>linesTerminatedBy</b> options. Must be one of the following values: default,
-csv, tsv or csv-unix.
+csv, tsv, csv-unix or csv-rfc-unix.
 
 @li <b>maxRate</b>: string (default: "0") - Limit data read throughput to
 maximum rate, measured in bytes per second per thread. Use maxRate="0" to set no
@@ -1809,6 +1818,10 @@ and linesTerminatedBy (LT) in the following manner:
 (LT=@<CR@>@<LF@>, FESC='\', FT=@<TAB@>, FE='&quot;', FOE=true)
 @li csv-unix: fully quoted, comma-separated, LF line endings.
 (LT=@<LF@>, FESC='\', FT=",", FE='&quot;', FOE=false)
+@li csv-rfc-unix: optionally quoted, comma-separated, LF line endings, no
+escapes inside quotes (except for &quot; which is escaped as &quot;&quot;),
+NULL values encoded as unquoted NULL string, compatible with RFC4180.
+(LT=@<LF@>, FESC=@<empty@>, FT=",", FE='&quot;', FOE=true)
 )*");
 
 REGISTER_HELP_DETAIL_TEXT(TOPIC_UTIL_DUMP_DDL_COMMON_OPTION_DETAILS, R"*(

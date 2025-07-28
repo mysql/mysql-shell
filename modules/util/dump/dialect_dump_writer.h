@@ -26,8 +26,12 @@
 #ifndef MODULES_UTIL_DUMP_DIALECT_DUMP_WRITER_H_
 #define MODULES_UTIL_DUMP_DIALECT_DUMP_WRITER_H_
 
+#include <cassert>
 #include <cctype>
+#include <concepts>
 #include <cstdint>
+#include <cstring>
+#include <iterator>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -81,6 +85,14 @@ struct csv_unix_traits : public dialect_traits {
   static constexpr bool fields_optionally_enclosed = false;
 };
 
+struct csv_rfc_unix_traits : public dialect_traits {
+  static constexpr std::string_view lines_terminated_by = "\n";
+  static constexpr std::string_view fields_escaped_by = "";
+  static constexpr std::string_view fields_terminated_by = ",";
+  static constexpr std::string_view fields_enclosed_by = "\"";
+  static constexpr bool fields_optionally_enclosed = true;
+};
+
 /**
  * This class provides a bit more optimized implementation of Text_dump_writer
  * and intends to only handle dialects supported by import/export utilities. If
@@ -119,14 +131,6 @@ class Dialect_dump_writer : public Dump_writer {
   ~Dialect_dump_writer() override = default;
 
  private:
-  void store_preamble(
-      const std::vector<mysqlshdk::db::Column> &metadata,
-      const std::vector<Encoding_type> &pre_encoded_columns) override {
-    read_metadata(metadata, pre_encoded_columns);
-
-    // no preamble
-  }
-
   void store_row(const mysqlshdk::db::IRow *row) override {
     for (uint32_t idx = 0; idx < m_num_fields; ++idx) {
       store_field(row, idx);
@@ -135,12 +139,9 @@ class Dialect_dump_writer : public Dump_writer {
     finish_row();
   }
 
-  void store_postamble() override {
-    // no postamble
-  }
-
-  void read_metadata(const std::vector<mysqlshdk::db::Column> &metadata,
-                     const std::vector<Encoding_type> &pre_encoded_columns) {
+  void read_metadata(
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Encoding_type> &pre_encoded_columns) override {
     m_num_fields = static_cast<uint32_t>(metadata.size());
 
     m_is_string_type.clear();
@@ -380,6 +381,296 @@ class Dialect_dump_writer : public Dump_writer {
   std::vector<Escape_type> m_needs_escape;
 };
 
+/**
+ * Writes output escaping just the ENCLOSED BY character.
+ */
+template <class Traits>
+  requires std::is_base_of_v<dialect_traits, Traits>
+class Fast_dialect_dump_writer : public Dump_writer {
+ public:
+  Fast_dialect_dump_writer() {
+    static_assert(1 == Traits::lines_terminated_by.length(),
+                  "Line terminator needs to be one character");
+    static_assert(1 == Traits::fields_terminated_by.length(),
+                  "Field terminator needs to be one character");
+    static_assert(Traits::fields_escaped_by.empty(),
+                  "FIELDS ESCAPED BY cannot be set");
+    static_assert(1 == Traits::fields_enclosed_by.length(),
+                  "FIELDS ENCLOSED BY needs to be set");
+  }
+
+  Fast_dialect_dump_writer(const Fast_dialect_dump_writer &) = delete;
+  Fast_dialect_dump_writer(Fast_dialect_dump_writer &&) = default;
+
+  Fast_dialect_dump_writer &operator=(const Fast_dialect_dump_writer &) =
+      delete;
+  Fast_dialect_dump_writer &operator=(Fast_dialect_dump_writer &&) = default;
+
+  ~Fast_dialect_dump_writer() override = default;
+
+ private:
+  void store_row(const mysqlshdk::db::IRow *row) override {
+    for (uint32_t idx = 0; idx < m_num_fields; ++idx) {
+      store_field(row, idx);
+    }
+
+    finish_row();
+  }
+
+  void read_metadata(
+      const std::vector<mysqlshdk::db::Column> &metadata,
+      const std::vector<Encoding_type> &pre_encoded_columns) override {
+    m_num_fields = static_cast<uint32_t>(metadata.size());
+
+    m_needs_escape.clear();
+    m_needs_escape.resize(m_num_fields);
+
+    m_is_numeric.clear();
+    m_is_numeric.resize(m_num_fields);
+
+    std::size_t fixed_length = Traits::lines_terminated_by.length();
+
+    if (m_num_fields > 0) {
+      fixed_length +=
+          (m_num_fields - 1) * Traits::fields_terminated_by.length();
+    }
+
+    bool is_numeric;
+    Escape_type needs_escape;
+    const auto has_encoding_type_info =
+        pre_encoded_columns.size() == metadata.size();
+
+    for (uint32_t i = 0; i < m_num_fields; ++i) {
+      is_numeric = metadata[i].is_numeric();
+      needs_escape = is_numeric ? Escape_type::NONE : Escape_type::FULL;
+
+      if (has_encoding_type_info) {
+        switch (pre_encoded_columns[i]) {
+          case Encoding_type::BASE64:
+            needs_escape = Escape_type::BASE64;
+            break;
+
+          case Encoding_type::HEX:
+            needs_escape = Escape_type::NONE;
+            break;
+
+          case Encoding_type::VECTOR:
+            // this is encoded using VECTOR_TO_STRING and contains commas
+            if constexpr (',' == k_fields_terminated_by) {
+              needs_escape = Escape_type::FULL;
+            } else {
+              needs_escape = Escape_type::NONE;
+            }
+            break;
+
+          case Encoding_type::NONE:
+            // not encoded, depends on column type
+            break;
+        }
+      }
+
+      m_is_numeric[i] = is_numeric;
+      m_needs_escape[i] = needs_escape;
+
+      if constexpr (!Traits::fields_optionally_enclosed) {
+        fixed_length += 2 * Traits::fields_enclosed_by.length();
+      } else {
+        if (Escape_type::FULL == needs_escape) {
+          fixed_length += 2 * Traits::fields_enclosed_by.length();
+        }
+      }
+    }
+
+    buffer()->set_fixed_length(fixed_length);
+  }
+
+  inline void store_field(const mysqlshdk::db::IRow *row, uint32_t idx) {
+    if (0 != idx) [[likely]] {
+      buffer()->append_fixed(k_fields_terminated_by);
+    }
+
+    const char *data = nullptr;
+    std::size_t length = 0;
+    row->get_raw_data(idx, &data, &length);
+
+    bool is_null = nullptr == data;
+
+    if (!is_null && m_is_numeric[idx]) {
+      if ((length > 0 && std::isalpha(data[0])) ||
+          (length > 1 && '-' == data[0] && std::isalpha(data[1])))
+          [[unlikely]] {
+        // convert any strings ("inf", "-inf", "nan") into NULL
+        is_null = true;
+      }
+    }
+
+    if (is_null) {
+      store_null();
+    } else {
+      quote_field();
+
+      switch (m_needs_escape[idx]) {
+        case Escape_type::FULL:
+          store_escaped_field(data, length);
+          break;
+
+        case Escape_type::BASE64:
+          store_base64_field(data, length);
+          break;
+
+        case Escape_type::NONE:
+          store_unescaped_field(data, length);
+          break;
+      }
+
+      quote_field();
+    }
+  }
+
+  inline void store_null() {
+    // FIELDS ESCAPED BY character is not specified, write "NULL"
+    buffer()->will_write(k_null.length());
+    buffer()->append(k_null.data(), k_null.length());
+  }
+
+  inline void quote_field() {
+    if constexpr (!Traits::fields_optionally_enclosed) {
+      // all fields are quoted
+      store_fields_enclosed_by();
+    }
+  }
+
+  inline void store_escaped_field(const char *data, std::size_t length) {
+    if (!length) {
+      // empty field, don't write anything
+      return;
+    }
+
+    // this method escapes the ENCLOSED BY character by doubling it
+
+    buffer()->will_write(2 * length);
+
+    [[maybe_unused]] auto enclose = false;
+    const auto end = data + length;
+    auto ptr = data;
+    const auto append_block = [this, &data, &ptr]() {
+      buffer()->append(data, ptr - data);
+    };
+
+    if constexpr (Traits::fields_optionally_enclosed) {
+      // check if field needs to be enclosed, it does if it contains: field
+      // terminator, line terminator or ENCLOSED BY character
+      ptr = find_any_of(data, length, k_fields_enclosed_by,
+                        k_fields_terminated_by, k_lines_terminated_by);
+
+      if (ptr < end) {
+        // field needs to be enclosed
+        enclose = true;
+
+        // if this is not the ENCLOSED BY character, search again
+        if (k_fields_enclosed_by != *ptr) {
+          ++ptr;
+          ptr = find_enclosed_by(ptr, end - ptr);
+        }
+      } else {
+        // field needs to be enclosed if this is a literal NULL string
+        if (k_null.length() == length) {
+          enclose = 0 == strncmp(k_null.data(), data, k_null.length());
+        } else {
+          enclose = false;
+        }
+      }
+
+      if (enclose) {
+        // field needs to be enclosed, store starting quote
+        store_fields_enclosed_by();
+      }
+    } else {
+      // search for the ENCLOSED BY character
+      ptr = find_enclosed_by(data, length);
+    }
+
+    while (ptr < end) {
+      // include the ENCLOSED BY character
+      ++ptr;
+      append_block();
+
+      // double the ENCLOSED BY character
+      buffer()->append(k_fields_enclosed_by);
+
+      // find the next ENCLOSED BY character
+      data = ptr;
+      ptr = find_enclosed_by(ptr, end - ptr);
+    }
+
+    // append the leftover
+    assert(ptr == end);
+    append_block();
+
+    if constexpr (Traits::fields_optionally_enclosed) {
+      if (enclose) {
+        // store ending quote
+        store_fields_enclosed_by();
+      }
+    }
+  }
+
+  inline void store_base64_field(const char *data, std::size_t length) {
+    // we strip new lines from the BASE64 output, so it's safe to store it
+    // without quotes
+    buffer()->write_base64_data(data, length);
+  }
+
+  inline void store_unescaped_field(const char *data, std::size_t length) {
+    // write as is
+    buffer()->will_write(length);
+    buffer()->append(data, length);
+  }
+
+  inline void finish_row() { buffer()->append_fixed(k_lines_terminated_by); }
+
+  inline void store_fields_enclosed_by() {
+    buffer()->append_fixed(k_fields_enclosed_by);
+  }
+
+  template <typename... T>
+    requires(std::same_as<T, char> && ...)
+  static inline const
+      char *find_any_of(const char *data, std::size_t length, T... needles) {
+    auto s = data;
+
+    while (length) {
+      if (((*s == needles) || ...)) {
+        break;
+      }
+
+      --length;
+      ++s;
+    }
+
+    return s;
+  }
+
+  static inline const char *find_enclosed_by(const char *data,
+                                             std::size_t length) {
+    return find_any_of(data, length, k_fields_enclosed_by);
+  }
+
+  static constexpr auto k_lines_terminated_by = Traits::lines_terminated_by[0];
+  static constexpr auto k_fields_terminated_by =
+      Traits::fields_terminated_by[0];
+  static constexpr auto k_fields_enclosed_by = Traits::fields_enclosed_by[0];
+
+  static constexpr std::string_view k_null = "NULL";
+
+  uint32_t m_num_fields;
+
+  std::vector<uint8_t> m_is_numeric;
+
+  // which field needs to be escaped
+  std::vector<Escape_type> m_needs_escape;
+};
+
 }  // namespace detail
 
 class Default_dump_writer
@@ -448,6 +739,21 @@ class Csv_unix_dump_writer
   Csv_unix_dump_writer &operator=(Csv_unix_dump_writer &&) = default;
 
   ~Csv_unix_dump_writer() override = default;
+};
+
+class Csv_rfc_unix_dump_writer
+    : public detail::Fast_dialect_dump_writer<detail::csv_rfc_unix_traits> {
+ public:
+  using Fast_dialect_dump_writer::Fast_dialect_dump_writer;
+
+  Csv_rfc_unix_dump_writer(const Csv_rfc_unix_dump_writer &) = delete;
+  Csv_rfc_unix_dump_writer(Csv_rfc_unix_dump_writer &&) = default;
+
+  Csv_rfc_unix_dump_writer &operator=(const Csv_rfc_unix_dump_writer &) =
+      delete;
+  Csv_rfc_unix_dump_writer &operator=(Csv_rfc_unix_dump_writer &&) = default;
+
+  ~Csv_rfc_unix_dump_writer() override = default;
 };
 
 }  // namespace dump
