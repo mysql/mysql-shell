@@ -1944,10 +1944,11 @@ bool Dump_loader::Worker::Secondary_load_task::execute(Worker *worker,
     const auto worker_name = worker_id(worker->id());
 
     try {
-      const auto result =
-          sql::ar::queryf(worker->reconnect_callback(), worker->session(),
-                          query_comment() + "ALTER TABLE !.! SECONDARY_LOAD",
-                          schema(), table());
+      const auto result = sql::ar::queryf(
+          worker->reconnect_callback(), worker->session(),
+          query_comment() +
+              "ALTER TABLE !.! SECONDARY_LOAD /*!90401 GUIDED OFF */",
+          schema(), table());
 
       if (const auto warnings = result->get_warning_count()) {
         current_console()->print_warning(shcore::str_format(
