@@ -3895,6 +3895,10 @@ EXPECT_JSON_EQ(schemas, snapshot_schemas(session2), "Verifying schemas")
 
 os.remove(progress_file)
 
+#@<> BUG#38249362 - using 'dropExistingObjects' when schema did not exist failed with an error
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "resetProgress": True, "loadUsers": True, "showProgress": False }), "Load should not throw")
+
 #@<> BUG#36561962 - cleanup
 session1.run_sql("DROP SCHEMA IF EXISTS !", [ test_schema ])
 session1.run_sql(f"DROP USER IF EXISTS {tested_user}")

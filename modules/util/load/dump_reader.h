@@ -151,7 +151,7 @@ class Dump_reader {
 
   std::vector<shcore::Account> accounts() const;
 
-  std::list<const Dump_reader::Object_info *> schemas() const;
+  std::list<Dump_reader::Object_info *> schemas();
 
   bool schema_objects(std::string_view schema,
                       std::list<Object_info *> *out_tables,
@@ -341,11 +341,16 @@ class Dump_reader {
 
   void on_secondary_load_end(std::string_view schema, std::string_view table);
 
+  bool schema_exists(std::string_view schema,
+                     const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
   bool table_exists(std::string_view schema, std::string_view table,
                     const std::shared_ptr<mysqlshdk::db::ISession> &session);
 
   bool view_exists(std::string_view schema, std::string_view view,
                    const std::shared_ptr<mysqlshdk::db::ISession> &session);
+
+  void set_schema_exists(std::string_view schema);
 
   void set_table_exists(std::string_view schema, std::string_view table);
 

@@ -25,6 +25,8 @@
 
 #include "modules/util/load/dump_reader.h"
 
+#include <mysqld_error.h>
+
 #include <algorithm>
 #include <atomic>
 #include <functional>
@@ -340,8 +342,8 @@ std::vector<shcore::Account> Dump_reader::accounts() const {
   return account_list;
 }
 
-std::list<const Dump_reader::Object_info *> Dump_reader::schemas() const {
-  std::list<const Dump_reader::Object_info *> slist;
+std::list<Dump_reader::Object_info *> Dump_reader::schemas() {
+  std::list<Dump_reader::Object_info *> slist;
 
   for (const auto &s : m_contents.schemas) {
     slist.push_back(s.second.get());
@@ -2086,18 +2088,43 @@ T *Dump_reader::find_schema_object(std::string_view schema,
           schema, object, member, type, context));
 }
 
+bool Dump_reader::schema_exists(
+    std::string_view schema,
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  auto s = find_schema(schema, "existence is being checked");
+
+  if (!s->exists.has_value()) {
+    try {
+      session->executef("USE !", schema);
+      s->exists = true;
+    } catch (const mysqlshdk::db::Error &e) {
+      if (ER_BAD_DB_ERROR == e.code()) {
+        s->exists = false;
+      } else {
+        throw;
+      }
+    }
+  }
+
+  return *s->exists;
+}
+
 bool Dump_reader::table_exists(
     std::string_view schema, std::string_view table,
     const std::shared_ptr<mysqlshdk::db::ISession> &session) {
   auto t = find_table(schema, table, "existence is being checked");
 
   if (!t->exists.has_value()) {
-    const auto result = session->queryf(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema = "
-        "? AND table_name = ?",
-        schema, table);
-
-    t->exists = result->fetch_one();
+    try {
+      session->queryf("SELECT 1 FROM !.! LIMIT 1", schema, table);
+      t->exists = true;
+    } catch (const mysqlshdk::db::Error &e) {
+      if (ER_BAD_DB_ERROR == e.code() || ER_NO_SUCH_TABLE == e.code()) {
+        t->exists = false;
+      } else {
+        throw;
+      }
+    }
   }
 
   return *t->exists;
@@ -2109,15 +2136,23 @@ bool Dump_reader::view_exists(
   auto v = find_view(schema, view, "existence is being checked");
 
   if (!v->exists.has_value()) {
-    const auto result = session->queryf(
-        "SELECT table_name FROM information_schema.views WHERE table_schema = "
-        "? AND table_name = ?",
-        schema, view);
-
-    v->exists = result->fetch_one();
+    try {
+      session->queryf("SELECT 1 FROM !.! LIMIT 1", schema, view);
+      v->exists = true;
+    } catch (const mysqlshdk::db::Error &e) {
+      if (ER_BAD_DB_ERROR == e.code() || ER_NO_SUCH_TABLE == e.code()) {
+        v->exists = false;
+      } else {
+        throw;
+      }
+    }
   }
 
   return *v->exists;
+}
+
+void Dump_reader::set_schema_exists(std::string_view schema) {
+  find_schema(schema, "existence is being set")->exists = true;
 }
 
 void Dump_reader::set_table_exists(std::string_view schema,

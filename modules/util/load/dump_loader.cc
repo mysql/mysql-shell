@@ -3662,13 +3662,11 @@ std::shared_ptr<mysqlshdk::db::IResult> query_names(
   }
 }
 
-}  // namespace
-
-bool Dump_loader::report_duplicates(
-    const std::string &what, const std::string &schema,
-    std::list<Dump_reader::Object_info *> *objects,
-    mysqlshdk::db::IResult *result) {
-  bool has_duplicates = false;
+/**
+ * Marks object with the given name as existing, and removes it from the list.
+ */
+bool set_object_exists(const std::string &name,
+                       std::list<Dump_reader::Object_info *> *objects) {
   const auto mark_existing =
       [objects](const std::function<bool(const std::string &)> &matches) {
         const auto end = objects->end();
@@ -3686,6 +3684,30 @@ bool Dump_loader::report_duplicates(
         return false;
       };
 
+  // first use exact match
+  if (!mark_existing(
+          [&name](const std::string &object) { return name == object; })) {
+    // try again using case insensitive comparison
+    const auto wide_name = shcore::utf8_to_wide(name);
+
+    if (!mark_existing([&wide_name](const std::string &object) {
+          return shcore::str_caseeq(wide_name, shcore::utf8_to_wide(object));
+        })) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+}  // namespace
+
+bool Dump_loader::report_duplicates(
+    const std::string &what, const std::string &schema,
+    std::list<Dump_reader::Object_info *> *objects,
+    mysqlshdk::db::IResult *result) {
+  bool has_duplicates = false;
+
   while (auto row = result->fetch_one()) {
     const auto name = row->get_string(0);
     const auto msg = "Schema `" + schema + "` already contains " + what +
@@ -3701,20 +3723,11 @@ bool Dump_loader::report_duplicates(
 
     has_duplicates = true;
 
-    // first use exact match
-    if (!mark_existing(
-            [&name](const std::string &object) { return name == object; })) {
-      // try again using case insensitive comparison
-      const auto wide_name = shcore::utf8_to_wide(name);
-
-      if (!mark_existing([&wide_name](const std::string &object) {
-            return shcore::str_caseeq(wide_name, shcore::utf8_to_wide(object));
-          })) {
-        log_info(
-            "Could not find in metadata %s named `%s` which was reported as "
-            "a duplicate in schema `%s`.",
-            what.c_str(), name.c_str(), schema.c_str());
-      }
+    if (!set_object_exists(name, objects)) {
+      log_info(
+          "Could not find in metadata %s named `%s` which was reported as "
+          "a duplicate in schema `%s`.",
+          what.c_str(), name.c_str(), schema.c_str());
     }
   }
 
@@ -3763,6 +3776,10 @@ void Dump_loader::check_existing_objects() {
     }
   }
 
+  auto schemas = m_dump->schemas();
+
+  if (schemas.empty()) return;
+
   // Case handling:
   // Partition, subpartition, column, index, stored routine, event, and
   // resource group names are not case-sensitive on any platform, nor are
@@ -3770,10 +3787,9 @@ void Dump_loader::check_existing_objects() {
   // lower_case_table_names
 
   // Get list of schemas being loaded that already exist
-  std::string set = shcore::str_join(m_dump->schemas(), ",", [](const auto s) {
+  std::string set = shcore::str_join(schemas, ",", [](const auto s) {
     return shcore::quote_sql_string(s->name);
   });
-  if (set.empty()) return;
 
   auto result =
       sql::ar::query(m_reconnect_callback, m_session,
@@ -3790,6 +3806,13 @@ void Dump_loader::check_existing_objects() {
     std::list<Dump_reader::Object_info *> procedures;
     std::list<Dump_reader::Object_info *> libraries;
     std::list<Dump_reader::Object_info *> events;
+
+    if (!set_object_exists(schema, &schemas)) {
+      log_info(
+          "Could not find in metadata a schema named `%s` which was reported "
+          "as existing.",
+          schema.c_str());
+    }
 
     if (!m_dump->schema_objects(schema, &tables, &views, &triggers, &functions,
                                 &procedures, &libraries, &events))
@@ -3847,6 +3870,12 @@ void Dump_loader::check_existing_objects() {
     if (result)
       has_duplicates |=
           report_duplicates("an event", schema, &events, result.get());
+  }
+
+  // mark the remaining schemas as non-existing
+  for (auto schema : schemas) {
+    assert(!schema->exists.has_value());
+    schema->exists = false;
   }
 
   if (has_duplicates) {
@@ -4021,6 +4050,11 @@ void Dump_loader::execute_drop_ddl_tasks() {
       // get next schema
       schema = schemas.front();
       schemas.pop_front();
+
+      // BUG#38249362: skip non-existent schemas
+      if (!m_dump->schema_exists(schema->name, m_session)) {
+        continue;
+      }
 
       if (Load_progress_log::DONE ==
           m_load_log->status(progress::Schema_ddl{schema->name})) {
@@ -4866,6 +4900,7 @@ void Dump_loader::on_schema_ddl_end(std::size_t,
 
 void Dump_loader::on_schema_ddl_end(const std::string &schema) {
   m_load_log->log(progress::end::Schema_ddl{schema});
+  m_dump->set_schema_exists(schema);
 }
 
 void Dump_loader::on_table_ddl_start(std::size_t worker_id,
