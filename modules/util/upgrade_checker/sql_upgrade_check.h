@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,7 +44,7 @@ using Check_query = std::pair<std::string, Upgrade_issue::Object_type>;
 
 class Sql_upgrade_check : public Upgrade_check {
  public:
-  Sql_upgrade_check(const std::string_view name,
+  Sql_upgrade_check(const std::string_view name, Category category,
                     std::vector<Check_query> &&queries,
                     Upgrade_issue::Level level = Upgrade_issue::WARNING,
                     const char *minimal_version = nullptr,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -66,7 +66,7 @@ struct Feature_entry {
 
 class Feature_life_cycle_check : public Upgrade_check {
  public:
-  explicit Feature_life_cycle_check(std::string_view name,
+  explicit Feature_life_cycle_check(std::string_view name, Category category,
                                     const Upgrade_info &server_info);
   ~Feature_life_cycle_check() override = default;
 

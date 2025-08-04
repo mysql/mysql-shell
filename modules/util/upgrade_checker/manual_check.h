@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,8 +39,9 @@ namespace mysqlsh {
 namespace upgrade_checker {
 class Manual_check : public Upgrade_check {
  public:
-  Manual_check(const std::string_view name, Upgrade_issue::Level level)
-      : Upgrade_check(name), m_level(level) {}
+  Manual_check(const std::string_view name, Category category,
+               Upgrade_issue::Level level)
+      : Upgrade_check(name, category), m_level(level) {}
 
   Upgrade_issue::Level get_level() const { return m_level; }
   bool is_runnable() const override { return false; }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,7 +53,8 @@ class Invalid_engine_foreign_key_check : public Upgrade_check {
 };
 
 Invalid_engine_foreign_key_check::Invalid_engine_foreign_key_check()
-    : Upgrade_check(ids::k_invalid_engine_foreign_key_check) {}
+    : Upgrade_check(ids::k_invalid_engine_foreign_key_check, Category::SCHEMA) {
+}
 
 std::string Invalid_engine_foreign_key_check::get_fk_57_schema_filter(
     Checker_cache *cache) const {

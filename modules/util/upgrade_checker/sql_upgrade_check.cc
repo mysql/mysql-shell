@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,12 +42,13 @@ namespace upgrade_checker {
 using mysqlshdk::utils::Version;
 
 Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
+                                     Category category,
                                      std::vector<Check_query> &&queries,
                                      Upgrade_issue::Level level,
                                      const char *minimal_version,
                                      std::forward_list<std::string> &&set_up,
                                      std::forward_list<std::string> &&clean_up)
-    : Upgrade_check(name),
+    : Upgrade_check(name, category),
       m_queries(queries),
       m_set_up(set_up),
       m_clean_up(clean_up),

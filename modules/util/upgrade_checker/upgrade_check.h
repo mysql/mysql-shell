@@ -39,12 +39,22 @@ namespace mysqlsh {
 namespace upgrade_checker {
 
 class Condition;
+
+enum class Category {
+  ACCOUNTS,
+  CONFIG,
+  PARSING,
+  SCHEMA,
+};
+
 class Upgrade_check {
  public:
-  explicit Upgrade_check(const std::string_view name) : m_name(name) {}
+  explicit Upgrade_check(const std::string_view name, Category category)
+      : m_name(name), m_category(category) {}
   virtual ~Upgrade_check() {}
 
   const std::string &get_name() const { return m_name; }
+  const std::string &get_category() const { return to_string(m_category); }
   virtual const std::string &get_title() const;
   virtual std::string get_description(
       const std::string &group = "",
@@ -85,7 +95,10 @@ class Upgrade_check {
   virtual bool is_custom_session_required() const { return false; }
 
  private:
+  const std::string &to_string(Category category) const;
+
   std::string m_name;
+  Category m_category;
   Condition *m_condition = nullptr;
   std::vector<std::string> m_groups;
 };

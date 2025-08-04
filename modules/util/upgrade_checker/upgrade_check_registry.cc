@@ -180,11 +180,11 @@ namespace {
 
 bool register_manual_checks() {
   Upgrade_check_registry::register_manual_check(
-      "8.0.11", ids::k_default_authentication_plugin_check,
+      "8.0.11", ids::k_default_authentication_plugin_check, Category::ACCOUNTS,
       Upgrade_issue::WARNING, Target::AUTHENTICATION_PLUGINS);
   Upgrade_check_registry::register_manual_check(
       "8.0.11", ids::k_default_authentication_plugin_mds_check,
-      Upgrade_issue::WARNING, Target::MDS_SPECIFIC);
+      Category::ACCOUNTS, Upgrade_issue::WARNING, Target::MDS_SPECIFIC);
   return true;
 }
 
@@ -387,11 +387,12 @@ Upgrade_check_registry::create_checklist(const Upgrade_check_config &config,
 
 void Upgrade_check_registry::register_manual_check(const char *ver,
                                                    std::string_view name,
+                                                   Category category,
                                                    Upgrade_issue::Level level,
                                                    Target target) {
   register_check(
-      [name, level](const Upgrade_info &) {
-        return std::make_unique<Manual_check>(name, level);
+      [name, category, level](const Upgrade_info &) {
+        return std::make_unique<Manual_check>(name, category, level);
       },
       target, Version(ver));
 }

@@ -49,7 +49,7 @@ namespace mysqlsh {
 namespace upgrade_checker {
 std::unique_ptr<Sql_upgrade_check> get_old_temporal_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_old_temporal_check,
+      ids::k_old_temporal_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT table_schema, table_name,column_name,column_type "
            "FROM information_schema.columns WHERE column_type LIKE "
@@ -84,7 +84,7 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
 
   keywords = "(" + keywords + ");";
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_reserved_keywords_check,
+      ids::k_reserved_keywords_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select SCHEMA_NAME, 'Schema name' as WARNING from "
            "INFORMATION_SCHEMA.SCHEMATA where <<schema_filter>> and "
@@ -135,7 +135,7 @@ class Syntax_check : public Upgrade_check {
 
  public:
   Syntax_check(const Upgrade_info &info)
-      : Upgrade_check(ids::k_syntax_check),
+      : Upgrade_check(ids::k_syntax_check, Category::PARSING),
         m_parser(info.target_version),
         m_target_version(info.target_version) {}
 
@@ -339,7 +339,7 @@ std::unique_ptr<Upgrade_check> get_syntax_check(const Upgrade_info &info) {
 /// In this check we are only interested if any such table/database exists
 std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_utf8mb3_check,
+      ids::k_utf8mb3_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select SCHEMA_NAME, concat('schema''s default character set: ',  "
            "DEFAULT_CHARACTER_SET_NAME) from INFORMATION_SCHEMA.schemata where "
@@ -358,7 +358,7 @@ std::unique_ptr<Sql_upgrade_check> get_utf8mb3_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_mysql_schema_check,
+      ids::k_mysql_schema_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT TABLE_SCHEMA, TABLE_NAME, 'Table name used in mysql "
            "schema.' "
@@ -381,7 +381,7 @@ std::unique_ptr<Sql_upgrade_check> get_mysql_schema_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_innodb_rowformat_check,
+      ids::k_innodb_rowformat_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select table_schema, table_name, row_format from "
            "information_schema.tables where engine = 'innodb' "
@@ -392,7 +392,7 @@ std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_nonnative_partitioning_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_nonnative_partitioning_check,
+      ids::k_nonnative_partitioning_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select table_schema, table_name, concat(engine, ' engine does not "
            "support native partitioning') from information_schema.Tables where "
@@ -405,7 +405,7 @@ std::unique_ptr<Sql_upgrade_check> get_nonnative_partitioning_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_foreign_key_length_check,
+      ids::k_foreign_key_length_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select table_schema, table_name, 'Foreign key longer than 64 "
            "characters' as description from information_schema.tables where "
@@ -420,7 +420,7 @@ std::unique_ptr<Sql_upgrade_check> get_foreign_key_length_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_maxdb_sql_mode_flags_check,
+      ids::k_maxdb_sql_mode_flags_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select routine_schema, routine_name, concat(routine_type, ' uses "
            "obsolete MAXDB sql_mode') from information_schema.routines where "
@@ -486,15 +486,15 @@ std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
   }
 
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_obsolete_sql_mode_flags_check, std::move(queries),
-      Upgrade_issue::NOTICE);
+      ids::k_obsolete_sql_mode_flags_check, Category::SCHEMA,
+      std::move(queries), Upgrade_issue::NOTICE);
 }
 
 class Enum_set_element_length_check : public Sql_upgrade_check {
  public:
   Enum_set_element_length_check()
       : Sql_upgrade_check(
-            ids::k_enum_set_element_length_check,
+            ids::k_enum_set_element_length_check, Category::SCHEMA,
             {{"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, UPPER(DATA_TYPE), "
               "COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH from "
               "information_schema.columns where <<schema_and_table_filter>> "
@@ -541,7 +541,8 @@ std::unique_ptr<Sql_upgrade_check> get_enum_set_element_length_check() {
 
 class Check_table_command : public Upgrade_check {
  public:
-  Check_table_command() : Upgrade_check(ids::k_table_command_check) {}
+  Check_table_command()
+      : Upgrade_check(ids::k_table_command_check, Category::SCHEMA) {}
 
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -625,7 +626,7 @@ std::unique_ptr<Upgrade_check> get_table_command_check() {
 std::unique_ptr<Sql_upgrade_check>
 get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info) {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_partitioned_tables_in_shared_tablespaces_check,
+      ids::k_partitioned_tables_in_shared_tablespaces_check, Category::SCHEMA,
       std::vector<Check_query>{
           {info.server_version < Version(8, 0, 0)
                ? "SELECT TABLE_SCHEMA, TABLE_NAME, "
@@ -651,7 +652,7 @@ get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info) {
 
 std::unique_ptr<Sql_upgrade_check> get_circular_directory_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_circular_directory_check,
+      ids::k_circular_directory_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT tablespace_name, concat('circular reference in datafile "
            "path: "
@@ -741,7 +742,7 @@ class Removed_functions_check : public Sql_upgrade_check {
  public:
   Removed_functions_check()
       : Sql_upgrade_check(
-            ids::k_removed_functions_check,
+            ids::k_removed_functions_check, Category::SCHEMA,
             {{"select table_schema, table_name, '', 'VIEW', "
               "UPPER(view_definition) from information_schema.views where "
               "<<schema_and_table_filter>>",
@@ -806,7 +807,7 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
  public:
   Groupby_asc_syntax_check()
       : Sql_upgrade_check(
-            ids::k_groupby_asc_syntax_check,
+            ids::k_groupby_asc_syntax_check, Category::SCHEMA,
             {{"select table_schema, table_name, 'VIEW', "
               "UPPER(view_definition) from information_schema.views where "
               "<<schema_and_table_filter>> and "
@@ -891,7 +892,7 @@ std::unique_ptr<Sysvar_check> get_sys_vars_check(const Upgrade_info &info) {
 
 std::unique_ptr<Sql_upgrade_check> get_zero_dates_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_zero_dates_check,
+      ids::k_zero_dates_check, Category::CONFIG,
       std::vector<Check_query>{
           {"select 'global.sql_mode', 'does not contain either NO_ZERO_DATE "
            "or "
@@ -934,6 +935,7 @@ std::unique_ptr<Sql_upgrade_check>
 get_schema_inconsistency_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_schema_inconsistency_check,
+      Category::SCHEMA,
       std::vector<Check_query>{{
        "select A.schema_name, A.table_name, 'present in INFORMATION_SCHEMA''s "
        "INNODB_SYS_TABLES table but missing from TABLES table' from (select "
@@ -954,7 +956,7 @@ get_schema_inconsistency_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_fts_in_tablename_check,
+      ids::k_fts_in_tablename_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select table_schema, table_name , 'table name contains ''FTS''' "
            "from information_schema.tables where <<schema_and_table_filter>> "
@@ -967,6 +969,7 @@ std::unique_ptr<Sql_upgrade_check> get_fts_in_tablename_check() {
 std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_engine_mixup_check,
+      Category::SCHEMA,
       std::vector<Check_query>{{
           "select a.table_schema, a.table_name, concat('recognized by the "
           "InnoDB engine but belongs to ', a.engine) from "
@@ -985,7 +988,7 @@ std::unique_ptr<Sql_upgrade_check> get_engine_mixup_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_old_geometry_types_check,
+      ids::k_old_geometry_types_check, Category::SCHEMA,
       std::vector<Check_query>{{
           R"(select t.table_schema, t.table_name, c.column_name,
               concat(c.data_type, " column") as 'advice'
@@ -1014,7 +1017,7 @@ class Changed_functions_in_generated_columns_check : public Sql_upgrade_check {
  public:
   Changed_functions_in_generated_columns_check()
       : Sql_upgrade_check(
-            ids::k_changed_functions_generated_columns_check,
+            ids::k_changed_functions_generated_columns_check, Category::SCHEMA,
             {{"SELECT s.table_schema, s.table_name, s.column_name,"
               "    UPPER(c.generation_expression)"
               "  FROM information_schema.columns c"
@@ -1067,7 +1070,7 @@ class Columns_which_cannot_have_defaults_check : public Sql_upgrade_check {
  public:
   Columns_which_cannot_have_defaults_check()
       : Sql_upgrade_check(
-            ids::k_columns_which_cannot_have_defaults_check,
+            ids::k_columns_which_cannot_have_defaults_check, Category::SCHEMA,
             {{"SELECT TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, DATA_TYPE FROM "
               "INFORMATION_SCHEMA.COLUMNS WHERE <<schema_and_table_filter>> "
               "AND "
@@ -1087,7 +1090,7 @@ get_columns_which_cannot_have_defaults_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_invalid_57_names_check,
+      ids::k_invalid_57_names_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT SCHEMA_NAME, 'Schema name' AS WARNING FROM "
            "INFORMATION_SCHEMA.SCHEMATA WHERE <<schema_filter>> AND "
@@ -1103,7 +1106,7 @@ std::unique_ptr<Sql_upgrade_check> get_invalid_57_names_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_orphaned_objects_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_orphaned_objects_check,
+      ids::k_orphaned_objects_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, '##routine' AS WARNING "
            "FROM information_schema.routines WHERE "
@@ -1122,7 +1125,7 @@ std::unique_ptr<Sql_upgrade_check> get_orphaned_objects_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_dollar_sign_name_check,
+      ids::k_dollar_sign_name_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT SCHEMA_NAME, 'name starts with a $ sign.' FROM "
            "information_schema.schemata WHERE SCHEMA_NAME LIKE '$_%' AND "
@@ -1162,7 +1165,7 @@ std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_index_too_large_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_index_too_large_check,
+      ids::k_index_too_large_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"select s.table_schema, s.table_name, s.index_name, 'index too "
            "large.' as warning from information_schema.statistics s, "
@@ -1190,7 +1193,7 @@ std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check() {
   auto regex = "[[:blank:]]\\\\.[\\\\x0001-\\\\xFFFF]+"s;
 
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_empty_dot_table_syntax_check,
+      ids::k_empty_dot_table_syntax_check, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, ' routine body contains "
            "deprecated identifiers.' FROM information_schema.routines WHERE "
@@ -1316,7 +1319,7 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
  public:
   Deprecated_default_auth_check(mysqlshdk::utils::Version target_ver)
       : Sql_upgrade_check(
-            ids::k_deprecated_default_auth_check,
+            ids::k_deprecated_default_auth_check, Category::ACCOUNTS,
             std::vector<Check_query>{
                 {"show variables where variable_name = "
                  "'default_authentication_plugin' AND value IN (" +
@@ -1374,7 +1377,7 @@ std::unique_ptr<Sql_upgrade_check> get_deprecated_default_auth_check(
 std::unique_ptr<Sql_upgrade_check> get_deprecated_router_auth_method_check(
     const Upgrade_info &info) {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_deprecated_router_auth_method_check,
+      ids::k_deprecated_router_auth_method_check, Category::ACCOUNTS,
       std::vector<Check_query>{
           {"SELECT CONCAT(user, '@', host), ' - router user "
            "with deprecated authentication method.' FROM "
@@ -1449,7 +1452,7 @@ class Deprecated_partition_temporal_delimiter_check : public Sql_upgrade_check {
  public:
   Deprecated_partition_temporal_delimiter_check()
       : Sql_upgrade_check(
-            ids::k_deprecated_temporal_delimiter_check,
+            ids::k_deprecated_temporal_delimiter_check, Category::SCHEMA,
             std::vector<Check_query>{
                 {
                     R"(select 
@@ -1545,7 +1548,7 @@ get_deprecated_partition_temporal_delimiter_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_column_definition_check() {
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_column_definition,
+      ids::k_column_definition, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT table_schema,table_name,column_name,concat('##', "
            "column_type, 'AutoIncrement') as tag FROM "
@@ -1567,7 +1570,7 @@ std::unique_ptr<Sql_upgrade_check> get_partitions_with_prefix_keys_check(
   }
 
   return std::make_unique<Sql_upgrade_check>(
-      ids::k_partitions_with_prefix_keys,
+      ids::k_partitions_with_prefix_keys, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT s.table_schema, s.table_name, group_concat(distinct "
            "s.column_name) AS COLUMNS FROM information_schema.statistics s "
@@ -1591,6 +1594,7 @@ std::unique_ptr<Upgrade_check> get_invalid_privileges_check(
 std::unique_ptr<Upgrade_check> get_foreign_key_references_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_foreign_key_references,
+      Category::SCHEMA,
       std::vector<Check_query>{
           {
 /*
@@ -1720,7 +1724,7 @@ std::unique_ptr<Upgrade_check> get_spatial_index_check() {
   // type 3 -> manually created clustered index
   // type 64 -> spatial index
   auto check = std::make_unique<Sql_upgrade_check>(
-      ids::k_spatial_index,
+      ids::k_spatial_index, Category::SCHEMA,
       std::vector<Check_query>{
           {"select "
            "substring_index(tab.name,'/', 1) TABLE_SCHEMA, "

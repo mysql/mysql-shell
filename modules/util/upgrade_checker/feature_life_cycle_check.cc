@@ -38,8 +38,8 @@ namespace upgrade_checker {
 using mysqlshdk::utils::Version;
 
 Feature_life_cycle_check::Feature_life_cycle_check(
-    std::string_view name, const Upgrade_info &server_info)
-    : Upgrade_check(name), m_server_info(server_info) {
+    std::string_view name, Category category, const Upgrade_info &server_info)
+    : Upgrade_check(name, category), m_server_info(server_info) {
   set_condition(&m_list_condition);
 }
 
@@ -177,7 +177,8 @@ std::vector<Upgrade_issue> Feature_life_cycle_check::run(
 
 Auth_method_usage_check::Auth_method_usage_check(
     const Upgrade_info &server_info)
-    : Feature_life_cycle_check(ids::k_auth_method_usage_check, server_info) {
+    : Feature_life_cycle_check(ids::k_auth_method_usage_check,
+                               Category::ACCOUNTS, server_info) {
   // Since the groups determine the display order, the groups are set in order
   // of removal of the plugins
   set_groups(
@@ -261,7 +262,8 @@ void Auth_method_usage_check::process_row(const mysqlshdk::db::IRow *row) {
 }
 
 Plugin_usage_check::Plugin_usage_check(const Upgrade_info &server_info)
-    : Feature_life_cycle_check(ids::k_plugin_usage_check, server_info) {
+    : Feature_life_cycle_check(ids::k_plugin_usage_check, Category::CONFIG,
+                               server_info) {
   add_feature({"authentication_fido", Version(8, 0, 27), Version(8, 2, 0),
                Version(8, 4, 0), "'authentication_webauthn' plugin"});
   add_feature({"keyring_file",

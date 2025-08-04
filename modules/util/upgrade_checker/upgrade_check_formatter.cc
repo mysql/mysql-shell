@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -257,6 +257,7 @@ class Text_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_console->println();
     print_paragraph("- " + check.get_name(), 0, 2);
     print_paragraph(check.get_title(), 2, 0);
+    print_paragraph("Category: " + check.get_category(), 2, 0);
     if (check.get_condition())
       print_paragraph("Condition: " + check.get_condition()->description(), 2,
                       0);
@@ -609,6 +610,9 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
           "id", rapidjson::StringRef(check->get_name().c_str()), m_allocator);
       info_object.AddMember("title",
                             rapidjson::StringRef(check->get_title().c_str()),
+                            m_allocator);
+      info_object.AddMember("category",
+                            rapidjson::StringRef(check->get_category().c_str()),
                             m_allocator);
       if (check->get_condition()) {
         rapidjson::Value val;

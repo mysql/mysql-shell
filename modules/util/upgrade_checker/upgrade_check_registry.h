@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -45,6 +45,7 @@ namespace mysqlsh {
 namespace upgrade_checker {
 
 class Upgrade_check;
+enum class Category;
 class Upgrade_check_config;
 
 template <typename T>
@@ -103,6 +104,7 @@ class Upgrade_check_registry {
   }
 
   static void register_manual_check(const char *ver, std::string_view name,
+                                    Category category,
                                     Upgrade_issue::Level level, Target target);
 
   static std::vector<std::unique_ptr<Upgrade_check>> create_checklist(

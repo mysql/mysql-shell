@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -625,7 +625,7 @@ std::optional<Sysvar_version_check> Sysvar_definition::get_check(
 }
 
 Sysvar_check::Sysvar_check(const Upgrade_info &info)
-    : Upgrade_check(ids::k_sys_vars_check) {
+    : Upgrade_check(ids::k_sys_vars_check, Category::CONFIG) {
   std::call_once(registry_load_flag,
                  [&]() { s_registry.load_configuration(); });
 

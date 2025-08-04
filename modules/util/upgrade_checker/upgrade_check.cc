@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -98,9 +98,28 @@ Upgrade_issue Upgrade_check::create_issue() const {
   return issue;
 }
 
+const std::string &Upgrade_check::to_string(Category category) const {
+  static constexpr std::string k_accounts = "accounts";
+  static constexpr std::string k_config = "config";
+  static constexpr std::string k_parsing = "parsing";
+  static constexpr std::string k_schema = "schema";
+  switch (category) {
+    case Category::ACCOUNTS:
+      return k_accounts;
+    case Category::CONFIG:
+      return k_config;
+    case Category::PARSING:
+      return k_parsing;
+    case Category::SCHEMA:
+      return k_schema;
+  }
+
+  throw std::logic_error("Unknown category");
+}
+
 Invalid_privileges_check::Invalid_privileges_check(
     const Upgrade_info &server_info)
-    : Upgrade_check(ids::k_invalid_privileges_check),
+    : Upgrade_check(ids::k_invalid_privileges_check, Category::ACCOUNTS),
       m_upgrade_info(server_info) {
   set_groups({k_dynamic_group});
   if (m_upgrade_info.server_version > Version(8, 0, 0)) {
