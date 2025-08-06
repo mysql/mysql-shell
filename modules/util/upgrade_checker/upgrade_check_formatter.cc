@@ -628,11 +628,7 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     m_json_document.AddMember(val, checks_array, m_allocator);
   }
 
-  void list_summarize(size_t included, size_t excluded) override {
-    m_json_document.AddMember("included", static_cast<uint64_t>(included),
-                              m_allocator);
-    m_json_document.AddMember("excluded", static_cast<uint64_t>(excluded),
-                              m_allocator);
+  void list_summarize(size_t /* included */, size_t /* excluded */) override {
     print_to_output();
   }
 
