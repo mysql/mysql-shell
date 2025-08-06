@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,8 +37,12 @@ namespace mysqlsh {
 
 #if DOXYGEN_JS
 Dba connectDba(ConnectionData connectionData);
+Undefined threadInit();
+Undefined threadEnd();
 #elif DOXYGEN_PY
 Dba connect_dba(ConnectionData connectionData);
+None thread_init();
+None thread_end();
 #endif
 
 DECLARE_MODULE(Mysqlsh, mysqlsh);
@@ -49,6 +53,9 @@ shcore::Value get_member(const std::string &prop) const;
 
 std::shared_ptr<dba::Dba> connect_dba(
     const mysqlshdk::db::Connection_options &connection_options);
+
+void thread_init();
+void thread_end();
 #endif
 
 END_DECLARE_MODULE();

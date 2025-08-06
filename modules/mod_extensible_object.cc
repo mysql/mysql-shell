@@ -340,7 +340,7 @@ void Extensible_object::register_member(
     object->m_definition = parse_member_definition(definition);
     object->m_definition->name = name;
     register_object(object);
-    log_debug(
+    log_debug3(
         "The '%s' extension object has been registered as a member into %s.",
         name.c_str(), target_object.c_str());
   } else {
@@ -348,14 +348,14 @@ void Extensible_object::register_member(
       auto fd = parse_function_definition(definition);
       fd->name = name;
       register_function(fd, value.as_function(), false);
-      log_debug("The '%s' function has been registered into %s.", name.c_str(),
-                target_object.c_str());
+      log_debug3("The '%s' function has been registered into %s.", name.c_str(),
+                 target_object.c_str());
     } else {
       auto md = parse_member_definition(definition);
       md->name = name;
       register_property(md, value, false);
-      log_debug("The '%s' property has been registered into %s.", name.c_str(),
-                target_object.c_str());
+      log_debug3("The '%s' property has been registered into %s.", name.c_str(),
+                 target_object.c_str());
     }
   }
 }

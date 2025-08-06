@@ -833,7 +833,7 @@ void Mysql_shell::load_files(const File_list &file_list,
 
     if (!files_to_load.empty()) {
       for (const auto &plugin : files_to_load) {
-        log_debug("- %s", plugin.file.c_str());
+        log_debug2("- %s", plugin.file.c_str());
         if (!_shell->load_plugin(mode, plugin)) {
           load_failed = true;
         }

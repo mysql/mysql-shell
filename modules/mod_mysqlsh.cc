@@ -31,6 +31,8 @@ namespace mysqlsh {
 
 REGISTER_MODULE(Mysqlsh, mysqlsh) {
   expose("connectDba", &Mysqlsh::connect_dba, "connectionData");
+  expose("threadInit", &Mysqlsh::thread_init);
+  expose("threadEnd", &Mysqlsh::thread_end);
 }
 
 // We need to hide this from doxygen to avoid warnings
@@ -63,6 +65,48 @@ std::shared_ptr<dba::Dba> Mysqlsh::connect_dba(
 
   return std::make_shared<dba::Dba>(ShellBaseSession::wrap_session(session));
 }
+#endif
+
+REGISTER_HELP_FUNCTION(threadInit, Mysqlsh);
+REGISTER_HELP_FUNCTION_TEXT(MYSQLSH_THREADINIT, R"*(
+Perform thread specific setup required to use libmysql etc.
+
+<<<threadInit>>>() and <<<threadEnd>>>() must be called before and after
+MySQL connection related functions are executed from a thread.
+)*");
+
+/**
+ * $(MYSQLSH_THREADINIT_BRIEF)
+ *
+ * $(MYSQLSH_THREADINIT)
+ */
+#if DOXYGEN_JS
+Undefined Mysqlsh::threadInit() {}
+#elif DOXYGEN_PY
+None Mysqlsh::thread_init() {}
+#else
+void Mysqlsh::thread_init() { mysqlsh::thread_init(); }
+#endif
+
+REGISTER_HELP_FUNCTION(threadEnd, Mysqlsh);
+REGISTER_HELP_FUNCTION_TEXT(MYSQLSH_THREADEND, R"*(
+Perform thread specific cleanup of threadInit().
+
+<<<threadInit>>>() and <<<threadEnd>>>() must be called before and after
+MySQL connection related functions are executed from a thread.
+)*");
+
+/**
+ * $(MYSQLSH_THREADEND_BRIEF)
+ *
+ * $(MYSQLSH_THREADEND)
+ */
+#if DOXYGEN_JS
+Undefined Mysqlsh::threadEnd() {}
+#elif DOXYGEN_PY
+None Mysqlsh::thread_end() {}
+#else
+void Mysqlsh::thread_end() { mysqlsh::thread_end(); }
 #endif
 
 }  // namespace mysqlsh

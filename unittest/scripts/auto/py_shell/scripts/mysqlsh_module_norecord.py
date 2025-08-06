@@ -58,6 +58,29 @@ sys.stderr.isatty()
 EXPECT_THROWS(lambda: sys.stdout.fileno(), "UnsupportedOperation: Method not supported.")
 EXPECT_THROWS(lambda: sys.stderr.fileno(), "UnsupportedOperation: Method not supported.")
 
+#@<> thread_start and end
+
+script=f"""
+import mysqlsh
+def test_thread():
+    mysqlsh.thread_init()
+    session = mysqlsh.globals.shell.open_session("{__sandbox_uri1}")
+    session.close()
+    mysqlsh.thread_end()
+    print("THREAD DONE")
+
+import threading
+thd = threading.Thread(target=test_thread)
+thd.start()
+thd.join()
+"""
+with open("testscript.py", "w+") as f:
+    f.write(script)
+testutil.call_mysqlsh(["-f", "testscript.py"])
+
+EXPECT_STDOUT_CONTAINS("THREAD DONE")
+EXPECT_STDOUT_NOT_CONTAINS("Error in my_thread_global_end()")
+
 #@<> Cleanup
 mydba.session.close()
 

@@ -614,7 +614,7 @@ shell.register_report('third_py', 'print', report);
       "The 'first_js' report of type 'print' has been registered.");
   add_expected_js_log(
       "The 'third_py' report of type 'print' has been registered.");
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
   validate_log();
@@ -673,7 +673,7 @@ shell.register_global('pyObject', obj);
   add_js_test("\\js", "Switching to JavaScript mode...");
   add_js_test("pyObject.selfDescribe()", "first object defined in PY");
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
@@ -739,7 +739,7 @@ TEST_F(Mysqlsh_plugin_test, WL13051_no_init_files) {
   add_unexpected_py_log("Missing initialization file for plugin '.git'");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output());
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS(
@@ -864,7 +864,7 @@ shell.register_global('pyObject', obj);
       "object.");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
   // check the output
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
   std::string expected("Plugin File Path: ");
@@ -982,7 +982,7 @@ shell.add_extension_object_member(global_obj, "common_%s", global_function)
       "The 'common_at' function has been registered into the 'demo' extension "
       "object.");
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
   // check the output
   MY_EXPECT_CMD_OUTPUT_CONTAINS(expected_output().c_str());
   MY_EXPECT_CMD_OUTPUT_NOT_CONTAINS("WARNING: Found errors loading plugins");
@@ -1248,7 +1248,7 @@ shell.register_global('pyObject', obj);
       "five=15)",
       "5 five 8 eight 15");
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1320,7 +1320,7 @@ shell.register_global('kwtest', obj)
               "values for argument 'name'");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1379,7 +1379,7 @@ shell.register_global('kwtest', obj)
               "print_args() got multiple values for argument 'name'");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1450,7 +1450,7 @@ shell.register_global('kwtest', obj)
               "Black, Pearl, first = allowed");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1510,7 +1510,7 @@ shell.register_global('kwtest', obj)
               "Black, Pearl, first = allowed");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1581,7 +1581,7 @@ shell.register_global('kwtest', obj)
               "Black, Pearl, name = allowed");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1640,7 +1640,7 @@ shell.register_global('kwtest', obj)
               "Black, Pearl, name = allowed");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1739,7 +1739,7 @@ shell.register_global('kwtest', obj)
               "John, Arg host = 127.0.0.1, Arg port = 3307");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
@@ -1858,7 +1858,7 @@ shell.register_global('pyObject', obj);
       "1 6 9 12 15 6th 7th 8th 9th 10th 11 12th");
 
   // run the test
-  run({"--log-level=debug"});
+  run({"--log-level=debug3"});
 
   // check the output
   for (const auto &output : get_expected_output()) {
