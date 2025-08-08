@@ -24,8 +24,15 @@
 set -e
 
 if [ "$1" = "purge" ]; then
-        rm -rf /usr/lib/mysqlsh 2>/dev/null
-        echo "Deleted /usr/lib/mysqlsh"
+    if [ -d "/usr/lib/mysqlsh" ]; then
+        if rm -rf /usr/lib/mysqlsh; then
+            echo "Successfully deleted /usr/lib/mysqlsh"
+        else
+            echo "Warning: Failed to delete /usr/lib/mysqlsh" >&2
+        fi
+    else
+        echo "Directory /usr/lib/mysqlsh does not exist, nothing to remove"
+    fi
 fi
 
 #DEBHELPER#
