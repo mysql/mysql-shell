@@ -99,10 +99,10 @@ Upgrade_issue Upgrade_check::create_issue() const {
 }
 
 const std::string &Upgrade_check::to_string(Category category) const {
-  static constexpr std::string k_accounts = "accounts";
-  static constexpr std::string k_config = "config";
-  static constexpr std::string k_parsing = "parsing";
-  static constexpr std::string k_schema = "schema";
+  static const std::string k_accounts = "accounts";
+  static const std::string k_config = "config";
+  static const std::string k_parsing = "parsing";
+  static const std::string k_schema = "schema";
   switch (category) {
     case Category::ACCOUNTS:
       return k_accounts;
