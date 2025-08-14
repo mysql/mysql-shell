@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,6 +55,7 @@ const std::unordered_map<std::string_view, std::string_view> k_short_names = {
     {"mty", "mx-monterrey-1"},    {"aga", "us-saltlake-2"},
     {"bog", "sa-bogota-1"},       {"vap", "sa-valparaiso-1"},
     {"xsp", "ap-singapore-2"},    {"ruh", "me-riyadh-1"},
+    {"onm", "ap-delhi-1"},        {"hsg", "ap-batam-1"},
     {"lfi", "us-langley-1"},      {"luf", "us-luke-1"},
     {"ric", "us-gov-ashburn-1"},  {"pia", "us-gov-chicago-1"},
     {"tus", "us-gov-phoenix-1"},  {"ltn", "uk-gov-london-1"},
@@ -71,8 +72,8 @@ const std::unordered_map<std::string_view, std::string_view> k_short_names = {
     {"ahu", "me-abudhabi-3"},     {"rba", "me-alain-1"},
     {"rkt", "me-abudhabi-2"},     {"shj", "me-abudhabi-4"},
     {"dtz", "ap-seoul-2"},        {"dln", "ap-suwon-1"},
-    {"bno", "ap-chuncheon-2"},
-};
+    {"bno", "ap-chuncheon-2"},    {"yxj", "us-ashburn-2"},
+    {"pgc", "us-newark-1"},       {"jsk", "eu-budapest-1"}};
 
 }  // namespace
 
