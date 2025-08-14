@@ -37,7 +37,7 @@ class Compatibility_test : public tests::Shell_base_test {
  protected:
   const std::vector<std::string> multiline = {
       R"(CREATE TABLE t(i int)
-ENCRYPTION = 'N' 
+ENCRYPTION = 'Y'
 DATA DIRECTORY = '\tmp' INDEX DIRECTORY = '\tmp',
 ENGINE = MyISAM)",
       R"(CREATE TABLE t (i int PRIMARY KEY) ENGINE = MyISAM
@@ -77,7 +77,7 @@ ENGINE = MyISAM)",
 (PARTITION p0 VALUES IN (0) TABLESPACE = `t s 1` ENGINE = MyISAM,
  PARTITION p1 VALUES IN (1) TABLESPACE = `t s 1` ENGINE = MyISAM) */)",
       "CREATE DATABASE `dcs` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE "
-      "latin1_danish_ci */ /*!80016 DEFAULT ENCRYPTION='N' */"};
+      "latin1_danish_ci */ /*!80016 DEFAULT ENCRYPTION=\"Y\" */"};
 
   const std::vector<std::string> rogue = {
       R"(CREATE TABLE `rogue` (
@@ -203,7 +203,7 @@ TEST_F(Compatibility_test, data_index_dir_option) {
       check_create_table_for_data_index_dir_option(multiline[0], &rewritten));
   EXPECT_EQ(
       "CREATE TABLE t(i int)\n"
-      "ENCRYPTION = 'N' \n"
+      "ENCRYPTION = 'Y'\n"
       "/* DATA DIRECTORY = '\\tmp' INDEX DIRECTORY = '\\tmp',*/ \n"
       "ENGINE = MyISAM",
       rewritten);
@@ -251,15 +251,15 @@ TEST_F(Compatibility_test, data_index_dir_option) {
 
 TEST_F(Compatibility_test, encryption_option) {
   std::string rewritten;
-  auto ct = "CREATE TABLE t(i int) ENCRYPTION 'N'";
+  auto ct = "CREATE TABLE t(i int) ENCRYPTION 'Y'";
   EXPECT_TRUE(check_create_table_for_encryption_option(ct, &rewritten));
-  EXPECT_EQ("CREATE TABLE t(i int) /* ENCRYPTION 'N'*/ ", rewritten);
+  EXPECT_EQ("CREATE TABLE t(i int) /* ENCRYPTION 'Y'*/ ", rewritten);
 
   EXPECT_TRUE(
       check_create_table_for_encryption_option(multiline[0], &rewritten));
   EXPECT_EQ(
       "CREATE TABLE t(i int)\n"
-      "/* ENCRYPTION = 'N'*/  \n"
+      "/* ENCRYPTION = 'Y'*/ \n"
       "DATA DIRECTORY = '\\tmp' INDEX DIRECTORY = '\\tmp',\n"
       "ENGINE = MyISAM",
       rewritten);
@@ -282,8 +282,22 @@ TEST_F(Compatibility_test, encryption_option) {
       multiline[7], &rewritten));
   EXPECT_EQ(
       "CREATE DATABASE `dcs` /*!40100 DEFAULT CHARACTER SET latin1 COLLATE "
-      "latin1_danish_ci */ /*!80016 -- DEFAULT ENCRYPTION='N'\n"
+      "latin1_danish_ci */ /*!80016 -- DEFAULT ENCRYPTION=\"Y\"\n"
       " */",
+      rewritten);
+
+  // BUG#38264847 - don't comment out encryption option if it's disabled
+  EXPECT_FALSE(check_create_table_for_encryption_option(
+      "CREATE TABLE t(i int) ENCRYPTION \"n\"", &rewritten));
+  EXPECT_EQ("CREATE TABLE t(i int) ENCRYPTION \"n\"", rewritten);
+
+  EXPECT_FALSE(compatibility::check_create_table_for_encryption_option(
+      multiline[3], &rewritten));
+  EXPECT_EQ(
+      "CREATE TABLE `tmq` (\n"
+      "  `i` int(11) DEFAULT NULL\n"
+      ") /*!50100 TABLESPACE `t s 1` */ ENGINE=InnoDB DEFAULT CHARSET=latin1 "
+      "ENCRYPTION='N'",
       rewritten);
 }
 
@@ -293,7 +307,7 @@ TEST_F(Compatibility_test, engine_change) {
   EXPECT_EQ("MyISAM",
             check_create_table_for_engine_option(multiline[0], &rewritten));
   EXPECT_EQ(R"(CREATE TABLE t(i int)
-ENCRYPTION = 'N' 
+ENCRYPTION = 'Y'
 DATA DIRECTORY = '\tmp' INDEX DIRECTORY = '\tmp',
 ENGINE = InnoDB)",
             rewritten);
@@ -416,7 +430,7 @@ TEST_F(Compatibility_test, charset_option) {
   EXPECT_EQ(1, compatibility::check_statement_for_charset_option(multiline[7],
                                                                  &rewritten)
                    .size());
-  EXPECT_EQ("CREATE DATABASE `dcs`  /*!80016 DEFAULT ENCRYPTION='N' */",
+  EXPECT_EQ("CREATE DATABASE `dcs`  /*!80016 DEFAULT ENCRYPTION=\"Y\" */",
             rewritten);
 }
 
@@ -953,7 +967,7 @@ TEST_F(Compatibility_test, create_table_combo) {
 
   EXPECT_MLE(0,
              "CREATE TABLE t(i int)\n"
-             "/* ENCRYPTION = 'N'*/  \n"
+             "/* ENCRYPTION = 'Y'*/ \n"
              "/* DATA DIRECTORY = '\\tmp' INDEX DIRECTORY = '\\tmp',*/ \n"
              "ENGINE = InnoDB");
 
@@ -977,7 +991,7 @@ TEST_F(Compatibility_test, create_table_combo) {
   EXPECT_MLE(3,
              "CREATE TABLE `tmq` (\n"
              "  `i` int(11) DEFAULT NULL\n"
-             ")  ENGINE=InnoDB  /* ENCRYPTION='N'*/ ");
+             ")  ENGINE=InnoDB  ENCRYPTION='N'");
 
   EXPECT_MLE(4,
              "CREATE TABLE `tmq` (\n"
@@ -1015,7 +1029,7 @@ TEST_F(Compatibility_test, create_table_combo) {
   compatibility::check_create_table_for_encryption_option(rewritten,
                                                           &rewritten);
   EXPECT_EQ(
-      "CREATE DATABASE `dcs`  /*!80016 -- DEFAULT ENCRYPTION='N'\n"
+      "CREATE DATABASE `dcs`  /*!80016 -- DEFAULT ENCRYPTION=\"Y\"\n"
       " */",
       rewritten);
 
@@ -1579,7 +1593,7 @@ TEST_F(Compatibility_test, indexes_recreation) {
   INDEX (idx)
 ) PARTITION BY HASH(pk) (
     PARTITION p1,
-    PARTITION p2    
+    PARTITION p2
   );)",
                    1, 0, 0);
 

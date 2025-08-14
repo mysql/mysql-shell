@@ -241,7 +241,9 @@ if __os_type == "windows":
         test_table_non_unique = "@a"
         test_table_no_index = "fourth"
 
-all_schemas = [world_x_schema, types_schema, test_schema, verification_schema, incompatible_schema]
+encrypted_schema = "encrypted-schema"
+
+all_schemas = [world_x_schema, types_schema, test_schema, verification_schema, incompatible_schema, encrypted_schema]
 exclude_all_but_types_schema = all_schemas[:]
 exclude_all_but_types_schema.remove(types_schema)
 
@@ -265,7 +267,10 @@ def drop_all_schemas(exclude=[]):
 
 def create_all_schemas():
     for schema in all_schemas:
-        session.run_sql("CREATE SCHEMA IF NOT EXISTS !;", [ schema ])
+        if schema == encrypted_schema:
+            session.run_sql("CREATE SCHEMA IF NOT EXISTS ! /*!80016 DEFAULT ENCRYPTION='Y' */;", [ schema ])
+        else:
+            session.run_sql("CREATE SCHEMA IF NOT EXISTS !;", [ schema ])
 
 def create_authentication_plugin_user(name):
     full_name = get_test_user_account(name)
@@ -1819,6 +1824,11 @@ EXPECT_STDOUT_CONTAINS(strip_restricted_grants(test_user_account, test_privilege
 EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_data_directory).fixed())
 
 EXPECT_STDOUT_CONTAINS(comment_encryption(incompatible_schema, incompatible_table_encryption).fixed())
+
+if __version_num > 80016:
+    # BUG#38264847 - only schemas which have the encryption enabled are reported as fixed
+    EXPECT_STDOUT_CONTAINS(comment_schema_encryption(encrypted_schema).fixed())
+    EXPECT_STDOUT_NOT_CONTAINS(comment_schema_encryption(test_schema).fixed())
 
 if __version_num < 80000 and __os_type != "windows":
     EXPECT_STDOUT_CONTAINS(comment_data_index_directory(incompatible_schema, incompatible_table_index_directory).fixed())

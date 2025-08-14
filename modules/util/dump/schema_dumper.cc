@@ -50,6 +50,7 @@
 #include "mysqld_error.h"
 
 #include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
@@ -59,6 +60,7 @@
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
+#include "modules/util/common/dump/constants.h"
 #include "modules/util/common/dump/dump_version.h"
 #include "modules/util/dump/dump_errors.h"
 
@@ -3137,6 +3139,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
     }
   }
 
+  mysqlshdk::db::Filtering_options::User_filters mhs_roles;
+  // some of these accounts are not roles, but that's OK, we're using this
+  // filter to downgrade warnings on grant statements on MHS roles (which are
+  // automatically excluded) to notes, and if account is not a role, it's not
+  // going to be reported as a warning
+  mhs_roles.include(common::k_mhs_excluded_users);
+
   for (const auto &user : users) {
     std::set<std::string> restricted;
     auto grants = get_grants(user);
@@ -3354,7 +3363,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
                       "User " + user + " has a grant statement on a role " +
                           role + " which is not included in the dump (" +
                           grant + ")",
-                      Issue::Status::WARNING);
+                      // BUG#38264847 - grants on MHS roles which are
+                      // automatically excluded are downgraded to notes
+                      mhs_roles.is_included(role) ? Issue::Status::NOTE
+                                                  : Issue::Status::WARNING);
                 }
               }
               break;

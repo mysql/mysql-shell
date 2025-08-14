@@ -342,6 +342,11 @@ def comment_encryption(schema, table):
     fixed = f"Table `{schema}`.`{table}` had ENCRYPTION table option commented out"
     return Compatibility_issue(error, fixed)
 
+def comment_schema_encryption(schema):
+    error = ""
+    fixed = f"Database `{schema}` had unsupported ENCRYPTION option commented out"
+    return Compatibility_issue(error, fixed)
+
 def force_innodb_unsupported_storage(schema, table, engine = "MyISAM"):
     error = f"Table `{schema}`.`{table}` uses unsupported storage engine {engine} (fix this with 'force_innodb' compatibility option)"
     fixed = f"Table `{schema}`.`{table}` had unsupported engine {engine} changed to InnoDB"

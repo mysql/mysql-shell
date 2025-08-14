@@ -536,13 +536,52 @@ bool check_create_table_for_data_index_dir_option(
 
 bool check_create_table_for_encryption_option(const std::string &create_table,
                                               std::string *rewritten) {
-  // Comment out ENCRYPTION option.
+  // Comment out ENCRYPTION option if set to Y, this also handles CREATE SCHEMA.
+  // [DEFAULT] ENCRYPTION [=] {'Y' | 'N'}
+  SQL_iterator it(create_table, 0, false);
 
-  return comment_out_option_with_string(
-      create_table, rewritten, [](std::string_view *token, SQL_iterator *it) {
-        if (shcore::str_caseeq(*token, "DEFAULT")) *token = it->next_token();
-        return !shcore::str_caseeq(*token, "ENCRYPTION");
-      });
+  std::string_view token;
+  std::size_t start;
+  bool hint;
+
+  while (it.valid()) {
+    token = it.next_token();
+
+    start = it.position() - token.length();
+    hint = it.inside_hint();
+
+    if (shcore::str_caseeq(token, "DEFAULT")) {
+      token = it.next_token();
+    }
+
+    if (shcore::str_caseeq(token, "ENCRYPTION")) {
+      token = it.next_token();
+
+      if ("=" == token) {
+        token = it.next_token();
+      }
+
+      if (shcore::str_caseeq(token, "'Y'", "\"Y\"")) {
+        // encryption is enabled
+        if (rewritten) {
+          *rewritten = comment_out_offsets(
+              create_table, {Comment_offset{{start, it.position()}, hint}});
+        }
+
+        return true;
+      } else {
+        // encryption is disabled, no change needed
+        break;
+      }
+    }
+  }
+
+  // no changes
+  if (rewritten) {
+    *rewritten = create_table;
+  }
+
+  return false;
 }
 
 std::string check_create_table_for_engine_option(

@@ -434,8 +434,7 @@ TEST_F(Schema_dumper_test, dump_schema) {
 --
 
 -- begin database `mysqldump_test_db`
-CREATE DATABASE /*!32312 IF NOT EXISTS*/ `mysqldump_test_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 -- DEFAULT ENCRYPTION='N'
- */;
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `mysqldump_test_db` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
 -- end database `mysqldump_test_db`
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
