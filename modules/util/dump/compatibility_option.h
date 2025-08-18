@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,6 +47,7 @@ enum class Compatibility_option {
   IGNORE_WILDCARD_GRANTS,
   UNESCAPE_WILDCARD_GRANTS,
   FORCE_NON_STANDARD_FKS,
+  MIGRATE_INVALID_ACCOUNTS,
 };
 
 Compatibility_option to_compatibility_option(const std::string &c);
@@ -57,7 +58,7 @@ std::string to_string(Compatibility_option c);
 
 using Compatibility_options =
     mysqlshdk::utils::Enum_set<Compatibility_option,
-                               Compatibility_option::FORCE_NON_STANDARD_FKS>;
+                               Compatibility_option::MIGRATE_INVALID_ACCOUNTS>;
 
 }  // namespace dump
 }  // namespace mysqlsh

@@ -104,7 +104,7 @@ struct Comment_offset {
 using Coffsets = std::vector<Comment_offset>;
 
 std::string replace_at_offsets(std::string_view s, const Offsets &offsets,
-                               const std::string &target) {
+                               std::string_view target) {
   if (offsets.empty()) return std::string{s};
 
   std::string out;
@@ -1189,6 +1189,77 @@ std::set<std::string> check_create_user_for_authentication_plugins(
   return result;
 }
 
+std::string replace_authentication_plugin(std::string_view create_user,
+                                          std::string_view plugin) {
+  SQL_iterator it(create_user, 0, false);
+
+  create_user_parse_account(&it);
+
+  Offsets offsets;
+
+  while (it) {
+    if (it.consume_tokens("IDENTIFIED", "WITH")) {
+      std::string auth_plugin{it.next_token()};
+      const auto start = it.position() - auth_plugin.length();
+
+      unquote_string(&auth_plugin);
+
+      if (plugin == auth_plugin) {
+        const auto pos = it.position();
+        auto token = it.next_token();
+
+        if (shcore::str_caseeq(token, "BY")) {
+          // BY {RANDOM PASSWORD|'auth_string'}
+          token = it.next_token();
+
+          if (shcore::str_caseeq(token, "RANDOM")) {
+            it.next_token();
+          }
+        } else if (shcore::str_caseeq(token, "AS")) {
+          // AS 'auth_string'
+          it.next_token();
+        } else if (shcore::str_caseeq(token, "INITIAL")) {
+          // INITIAL AUTHENTICATION IDENTIFIED {BY|WITH}
+          if (!it.consume_tokens("AUTHENTICATION", "IDENTIFIED")) {
+            throw std::runtime_error(
+                "Malformed CREATE USER statement, expected INITIAL "
+                "AUTHENTICATION IDENTIFIED {BY|WITH}");
+          }
+
+          token = it.next_token();
+
+          if (shcore::str_caseeq(token, "BY")) {
+            // BY {RANDOM PASSWORD|'auth_string'}
+            token = it.next_token();
+
+            if (shcore::str_caseeq(token, "RANDOM")) {
+              it.next_token();
+            }
+          } else if (shcore::str_caseeq(token, "WITH")) {
+            // WITH auth_plugin AS 'auth_string'
+            for (int i = 0; i < 3; ++i) {
+              it.next_token();
+            }
+          } else {
+            throw std::runtime_error(
+                "Malformed CREATE USER statement, expected INITIAL "
+                "AUTHENTICATION IDENTIFIED {BY|WITH}");
+          }
+        } else {
+          // no password, step back
+          it.set_position(pos);
+        }
+
+        offsets.emplace_back(start, it.position());
+      }
+    }
+  }
+
+  return replace_at_offsets(
+      create_user, offsets,
+      R"('caching_sha2_password' AS '$A$005$THISISACOMBINATIONOFINVALIDSALTANDPASSWORDTHATMUSTNEVERBRBEUSED')");
+}
+
 bool check_create_user_for_empty_password(const std::string &create_user) {
   SQL_iterator it(create_user, 0, false);
 
@@ -1199,7 +1270,7 @@ bool check_create_user_for_empty_password(const std::string &create_user) {
     return true;
   }
 
-  std::string password;
+  std::string_view password;
 
   if (shcore::str_caseeq(it.next_token(), "BY")) {
     // IDENTIFIED BY
@@ -1238,8 +1309,135 @@ bool check_create_user_for_empty_password(const std::string &create_user) {
     }
   }
 
-  return password.empty() ||
-         shcore::unquote_string(password, password[0]).empty();
+  std::string pass{password};
+  unquote_string(&pass);
+
+  return pass.empty();
+}
+
+std::string replace_empty_passwords(std::string_view create_user) {
+  SQL_iterator it(create_user, 0, false);
+
+  create_user_parse_account(&it);
+
+  static constexpr std::string_view k_identified_with =
+      R"(IDENTIFIED WITH 'caching_sha2_password' AS '$A$005$THISISACOMBINATIONOFINVALIDSALTANDPASSWORDTHATMUSTNEVERBRBEUSED')";
+
+  if (!it.valid()) {
+    // end of statement, there is no password
+    std::string result;
+    result.reserve(create_user.length() + 1 + k_identified_with.length());
+
+    result += create_user;
+    result += ' ';
+    result += k_identified_with;
+
+    return result;
+  }
+
+  auto token = it.next_token();
+
+  if (!shcore::str_caseeq(token, "IDENTIFIED")) {
+    // there is no IDENTIFIED clause, there is no password
+    std::string result;
+    result.reserve(create_user.length() + k_identified_with.length() + 1);
+
+    result += create_user.substr(0, it.position() - token.length());
+    result += k_identified_with;
+    result += ' ';
+    result += create_user.substr(it.position() - token.length());
+
+    return result;
+  }
+
+  Offsets offsets;
+
+  while (shcore::str_caseeq(token, "IDENTIFIED")) {
+    const auto start = it.position() - token.length();
+    std::string_view password;
+
+    if (shcore::str_caseeq(it.next_token(), "BY")) {
+      // IDENTIFIED BY
+      password = it.next_token();
+
+      if (shcore::str_caseeq(password, "PASSWORD")) {
+        password = it.next_token();
+      } else if (shcore::str_caseeq(password, "RANDOM")) {
+        // RANDOM PASSWORD, not empty, set password to some value
+        password = it.next_token();
+      }
+    } else {
+      // IDENTIFIED WITH, "WITH" already consumed, next is auth_plugin
+      it.next_token();
+      // {empty|BY|AS|INITIAL}
+      const auto pos = it.position();
+      token = it.next_token();
+
+      if (shcore::str_caseeq(token, "BY")) {
+        password = it.next_token();
+
+        if (shcore::str_caseeq(password, "RANDOM")) {
+          // RANDOM PASSWORD, not empty, set password to some value
+          password = it.next_token();
+        }
+      } else if (shcore::str_caseeq(token, "AS")) {
+        // AS 'auth_string', password is there, set password to some value
+        password = token;
+        it.next_token();
+      } else if (shcore::str_caseeq(token, "INITIAL")) {
+        // INITIAL AUTHENTICATION IDENTIFIED {BY|WITH}
+        if (!it.consume_tokens("AUTHENTICATION", "IDENTIFIED")) {
+          throw std::runtime_error(
+              "Malformed CREATE USER statement, expected INITIAL "
+              "AUTHENTICATION IDENTIFIED {BY|WITH}");
+        }
+
+        token = it.next_token();
+
+        if (shcore::str_caseeq(token, "BY")) {
+          // BY {RANDOM PASSWORD|'auth_string'}
+          password = it.next_token();
+
+          if (shcore::str_caseeq(password, "RANDOM")) {
+            // RANDOM PASSWORD, not empty, set password to some value
+            password = it.next_token();
+          }
+        } else if (shcore::str_caseeq(token, "WITH")) {
+          // WITH auth_plugin AS 'auth_string', password is there, set password
+          // to some value
+          password = token;
+
+          for (int i = 0; i < 3; ++i) {
+            it.next_token();
+          }
+        } else {
+          throw std::runtime_error(
+              "Malformed CREATE USER statement, expected INITIAL "
+              "AUTHENTICATION IDENTIFIED {BY|WITH}");
+        }
+      } else {
+        // no password, step back
+        it.set_position(pos);
+      }
+    }
+
+    std::string pass{password};
+    unquote_string(&pass);
+
+    if (pass.empty()) {
+      offsets.emplace_back(start, it.position());
+    }
+
+    token = it.next_token();
+
+    if (shcore::str_caseeq(token, "AND")) {
+      // multiple factors, continue looking for empty passwords, move to
+      // IDENTIFIED token
+      token = it.next_token();
+    }
+  }
+
+  return replace_at_offsets(create_user, offsets, k_identified_with);
 }
 
 std::string convert_create_user_to_create_role(const std::string &create_user) {
@@ -2060,6 +2258,55 @@ bool replace_keyword(std::string_view stmt, std::string_view from,
   }
 
   return false;
+}
+
+std::string lock_account(std::string_view create_user) {
+  SQL_iterator it(create_user, 0, false);
+
+  create_user_parse_account(&it);
+
+  static constexpr std::string_view k_account_lock = "ACCOUNT LOCK";
+  std::string result;
+  result.reserve(create_user.length() + 1 + k_account_lock.length());
+
+  std::string_view token;
+
+  while (it.valid()) {
+    token = it.next_token();
+
+    if (shcore::str_caseeq(token, "ACCOUNT")) {
+      assert(result.empty());
+
+      token = it.next_token();
+
+      if (shcore::str_caseeq(token, "UNLOCK")) {
+        // change UNLOCK to LOCK
+        result += create_user.substr(0, it.position() - token.length());
+        result += "LOCK";
+        result += create_user.substr(it.position());
+      } else {
+        // no change needed
+        result += create_user;
+      }
+
+      break;
+    } else if (shcore::str_caseeq(token, "COMMENT", "ATTRIBUTE")) {
+      // ACCOUNT LOCK statement needs to be placed before COMMENT or ATTRIBUTE
+      result += create_user.substr(0, it.position() - token.length());
+      result += k_account_lock;
+      result += ' ';
+      result += create_user.substr(it.position() - token.length());
+    }
+  }
+
+  if (result.empty()) {
+    // no ACCOUNT clause found
+    result += create_user;
+    result += ' ';
+    result += k_account_lock;
+  }
+
+  return result;
 }
 
 }  // namespace compatibility

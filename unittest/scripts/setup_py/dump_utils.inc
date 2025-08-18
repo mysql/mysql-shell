@@ -144,6 +144,11 @@ def snapshot_instance(session):
     # normalize the JSON encoding
     return json.loads(json.dumps(snapshot))
 
+def wipeout_users(session):
+    for user,host in session.run_sql("select user,host from mysql.user").fetch_all():
+        if user not in ["root", "mysql.infoschema", "mysql.sys", "mysql.session"]:
+            session.run_sql("drop user ?@?", [user,host])
+
 def wipeout_server(session):
     session.run_sql("set foreign_key_checks=0")
     schemas = session.run_sql("show schemas").fetch_all()
@@ -151,9 +156,7 @@ def wipeout_server(session):
         if schema in ("mysql", "sys", "performance_schema", "information_schema"):
             continue
         session.run_sql("drop schema `"+schema+"`")
-    for user,host in session.run_sql("select user,host from mysql.user").fetch_all():
-        if user not in ["root", "mysql.infoschema", "mysql.sys", "mysql.session"]:
-            session.run_sql("drop user ?@?", [user,host])
+    wipeout_users(session)
     session.run_sql("reset " + get_reset_binary_logs_keyword())
     session.run_sql("set global foreign_key_checks=1")
 
@@ -385,13 +388,23 @@ def definer_clause_uses_unknown_account_once():
     return Compatibility_issue(None, None, warning)
 
 def skip_invalid_accounts_plugin(user, plugin):
-    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with 'skip_invalid_accounts' compatibility option)"
+    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
     fixed = f"User {user} is using an unsupported authentication plugin '{plugin}', this account has been removed from the dump"
     return Compatibility_issue(error, fixed)
 
 def skip_invalid_accounts_no_password(user):
-    error = f"User {user} does not have a password set (fix this with 'skip_invalid_accounts' compatibility option)"
+    error = f"User {user} does not have a password set (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
     fixed = f"User {user} does not have a password set, this account has been removed from the dump"
+    return Compatibility_issue(error, fixed)
+
+def migrate_invalid_accounts_plugin(user, plugin):
+    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
+    fixed = f"User {user} is using an unsupported authentication plugin '{plugin}', this account has been migrated"
+    return Compatibility_issue(error, fixed)
+
+def migrate_invalid_accounts_no_password(user):
+    error = f"User {user} does not have a password set (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
+    fixed = f"User {user} does not have a password set, this account has been migrated"
     return Compatibility_issue(error, fixed)
 
 def create_invisible_pks(schema, table):

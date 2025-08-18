@@ -71,8 +71,8 @@ class Schema_dumper {
       USE_STRIP_DEFINERS,
       USE_STRIP_RESTRICTED_GRANTS,
       USE_STRIP_TABLESPACES,
-      USE_SKIP_INVALID_ACCOUNTS,
-      USE_STRIP_INVALID_GRANTS
+      USE_MIGRATE_OR_SKIP_INVALID_ACCOUNTS,
+      USE_STRIP_INVALID_GRANTS,
     };
 
     Issue(const std::string &d, Status s) : description(d), status(s) {}
@@ -192,6 +192,7 @@ class Schema_dumper {
   bool opt_strip_restricted_grants = false;
   bool opt_strip_tablespaces = false;
   bool opt_strip_definer = false;
+  bool opt_migrate_invalid_accounts = false;
   bool opt_skip_invalid_accounts = false;
   bool opt_ignore_missing_pks = false;
   bool opt_create_invisible_pks = false;

@@ -3056,30 +3056,58 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
 
     bool add_user = true;
 
-    if (opt_mysqlaas || opt_skip_invalid_accounts) {
-      const auto report_unsupported_plugin = [&](const std::string &plugin) {
-        // we're removing the user from the list even if
-        // opt_skip_invalid_accounts is not set, account is invalid in MDS, so
-        // other checks can be skipped
-        add_user = false;
+    if (opt_mysqlaas || opt_skip_invalid_accounts ||
+        opt_migrate_invalid_accounts) {
+      bool account_migrated = false;
 
-        problems.emplace_back(
-            "User " + user +
-                " is using an unsupported authentication plugin '" + plugin +
-                "'" +
-                (opt_skip_invalid_accounts
-                     ? ", this account has been removed from the dump"
-                     : ""),
-            opt_skip_invalid_accounts
-                ? Issue::Status::FIXED
-                : Issue::Status::USE_SKIP_INVALID_ACCOUNTS);
+      const auto handle_invalid_account = [&](const std::string &context) {
+        // we're removing the user from the list unless migrate_invalid_accounts
+        // is set, account is invalid in MDS, so other checks can be skipped
+        add_user = opt_migrate_invalid_accounts;
+
+        std::string issue;
+        issue.reserve(256);
+
+        issue += "User ";
+        issue += user;
+        issue += ' ';
+        issue += context;
+
+        if (opt_skip_invalid_accounts) {
+          issue += ", this account has been removed from the dump";
+        }
+
+        if (opt_migrate_invalid_accounts) {
+          issue += ", this account has been migrated";
+        }
+
+        // notify about migrated account only once
+        if (!account_migrated) {
+          problems.emplace_back(
+              std::move(issue),
+              opt_skip_invalid_accounts || opt_migrate_invalid_accounts
+                  ? Issue::Status::FIXED
+                  : Issue::Status::USE_MIGRATE_OR_SKIP_INVALID_ACCOUNTS);
+
+          account_migrated = opt_migrate_invalid_accounts;
+        }
+      };
+
+      const auto handle_unsupported_plugin = [&](const std::string &plugin) {
+        if (opt_migrate_invalid_accounts) {
+          create_user =
+              compatibility::replace_authentication_plugin(create_user, plugin);
+        }
+
+        handle_invalid_account(
+            "is using an unsupported authentication plugin '" + plugin + "'");
       };
 
       for (const auto &plugin :
            compatibility::check_create_user_for_authentication_plugins(
                create_user)) {
         if (!k_mhs_allowed_authentication_plugins.contains(plugin)) {
-          report_unsupported_plugin(plugin);
+          handle_unsupported_plugin(plugin);
         } else if (const auto it =
                        k_mhs_deprecated_authentication_plugins.find(plugin);
                    k_mhs_deprecated_authentication_plugins.end() != it) {
@@ -3087,7 +3115,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
 
           if (version_info.removed.has_value() &&
               opt_target_version >= *version_info.removed) {
-            report_unsupported_plugin(plugin);
+            handle_unsupported_plugin(plugin);
           } else if (opt_target_version >= version_info.deprecated) {
             std::string issue =
                 "User " + user +
@@ -3112,17 +3140,17 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
           create_user =
               compatibility::convert_create_user_to_create_role(create_user);
         } else {
-          add_user = false;
+          if (opt_migrate_invalid_accounts) {
+            create_user = compatibility::replace_empty_passwords(create_user);
+          }
 
-          problems.emplace_back(
-              "User " + user + " does not have a password set" +
-                  (opt_skip_invalid_accounts
-                       ? ", this account has been removed from the dump"
-                       : ""),
-              opt_skip_invalid_accounts
-                  ? Issue::Status::FIXED
-                  : Issue::Status::USE_SKIP_INVALID_ACCOUNTS);
+          handle_invalid_account("does not have a password set");
         }
+      }
+
+      if (account_migrated) {
+        // account has been migrated, lock it
+        create_user = compatibility::lock_account(create_user);
       }
     }
 

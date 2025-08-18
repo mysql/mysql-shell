@@ -225,8 +225,9 @@ DESCRIPTION
         Service compatibility modifications when copying the DDL. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
@@ -377,8 +378,9 @@ DESCRIPTION
         Service compatibility modifications when copying the DDL. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
@@ -512,8 +514,9 @@ DESCRIPTION
         Service compatibility modifications when copying the DDL. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
       - tzUtc: bool (default: true) - Convert TIMESTAMP data to UTC.
       - consistent: bool (default: true) - Enable or disable consistent data
@@ -751,8 +754,9 @@ DESCRIPTION
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
@@ -1057,6 +1061,12 @@ DESCRIPTION
       to unexpected results. Before using this compatibility option, each such
       grant should be carefully reviewed.
 
+      migrate_invalid_accounts - Migrates accounts which do not have a password
+      or use authentication methods (plugins) not supported by the MySQL
+      HeatWave Service. Migrated accounts are configured to use
+      'caching_sha2_password' authentication plugin, are assigned an invalid
+      password, and are initially locked.
+
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
       Service.
@@ -1214,8 +1224,9 @@ DESCRIPTION
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
@@ -1499,6 +1510,12 @@ DESCRIPTION
       to unexpected results. Before using this compatibility option, each such
       grant should be carefully reviewed.
 
+      migrate_invalid_accounts - Migrates accounts which do not have a password
+      or use authentication methods (plugins) not supported by the MySQL
+      HeatWave Service. Migrated accounts are configured to use
+      'caching_sha2_password' authentication plugin, are assigned an invalid
+      password, and are initially locked.
+
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
       Service.
@@ -1655,8 +1672,9 @@ DESCRIPTION
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "skip_invalid_accounts", "strip_definers",
-        "strip_invalid_grants", "strip_restricted_grants", "strip_tablespaces",
+        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+        "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
       - targetVersion: string (default: current version of Shell) - Specifies
         version of the destination MySQL server.
@@ -1928,6 +1946,12 @@ DESCRIPTION
       enabled, the _ and % characters are treated as literals, which could lead
       to unexpected results. Before using this compatibility option, each such
       grant should be carefully reviewed.
+
+      migrate_invalid_accounts - Migrates accounts which do not have a password
+      or use authentication methods (plugins) not supported by the MySQL
+      HeatWave Service. Migrated accounts are configured to use
+      'caching_sha2_password' authentication plugin, are assigned an invalid
+      password, and are initially locked.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave

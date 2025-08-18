@@ -156,6 +156,17 @@ void Ddl_dumper_options::on_unpacked_options() {
         to_string(Compatibility_option::IGNORE_MISSING_PKS).c_str()));
   }
 
+  if (compatibility_options().is_set(
+          Compatibility_option::MIGRATE_INVALID_ACCOUNTS) &&
+      compatibility_options().is_set(
+          Compatibility_option::SKIP_INVALID_ACCOUNTS)) {
+    throw std::invalid_argument(shcore::str_format(
+        "The '%s' and '%s' compatibility options cannot be used at the same "
+        "time.",
+        to_string(Compatibility_option::MIGRATE_INVALID_ACCOUNTS).c_str(),
+        to_string(Compatibility_option::SKIP_INVALID_ACCOUNTS).c_str()));
+  }
+
   // WL16802-FR1.2.3: 'lakehouseTarget' is set, but 'ocimds' is false
   if (has_lakehouse_target() && !mds_compatibility()) {
     throw std::invalid_argument(

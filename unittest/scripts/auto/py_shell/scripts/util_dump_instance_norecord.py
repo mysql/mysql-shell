@@ -2109,7 +2109,7 @@ EXPECT_STDOUT_CONTAINS(strip_restricted_grants(test_user_account, test_privilege
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "strip_tablespaces" ] , "ddlOnly": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS(strip_tablespaces(incompatible_schema, incompatible_table_tablespace).fixed())
 
-# BUG#32115948 - added `skip_invalid_accounts` - removes users using unsupported authentication plugins
+#@<> BUG#32115948 - added `skip_invalid_accounts` - removes users using unsupported authentication plugins
 EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "skip_invalid_accounts" ], "targetVersion": target_version, "ddlOnly": True, "showProgress": False })
 
 for plugin in disallowed_authentication_plugins:
@@ -2117,6 +2117,24 @@ for plugin in disallowed_authentication_plugins:
 
 # BUG#32741098 - users which do not have a passwords are removed from the dump by 'skip_invalid_accounts'
 EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_no_password(test_user_no_pwd).fixed())
+
+#@<> BUG#38237729 - added `migrate_invalid_accounts` - migrates users using unsupported authentication plugins or empty passwords
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "migrate_invalid_accounts" ], "targetVersion": target_version, "ddlOnly": True, "showProgress": False })
+
+for plugin in disallowed_authentication_plugins:
+    EXPECT_STDOUT_CONTAINS(migrate_invalid_accounts_plugin(get_test_user_account(plugin), plugin).fixed())
+
+EXPECT_STDOUT_CONTAINS(migrate_invalid_accounts_no_password(test_user_no_pwd).fixed())
+
+#@<> BUG#38237729 - load the dump {VER(>=8.0.0)}
+wipeout_users(session)
+EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False, "loadUsers": True, "loadDdl": False, "loadData": False, "resetProgress": True }), "loading should not throw")
+
+#@<> BUG#38237729 - migrate_invalid_accounts and skip_invalid_accounts cannot be used at the same time
+EXPECT_FAIL("ValueError", "Argument #2: The 'migrate_invalid_accounts' and 'skip_invalid_accounts' compatibility options cannot be used at the same time.", test_output_relative, { "compatibility": [ "migrate_invalid_accounts", "skip_invalid_accounts" ] })
+
+#@<> BUG#38237729 - cleanup
+create_users()
 
 #@<> WL13807-FR16.2.2 - If the `compatibility` option is not given, a default value of `[]` must be used instead.
 # WL13807-TSFR16_6

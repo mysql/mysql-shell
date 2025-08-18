@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -56,12 +56,12 @@ struct Parser_context {
       // NOTE: This is a hack to initialize `iter` to point before the first
       // token. This allows to always use ++operator() and postpones lexing
       // till the first call to that operator.
-      : lexer(thd_), thd(thd_), iter(thd_, {}), end(lexer.end()) {}
+      : lexer(thd_), thd(thd_), iter(thd_, {}), end(false) {}
 
   SqlLexer lexer;
   THD *thd;
   SqlLexer::iterator iter;
-  SqlLexer::iterator end;
+  bool end;
   std::vector<Parser_error> errors;
   Hint_scanner *hint_scanner = nullptr;
 };

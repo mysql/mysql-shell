@@ -121,7 +121,20 @@ Deferred_statements check_create_table_for_indexes(
 std::set<std::string> check_create_user_for_authentication_plugins(
     std::string_view create_user);
 
+/**
+ * Replaces given authentication plugin with 'caching_sha2_password' and sets
+ * password to an invalid value.
+ */
+std::string replace_authentication_plugin(std::string_view create_user,
+                                          std::string_view plugin);
+
 bool check_create_user_for_empty_password(const std::string &create_user);
+
+/**
+ * All empty passwords are replaced with 'caching_sha2_password' authentication
+ * plugin and an invalid password value.
+ */
+std::string replace_empty_passwords(std::string_view create_user);
 
 std::string convert_create_user_to_create_role(const std::string &create_user);
 
@@ -282,6 +295,11 @@ bool supports_vector_store_conversion(const mysqlshdk::utils::Version &v);
  */
 bool replace_keyword(std::string_view stmt, std::string_view keyword,
                      std::string_view value, std::string *result = nullptr);
+
+/**
+ * Modifies the given CREATE USER statement to set the account as locked.
+ */
+std::string lock_account(std::string_view create_user);
 
 }  // namespace compatibility
 }  // namespace mysqlsh

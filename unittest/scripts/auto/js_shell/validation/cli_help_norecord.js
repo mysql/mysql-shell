@@ -323,8 +323,8 @@ OPTIONS
             Apply MySQL HeatWave Service compatibility modifications when
             copying the DDL. Supported values: "create_invisible_pks",
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
-            "ignore_wildcard_grants", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "ignore_wildcard_grants", "migrate_invalid_accounts",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces",
             "unescape_wildcard_grants". Default: empty.
 
@@ -547,8 +547,8 @@ OPTIONS
             Apply MySQL HeatWave Service compatibility modifications when
             copying the DDL. Supported values: "create_invisible_pks",
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
-            "ignore_wildcard_grants", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "ignore_wildcard_grants", "migrate_invalid_accounts",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces",
             "unescape_wildcard_grants". Default: empty.
 
@@ -757,8 +757,8 @@ OPTIONS
             Apply MySQL HeatWave Service compatibility modifications when
             copying the DDL. Supported values: "create_invisible_pks",
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
-            "ignore_wildcard_grants", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "ignore_wildcard_grants", "migrate_invalid_accounts",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces",
             "unescape_wildcard_grants". Default: empty.
 
@@ -1028,8 +1028,8 @@ OPTIONS
             Apply MySQL HeatWave Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
-            "ignore_wildcard_grants", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "ignore_wildcard_grants", "migrate_invalid_accounts",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces",
             "unescape_wildcard_grants". Default: empty.
 
@@ -1296,8 +1296,8 @@ OPTIONS
             Apply MySQL HeatWave Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
-            "ignore_wildcard_grants", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "ignore_wildcard_grants", "migrate_invalid_accounts",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces",
             "unescape_wildcard_grants". Default: empty.
 
@@ -1552,8 +1552,8 @@ OPTIONS
             Apply MySQL HeatWave Service compatibility modifications when
             writing dump files. Supported values: "create_invisible_pks",
             "force_innodb", "force_non_standard_fks", "ignore_missing_pks",
-            "ignore_wildcard_grants", "skip_invalid_accounts",
-            "strip_definers", "strip_invalid_grants",
+            "ignore_wildcard_grants", "migrate_invalid_accounts",
+            "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
             "strip_restricted_grants", "strip_tablespaces",
             "unescape_wildcard_grants". Default: empty.
 

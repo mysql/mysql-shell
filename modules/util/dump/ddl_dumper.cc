@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -50,6 +50,8 @@ std::unique_ptr<Schema_dumper> Ddl_dumper::schema_dumper(
       options.is_set(Compatibility_option::STRIP_RESTRICTED_GRANTS);
   dumper->opt_strip_tablespaces =
       options.is_set(Compatibility_option::STRIP_TABLESPACES);
+  dumper->opt_migrate_invalid_accounts =
+      options.is_set(Compatibility_option::MIGRATE_INVALID_ACCOUNTS);
   dumper->opt_skip_invalid_accounts =
       options.is_set(Compatibility_option::SKIP_INVALID_ACCOUNTS);
   dumper->opt_strip_invalid_grants =

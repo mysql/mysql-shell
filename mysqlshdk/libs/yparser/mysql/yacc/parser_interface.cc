@@ -91,7 +91,16 @@ void mysqlsh_sql_parser_error(internal::Parser_context *context,
 
 int mysqlsh_sql_parser_lex(MYSQLSH_SQL_PARSER_STYPE *,
                            internal::Parser_context *context) {
-  if (++context->iter == context->end) return k_yyeof;
+  if (context->end) {
+    return k_yyeof;
+  }
+
+  ++context->iter;
+
+  if (END_OF_INPUT == context->iter->id || ABORT_SYM == context->iter->id) {
+    // no more tokens
+    context->end = true;
+  }
 
   return context->iter->id;
 }

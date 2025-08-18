@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -528,6 +528,11 @@ TEST(Parser_test, threads) {
   for (auto &t : threads) {
     t.join();
   }
+}
+
+TEST(Parser_test, empty_quotes) {
+  Parser parser{k_mysql_current};
+  EXPECT_TRUE(parser.check_syntax("SELECT ''").empty());
 }
 
 }  // namespace

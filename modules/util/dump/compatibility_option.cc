@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -42,6 +42,7 @@ constexpr auto k_strip_invalid_grants = "strip_invalid_grants";
 constexpr auto k_ignore_wildcard_grants = "ignore_wildcard_grants";
 constexpr auto k_unescape_wildcard_grants = "unescape_wildcard_grants";
 constexpr auto k_force_non_standard_fks = "force_non_standard_fks";
+constexpr auto k_migrate_invalid_accounts = "migrate_invalid_accounts";
 }  // namespace
 
 Compatibility_option to_compatibility_option(const std::string &c) {
@@ -64,6 +65,8 @@ Compatibility_option to_compatibility_option(const std::string &c) {
     return Compatibility_option::UNESCAPE_WILDCARD_GRANTS;
   if (c == k_force_non_standard_fks)
     return Compatibility_option::FORCE_NON_STANDARD_FKS;
+  if (c == k_migrate_invalid_accounts)
+    return Compatibility_option::MIGRATE_INVALID_ACCOUNTS;
 
   throw std::invalid_argument("Unknown compatibility option: " + c);
 }
@@ -77,8 +80,6 @@ Compatibility_option to_compatibility_option(Schema_dumper::Issue::Status s) {
     return Compatibility_option::STRIP_RESTRICTED_GRANTS;
   else if (s == Schema_dumper::Issue::Status::USE_STRIP_TABLESPACES)
     return Compatibility_option::STRIP_TABLESPACES;
-  else if (s == Schema_dumper::Issue::Status::USE_SKIP_INVALID_ACCOUNTS)
-    return Compatibility_option::SKIP_INVALID_ACCOUNTS;
   else if (s == Schema_dumper::Issue::Status::USE_STRIP_INVALID_GRANTS)
     return Compatibility_option::STRIP_INVALID_GRANTS;
 
@@ -120,6 +121,9 @@ std::string to_string(Compatibility_option c) {
 
     case Compatibility_option::FORCE_NON_STANDARD_FKS:
       return k_force_non_standard_fks;
+
+    case Compatibility_option::MIGRATE_INVALID_ACCOUNTS:
+      return k_migrate_invalid_accounts;
   }
 
   throw std::logic_error("Shouldn't happen, but compiler complains");

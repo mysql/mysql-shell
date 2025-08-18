@@ -1518,6 +1518,12 @@ the <b>_</b> and <b>%</b> characters are treated as literals, which could lead
 to unexpected results. Before using this compatibility option, each such grant
 should be carefully reviewed.
 
+<b>migrate_invalid_accounts</b> - Migrates accounts which do not have a password
+or use authentication methods (plugins) not supported by the MySQL HeatWave
+Service. Migrated accounts are configured to use 'caching_sha2_password'
+authentication plugin, are assigned an invalid password, and are initially
+locked.
+
 <b>skip_invalid_accounts</b> - Skips accounts which do not have a password or
 use authentication methods (plugins) not supported by the MySQL HeatWave Service.
 
@@ -1722,9 +1728,9 @@ MySQL HeatWave Service.
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 HeatWave Service compatibility modifications when writing dump files. Supported
 values: "create_invisible_pks", "force_innodb", "force_non_standard_fks",
-"ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts",
-"strip_definers", "strip_invalid_grants", "strip_restricted_grants",
-"strip_tablespaces", "unescape_wildcard_grants".
+"ignore_missing_pks", "ignore_wildcard_grants", "migrate_invalid_accounts",
+"skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+"strip_restricted_grants", "strip_tablespaces", "unescape_wildcard_grants".
 @li <b>targetVersion</b>: string (default: current version of %Shell) -
 Specifies version of the destination MySQL server.
 @li <b>skipUpgradeChecks</b>: bool (default: false) - Do not execute the
@@ -2294,9 +2300,9 @@ names used to limit the data copy to just the specified partitions.
 @li <b>compatibility</b>: list of strings (default: empty) - Apply MySQL
 HeatWave Service compatibility modifications when copying the DDL. Supported
 values: "create_invisible_pks", "force_innodb", "force_non_standard_fks",
-"ignore_missing_pks", "ignore_wildcard_grants", "skip_invalid_accounts",
-"strip_definers", "strip_invalid_grants", "strip_restricted_grants",
-"strip_tablespaces", "unescape_wildcard_grants".
+"ignore_missing_pks", "ignore_wildcard_grants", "migrate_invalid_accounts",
+"skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
+"strip_restricted_grants", "strip_tablespaces", "unescape_wildcard_grants".
 
 @li <b>tzUtc</b>: bool (default: true) - Convert TIMESTAMP data to UTC.
 
