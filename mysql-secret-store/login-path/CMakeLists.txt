@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -48,19 +48,10 @@ add_helper_executable()
 
 # If defined, installs the mysql_config_editor binary into the shell bundle
 IF(BUNDLED_MYSQL_CONFIG_EDITOR)
-  # there are some issues in case of RPM builds if an ELF is patched with patchelf < 0.16.0 and then binary is stripped;
-  # we don't bundle OpenSSL there, so we make patching conditional
-  IF(BUNDLED_OPENSSL)
-    SET(WRITE_RPATH TRUE)
-  ELSE()
-    SET(WRITE_RPATH FALSE)
-  ENDIF()
-
   install_bundled_binaries(
       DESCRIPTION "mysql_config_editor binary"
       BINARIES "${BUNDLED_MYSQL_CONFIG_EDITOR}"
       DESTINATION "${INSTALL_LIBEXECDIR}"
       TARGET mysql-secret-store-login-path
-      WRITE_RPATH ${WRITE_RPATH}
   )
 ENDIF()

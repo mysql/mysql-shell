@@ -159,14 +159,6 @@ ADD_STAN_TARGET(api_modules ${api_module_SOURCES})
 
 # If defined, installs the mysqlbinlog binary into the shell bundle
 IF(BUNDLED_MYSQLBINLOG)
-  # there are some issues in case of RPM builds if an ELF is patched with patchelf < 0.16.0 and then binary is stripped;
-  # we don't bundle OpenSSL there, so we make patching conditional
-  IF(BUNDLED_OPENSSL)
-    SET(WRITE_RPATH TRUE)
-  ELSE()
-    SET(WRITE_RPATH FALSE)
-  ENDIF()
-
   if(APPLE)
     # add rpath to allow executable to import bundled dylibs
     get_filename_component(_file_name "${BUNDLED_MYSQLBINLOG}" NAME)
@@ -179,7 +171,6 @@ IF(BUNDLED_MYSQLBINLOG)
       BINARIES "${BUNDLED_MYSQLBINLOG}"
       DESTINATION "${INSTALL_LIBEXECDIR}"
       TARGET api_modules
-      WRITE_RPATH ${WRITE_RPATH}
       EXTRA_COPY_COMMANDS ${EXTRA_COPY_COMMANDS}
   )
 ENDIF()
