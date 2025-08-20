@@ -221,8 +221,11 @@ void Session_impl::connect(
   _connection_options.set_default_data();
 
   auth::register_connection_options_for_mysql(_mysql, _connection_options);
-  shcore::on_leave_scope unregister_conn_options(
-      [this]() { auth::unregister_connection_options_for_mysql(_mysql); });
+  auth::register_session_for_mysql(_mysql, this);
+  shcore::on_leave_scope unregister_conn_options([this]() {
+    auth::unregister_connection_options_for_mysql(_mysql);
+    auth::unregister_session_for_mysql(_mysql);
+  });
 
   auto used_ssl_mode = setup_ssl(_connection_options.get_ssl_options());
   if (_connection_options.has_transport_type()) {
@@ -878,6 +881,10 @@ std::string Session::track_system_variable(const std::string &variable) {
   executef("SET SESSION session_track_system_variables = ?", current_value);
 
   return current_value;
+}
+
+bool Session::is_mysql_native_password() const {
+  return _impl->m_is_mysql_native_password;
 }
 
 void Session::refresh_sql_mode_tracked() {

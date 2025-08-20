@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2019, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -248,7 +248,7 @@ function(install_bundled_binaries)
 endfunction()
 
 function(install_bundled_directory)
-  set(options COPY_ONLY)
+  set(options COPY_ONLY DEPS_ON_ALL)
   set(oneValueArgs DESCRIPTION DIRECTORY CONTENTS DESTINATION TARGET)
   set(multiValueArgs EXTRA_COPY_COMMANDS EXTRA_INSTALL_COMMANDS)
   cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -270,8 +270,13 @@ function(install_bundled_directory)
     string(APPEND DESTINATION_BINARY_DIR "/${SRC_DIR_NAME}")
   endif()
 
-  # use top level files as dependencies
-  file(GLOB COPY_DEPS LIST_DIRECTORIES false RELATIVE "${ARG_DIRECTORY}" "${ARG_DIRECTORY}/*")
+  if(ARG_DEPS_ON_ALL)
+    # use all files in directories as dependencies
+    file(GLOB_RECURSE COPY_DEPS LIST_DIRECTORIES false RELATIVE "${ARG_DIRECTORY}" "${ARG_DIRECTORY}/*")
+  else()
+    # use top level files as dependencies
+    file(GLOB COPY_DEPS LIST_DIRECTORIES false RELATIVE "${ARG_DIRECTORY}" "${ARG_DIRECTORY}/*")
+  endif()
 
   if(NOT COPY_DEPS)
     # no top level files, use the first one found recursively
@@ -336,6 +341,7 @@ function(install_bundled_plugins)
           DIRECTORY "${ARG_DIRECTORY}/${plugin}"
           DESTINATION "${INSTALL_LIBDIR}/plugins"
           TARGET "${ARG_TARGET}"
+          DEPS_ON_ALL
       )
     endif()
   endforeach()

@@ -1150,6 +1150,15 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
       message += "No default schema selected; type \\use <schema> to set one.";
     }
     println(message);
+
+    if (auto server_version =
+            new_session->get_core_session()->get_server_version();
+        new_session->get_core_session()->is_mysql_native_password() &&
+        server_version >= mysqlshdk::utils::Version(8, 0, 0)) {
+      print_warning(
+          "This account uses a deprecated authentication method. Please read "
+          "\\help mysql_native_password help topic for more information.");
+    }
   }
   return new_session;
 }

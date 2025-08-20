@@ -322,3 +322,14 @@ def try_delete_sandbox(port, sandbox_dir):
         print('Delete succeeded at: %s' % port)
     else:
         print('Delete failed at: %s' % port)
+
+def EXPECT_OUTPUT_CONTAINS(text, note=None):
+    out = testutil.fetch_captured_stdout(False)
+    err = testutil.fetch_captured_stderr(False)
+    if out.find(text) == -1 and err.find(text) == -1:
+        if not note:
+            note = __caller_context()
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + \
+                  "\n<yellow>Actual stdout:</yellow> " + out + \
+                  "\n<yellow>Actual stderr:</yellow> " + err
+        testutil.fail(context)

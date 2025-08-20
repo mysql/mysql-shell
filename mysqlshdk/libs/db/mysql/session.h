@@ -102,6 +102,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
  public:
   virtual ~Session_impl();
 
+  void set_mysql_native_password() { m_is_mysql_native_password = true; }
+
  private:
   Session_impl();
   void connect(const mysqlshdk::db::Connection_options &connection_info);
@@ -257,6 +259,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
     void *userdata = nullptr;
   };
   Local_infile_callbacks m_local_infile;
+
+  bool m_is_mysql_native_password = false;
 };
 
 class SHCORE_PUBLIC Session : public ISession,
@@ -391,6 +395,8 @@ class SHCORE_PUBLIC Session : public ISession,
   MYSQL *get_handle() { return _impl->get_handle(); }
 
   ~Session() override { close(); }
+
+  bool is_mysql_native_password() const override;
 
  protected:
   Session() { _impl.reset(new Session_impl()); }

@@ -33,12 +33,18 @@ FUNCTIONS
       help([member])
             Provides help about this module and it's members
 
+      makeAccount(user, host)
+            Joins user and host into an quoted account string.
+
       parseStatementAst(statements)
             Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)
             Quote a string as a MySQL identifier, escaping characters when
             needed.
+
+      splitAccount(account)
+            Splits account string into user and host.
 
       splitScript(script)
             Split a SQL script into individual statements.
@@ -55,6 +61,7 @@ CLASSES
                   Protocol.
  - ClassicSession Enables interaction with a MySQL Server using the MySQL
                   Protocol.
+ - ShellResult    Encapsulates custom query result and metadata.
 
 //@<OUT> getClassicSession help
 NAME

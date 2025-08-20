@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,9 @@
 
 #include <mysql.h>
 
+namespace mysqlshdk::db::mysql {
+class Session_impl;
+}
 namespace mysqlshdk {
 namespace db {
 class Connection_options;
@@ -43,6 +46,10 @@ void register_connection_options_for_mysql(MYSQL *conn,
                                            const Connection_options &options);
 const Connection_options *get_connection_options_for_mysql(MYSQL *conn);
 void unregister_connection_options_for_mysql(MYSQL *conn);
+
+void register_session_for_mysql(MYSQL *conn, Session_impl *session);
+void unregister_session_for_mysql(MYSQL *conn);
+void check_auth_method_for_mysql(MYSQL *conn, const char *name);
 
 }  // namespace auth
 }  // namespace mysql

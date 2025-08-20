@@ -21,7 +21,10 @@ validate_members(mysql, [
   'tokenize_statement',
   'quote_identifier',
   'split_script',
-  'unquote_identifier'])
+  'unquote_identifier',
+  'make_account',
+  'split_account'
+])
 
 #@# get_classic_session errors
 mysql.get_classic_session()
@@ -37,3 +40,20 @@ mysql.get_session("some@uri", 25)
 
 #@<> ErrorCode
 assert 1045 == mysql.ErrorCode.ER_ACCESS_DENIED_ERROR
+
+#@<> make_account
+mysql.make_account("user", "localhost")
+EXPECT_OUTPUT_CONTAINS("'user'@'localhost'")
+mysql.make_account("oth'er", "%")
+EXPECT_OUTPUT_CONTAINS("'oth\\'er'@'%'")
+
+#<>@ split_account
+mysql.split_account("user@localhost")
+EXPECT_OUTPUT_CONTAINS("\"user\": \"user\"")
+EXPECT_OUTPUT_CONTAINS("\"host\": \"localhost\"")
+mysql.split_account("oth'er@%")
+EXPECT_OUTPUT_CONTAINS("\"user\": \"oth'er\"")
+EXPECT_OUTPUT_CONTAINS("\"host\": \"%\"")
+mysql.split_account("'name'@'somehost'")
+EXPECT_OUTPUT_CONTAINS("\"user\": \"name\"")
+EXPECT_OUTPUT_CONTAINS("\"host\": \"somehost\"")

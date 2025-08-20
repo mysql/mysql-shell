@@ -17,6 +17,9 @@ PROPERTIES
 ?{}
 
 FUNCTIONS
+      change_password([options])
+            Changes password for an account.
+
       check_for_server_upgrade([connectionData][, options])
             Performs series of tests on specified MySQL server to check if the
             upgrade process will succeed.
@@ -70,6 +73,9 @@ FUNCTIONS
 
       load_dump(url[, options])
             Loads database dumps created by MySQL Shell.
+
+      upgrade_auth_method([options])
+            Upgrades authentication plugin of an account.
 
 #@<OUT> util check_for_server_upgrade help
 NAME
@@ -2839,7 +2845,7 @@ DESCRIPTION
       Connection options set in the global session, such as compression,
       ssl-mode, etc. are inherited by load sessions.
 
-      Examples:
+      Examples: 
 
       util.load_dump('sakila_dump')
 
@@ -2860,7 +2866,7 @@ DESCRIPTION
       Given a dump located at a bucket root and a PAR created for the bucket,
       the dump can be loaded by providing the PAR as the URL parameter:
 
-      Example:
+      Example: 
 
       Dump Location: root of 'test' bucket
 
@@ -2872,7 +2878,7 @@ DESCRIPTION
       for the given directory, the dump can be loaded by providing the PAR and
       the prefix as the URL parameter:
 
-      Example:
+      Example: 
 
       Dump Location: directory 'dump' at the 'test' bucket
       PAR created using the 'dump/' prefix.
@@ -3517,8 +3523,40 @@ key will be ignored.
 If a SAS Token is defined, it will be used for the authorization (ignoring any
 defined account key).
 
-The default Azure Blob Endpoint to be used in the operations is defined by:
+The default Azure Blob Endpoint to be used in the operations is defined by: 
 
   https://<account>.blob.core.windows.net
 
 unless a different endpoint is defined in the connection string.
+
+#@<OUT> Help on mysql_native_password
+The mysql_native_password is an authentication method that due to its weak
+security was deprecated in MySQL Server version 8.0 and removed in version 9.0.
+
+It was superseded by more secure caching_sha2_password method, and it's
+recommended to use instead of mysql_native_password, specially when upgrading
+past MySQL Server version 8.0.
+
+Please note, that MySQL Server below version 8.0 does not support
+caching_sha2_password, and needs to be upgraded first before upgrading the
+authentication method.
+
+To upgrade the authentication method of an account, execute
+util.upgradeAuthMethod() in \js mode (or util.upgrade_auth_method() in \py
+mode).
+
+Example:
+
+\js
+
+util.upgradeAuthMethod()
+
+or, to upgrade an account other than the one currently connected:
+
+\js
+
+util.upgradeAuthMethod({account:"account@localhost"})
+
+Please note, that upgrading authentication method of an account requires at
+least CREATE USER privileges.
+

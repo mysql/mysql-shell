@@ -114,3 +114,6 @@ util.debug.help("collect_diagnostics")
 
 #@ Help on remote storage
 \? remote storage
+
+#@ Help on mysql_native_password
+\? mysql_native_password

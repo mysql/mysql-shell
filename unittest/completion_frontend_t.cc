@@ -1197,7 +1197,10 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"tokenizeStatement", "('select 1')"},
       {"help", ""},
       {"getClassicSession", "('" + _mysql_uri + "')"},
-      {"getSession", "('" + _mysql_uri + "')"}};
+      {"getSession", "('" + _mysql_uri + "')"},
+      {"makeAccount", "('user','host')"},
+      {"splitAccount", "('user@host')"},
+  };
 
   CHECK_OBJECT_MEMBER_COMPLETIONS("mysql", mysql_calls);
 
@@ -1636,7 +1639,7 @@ TEST_F(Completer_frontend, help_py) {
 
   EXPECT_AFTER_TAB("\\help dba.cr", "\\help dba.create_");
   EXPECT_AFTER_TAB("\\help dba.create_c", "\\help dba.create_cluster");
-  EXPECT_AFTER_TAB("\\h util.ch", "\\h util.check_for_server_upgrade");
+  EXPECT_AFTER_TAB("\\h util.che", "\\h util.check_for_server_upgrade");
   EXPECT_AFTER_TAB("\\? she", "\\? shell");
   EXPECT_AFTER_TAB("\\? shell.co", "\\? shell.connect");
 }

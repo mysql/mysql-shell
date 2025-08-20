@@ -239,6 +239,8 @@ class SHCORE_PUBLIC ISession {
 
   void refresh_sql_mode();
 
+  [[nodiscard]] virtual bool is_mysql_native_password() const;
+
  protected:
   virtual void do_connect(const mysqlshdk::db::Connection_options &data) = 0;
   virtual void do_close() = 0;

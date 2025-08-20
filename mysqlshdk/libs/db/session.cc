@@ -86,5 +86,7 @@ void ISession::refresh_sql_mode() {
   }
 }
 
+bool ISession::is_mysql_native_password() const { return false; }
+
 }  // namespace db
 }  // namespace mysqlshdk

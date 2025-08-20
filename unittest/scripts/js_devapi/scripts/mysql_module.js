@@ -20,7 +20,10 @@ validateMembers(mysql, [
     'tokenizeStatement',
     'quoteIdentifier',
     'splitScript',
-    'unquoteIdentifier'])
+    'unquoteIdentifier',
+    'makeAccount',
+    'splitAccount'
+])
 
 //@# getClassicSession errors
 mysql.getClassicSession()
@@ -68,3 +71,20 @@ mysql.splitScript("DELIMITER A\nSELECT 1 A SELECT 2 A SELECT 3; SELECT 4")
 //@# splitScript errors
 mysql.splitScript(1)
 mysql.splitScript(["select"])
+
+//<>@ makeAccount
+mysql.makeAccount("user", "localhost")
+EXPECT_OUTPUT_CONTAINS("'user'@'localhost'")
+mysql.makeAccount("oth'er", "%")
+EXPECT_OUTPUT_CONTAINS("'oth\\'er'@'%'")
+
+//<>@ splitAccount
+mysql.splitAccount("user@localhost")
+EXPECT_OUTPUT_CONTAINS("\"user\": \"user\"")
+EXPECT_OUTPUT_CONTAINS("\"host\": \"localhost\"")
+mysql.splitAccount("oth'er@%")
+EXPECT_OUTPUT_CONTAINS("\"user\": \"oth'er\"")
+EXPECT_OUTPUT_CONTAINS("\"host\": \"%\"")
+mysql.splitAccount("'name'@'somehost'")
+EXPECT_OUTPUT_CONTAINS("\"user\": \"name\"")
+EXPECT_OUTPUT_CONTAINS("\"host\": \"somehost\"")

@@ -83,6 +83,8 @@ Dictionary parseStatementAst(String statements);
 Array tokenizeStatement(String statement);
 String quoteIdentifier(String s);
 String unquoteIdentifier(String s);
+String makeAccount(String user, String host);
+Dictionary splitAccount(String account);
 #elif DOXYGEN_PY
 ClassicSession get_classic_session(ConnectionData connectionData, str password);
 ClassicSession get_session(ConnectionData connectionData, str password);
@@ -91,6 +93,8 @@ dict parse_statement_ast(str statements);
 list tokenize_statement(str statement);
 str quote_identifier(str s);
 str unquote_identifier(str s);
+str make_account(str user, str host);
+dict split_account(str account);
 #endif
 
 DECLARE_MODULE(Mysql, mysql);
@@ -110,6 +114,9 @@ shcore::Value tokenize_statement(const std::string &statement) const;
 
 std::string quote_identifier(const std::string &s) const;
 std::string unquote_identifier(const std::string &s) const;
+
+std::string make_account(const std::string &user, const std::string &host);
+shcore::Value split_account(const std::string &s);
 
 private:
 shcore::Object_bridge_ref _type;

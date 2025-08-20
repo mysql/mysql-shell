@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <unordered_map>
 
 #include "mysqlshdk/libs/db/connection_options.h"
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session.h"
 
 namespace mysqlshdk {
@@ -37,7 +38,9 @@ namespace mysql {
 namespace auth {
 namespace {
 std::mutex conn_options_reg_mutex;
+std::mutex session_reg_mutex;
 std::unordered_map<MYSQL *, const Connection_options *> conn_options_registry;
+std::unordered_map<MYSQL *, Session_impl *> session_registry;
 }  // namespace
 
 void handle_mysql_error(MYSQL *conn) {
@@ -75,6 +78,28 @@ const Connection_options *get_connection_options_for_mysql(MYSQL *conn) {
 void unregister_connection_options_for_mysql(MYSQL *conn) {
   auto lock = std::lock_guard(conn_options_reg_mutex);
   conn_options_registry.erase(conn);
+}
+
+void register_session_for_mysql(MYSQL *conn, Session_impl *session) {
+  auto lock = std::lock_guard(session_reg_mutex);
+  session_registry[conn] = session;
+}
+
+void unregister_session_for_mysql(MYSQL *conn) {
+  auto lock = std::lock_guard(session_reg_mutex);
+  session_registry.erase(conn);
+}
+
+void check_auth_method_for_mysql(MYSQL *conn, const char *name) {
+  if (std::strcmp(name, "mysql_native_password") != 0) {
+    return;
+  }
+
+  auto lock = std::lock_guard(session_reg_mutex);
+  if (const auto session = session_registry.find(conn);
+      session != session_registry.end()) {
+    session->second->set_mysql_native_password();
+  }
 }
 
 }  // namespace auth

@@ -215,6 +215,9 @@ REGISTER_MODULE(Mysql, mysql) {
   expose("quoteIdentifier", &Mysql::quote_identifier, "string");
   expose("unquoteIdentifier", &Mysql::unquote_identifier, "string");
 
+  expose("makeAccount", &Mysql::make_account, "user", "host");
+  expose("splitAccount", &Mysql::split_account, "account");
+
   _type.reset(new Type());
 }
 
@@ -505,6 +508,63 @@ str unquote_identifier(str s) {}
 #endif
 std::string Mysql::unquote_identifier(const std::string &s) const {
   return shcore::unquote_identifier(s);
+}
+
+REGISTER_HELP_FUNCTION(makeAccount, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_MAKEACCOUNT, R"*(
+Joins user and host into an quoted account string.
+
+@param user User name to join
+@param host Host name to join
+
+@returns Quoted account string.
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_MAKEACCOUNT_BRIEF)
+ *
+ * $(MYSQL_MAKEACCOUNT)
+ */
+#if DOXYGEN_JS
+String makeAccount(String user, String host) {}
+#elif DOXYGEN_PY
+str make_account(str user, str host) {}
+#endif
+std::string Mysql::make_account(const std::string &user,
+                                const std::string &host) {
+  return shcore::make_account(user, host);
+}
+
+REGISTER_HELP_FUNCTION(splitAccount, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_SPLITACCOUNT, R"*(
+Splits account string into user and host.
+
+@param account Account string
+
+@returns Dictionary with user and host strings
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_SPLITACCOUNT_BRIEF)
+ *
+ * $(MYSQL_SPLITACCOUNT)
+ */
+#if DOXYGEN_JS
+Dictionary splitAccount(String account) {}
+#elif DOXYGEN_PY
+dict split_account(str account) {}
+#endif
+shcore::Value Mysql::split_account(const std::string &account) {
+  shcore::Dictionary_t result = shcore::make_dict();
+
+  std::string user, host;
+  shcore::split_account(account, &user, &host);
+  result->emplace("user", user);
+  result->emplace("host", host);
+
+  return shcore::Value(result);
 }
 
 }  // namespace mysql

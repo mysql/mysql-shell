@@ -149,6 +149,39 @@ the RELOAD grant.
 unicode characters outside ASCII range.
 )*");
 
+REGISTER_HELP_TOPIC(mysql_native_password, TOPIC, TOPIC_MYSQL_NATIVE_PASSWORD,
+                    Contents, ALL);
+REGISTER_HELP_TOPIC_TEXT(TOPIC_MYSQL_NATIVE_PASSWORD, R"*(
+The mysql_native_password is an authentication method that due to its weak
+security was deprecated in MySQL Server version 8.0 and removed in version 9.0.
+
+It was superseded by more secure caching_sha2_password method, and it's
+recommended to use instead of mysql_native_password, specially when upgrading
+past MySQL Server version 8.0.
+
+Please note, that MySQL Server below version 8.0 does not support
+caching_sha2_password, and needs to be upgraded first before upgrading the
+authentication method.
+
+To upgrade the authentication method of an account, execute
+util.upgradeAuthMethod() in \js mode (or util.upgrade_auth_method() in \py mode).
+
+<b>Example:</b>
+
+\js
+
+util.upgradeAuthMethod()
+
+or, to upgrade an account other than the one currently connected:
+
+\js
+
+util.upgradeAuthMethod({account:"account@localhost"})
+
+Please note, that upgrading authentication method of an account requires at
+least CREATE USER privileges.
+)*");
+
 /**
  * \ingroup util
  * $(UTIL_CHECKFORSERVERUPGRADE_BRIEF)

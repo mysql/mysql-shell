@@ -38,7 +38,6 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
-#include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/oci.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/openid_connect.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/webauthn.h"
@@ -127,6 +126,8 @@ int trace_event(struct st_mysql_client_plugin_TRACE * /*plugin_data*/,
   if (args.plugin_name) {
     log_protocol_event("PLUGIN-EVENT: %s.%s.%s", args.plugin_name,
                        protocol_stage_str(stage), trace_event_str(ev));
+
+    auth::check_auth_method_for_mysql(conn, args.plugin_name);
 
     if (0 == strcmp(args.plugin_name, "authentication_fido_client")) {
       // Instantiating the fido handler will set the print callback
