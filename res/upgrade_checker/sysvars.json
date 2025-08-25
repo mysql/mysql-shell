@@ -8,7 +8,8 @@
   {
     "name": "group_replication_allow_local_lower_version_join",
     "version": "5.7.17",
-    "deprecation": "8.4.0"
+    "deprecation": "8.4.0",
+    "removal": "9.5.0"
   },
   {
     "name": "group_replication_components_stop_timeout",
@@ -359,6 +360,27 @@
     "deprecation": "8.0.34"
   },
   {
+    "name": "authentication_ldap_sasl_auth_method_name",
+    "version": "5.7.19",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "SCRAM-SHA-1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "SCRAM-SHA-256"
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "authentication_fido_rp_id",
     "version": "8.0.27",
     "deprecation": "8.0.35",
@@ -369,6 +391,27 @@
     "version": "5.6.24",
     "deprecation": "5.6.24",
     "removal": "8.4.0"
+  },
+  {
+    "name": "back_log",
+    "changes": [
+      {
+        "version": "5.6.6",
+        "all": {
+          "default": {
+            "all": "-1"
+          }
+        }
+      },
+      {
+        "version": "9.4.0",
+        "all": {
+          "default": {
+            "all": "10000"
+          }
+        }
+      }
+    ]
   },
   {
     "name": "basedir",
@@ -531,6 +574,27 @@
         "all": {
           "default": {
             "all": "WRITESET"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "binlog_transaction_dependency_history_size",
+    "version": "5.7.22",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "25000"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "1000000"
           }
         }
       }
@@ -1288,6 +1352,27 @@
     ]
   },
   {
+    "name": "innodb_change_buffer_max_size",
+    "version": "5.6.2",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "25"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.4.0",
+        "all": {
+          "default": {
+            "all": "5"
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "innodb_change_buffering",
     "version": "5.1.38",
     "changes": [
@@ -1726,7 +1811,15 @@
         "version": "9.1.0",
         "all": {
           "default": {
-            "all": "ON, if available logical processors >= 32, otherwise OFF"
+            "all": "ON, if available logical processors > 32, otherwise OFF"
+          }
+        }
+      },
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "If binary logging is enabled and available logical         processors > 32: ON; if binary logging is not enabled and available         logical processors > 4: ON; in all other cases: OFF"
           }
         }
       }
@@ -2767,6 +2860,26 @@
     "version": "5.7.7",
     "deprecation": "8.0.16",
     "removal": "9.0.0"
+  },
+  {
+    "name": "mysql_firewall_database",
+    "version": "8.2.0",
+    "deprecation": "9.4.0"
+  },
+  {
+    "name": "mysql_firewall_mode",
+    "version": "5.6.24",
+    "deprecation": "9.4.0"
+  },
+  {
+    "name": "mysql_firewall_reload_interval_seconds",
+    "version": "8.2.0",
+    "deprecation": "9.4.0"
+  },
+  {
+    "name": "mysql_firewall_trace",
+    "version": "5.6.24",
+    "deprecation": "9.4.0"
   },
   {
     "name": "ndb-default-column-format",
@@ -4172,6 +4285,7 @@
     "name": "replica_parallel_type",
     "version": "8.0.26",
     "deprecation": "8.0.29",
+    "removal": "9.5.0",
     "initial": {
       "all": {
         "default": {
@@ -4783,6 +4897,7 @@
     "name": "temptable_use_mmap",
     "version": "8.0.16",
     "deprecation": "8.0.26",
+    "removal": "9.4.0",
     "initial": {
       "all": {
         "default": {
