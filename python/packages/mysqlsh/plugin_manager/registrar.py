@@ -784,6 +784,18 @@ def plugin(cls=None, shell_version_min=None, shell_version_max=None, parent=None
 
         return wrapper
 
+def get_parameters(signature):
+    """Returns the parameter list without default values"""
+    params = []
+    for param in signature.parameters.values():
+        if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+            params.append(str(param))
+        else:
+            params.append(param.name)
+
+    # Join the parameter strings
+    signature_without_defaults = f"({', '.join(params)})"
+    return signature_without_defaults
 
 def plugin_function(fully_qualified_name,
                     plugin_docs=None,
@@ -805,6 +817,7 @@ def plugin_function(fully_qualified_name,
     """
 
     def decorator(function):
+        namespace = {'mysqlsh': mysqlsh, 'function': function, 'wraps': wraps}
         try:
             plugin_manager = PluginRegistrar()
 
@@ -818,9 +831,32 @@ def plugin_function(fully_qualified_name,
                 plugin_name, plugin_docs
             )
 
+
+            signature = inspect.signature(function)
+            original_signature = str(signature)
+            parameters = get_parameters(signature)
+
+            fn_code = f"""
+@wraps(function)
+def wrapper{str(original_signature)}:
+    try:
+        result = function{parameters}
+    except:
+        import traceback
+
+        mysqlsh.globals.shell.log(
+            "debug",
+            f"Exception in plugin function {plugin_name}.{function_name}:\\n{{traceback.format_exc()}}",
+        )
+        raise
+    return result
+"""
+
+            exec(fn_code, namespace)
+
             # register the function
             plugin_manager.register_function(
-                plugin_obj, function,
+                plugin_obj, namespace["wrapper"],
                 fully_qualified_name=fully_qualified_name,
                 shell=shell,
                 cli=cli,
@@ -833,16 +869,7 @@ def plugin_function(fully_qualified_name,
             )
             raise
 
-        @wraps(function)
-        def wrapper(*args, **kwargs):
-            # TODO investigate if automated handling of certain args is
-            # beneficial
-            result = function(*args, **kwargs)
-            # TODO investigate if transformation of results should be done
-            # when functions are called from the shell prompt
-            return result
-
-        return wrapper
+        return namespace["wrapper"]
 
     return decorator
 
