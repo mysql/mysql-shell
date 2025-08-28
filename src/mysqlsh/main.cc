@@ -644,10 +644,10 @@ int main(int argc, char **argv) {
 
           return 1;
         } catch (const shcore::Exception &e) {
-          std::cerr << e.format() << "\n";
+          mysqlsh::current_console()->print_error(e.format());
           return 1;
         } catch (const std::exception &e) {
-          std::cerr << e.what() << "\n";
+          mysqlsh::current_console()->print_error(e.what());
           return 1;
         }
       } else {

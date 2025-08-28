@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -378,4 +378,15 @@ TEST_F(Mysqlsh_misc, invalid_unicode_linoise_custom_command) {
 
   EXPECT_FALSE(linonoiseTestExtendedCharacter(sepcialValue2));
   EXPECT_FALSE(linonoiseTestExtendedCharacter(correctValue, sepcialValue2));
+}
+
+TEST_F(Mysqlsh_misc, cmdline_connection_error_in_json_mode) {
+  execute({_mysqlsh, "root:weirdpassword@localhost", "--json", nullptr});
+  MY_EXPECT_CMD_OUTPUT_CONTAINS(R"({
+    "warning": "Using a password on the command line interface can be insecure.\n"
+}
+{
+    "error": "MySQL Error 1045 (28000): Access denied for user 'root'@'localhost' (using password: YES)\n"
+}
+)");
 }
