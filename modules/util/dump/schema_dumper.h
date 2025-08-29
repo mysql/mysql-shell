@@ -42,6 +42,7 @@
 #include "mysqlshdk/libs/utils/version.h"
 
 #include "modules/util/dump/compatibility.h"
+#include "modules/util/dump/compatibility_issue.h"
 #include "modules/util/dump/instance_cache.h"
 
 namespace mysqlsh {
@@ -52,38 +53,6 @@ using mysqlshdk::storage::IFile;
 class Schema_dumper {
  public:
   using Filtering_options = mysqlshdk::db::Filtering_options;
-
-  struct Issue {
-    enum class Status {
-      FIXED_BY_CREATE_INVISIBLE_PKS,
-      FIXED_BY_IGNORE_MISSING_PKS,
-      FIXED,
-      NOTE,
-      WARNING_DEPRECATED_DEFINERS,
-      WARNING_ESCAPED_WILDCARDS,
-      WARNING_INVALID_VIEW_REFERENCE,
-      WARNING,
-      FIX_MANUALLY,
-      FIX_WILDCARD_GRANTS,
-      FIX_INVALID_VIEW_REFERENCE,
-      USE_CREATE_OR_IGNORE_PKS,
-      USE_FORCE_INNODB,
-      USE_STRIP_DEFINERS,
-      USE_STRIP_RESTRICTED_GRANTS,
-      USE_STRIP_TABLESPACES,
-      USE_LOCK_OR_SKIP_INVALID_ACCOUNTS,
-      USE_STRIP_INVALID_GRANTS,
-    };
-
-    Issue(const std::string &d, Status s) : description(d), status(s) {}
-
-    bool operator==(const Issue &i) const {
-      return description == i.description && status == i.status;
-    }
-
-    std::string description;
-    Status status;
-  };
 
   struct User_statements {
     enum class Type {
@@ -112,34 +81,39 @@ class Schema_dumper {
   void dump_tablespaces_ddl_for_tables(IFile *file, const std::string &db,
                                        const std::vector<std::string> &tables);
 
-  std::vector<Issue> dump_schema_ddl(IFile *file, const std::string &db);
-  std::vector<Issue> dump_table_ddl(IFile *file, const std::string &db,
-                                    const std::string &table);
+  std::vector<Compatibility_issue> dump_schema_ddl(IFile *file,
+                                                   const std::string &db);
+  std::vector<Compatibility_issue> dump_table_ddl(IFile *file,
+                                                  const std::string &db,
+                                                  const std::string &table);
   void dump_temporary_view_ddl(IFile *file, const std::string &db,
                                const std::string &view);
-  std::vector<Issue> dump_view_ddl(IFile *file, const std::string &db,
-                                   const std::string &view);
-  int count_triggers_for_table(const std::string &db, const std::string &table);
-  std::vector<Issue> dump_triggers_for_table_ddl(IFile *file,
+  std::vector<Compatibility_issue> dump_view_ddl(IFile *file,
                                                  const std::string &db,
-                                                 const std::string &table);
+                                                 const std::string &view);
+  int count_triggers_for_table(const std::string &db, const std::string &table);
+  std::vector<Compatibility_issue> dump_triggers_for_table_ddl(
+      IFile *file, const std::string &db, const std::string &table);
   std::vector<std::string> get_triggers(const std::string &db,
                                         const std::string &table);
 
-  std::vector<Issue> dump_events_ddl(IFile *file, const std::string &db);
+  std::vector<Compatibility_issue> dump_events_ddl(IFile *file,
+                                                   const std::string &db);
   std::vector<std::string> get_events(const std::string &db);
 
-  std::vector<Issue> dump_routines_ddl(IFile *file, const std::string &db);
+  std::vector<Compatibility_issue> dump_routines_ddl(IFile *file,
+                                                     const std::string &db);
   std::vector<std::string> get_routines(const std::string &db,
                                         const std::string &type);
   std::vector<Instance_cache::Routine::Library_reference>
   get_routine_dependencies(const std::string &db, const std::string &routine,
                            const std::string_view type);
 
-  std::vector<Issue> dump_libraries_ddl(IFile *file, const std::string &db);
+  std::vector<Compatibility_issue> dump_libraries_ddl(IFile *file,
+                                                      const std::string &db);
   std::vector<std::string> get_libraries(const std::string &db);
 
-  std::vector<Issue> dump_grants(IFile *file);
+  std::vector<Compatibility_issue> dump_grants(IFile *file);
   std::vector<shcore::Account> get_users();
   std::vector<shcore::Account> get_roles();
 
@@ -184,7 +158,6 @@ class Schema_dumper {
   bool opt_mysqlaas = false;
   bool opt_report_deprecated_errors_as_warnings = false;
   mysqlshdk::utils::Version opt_target_version;
-  bool opt_pk_mandatory_check = false;
   bool opt_force_innodb = false;
   bool opt_strip_directory = false;
   bool opt_strip_restricted_grants = false;
@@ -212,7 +185,7 @@ class Schema_dumper {
 
     struct {
       bool report_errors = false;
-      Issue::Status status_on_error = Issue::Status::FIX_MANUALLY;
+      bool downgrade_errors = false;
     } deprecated;
   };
 
@@ -283,44 +256,43 @@ class Schema_dumper {
   char *create_delimiter(const std::string &query, char *delimiter_buff,
                          const int delimiter_max_size);
 
-  std::vector<Issue> dump_events_for_db(IFile *sql_file, const std::string &db);
+  std::vector<Compatibility_issue> dump_events_for_db(IFile *sql_file,
+                                                      const std::string &db);
 
-  std::vector<Issue> dump_routines_for_db(IFile *sql_file,
-                                          const std::string &db);
+  std::vector<Compatibility_issue> dump_routines_for_db(IFile *sql_file,
+                                                        const std::string &db);
 
-  std::vector<Issue> dump_libraries_for_db(IFile *sql_file,
-                                           const std::string &db);
+  std::vector<Compatibility_issue> dump_libraries_for_db(IFile *sql_file,
+                                                         const std::string &db);
 
-  std::vector<Issue> check_ct_for_mysqlaas(const std::string &db,
-                                           const std::string &table,
-                                           std::string *create_table);
+  std::vector<Compatibility_issue> check_ct_for_mysqlaas(
+      const std::string &db, const std::string &table,
+      std::string *create_table);
 
   void check_object_for_definer(const std::string &db,
-                                const std::string &object,
+                                Compatibility_issue::Object_type object,
                                 const std::string &name, std::string *ddl,
-                                std::vector<Issue> *issues);
+                                std::vector<Compatibility_issue> *issues);
 
-  std::vector<Issue> get_table_structure(IFile *sql_file,
-                                         const std::string &table,
-                                         const std::string &db,
-                                         std::string *out_table_type,
-                                         char *ignore_flag);
+  std::vector<Compatibility_issue> get_table_structure(
+      IFile *sql_file, const std::string &table, const std::string &db,
+      std::string *out_table_type, char *ignore_flag);
 
-  std::vector<Issue> dump_trigger(
+  std::vector<Compatibility_issue> dump_trigger(
       IFile *sql_file,
       const std::shared_ptr<mysqlshdk::db::IResult> &show_create_trigger_rs,
       const std::string &db_name, const std::string &db_cl_name,
       const std::string &trigger_name);
 
-  std::vector<Issue> dump_triggers_for_table(IFile *sql_file,
-                                             const std::string &table,
-                                             const std::string &db);
+  std::vector<Compatibility_issue> dump_triggers_for_table(
+      IFile *sql_file, const std::string &table, const std::string &db);
   void dump_column_statistics_for_table(IFile *sql_file,
                                         const std::string &table_name,
                                         const std::string &db_name);
 
-  std::vector<Issue> dump_table(IFile *sql_file, const std::string &table,
-                                const std::string &db);
+  std::vector<Compatibility_issue> dump_table(IFile *sql_file,
+                                              const std::string &table,
+                                              const std::string &db);
 
   int dump_all_tablespaces(IFile *file);
   int dump_tablespaces_for_databases(IFile *sql_file,
@@ -354,9 +326,9 @@ class Schema_dumper {
   bool add_set_gtid_purged(IFile *sql_file);
 
   bool process_set_gtid_purged(IFile *sql_file);
-  std::vector<Schema_dumper::Issue> get_view_structure(IFile *sql_file,
-                                                       const std::string &table,
-                                                       const std::string &db);
+  std::vector<Compatibility_issue> get_view_structure(IFile *sql_file,
+                                                      const std::string &table,
+                                                      const std::string &db);
 
   std::string expand_all_privileges(const std::string &stmt,
                                     const std::string &grantee,
@@ -370,16 +342,16 @@ class Schema_dumper {
 
   std::vector<std::string> strip_restricted_grants(
       const std::string &user, std::string *ddl,
-      std::vector<Issue> *issues) const;
+      std::vector<Compatibility_issue> *issues) const;
 
-  void check_view_for_table_references(const std::string &db,
-                                       const std::string &name,
-                                       std::vector<Issue> *issues) const;
+  void check_view_for_table_references(
+      const std::string &db, const std::string &name,
+      std::vector<Compatibility_issue> *issues) const;
 
-  void check_routine_for_dependencies(const std::string &db,
-                                      const std::string &name,
-                                      const std::string_view type,
-                                      std::vector<Issue> *issues) const;
+  void check_routine_for_dependencies(
+      const std::string &db, const std::string &name,
+      Compatibility_issue::Object_type type,
+      std::vector<Compatibility_issue> *issues) const;
 
   bool is_library_included(const std::string &schema,
                            const std::string &library) const;

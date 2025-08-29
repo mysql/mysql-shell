@@ -106,7 +106,8 @@
   "%s has insufficient privileges to %s!"
 
 #define SHERR_DUMP_SD_MISSING_TABLE 52021
-#define SHERR_DUMP_SD_MISSING_TABLE_MSG "%s not present in information_schema"
+#define SHERR_DUMP_SD_MISSING_TABLE_MSG \
+  "Table %s not present in information_schema"
 
 #define SHERR_DUMP_SD_SHOW_CREATE_TABLE_FAILED 52022
 #define SHERR_DUMP_SD_SHOW_CREATE_TABLE_FAILED_MSG \

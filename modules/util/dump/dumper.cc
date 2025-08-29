@@ -74,6 +74,7 @@
 #include "modules/util/common/dump/dump_version.h"
 #include "modules/util/common/dump/utils.h"
 #include "modules/util/common/utils.h"
+#include "modules/util/dump/compatibility_issue.h"
 #include "modules/util/dump/compatibility_option.h"
 #include "modules/util/dump/console_with_progress.h"
 #include "modules/util/dump/decimal.h"
@@ -148,77 +149,107 @@ void write_json(std::unique_ptr<mysqlshdk::storage::IFile> file,
   file->close();
 }
 
-issues::Status_set show_issues(
-    const std::vector<Schema_dumper::Issue> &issues) {
+issues::Status_set show_issues(const std::vector<Compatibility_issue> &issues) {
   const auto console = current_console();
   issues::Status_set status;
 
   for (const auto &issue : issues) {
-    if (issue.status <= Schema_dumper::Issue::Status::FIXED) {
-      status.set(issues::Status::FIXED);
+    switch (issue.status) {
+      case Compatibility_issue::Status::FIXED: {
+        status.set(issues::Status::FIXED);
 
-      if (issue.status ==
-          Schema_dumper::Issue::Status::FIXED_BY_CREATE_INVISIBLE_PKS) {
-        status.set(issues::Status::FIXED_CREATE_PKS);
-      } else if (issue.status ==
-                 Schema_dumper::Issue::Status::FIXED_BY_IGNORE_MISSING_PKS) {
-        status.set(issues::Status::FIXED_IGNORE_PKS);
-      }
-
-      console->print_note(issue.description);
-    } else if (issue.status == Schema_dumper::Issue::Status::NOTE) {
-      console->print_note(issue.description);
-    } else if (issue.status <= Schema_dumper::Issue::Status::WARNING) {
-      status.set(issues::Status::WARNING);
-
-      if (Schema_dumper::Issue::Status::WARNING_DEPRECATED_DEFINERS ==
-          issue.status) {
-        status.set(issues::Status::WARNING_DEPRECATED_DEFINERS);
-      } else if (Schema_dumper::Issue::Status::WARNING_ESCAPED_WILDCARDS ==
-                 issue.status) {
-        status.set(issues::Status::WARNING_ESCAPED_WILDCARDS);
-      } else if (Schema_dumper::Issue::Status::WARNING_INVALID_VIEW_REFERENCE ==
-                 issue.status) {
-        status.set(issues::Status::WARNING_HAS_INVALID_VIEW_REFERENCES);
-      }
-
-      console->print_warning(issue.description);
-    } else {
-      status.set(issues::Status::ERROR);
-
-      std::string hint;
-
-      if (Schema_dumper::Issue::Status::FIX_MANUALLY == issue.status) {
-        hint = "this issue needs to be fixed manually";
-      } else if (Schema_dumper::Issue::Status::USE_CREATE_OR_IGNORE_PKS ==
-                 issue.status) {
-        status.set(issues::Status::ERROR_MISSING_PKS);
-      } else if (Schema_dumper::Issue::Status::FIX_WILDCARD_GRANTS ==
-                 issue.status) {
-        status.set(issues::Status::ERROR_HAS_WILDCARD_GRANTS);
-      } else if (Schema_dumper::Issue::Status::FIX_INVALID_VIEW_REFERENCE ==
-                 issue.status) {
-        status.set(issues::Status::WARNING_HAS_INVALID_VIEW_REFERENCES);
-      } else if (Schema_dumper::Issue::Status::
-                     USE_LOCK_OR_SKIP_INVALID_ACCOUNTS == issue.status) {
-        hint = "fix this with either '" +
-               to_string(Compatibility_option::LOCK_INVALID_ACCOUNTS) +
-               "' or '" +
-               to_string(Compatibility_option::SKIP_INVALID_ACCOUNTS) +
-               "' compatibility option";
-      } else {
-        if (Schema_dumper::Issue::Status::USE_STRIP_INVALID_GRANTS ==
-            issue.status) {
-          status.set(issues::Status::ERROR_HAS_INVALID_GRANTS);
+        if (Compatibility_check::TABLE_MISSING_PK == issue.check) {
+          if (issue.compatibility_options.is_set(
+                  Compatibility_option::CREATE_INVISIBLE_PKS)) {
+            status.set(issues::Status::FIXED_CREATE_PKS);
+          } else if (issue.compatibility_options.is_set(
+                         Compatibility_option::IGNORE_MISSING_PKS)) {
+            status.set(issues::Status::FIXED_IGNORE_PKS);
+          }
         }
 
-        hint = "fix this with '" +
-               to_string(to_compatibility_option(issue.status)) +
-               "' compatibility option";
+        console->print_note(issue.description);
+        break;
       }
 
-      console->print_error(issue.description +
-                           (hint.empty() ? "" : " (" + hint + ")"));
+      case Compatibility_issue::Status::NOTE: {
+        console->print_note(issue.description);
+        break;
+      }
+
+      case Compatibility_issue::Status::WARNING: {
+        status.set(issues::Status::WARNING);
+
+        if (Compatibility_check::OBJECT_INVALID_DEFINER == issue.check ||
+            Compatibility_check::OBJECT_MISSING_SQL_SECURITY == issue.check) {
+          status.set(issues::Status::WARNING_DEPRECATED_DEFINERS);
+        } else if (Compatibility_check::USER_ESCAPED_WILDCARD_GRANT ==
+                   issue.check) {
+          status.set(issues::Status::WARNING_ESCAPED_WILDCARDS);
+        } else if (Compatibility_check::VIEW_MISMATCHED_REFERENCE ==
+                   issue.check) {
+          status.set(issues::Status::WARNING_HAS_MISMATCHED_VIEW_REFERENCES);
+        }
+
+        console->print_warning(issue.description);
+        break;
+      }
+
+      case Compatibility_issue::Status::ERROR: {
+        status.set(issues::Status::ERROR);
+
+        std::string hint;
+
+        if (issue.compatibility_options.empty()) {
+          hint = "this issue needs to be fixed manually";
+        }
+
+        if (Compatibility_check::TABLE_MISSING_PK == issue.check) {
+          status.set(issues::Status::ERROR_MISSING_PKS);
+        } else if (Compatibility_check::USER_WILDCARD_GRANT == issue.check) {
+          status.set(issues::Status::ERROR_HAS_WILDCARD_GRANTS);
+        } else if (Compatibility_check::VIEW_MISMATCHED_REFERENCE ==
+                   issue.check) {
+          status.set(issues::Status::WARNING_HAS_MISMATCHED_VIEW_REFERENCES);
+        } else {
+          if (Compatibility_check::USER_INVALID_GRANTS == issue.check) {
+            status.set(issues::Status::ERROR_HAS_INVALID_GRANTS);
+          }
+
+          if (!issue.compatibility_options.empty()) {
+            std::vector<std::string> options;
+
+            for (auto option : issue.compatibility_options.values()) {
+              options.emplace_back("'" + to_string(option) + "'");
+            }
+
+            if (1 == options.size()) {
+              hint = std::move(options[0]);
+            } else {
+              hint = "either ";
+              hint += options.front();
+
+              if (options.size() > 2) {
+                const auto end = std::prev(options.end());
+
+                for (auto it = std::next(options.begin()); it != end; ++it) {
+                  hint += ", ";
+                  hint += *it;
+                }
+              }
+
+              hint += " or ";
+              hint += options.back();
+            }
+
+            hint = "fix this with " + hint + " compatibility option";
+          }
+        }
+
+        console->print_error(issue.description +
+                             (hint.empty() ? "" : " (" + hint + ")"));
+        break;
+      }
     }
   }
 
@@ -1968,7 +1999,7 @@ class Dumper::Memory_dumper final {
 
   ~Memory_dumper() = default;
 
-  const std::vector<Schema_dumper::Issue> &dump(
+  const std::vector<Compatibility_issue> &dump(
       const std::function<void(Memory_dumper *)> &func) {
     m_issues.clear();
 
@@ -1979,12 +2010,12 @@ class Dumper::Memory_dumper final {
     return issues();
   }
 
-  const std::vector<Schema_dumper::Issue> &issues() const { return m_issues; }
+  const std::vector<Compatibility_issue> &issues() const { return m_issues; }
 
   const std::string &content() const { return m_file.content(); }
 
   template <typename... Args>
-  void dump(std::vector<Schema_dumper::Issue> (Schema_dumper::*func)(
+  void dump(std::vector<Compatibility_issue> (Schema_dumper::*func)(
                 IFile *, const std::remove_cvref_t<Args> &...),
             Args &&...args) {
     auto issues = (m_dumper->*func)(&m_file, std::forward<Args>(args)...);
@@ -2003,7 +2034,7 @@ class Dumper::Memory_dumper final {
  private:
   Schema_dumper *m_dumper;
   Memory_file m_file;
-  std::vector<Schema_dumper::Issue> m_issues;
+  std::vector<Compatibility_issue> m_issues;
 };
 
 Dumper::Dumper(const Dump_options &options)
@@ -3093,7 +3124,7 @@ void Dumper::validate_mds() const {
   }
 
   // this is an error in case of MHS
-  handle_invalid_view_references(status, true);
+  handle_mismatched_view_references(status, true);
 
   if (status.is_set(issues::Status::ERROR)) {
     console->print_info(
@@ -3501,7 +3532,7 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
     // if MDS is on, changes done by compatibility options were printed earlier
     const auto status = show_issues(in_memory.issues());
 
-    handle_invalid_view_references(status, false);
+    handle_mismatched_view_references(status, false);
 
     if (status.is_set(issues::Status::ERROR_HAS_INVALID_GRANTS)) {
       THROW_ERROR(SHERR_DUMP_INVALID_GRANT_STATEMENT);
@@ -4216,7 +4247,7 @@ void Dumper::write_dump_finished_metadata() const {
   {
     Value issues{Type::kObjectType};
 
-    if (m_has_invalid_view_references) {
+    if (m_has_mismatched_view_references) {
       issues.AddMember(StringRef("hasInvalidViewReferences"), true, a);
     }
 
@@ -5257,14 +5288,14 @@ bool Dumper::all_tasks_produced() const {
          m_chunking_tasks_completed == m_chunking_tasks_total;
 }
 
-void Dumper::handle_invalid_view_references(issues::Status_set status,
-                                            bool as_error) const {
-  if (!status.is_set(issues::Status::WARNING_HAS_INVALID_VIEW_REFERENCES) ||
-      m_has_invalid_view_references) {
+void Dumper::handle_mismatched_view_references(issues::Status_set status,
+                                               bool as_error) const {
+  if (!status.is_set(issues::Status::WARNING_HAS_MISMATCHED_VIEW_REFERENCES) ||
+      m_has_mismatched_view_references) {
     return;
   }
 
-  const_cast<Dumper *>(this)->m_has_invalid_view_references = true;
+  const_cast<Dumper *>(this)->m_has_mismatched_view_references = true;
 
   const auto console = current_console();
 

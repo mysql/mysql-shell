@@ -30,35 +30,34 @@
 
 #include "mysqlshdk/libs/utils/enumset.h"
 
-#include "modules/util/dump/schema_dumper.h"
-
 namespace mysqlsh {
 namespace dump {
 
+// NOTE: keep this sorted alphabetically, this allows to convert sorted
+// enumeration values to sorted strings
 enum class Compatibility_option {
   CREATE_INVISIBLE_PKS,
   FORCE_INNODB,
+  FORCE_NON_STANDARD_FKS,
   IGNORE_MISSING_PKS,
+  IGNORE_WILDCARD_GRANTS,
+  LOCK_INVALID_ACCOUNTS,
+  SKIP_INVALID_ACCOUNTS,
   STRIP_DEFINERS,
+  STRIP_INVALID_GRANTS,
   STRIP_RESTRICTED_GRANTS,
   STRIP_TABLESPACES,
-  SKIP_INVALID_ACCOUNTS,
-  STRIP_INVALID_GRANTS,
-  IGNORE_WILDCARD_GRANTS,
   UNESCAPE_WILDCARD_GRANTS,
-  FORCE_NON_STANDARD_FKS,
-  LOCK_INVALID_ACCOUNTS,
+  LAST_VALUE = UNESCAPE_WILDCARD_GRANTS,
 };
 
 Compatibility_option to_compatibility_option(const std::string &c);
-
-Compatibility_option to_compatibility_option(Schema_dumper::Issue::Status c);
 
 std::string to_string(Compatibility_option c);
 
 using Compatibility_options =
     mysqlshdk::utils::Enum_set<Compatibility_option,
-                               Compatibility_option::LOCK_INVALID_ACCOUNTS>;
+                               Compatibility_option::LAST_VALUE>;
 
 }  // namespace dump
 }  // namespace mysqlsh
