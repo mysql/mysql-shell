@@ -153,6 +153,27 @@ issues::Status_set show_issues(const std::vector<Compatibility_issue> &issues) {
   const auto console = current_console();
   issues::Status_set status;
 
+  const auto issue_attribs = [](const Compatibility_issue &issue) {
+    auto ocimds_issue = shcore::make_dict();
+    ocimds_issue->emplace("check", to_string(issue.check));
+    ocimds_issue->emplace("status", to_string(issue.status));
+    ocimds_issue->emplace("objectType", to_string(issue.object_type));
+    ocimds_issue->emplace("objectName", issue.object_name);
+    ocimds_issue->emplace("description", issue.description);
+
+    if (!issue.compatibility_options.empty()) {
+      auto array = shcore::make_array();
+
+      for (auto option : issue.compatibility_options.values()) {
+        array->emplace_back(to_string(option));
+      }
+
+      ocimds_issue->emplace("compatibilityOptions", std::move(array));
+    }
+
+    return shcore::make_dict("compatibilityIssue", std::move(ocimds_issue));
+  };
+
   for (const auto &issue : issues) {
     switch (issue.status) {
       case Compatibility_issue::Status::FIXED: {
@@ -168,12 +189,12 @@ issues::Status_set show_issues(const std::vector<Compatibility_issue> &issues) {
           }
         }
 
-        console->print_note(issue.description);
+        console->print_note(issue.description, issue_attribs(issue));
         break;
       }
 
       case Compatibility_issue::Status::NOTE: {
-        console->print_note(issue.description);
+        console->print_note(issue.description, issue_attribs(issue));
         break;
       }
 
@@ -191,7 +212,7 @@ issues::Status_set show_issues(const std::vector<Compatibility_issue> &issues) {
           status.set(issues::Status::WARNING_HAS_MISMATCHED_VIEW_REFERENCES);
         }
 
-        console->print_warning(issue.description);
+        console->print_warning(issue.description, issue_attribs(issue));
         break;
       }
 
@@ -246,8 +267,9 @@ issues::Status_set show_issues(const std::vector<Compatibility_issue> &issues) {
           }
         }
 
-        console->print_error(issue.description +
-                             (hint.empty() ? "" : " (" + hint + ")"));
+        console->print_error(
+            issue.description + (hint.empty() ? "" : " (" + hint + ")"),
+            issue_attribs(issue));
         break;
       }
     }
