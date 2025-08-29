@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -87,8 +87,7 @@ class Import_table final {
   void progress_shutdown();
   void scan_file();
 
-  std::atomic<size_t> m_prog_sent_bytes{0};
-  std::atomic<size_t> m_prog_file_bytes{0};
+  Progress_stats m_progress_stats;
   std::optional<size_t> m_prog_total_file_bytes;
   size_t m_total_file_size = 0;
   bool m_has_compressed_files = false;
@@ -102,7 +101,7 @@ class Import_table final {
   // in such case we don't want the worker to do this, hence we clear this
   // option and use a cached value locally
   uint64_t m_skip_rows_count;
-  Stats m_stats;
+  Load_stats m_load_stats;
 
   shcore::atomic_flag *m_interrupt;
   std::vector<std::thread> m_threads;

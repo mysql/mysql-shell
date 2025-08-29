@@ -293,7 +293,7 @@ class Dump_loader {
             m_chunk(std::move(chunk)),
             m_resume(resume) {}
 
-      import_table::Stats stats;
+      import_table::Load_stats load_stats;
 
       bool execute(Worker *, Dump_loader *) override;
 
@@ -699,6 +699,10 @@ class Dump_loader {
 
   void on_add_index_result(bool success, uint64_t count);
 
+  void update_dump_status(Dump_reader::Status current_status);
+
+  bool is_dump_complete() const noexcept;
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);
@@ -782,8 +786,8 @@ class Dump_loader {
 
   std::mutex m_tables_being_loaded_mutex;
   std::unordered_multimap<std::string, size_t> m_tables_being_loaded;
-  std::atomic<size_t> m_num_threads_loading;
-  std::atomic<size_t> m_num_threads_recreating_indexes;
+  std::atomic<size_t> m_num_threads_loading{0};
+  std::atomic<size_t> m_num_threads_recreating_indexes{0};
   std::atomic<size_t> m_num_threads_checksumming{0};
   std::atomic<size_t> m_num_index_retries{0};
 
@@ -805,8 +809,9 @@ class Dump_loader {
 
   size_t m_data_bytes_previously_loaded = 0;
   size_t m_rows_previously_loaded = 0;
-  import_table::Stats m_stats;
-  std::atomic<size_t> m_num_errors;
+  import_table::Progress_stats m_progress_stats;
+  import_table::Load_stats m_load_stats;
+  std::atomic<size_t> m_num_errors{0};
   mysqlshdk::textui::Throughput m_rows_throughput;
   std::mutex m_rows_throughput_mutex;
 
@@ -868,6 +873,8 @@ class Dump_loader {
   std::unique_ptr<Monitoring> m_monitoring;
 
   Reconnect m_reconnect_callback;
+
+  Dump_reader::Status m_dump_status = Dump_reader::Status::INVALID;
 
   // BULK LOAD
   std::unique_ptr<Bulk_load_support> m_bulk_load;

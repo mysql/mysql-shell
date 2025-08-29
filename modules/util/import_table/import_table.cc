@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -54,7 +54,8 @@ namespace mysqlsh {
 namespace import_table {
 
 Import_table::Import_table(const Import_table_options &options)
-    : m_opt(options),
+    : m_progress_stats(options.threads_size()),
+      m_opt(options),
       m_skip_rows_count(m_opt.skip_rows_count()),
       m_interrupt(nullptr),
       m_progress_thread("Import table", options.show_progress()) {
@@ -97,7 +98,7 @@ void Import_table::progress_setup() {
   dump::Progress_thread::Throughput_config config;
 
   config.space_before_item = false;
-  config.current = [this]() -> uint64_t { return m_prog_file_bytes; };
+  config.current = [this]() -> uint64_t { return m_progress_stats.file_bytes; };
   config.total = [this]() {
     return m_prog_total_file_bytes.value_or(m_total_file_size);
   };
@@ -106,12 +107,12 @@ void Import_table::progress_setup() {
     std::string label;
 
     if (const auto loading =
-            m_stats.thread_states[Thread_state::READING].load()) {
+            m_progress_stats.thread_states[Thread_state::READING].load()) {
       label += std::to_string(loading) + " thds loading - ";
     }
 
     if (const auto committing =
-            m_stats.thread_states[Thread_state::COMMITTING].load()) {
+            m_progress_stats.thread_states[Thread_state::COMMITTING].load()) {
       label += std::to_string(committing) + " thds committing - ";
     }
 
@@ -141,9 +142,9 @@ void Import_table::spawn_workers(bool skip_rows) {
 
   const int64_t num_workers = m_opt.threads_size();
   for (int64_t i = 0; i < num_workers; i++) {
-    Load_data_worker worker(m_opt, i, &m_prog_sent_bytes, &m_prog_file_bytes,
-                            m_interrupt, &m_range_queue, &m_thread_exception[i],
-                            &m_stats);
+    Load_data_worker worker(m_opt, i, &m_progress_stats, m_interrupt,
+                            &m_range_queue, &m_thread_exception[i],
+                            &m_load_stats);
     std::thread t = mysqlsh::spawn_scoped_thread(&Load_data_worker::operator(),
                                                  std::move(worker));
     m_threads.emplace_back(std::move(t));
@@ -249,9 +250,9 @@ std::string Import_table::import_summary() const {
   std::string msg;
 
   if (m_opt.is_multifile()) {
-    plural = m_stats.total_files_processed != 1;
+    plural = m_load_stats.files_processed != 1;
 
-    msg += std::to_string(m_stats.total_files_processed) + " file";
+    msg += std::to_string(m_load_stats.files_processed) + " file";
 
     if (plural) {
       msg += 's';
@@ -260,7 +261,7 @@ std::string Import_table::import_summary() const {
     msg += "File '" + m_opt.masked_full_path() + "'";
   }
 
-  msg += " (" + format_bytes(m_stats.total_data_bytes);
+  msg += " (" + format_bytes(m_load_stats.data_bytes);
 
   if (m_has_compressed_files) {
     msg += " uncompressed, " + format_bytes(m_total_file_size) + " compressed";
@@ -269,7 +270,7 @@ std::string Import_table::import_summary() const {
   msg += ") ";
   msg += (plural ? "were" : "was");
   msg += " imported in " + format_seconds(seconds) + " at " +
-         format_throughput_bytes(m_stats.total_data_bytes, seconds);
+         format_throughput_bytes(m_load_stats.data_bytes, seconds);
 
   if (m_has_compressed_files) {
     msg += " uncompressed, " +
@@ -281,7 +282,7 @@ std::string Import_table::import_summary() const {
 
 std::string Import_table::rows_affected_info() {
   return "Total rows affected in " + m_opt.schema() + "." + m_opt.table() +
-         ": " + m_stats.to_string();
+         ": " + m_load_stats.to_string();
 }
 
 void Import_table::scan_file() {
@@ -336,7 +337,7 @@ void Import_table::scan_file() {
       }
 
       // wait for at least one thread to be available
-      if (scheduled_chunks - m_stats.total_files_processed >=
+      if (scheduled_chunks - m_load_stats.files_processed >=
           static_cast<std::size_t>(m_opt.threads_size())) {
         shcore::sleep_ms(100);
       } else {

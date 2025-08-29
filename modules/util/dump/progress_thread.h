@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,6 +53,7 @@ namespace dump {
 class Progress_thread final {
  public:
   class Stage;
+  using Attributes = mysqlshdk::textui::IProgress::Attributes;
 
   /**
    * Represents a duration in time.
@@ -342,6 +343,10 @@ class Progress_thread final {
      */
     std::function<std::string()> right_label;
     /**
+     * Additional attributes to include in JSON output, optional.
+     */
+    std::function<Attributes()> extra_attributes;
+    /**
      * Called when display is started, optional.
      */
     std::function<void()> on_display_started;
@@ -367,6 +372,11 @@ class Progress_thread final {
   Progress_thread &operator=(Progress_thread &&) = delete;
 
   ~Progress_thread();
+
+  /**
+   * Whether progress is displayed in JSON format.
+   */
+  bool uses_json_output() const noexcept { return m_json_output; }
 
   /**
    * Starts handling of the registered stages. Each of them is going to be

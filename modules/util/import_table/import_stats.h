@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -41,24 +41,54 @@ enum Thread_state {
   LAST = 4,
 };
 
-struct Stats {
-  std::atomic<size_t> total_records{0};
-  std::atomic<size_t> total_deleted{0};
-  std::atomic<size_t> total_skipped{0};
-  std::atomic<size_t> total_warnings{0};
-  // total number of uncompressed bytes processed
-  std::atomic<size_t> total_data_bytes{0};
-  // total number of physical bytes processed
-  std::atomic<size_t> total_file_bytes{0};
-  std::atomic<size_t> total_files_processed{0};
+/**
+ * Statistics which are frequently updated, can be used to track progress.
+ */
+struct Progress_stats {
+  explicit Progress_stats(size_t number_of_threads) {
+    thread_states[Thread_state::IDLE] = number_of_threads;
+  }
 
+  // number of uncompressed bytes processed
+  std::atomic<size_t> data_bytes{0};
+  // number of physical bytes processed
+  std::atomic<size_t> file_bytes{0};
+  // states of various threads
   std::array<std::atomic<size_t>, Thread_state::LAST> thread_states{};
+};
+
+/**
+ * Statistics which are rarely updated, only once load finishes.
+ */
+struct Load_stats {
+  std::atomic<size_t> records{0};
+  std::atomic<size_t> deleted{0};
+  std::atomic<size_t> skipped{0};
+  std::atomic<size_t> warnings{0};
+  // number of uncompressed bytes processed
+  std::atomic<size_t> data_bytes{0};
+  // number of physical bytes processed
+  std::atomic<size_t> file_bytes{0};
+  // number of files processed
+  std::atomic<size_t> files_processed{0};
 
   std::string to_string() const {
-    return std::string{"Records: " + std::to_string(total_records) +
-                       "  Deleted: " + std::to_string(total_deleted) +
-                       "  Skipped: " + std::to_string(total_skipped) +
-                       "  Warnings: " + std::to_string(total_warnings)};
+    return std::string{"Records: " + std::to_string(records) +
+                       "  Deleted: " + std::to_string(deleted) +
+                       "  Skipped: " + std::to_string(skipped) +
+                       "  Warnings: " + std::to_string(warnings)};
+  }
+
+  Load_stats &operator+=(const Load_stats &rhs) {
+    records += rhs.records;
+    deleted += rhs.deleted;
+    skipped += rhs.skipped;
+    warnings += rhs.warnings;
+    data_bytes += rhs.data_bytes;
+    file_bytes += rhs.file_bytes;
+    files_processed += rhs.files_processed;
+
+    return *this;
   }
 };
 

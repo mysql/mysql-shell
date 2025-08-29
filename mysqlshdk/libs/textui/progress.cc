@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -226,9 +226,9 @@ void Spinny_stick::done(const std::string &text) {
   }
 }
 
-void Spinny_stick::print_json(const std::string &msg) {
+void Spinny_stick::print_json(const std::string &msg) const {
   mysqlsh::current_console()->raw_print(msg, mysqlsh::Output_stream::STDOUT,
-                                        true);
+                                        true, extra_attributes());
 }
 
 class Threaded_spinny_stick::Impl {

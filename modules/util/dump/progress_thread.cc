@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <cinttypes>
 #include <exception>
 #include <limits>
+#include <map>
 #include <utility>
 
 #include "mysqlshdk/libs/textui/progress.h"
@@ -61,7 +62,21 @@ class Spinner_progress : public Progress_thread::Stage {
  protected:
   void draw() override { m_spinner.update(); }
 
-  void on_display_done() override { m_spinner.done(k_done); }
+  void on_update() override {
+    if (update_ui()) {
+      finish(false);
+    }
+  }
+
+  void on_display_done() override {
+    update_ui();
+    m_spinner.done(k_done);
+  }
+
+  /**
+   * Returns true when progress should be stopped.
+   */
+  virtual bool update_ui() { return false; }
 
   mysqlshdk::textui::Spinny_stick m_spinner;
 };
@@ -77,7 +92,7 @@ class Numeric_progress : public Spinner_progress {
   }
 
  protected:
-  void on_update() override {
+  bool update_ui() override {
     const auto current = m_config.current();
     const auto total = m_config.total();
     const auto total_ready =
@@ -97,9 +112,18 @@ class Numeric_progress : public Spinner_progress {
 
     m_spinner.set_right_label(m_label);
 
-    if (total_ready && current >= total) {
-      finish(false);
+    if (m_spinner.uses_json_output()) {
+      auto progress_update = shcore::make_dict();
+      progress_update->emplace("current", current);
+      progress_update->emplace("total", total);
+      progress_update->emplace("totalKnown", total_ready);
+      progress_update->emplace("description", description());
+
+      m_spinner.set_extra_attributes(shcore::make_dict(
+          "numericProgressUpdate", std::move(progress_update)));
     }
+
+    return total_ready && current >= total;
   }
 
  private:
@@ -151,6 +175,9 @@ class Throughput_progress : public Progress_thread::Stage {
     const auto total = m_config.total();
     const auto left_label = m_config.left_label ? m_config.left_label() : "";
     const auto right_label = m_config.right_label ? m_config.right_label() : "";
+    const auto attribs = m_config.extra_attributes
+                             ? m_config.extra_attributes()
+                             : Progress_thread::Attributes{};
 
     if (m_progress) {
       std::lock_guard<std::recursive_mutex> lock(*m_progress_mutex);
@@ -158,6 +185,7 @@ class Throughput_progress : public Progress_thread::Stage {
       m_progress->set_current(current);
       m_progress->set_left_label(left_label);
       m_progress->set_right_label(right_label);
+      m_progress->set_extra_attributes(attribs);
     }
   }
 

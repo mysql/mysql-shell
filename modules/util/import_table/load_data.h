@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -166,11 +166,10 @@ class Load_data_worker final {
  public:
   Load_data_worker() = delete;
   Load_data_worker(const Import_table_options &opt, int64_t thread_id,
-                   std::atomic<size_t> *prog_data_bytes,
-                   std::atomic<size_t> *prog_file_bytes,
+                   Progress_stats *progress_stats,
                    shcore::atomic_flag *interrupt,
                    shcore::Synchronized_queue<File_import_info> *range_queue,
-                   std::exception_ptr *thread_exception, Stats *stats,
+                   std::exception_ptr *thread_exception, Load_stats *load_stats,
                    const std::string &query_comment = "");
   Load_data_worker(const Load_data_worker &other) = default;
   Load_data_worker(Load_data_worker &&other) = default;
@@ -198,12 +197,11 @@ class Load_data_worker final {
 
   const Import_table_options &m_opt;
   int64_t m_thread_id;
-  std::atomic<size_t> *m_prog_data_bytes;
-  std::atomic<size_t> *m_prog_file_bytes;
+  Progress_stats *m_progress_stats;
   shcore::atomic_flag *m_interrupt;
   shcore::Synchronized_queue<File_import_info> *m_range_queue;
   std::exception_ptr *m_thread_exception;
-  Stats *m_stats;
+  Load_stats *m_load_stats;
   std::string m_query_comment;
   Thread_state m_state;
 };

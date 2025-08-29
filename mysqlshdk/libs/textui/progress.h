@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -30,6 +30,7 @@
 #include <string>
 #include <vector>
 
+#include "mysqlshdk/libs/textui/progress_attribs.h"
 #include "mysqlshdk/libs/textui/textui.h"
 
 namespace mysqlshdk {
@@ -107,7 +108,7 @@ class Progress_vt100 : public Progress {
                 const Style &bg_style, const Style &fg_style);
 };
 
-class Spinny_stick {
+class Spinny_stick : public Progress_attributes {
  public:
   explicit Spinny_stick(const std::string &label, bool use_json = false)
       : m_label(label), m_use_json(use_json) {}
@@ -117,8 +118,13 @@ class Spinny_stick {
   void update();
   void done(const std::string &text);
 
+  /**
+   * Whether progress is displayed in JSON format.
+   */
+  bool uses_json_output() const noexcept { return m_use_json; }
+
  private:
-  static void print_json(const std::string &msg);
+  void print_json(const std::string &msg) const;
 
   std::string m_label;
   std::string m_right_label;

@@ -249,6 +249,9 @@ struct SHCORE_PUBLIC Value final {
   explicit Value(unsigned int ui);
   explicit Value(int64_t i);
   explicit Value(uint64_t ui);
+#ifdef __APPLE__
+  explicit Value(size_t ui) : Value(static_cast<uint64_t>(ui)) {}
+#endif  // __APPLE__
   explicit Value(float f);
   explicit Value(double d);
   explicit Value(bool b);
