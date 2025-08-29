@@ -64,6 +64,8 @@ struct Dump_info {
   std::vector<std::string> compatibility_options;
   std::vector<Capability_info> capabilities;
   bool has_checksum = false;
+  std::size_t estimated_row_count = 0;
+  std::size_t estimated_data_size = 0;
 };
 
 Dump_info dump_info(const shcore::json::Value &object);

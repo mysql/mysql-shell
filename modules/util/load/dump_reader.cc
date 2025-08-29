@@ -224,6 +224,10 @@ Dump_reader::Status Dump_reader::open() {
         shcore::json::required_object(md, "vectorStore"));
   }
 
+  // use estimated values until dump is complete
+  m_contents.total_row_count = m_contents.dump.estimated_row_count;
+  m_contents.total_data_size = m_contents.dump.estimated_data_size;
+
   // deprecated entry
   m_contents.table_only =
       shcore::json::optional_bool(md, "tableOnly").value_or(false);
@@ -818,6 +822,14 @@ size_t Dump_reader::filtered_data_size() const {
   }
 }
 
+size_t Dump_reader::filtered_row_count() const {
+  if (m_dump_status == Status::COMPLETE) {
+    return m_filtered_row_count;
+  } else {
+    return total_row_count();
+  }
+}
+
 size_t Dump_reader::table_data_size(const std::string &schema,
                                     const std::string &table) const {
   if (const auto s = m_contents.table_data_size.find(schema);
@@ -851,8 +863,35 @@ void Dump_reader::compute_filtered_data_size() {
   }
 }
 
+void Dump_reader::compute_filtered_row_count() {
+  m_filtered_row_count = 0;
+
+  for (const auto &schema : m_contents.schemas) {
+    const auto s = m_contents.table_row_count.find(schema.first);
+
+    if (s != m_contents.table_row_count.end()) {
+      for (const auto &table : schema.second->tables) {
+        if (!table.second->data_info.empty() &&
+            table.second->data_info[0].has_data) {
+          const auto t = s->second.find(table.second->name);
+
+          if (t != s->second.end()) {
+            m_filtered_row_count += t->second;
+          }
+        }
+      }
+    }
+  }
+}
+
+void Dump_reader::compute_filtered_stats() {
+  compute_filtered_data_size();
+  compute_filtered_row_count();
+}
+
 // Scan directory for new files and adds them to the pending file list
-void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
+Dump_reader::Status Dump_reader::rescan(
+    dump::Progress_thread *progress_thread) {
   Files files;
   Files vector_store_files;
 
@@ -897,7 +936,9 @@ void Dump_reader::rescan(dump::Progress_thread *progress_thread) {
     m_dump_status = Status::COMPLETE;
   }
 
-  compute_filtered_data_size();
+  compute_filtered_stats();
+
+  return m_dump_status;
 }
 
 uint64_t Dump_reader::add_deferred_statements(
@@ -1751,6 +1792,24 @@ void Dump_reader::Dump_info::parse_done_metadata(
           dump::common::k_done_metadata_file);
     }
 
+    if (metadata->has_key("tableRows")) {
+      total_row_count = 0;
+
+      std::size_t row_count;
+
+      for (const auto &schema : *metadata->get_map("tableRows")) {
+        for (const auto &table : *schema.second.as_map()) {
+          row_count = table.second.as_uint();
+          table_row_count[schema.first][table.first] = row_count;
+          total_row_count += row_count;
+        }
+      }
+    } else {
+      log_warning(
+          "Dump metadata file %s does not contain tableRows information",
+          dump::common::k_done_metadata_file);
+    }
+
     // only exists in 1.0.1+
     if (metadata->has_key("chunkFileBytes")) {
       for (const auto &file : *metadata->get_map("chunkFileBytes")) {
@@ -2476,8 +2535,8 @@ void Dump_reader::handle_vector_store_dump() {
       }
     }
 
-    // update the size estimates
-    compute_filtered_data_size();
+    // update the stat estimates
+    compute_filtered_stats();
   } else if (load::Convert_vector_store::CONVERT ==
              m_options.convert_vector_store()) {
     // WL16802-FR2.1.7: convert vector store tables
@@ -2504,8 +2563,8 @@ void Dump_reader::handle_vector_store_dump() {
       }
     }
 
-    // update the size estimates
-    compute_filtered_data_size();
+    // update the stat estimates
+    compute_filtered_stats();
   }
 }
 

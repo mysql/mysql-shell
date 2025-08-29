@@ -3178,6 +3178,7 @@ void Dumper::validate_mds() const {
 
 void Dumper::initialize_counters() {
   m_total_rows = 0;
+  m_total_data_size = 0;
   m_total_tables = 0;
   m_total_views = 0;
   m_total_schemas = m_schema_infos.size();
@@ -3188,6 +3189,8 @@ void Dumper::initialize_counters() {
 
     for (auto &table : schema.tables) {
       m_total_rows += table.info->row_count;
+      m_total_data_size +=
+          table.info->row_count * table.info->average_row_length;
     }
   }
 
@@ -4153,6 +4156,9 @@ void Dumper::write_dump_started_metadata() const {
   json.append("targetVersion", m_options.target_version().get_full());
   json.append("hasLibraryDdl", m_cache.has_library_ddl);
 
+  json.append("estimatedRowCount", m_total_rows);
+  json.append("estimatedDataSize", m_total_data_size);
+
   {
     // source server
     json.append("source");
@@ -4734,6 +4740,36 @@ void Dumper::initialize_throughput_progress() {
       }
 
       return label;
+    };
+  }
+
+  if (m_progress_thread.uses_json_output()) {
+    config.extra_attributes = [this]() {
+      auto dump_progress = shcore::make_dict();
+
+      {
+        std::lock_guard<std::recursive_mutex> lock(m_throughput_mutex);
+
+        {
+          const auto rate = m_data_throughput->rate();
+          const double seconds = 1.0;
+          dump_progress->emplace(
+              "dataThroughput",
+              mysqlshdk::textui::format_json_throughput(rate, seconds));
+        }
+
+        if (compressed()) {
+          {
+            const auto rate = m_bytes_throughput->rate();
+            const double seconds = 1.0;
+            dump_progress->emplace(
+                "fileThroughput",
+                mysqlshdk::textui::format_json_throughput(rate, seconds));
+          }
+        }
+      }
+
+      return shcore::make_dict("dumpProgress", std::move(dump_progress));
     };
   }
 

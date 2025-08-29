@@ -63,6 +63,12 @@ class Dump_reader {
   using Files = mysqlshdk::storage::File_list;
   struct Object_info;
 
+  enum class Status {
+    INVALID,  // No dump or not enough data to start loading yet
+    DUMPING,  // Dump is not done yet
+    COMPLETE  // Dump is complete
+  };
+
   Dump_reader(std::unique_ptr<mysqlshdk::storage::IDirectory> dump_dir,
               const Load_dump_options &options);
 
@@ -235,9 +241,10 @@ class Dump_reader {
 
   size_t total_file_size() const { return m_contents.total_file_size; }
   size_t total_data_size() const { return m_contents.total_data_size; }
+  size_t total_row_count() const { return m_contents.total_row_count; }
 
   size_t filtered_data_size() const;
-  void compute_filtered_data_size();
+  size_t filtered_row_count() const;
 
   /**
    * Total data size of all chunks in a table, if table is partitioned, this
@@ -262,7 +269,7 @@ class Dump_reader {
 
   uint64_t bytes_per_chunk() const { return m_contents.dump.bytes_per_chunk; }
 
-  void rescan(dump::Progress_thread *progress_thread = nullptr);
+  [[nodiscard]] Status rescan(dump::Progress_thread *progress_thread = nullptr);
 
   uint64_t add_deferred_statements(std::string_view schema,
                                    std::string_view table,
@@ -274,15 +281,7 @@ class Dump_reader {
 
   size_t tables_to_secondary_load() const;
 
-  enum class Status {
-    INVALID,  // No dump or not enough data to start loading yet
-    DUMPING,  // Dump is not done yet
-    COMPLETE  // Dump is complete
-  };
-
-  Status status() const { return m_dump_status; }
-
-  Status open();
+  [[nodiscard]] Status open();
 
   std::unique_ptr<mysqlshdk::storage::IFile> create_progress_file_handle()
       const;
@@ -638,6 +637,11 @@ class Dump_reader {
     // uncompressed bytes per table
     std::unordered_map<std::string, std::unordered_map<std::string, size_t>>
         table_data_size;
+    // total number of rows in a dump
+    size_t total_row_count = 0;
+    // row count per table
+    std::unordered_map<std::string, std::unordered_map<std::string, size_t>>
+        table_row_count;
     // total file sizes available in the dump location
     size_t total_file_size = 0;
 
@@ -668,6 +672,10 @@ class Dump_reader {
   };
 
  private:
+  void compute_filtered_data_size();
+  void compute_filtered_row_count();
+  void compute_filtered_stats();
+
   const std::string &override_schema(const std::string &s) const;
 
   const Schema_info *find_schema(std::string_view schema,
@@ -723,6 +731,7 @@ class Dump_reader {
   Status m_dump_status = Status::INVALID;
   Dump_info m_contents;
   size_t m_filtered_data_size = 0;
+  size_t m_filtered_row_count = 0;
 
   // Tables and partitions that are ready to be loaded
   std::unordered_set<Table_data_info *> m_tables_with_data;

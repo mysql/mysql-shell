@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@ SET(textui_SOURCES
     textui.cc
     text_progress.cc
     progress.cc
+    progress_attribs.cc
 )
 
 ADD_CONVENIENCE_LIBRARY(textui ${textui_SOURCES})

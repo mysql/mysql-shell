@@ -72,6 +72,11 @@ Dump_info dump_info(const shcore::json::Value &object) {
 
   info.has_library_ddl = optional_bool(object, "hasLibraryDdl").value_or(false);
 
+  info.estimated_row_count =
+      optional_uint(object, "estimatedRowCount").value_or(0);
+  info.estimated_data_size =
+      optional_uint(object, "estimatedDataSize").value_or(0);
+
   if (const auto source = optional_object(object, "source");
       source.has_value()) {
     info.source = server_info(*source);

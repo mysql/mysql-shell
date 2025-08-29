@@ -623,28 +623,24 @@ int local_infile_error(void *userdata, char *error_msg,
 
 Load_data_worker::Load_data_worker(
     const Import_table_options &options, int64_t thread_id,
-    std::atomic<size_t> *prog_data_bytes, std::atomic<size_t> *prog_file_bytes,
-    shcore::atomic_flag *interrupt,
+    Progress_stats *progress_stats, shcore::atomic_flag *interrupt,
     shcore::Synchronized_queue<File_import_info> *range_queue,
-    std::exception_ptr *thread_exception, Stats *stats,
+    std::exception_ptr *thread_exception, Load_stats *load_stats,
     const std::string &query_comment)
     : m_opt(options),
       m_thread_id(thread_id),
-      m_prog_data_bytes(prog_data_bytes),
-      m_prog_file_bytes(prog_file_bytes),
+      m_progress_stats(progress_stats),
       m_interrupt(interrupt),
       m_range_queue(range_queue),
       m_thread_exception(thread_exception),
-      m_stats(stats),
+      m_load_stats(load_stats),
       m_query_comment(query_comment) {
-  assert(m_prog_data_bytes);
-  assert(m_prog_file_bytes);
+  assert(m_progress_stats);
   assert(m_interrupt);
   assert(m_thread_exception);
-  assert(m_stats);
+  assert(m_load_stats);
 
   m_state = Thread_state::IDLE;
-  ++m_stats->thread_states[m_state];
 }
 
 void Load_data_worker::operator()() {
@@ -848,8 +844,8 @@ void Load_data_worker::execute(
   try {
     File_info fi;
     fi.worker_id = m_thread_id;
-    fi.prog_data_bytes = m_prog_data_bytes;
-    fi.prog_file_bytes = m_prog_file_bytes;
+    fi.prog_data_bytes = &m_progress_stats->data_bytes;
+    fi.prog_file_bytes = &m_progress_stats->file_bytes;
     fi.user_interrupt = m_interrupt;
     fi.max_rate = m_opt.max_rate();
     fi.on_infile_read_end = [this]() { set_state(Thread_state::COMMITTING); };
@@ -963,12 +959,12 @@ void Load_data_worker::execute(
         load_result = query(m_query_comment + full_query);
         set_state(Thread_state::IDLE);
         fi.buffer.flush_done(&fi.continuation);
-        m_stats->total_data_bytes += fi.data_bytes;
-        m_stats->total_file_bytes += fi.file_bytes;
+        m_load_stats->data_bytes += fi.data_bytes;
+        m_load_stats->file_bytes += fi.file_bytes;
 
         if (!fi.continuation) {
           // increase the counter only when there are no more subchunks
-          ++m_stats->total_files_processed;
+          ++m_load_stats->files_processed;
         }
       } catch (const mysqlshdk::db::Error &e) {
         handle_exception();
@@ -1025,10 +1021,10 @@ void Load_data_worker::execute(
           sscanf(mysql_info,
                  "Records: %zu  Deleted: %zu  Skipped: %zu  Warnings: %zu\n",
                  &records, &deleted, &skipped, &warnings);
-          m_stats->total_records += records;
-          m_stats->total_deleted += deleted;
-          m_stats->total_skipped += skipped;
-          m_stats->total_warnings += warnings;
+          m_load_stats->records += records;
+          m_load_stats->deleted += deleted;
+          m_load_stats->skipped += skipped;
+          m_load_stats->warnings += warnings;
         }
 
         if (warnings_num > 0) {
@@ -1107,9 +1103,9 @@ void Load_data_worker::handle_exception() {
 
 void Load_data_worker::set_state(Thread_state new_state) {
   if (m_state != new_state) {
-    --m_stats->thread_states[m_state];
+    --m_progress_stats->thread_states[m_state];
     m_state = new_state;
-    ++m_stats->thread_states[m_state];
+    ++m_progress_stats->thread_states[m_state];
   }
 }
 

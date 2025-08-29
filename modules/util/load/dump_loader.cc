@@ -657,8 +657,8 @@ class Dump_loader::Bulk_load_support {
     }
 
     // report the last chunk of loaded data
-    m_loader->m_stats.total_data_bytes += data_bytes_update;
-    m_loader->m_stats.total_file_bytes += file_bytes_update;
+    m_loader->m_progress_stats.data_bytes += data_bytes_update;
+    m_loader->m_progress_stats.file_bytes += file_bytes_update;
   }
 
   static import_table::Import_table_options import_options(
@@ -978,8 +978,8 @@ class Dump_loader::Bulk_load_support {
       }
     }
 
-    m_loader->m_stats.total_data_bytes += data_bytes_update;
-    m_loader->m_stats.total_file_bytes += file_bytes_update;
+    m_loader->m_progress_stats.data_bytes += data_bytes_update;
+    m_loader->m_progress_stats.file_bytes += file_bytes_update;
   }
 
   static size_t update_progress(double progress, std::size_t total,
@@ -1407,14 +1407,7 @@ void Dump_loader::Worker::Load_data_task::load(Dump_loader *loader,
     std::rethrow_exception(loader->m_thread_exceptions[id()]);
   }
 
-  // NOTE: total_data_bytes and total_file_bytes are used by the loader to
-  // measure the progress, and need to be updated while data is being loaded
-
-  loader->m_stats.total_records += stats.total_records;
-  loader->m_stats.total_deleted += stats.total_deleted;
-  loader->m_stats.total_skipped += stats.total_skipped;
-  loader->m_stats.total_warnings += stats.total_warnings;
-  loader->m_stats.total_files_processed += stats.total_files_processed;
+  loader->m_load_stats += load_stats;
 }
 
 void Dump_loader::Worker::Load_chunk_task::on_load_start(Worker *worker,
@@ -1476,9 +1469,9 @@ void Dump_loader::Worker::Load_chunk_task::do_load(Worker *worker,
   }
 
   import_table::Load_data_worker op(
-      import_options, id(), &loader->m_stats.total_data_bytes,
-      &loader->m_stats.total_file_bytes, &loader->m_worker_hard_interrupt,
-      nullptr, &loader->m_thread_exceptions[id()], &stats, query_comment());
+      import_options, id(), &loader->m_progress_stats,
+      &loader->m_worker_hard_interrupt, nullptr,
+      &loader->m_thread_exceptions[id()], &load_stats, query_comment());
 
   {
     // If max_transaction_size > 0, chunk truncation is enabled, where LOAD
@@ -1583,8 +1576,8 @@ void Dump_loader::Worker::Load_chunk_task::do_load(Worker *worker,
     };
 
     options.skip_bytes = m_bytes_to_skip;
-    stats.total_data_bytes += m_bytes_to_skip;
-    loader->m_stats.total_data_bytes += m_bytes_to_skip;
+    load_stats.data_bytes += m_bytes_to_skip;
+    loader->m_progress_stats.data_bytes += m_bytes_to_skip;
 
     op.execute(worker->session(), extract_file(), options);
   }
@@ -1709,9 +1702,9 @@ void Dump_loader::Worker::Bulk_load_task::bulk_load(Worker *worker,
     }
   }
 
-  stats.total_data_bytes += chunk().data_size;
-  stats.total_file_bytes += chunk().file_size;
-  stats.total_files_processed += chunk().chunks_total;
+  load_stats.data_bytes += chunk().data_size;
+  load_stats.file_bytes += chunk().file_size;
+  load_stats.files_processed += chunk().chunks_total;
 
   if (const auto mysql_info = session->get_mysql_info()) {
     size_t records = 0;
@@ -1723,10 +1716,10 @@ void Dump_loader::Worker::Bulk_load_task::bulk_load(Worker *worker,
            "Records: %zu  Deleted: %zu  Skipped: %zu  Warnings: %zu\n",
            &records, &deleted, &skipped, &warnings);
 
-    stats.total_records += records;
-    stats.total_deleted += deleted;
-    stats.total_skipped += skipped;
-    stats.total_warnings += warnings;
+    load_stats.records += records;
+    load_stats.deleted += deleted;
+    load_stats.skipped += skipped;
+    load_stats.warnings += warnings;
   }
 }
 
@@ -2149,10 +2142,8 @@ Dump_loader::Priority_queue::pop_top() noexcept {
 
 Dump_loader::Dump_loader(const Load_dump_options &options)
     : m_options(options),
-      m_num_threads_loading(0),
-      m_num_threads_recreating_indexes(0),
       m_character_set(options.character_set()),
-      m_num_errors(0),
+      m_progress_stats(m_options.threads_count()),
       m_progress_thread("Load dump", options.show_progress()) {
   m_pending_tasks.resize(m_options.threads_count());
 }
@@ -2560,7 +2551,7 @@ bool Dump_loader::handle_table_data() {
     } else {
       scheduled = false;
 
-      if (m_dump->status() != Dump_reader::Status::COMPLETE && !scanned) {
+      if (!is_dump_complete() && !scanned) {
         scan_for_more_data(false);
         scanned = true;
       } else {
@@ -2571,8 +2562,7 @@ bool Dump_loader::handle_table_data() {
 
   if (scheduled) {
     ++m_data_load_tasks_scheduled;
-  } else if (!m_all_data_load_tasks_scheduled &&
-             Dump_reader::Status::COMPLETE == m_dump->status()) {
+  } else if (!m_all_data_load_tasks_scheduled && is_dump_complete()) {
     m_all_data_load_tasks_scheduled = true;
   }
 
@@ -2918,7 +2908,7 @@ bool Dump_loader::schedule_next_task() {
 
     // WL16802-FR2.3.4: heatwaveLoad is set to 'none', skip secondary load
     if (load::Heatwave_load::NONE != m_options.heatwave_load() &&
-        Dump_reader::Status::COMPLETE == m_dump->status()) {
+        is_dump_complete()) {
       // we don't monitor the location of data files, only once the dump is
       // complete, we know for sure that all files have been written
       if (handle_secondary_load()) {
@@ -3068,7 +3058,7 @@ void Dump_loader::show_summary() {
 
   const auto console = current_console();
 
-  if (m_stats.total_records == m_rows_previously_loaded) {
+  if (m_load_stats.records == m_rows_previously_loaded) {
     if (m_resuming)
       console->print_info("There was no remaining data left to be loaded.");
     else
@@ -3081,16 +3071,15 @@ void Dump_loader::show_summary() {
         "%zi chunks (%s, %s) for %" PRIu64
         " tables in %zi schemas were "
         "loaded in %s (avg throughput %s, %s)",
-        m_stats.total_files_processed.load(),
-        format_items("rows", "rows", m_stats.total_records).c_str(),
-        format_bytes(m_stats.total_data_bytes).c_str(),
-        m_dump->tables_to_load(), m_dump->schemas().size(),
-        format_seconds(load_seconds, false).c_str(),
+        m_load_stats.files_processed.load(),
+        format_items("rows", "rows", m_load_stats.records).c_str(),
+        format_bytes(m_load_stats.data_bytes).c_str(), m_dump->tables_to_load(),
+        m_dump->schemas().size(), format_seconds(load_seconds, false).c_str(),
         format_throughput_bytes(
-            m_stats.total_data_bytes - m_data_bytes_previously_loaded,
+            m_load_stats.data_bytes - m_data_bytes_previously_loaded,
             load_seconds)
             .c_str(),
-        format_rows_throughput(m_stats.total_records - m_rows_previously_loaded,
+        format_rows_throughput(m_load_stats.records - m_rows_previously_loaded,
                                load_seconds)
             .c_str()));
   }
@@ -3220,7 +3209,7 @@ void Dump_loader::show_summary() {
         1 == m_bulk_load->compatible_tables() ? " was" : "s were"));
   }
 
-  if (m_stats.total_records != m_rows_previously_loaded) {
+  if (m_load_stats.records != m_rows_previously_loaded) {
     assert(m_load_data_stage);
     const auto load_seconds = m_load_data_stage->duration().seconds();
 
@@ -3256,20 +3245,20 @@ void Dump_loader::show_summary() {
       "Total duration: %s",
       format_seconds(m_progress_thread.duration().seconds(), false).c_str()));
 
-  if (m_stats.total_deleted > 0) {
+  if (m_load_stats.deleted > 0) {
     // BUG#35304391 - notify about replaced rows
-    console->print_info(std::to_string(m_stats.total_deleted) +
+    console->print_info(std::to_string(m_load_stats.deleted) +
                         " rows were replaced");
   }
 
   if (m_num_errors > 0) {
     console->print_info(shcore::str_format(
         "%zi errors and %zi warnings were reported during the load.",
-        m_num_errors.load(), m_stats.total_warnings.load()));
+        m_num_errors.load(), m_load_stats.warnings.load()));
   } else {
     console->print_info(
         shcore::str_format("%zi warnings were reported during the load.",
-                           m_stats.total_warnings.load()));
+                           m_load_stats.warnings.load()));
   }
 
   if (!m_options.dry_run()) {
@@ -3287,7 +3276,7 @@ void Dump_loader::show_summary() {
           "%zu checksum verification errors were reported during the load.",
           m_checksum_errors));
 
-      if (m_stats.total_warnings) {
+      if (m_load_stats.warnings) {
         console->print_note(
             "Warnings reported during the load may provide some information on "
             "source of these errors.");
@@ -3337,10 +3326,8 @@ void Dump_loader::open_dump(
     }
   }
 
-  const auto console = current_console();
-
   if (!missing_capabilities.empty()) {
-    console->print_error(
+    current_console()->print_error(
         "Dump is using capabilities which are not supported by this version of "
         "MySQL Shell:\n\n" +
         missing_capabilities +
@@ -3349,19 +3336,7 @@ void Dump_loader::open_dump(
     THROW_ERROR(SHERR_LOAD_UNSUPPORTED_DUMP_CAPABILITIES);
   }
 
-  if (status != Dump_reader::Status::COMPLETE) {
-    if (m_options.dump_wait_timeout_ms() > 0) {
-      console->print_note(
-          "Dump is still ongoing, data will be loaded as it becomes "
-          "available.");
-    } else {
-      console->print_error(
-          "Dump is not yet finished. Use the 'waitDumpTimeout' option to "
-          "enable concurrent load and set a timeout for when we need to wait "
-          "for new data to become available.");
-      THROW_ERROR(SHERR_LOAD_INCOMPLETE_DUMP);
-    }
-  }
+  update_dump_status(status);
 
   m_dump->validate_options();
 
@@ -3957,9 +3932,12 @@ void Dump_loader::setup_progress_file(bool *out_is_resuming) {
         m_data_bytes_previously_loaded = progress.data_bytes_completed;
         m_rows_previously_loaded = progress.rows_completed;
 
-        m_stats.total_data_bytes = progress.data_bytes_completed;
-        m_stats.total_file_bytes = progress.file_bytes_completed;
-        m_stats.total_records = progress.rows_completed;
+        m_load_stats.data_bytes = progress.data_bytes_completed;
+        m_load_stats.file_bytes = progress.file_bytes_completed;
+        m_load_stats.records = progress.rows_completed;
+
+        m_progress_stats.data_bytes = progress.data_bytes_completed;
+        m_progress_stats.file_bytes = progress.file_bytes_completed;
       } else {
         console->print_note(
             "Load progress file detected for the instance but "
@@ -4728,8 +4706,7 @@ void Dump_loader::execute_tasks(bool testing) {
       }
     }
 
-    if (!m_worker_interrupt.test() &&
-        m_dump->status() != Dump_reader::Status::COMPLETE) {
+    if (!m_worker_interrupt.test() && !is_dump_complete()) {
       scan_for_more_data();
     }
 
@@ -4742,8 +4719,7 @@ void Dump_loader::execute_tasks(bool testing) {
 
     // If the whole dump is already available and there's no more data to be
     // loaded and all workers are idle (done loading), then we're done
-    if (!m_worker_interrupt.test() &&
-        m_dump->status() == Dump_reader::Status::COMPLETE &&
+    if (!m_worker_interrupt.test() && is_dump_complete() &&
         !m_dump->data_available() && num_idle_workers == m_workers.size()) {
       if (!m_dump->work_available()) {
         break;
@@ -4772,14 +4748,14 @@ void Dump_loader::wait_for_metadata() {
   while (!m_dump->ready() && !m_worker_interrupt.test()) {
     log_debug("Scanning for metadata");
 
-    m_dump->rescan(&m_progress_thread);
+    update_dump_status(m_dump->rescan(&m_progress_thread));
 
     if (m_dump->ready()) {
       log_debug("Dump metadata available");
       return;
     }
 
-    if (Dump_reader::Status::COMPLETE == m_dump->status()) {
+    if (is_dump_complete()) {
       // dump is complete (the last file was written), but it's not ready,
       // meaning some of the metadata files are missing
       THROW_ERROR(SHERR_LOAD_CORRUPTED_DUMP_MISSING_METADATA);
@@ -4800,11 +4776,10 @@ bool Dump_loader::scan_for_more_data(bool wait) {
   bool waited = false;
 
   // if there are still idle workers, check if there's more that was dumped
-  while (m_dump->status() != Dump_reader::Status::COMPLETE &&
-         !m_worker_interrupt.test()) {
+  while (!is_dump_complete() && !m_worker_interrupt.test()) {
     log_debug("Scanning for more data");
 
-    m_dump->rescan();
+    update_dump_status(m_dump->rescan());
 
     if (m_dump->data_available()) {
       log_debug("Dump data available");
@@ -4815,7 +4790,7 @@ bool Dump_loader::scan_for_more_data(bool wait) {
       break;
     }
 
-    if (m_dump->status() == Dump_reader::Status::DUMPING) {
+    if (!is_dump_complete()) {
       if (!waited) {
         console->print_status("Waiting for more data to become available...");
         waited = true;
@@ -4970,13 +4945,13 @@ void Dump_loader::on_chunk_load_start(std::size_t worker_id,
 void Dump_loader::on_chunk_load_end(std::size_t,
                                     const Worker::Load_chunk_task *task) {
   const auto &chunk = task->chunk();
-  const auto &stats = task->stats;
-  const size_t data_bytes_loaded = stats.total_data_bytes;
-  const size_t file_bytes_loaded = stats.total_file_bytes;
+  const auto &load_stats = task->load_stats;
+  const size_t data_bytes_loaded = load_stats.data_bytes;
+  const size_t file_bytes_loaded = load_stats.file_bytes;
 
   m_load_log->log(progress::end::Table_chunk{
       chunk.schema, chunk.table, chunk.partition, chunk.index,
-      data_bytes_loaded, file_bytes_loaded, stats.total_records});
+      data_bytes_loaded, file_bytes_loaded, load_stats.records});
 
   if (m_dump->on_chunk_loaded(chunk)) {
     // all data for this table/partition was loaded
@@ -5030,13 +5005,13 @@ void Dump_loader::on_bulk_load_progress(const shcore::Dictionary_t &event) {
 void Dump_loader::on_bulk_load_end(std::size_t,
                                    const Worker::Bulk_load_task *task) {
   const auto &chunk = task->chunk();
-  const auto &stats = task->stats;
-  const size_t data_bytes_loaded = stats.total_data_bytes;
-  const size_t file_bytes_loaded = stats.total_file_bytes;
+  const auto &load_stats = task->load_stats;
+  const size_t data_bytes_loaded = load_stats.data_bytes;
+  const size_t file_bytes_loaded = load_stats.file_bytes;
 
   m_load_log->log(progress::end::Bulk_load{
       chunk.schema, chunk.table, chunk.partition, data_bytes_loaded,
-      file_bytes_loaded, stats.total_records});
+      file_bytes_loaded, load_stats.records});
 
   m_dump->on_table_loaded(chunk);
   ++m_unique_tables_loaded;
@@ -5355,14 +5330,14 @@ void Dump_loader::setup_load_data_progress() {
       }
     }
 
-    return m_stats.total_data_bytes;
+    return m_progress_stats.data_bytes;
   };
   config.total = [this]() { return m_dump->filtered_data_size(); };
 
   config.left_label = [this]() {
     std::string label;
 
-    if (m_dump->status() != Dump_reader::Status::COMPLETE) {
+    if (!is_dump_complete()) {
       label += "Dump still in progress";
 
       if (m_dump->total_file_size()) {
@@ -5404,13 +5379,35 @@ void Dump_loader::setup_load_data_progress() {
     return label;
   };
 
+  if (m_progress_thread.uses_json_output()) {
+    config.extra_attributes = [this]() {
+      auto load_progress = shcore::make_dict();
+
+      load_progress->emplace("rowsLoaded", m_load_stats.records);
+      load_progress->emplace("rowsToLoad", m_dump->filtered_row_count());
+
+      load_progress->emplace("tablesLoaded", m_unique_tables_loaded);
+      load_progress->emplace("tablesToLoad", m_total_tables_with_data);
+
+      {
+        const auto rate = rows_throughput_rate();
+        const double seconds = 1.0;
+        load_progress->emplace(
+            "rowThroughput",
+            mysqlshdk::textui::format_json_throughput(rate, seconds));
+      }
+
+      return shcore::make_dict("loadProgress", std::move(load_progress));
+    };
+  }
+
   if (m_bulk_load) {
     // BULK LOAD does not update Innodb_rows_inserted, remove this once
     // BUG#36286488 is fixed
     update_rows_throughput(m_rows_previously_loaded);
     m_monitoring->add(
         [this, prev = m_rows_previously_loaded](const Session_ptr &) mutable {
-          const auto rows = m_stats.total_records.load();
+          const auto rows = m_load_stats.records.load();
 
           // total records count is updated only once a data load task is
           // finished, in order to avoid fluctuation of throughput we update it
@@ -6106,6 +6103,55 @@ void Dump_loader::setup_secondary_load_progress() {
 
   m_secondary_load_stage = m_progress_thread.push_stage(
       "Loading tables into HeatWave", std::move(config));
+}
+
+void Dump_loader::update_dump_status(Dump_reader::Status current_status) {
+  if (current_status == m_dump_status) {
+    return;
+  }
+
+  const auto prev_status = m_dump_status;
+  m_dump_status = current_status;
+
+  const auto console = current_console();
+  const char *msg;
+  bool is_complete;
+
+  if (is_dump_complete()) {
+    if (Dump_reader::Status::DUMPING == prev_status) {
+      msg = "Dump has finished.";
+    } else {
+      msg = "Dump is complete.";
+    }
+
+    is_complete = true;
+  } else {
+    if (m_options.dump_wait_timeout_ms() > 0) {
+      msg =
+          "Dump is still ongoing, data will be loaded as it becomes available.";
+    } else {
+      console->print_error(
+          "Dump is not yet finished. Use the 'waitDumpTimeout' option to "
+          "enable concurrent load and set a timeout for when we need to wait "
+          "for new data to become available.");
+      THROW_ERROR(SHERR_LOAD_INCOMPLETE_DUMP);
+    }
+
+    is_complete = false;
+  }
+
+  auto dump_status = shcore::make_dict();
+
+  dump_status->emplace("complete", is_complete);
+
+  console->print_status(
+      msg, shcore::make_dict("dumpStatus", std::move(dump_status)));
+}
+
+bool Dump_loader::is_dump_complete() const noexcept {
+  assert(Dump_reader::Status::INVALID != m_dump_status);
+
+  return Dump_reader::Status::COMPLETE == m_dump_status;
 }
 
 #if defined(__clang__)

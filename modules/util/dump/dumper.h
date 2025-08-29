@@ -567,6 +567,7 @@ class Dumper {
 
   // counters
   uint64_t m_total_rows = 0;
+  uint64_t m_total_data_size = 0;
   uint64_t m_total_schemas = 0;
   uint64_t m_total_tables = 0;
   uint64_t m_total_views = 0;

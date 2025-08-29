@@ -35,6 +35,7 @@
 
 #include <cassert>
 #include <chrono>
+#include <utility>
 
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/textui/term_vt100.h"
@@ -42,6 +43,12 @@
 
 namespace mysqlshdk {
 namespace textui {
+
+namespace {
+
+constexpr auto k_throughput_progress_config = "throughputProgressConfig";
+
+}  // namespace
 
 Throughput::Throughput() {
   for (auto &s : m_history) {
@@ -96,21 +103,22 @@ void Base_progress::reset(const char *items_full, const char *items_abbrev,
   m_total_is_approx = total_is_approx;
 }
 
-std::string Base_progress::progress() const {
+std::string Base_progress::format_progress() const {
   return (0 == m_total ? "?" : std::to_string(percent())) + "%";
 }
 
-std::string Base_progress::current() const { return format_value(m_current); }
+std::string Base_progress::format_current() const {
+  return format_value(m_current);
+}
 
-std::string Base_progress::total() const {
+std::string Base_progress::format_total() const {
   return 0 == m_total ? "?"
                       : (m_total_is_approx ? "~" : "") + format_value(m_total);
 }
 
-std::string Base_progress::throughput() const {
+std::string Base_progress::format_throughput(uint64_t items) const {
   return mysqlshdk::utils::format_throughput_items(
-      m_item_singular, m_item_plural, m_throughput.rate(), 1.0,
-      m_space_before_item);
+      m_item_singular, m_item_plural, items, 1.0, m_space_before_item);
 }
 
 std::string Base_progress::format_value(uint64_t value) const {
@@ -127,23 +135,24 @@ void Text_progress::show_status(bool force) {
                              .count();
   const bool refresh_timeout = time_diff >= 200;  // update status every 200ms
   if ((refresh_timeout && m_changed) || force) {
-    m_prev_status = m_status;
+    m_prev_status = std::move(m_status);
 
     render_status();
+
     m_changed = false;
     const auto status_printable_size =
         m_status.size() - 1;  // -1 because of leading '\r'
+
     if (status_printable_size < m_last_status_size) {
       clear_status();
     }
-    {
-      if (force || m_prev_status != m_status) {
-        const auto ignore =
-            write(fileno(stderr), &m_status[0], m_status.size());
-        (void)ignore;
-      }
-      was_shown = true;
+
+    if (force || m_prev_status != m_status) {
+      [[maybe_unused]] const auto _ =
+          write(fileno(stderr), &m_status[0], m_status.size());
     }
+
+    m_status_shown = true;
     m_refresh_clock = current_time;
     m_last_status_size = status_printable_size;
   }
@@ -151,11 +160,11 @@ void Text_progress::show_status(bool force) {
 
 void Text_progress::hide(bool flag) {
   if (flag) {
-    if (m_hide == 0 && was_shown) clear_status();
+    if (m_hide == 0 && m_status_shown) clear_status();
     m_hide++;
   } else {
     m_hide--;
-    if (m_hide == 0 && was_shown) show_status(false);
+    if (m_hide == 0 && m_status_shown) show_status(false);
   }
   assert(m_hide >= 0);
 }
@@ -168,7 +177,7 @@ void Text_progress::reset(const char *items_full, const char *items_abbrev,
 
   m_last_status_size = 0;
   m_prev_status.clear();
-  was_shown = false;
+  m_status_shown = false;
   // do not reset m_hide, if we interleave reset() with hide(true) and
   // hide(false), we're going to hit the assert
 }
@@ -184,9 +193,8 @@ void Text_progress::clear_status() {
 }
 
 void Text_progress::shutdown() {
-  const auto ignore = write(fileno(stderr), "\n", 1);
-  (void)ignore;
-  was_shown = false;
+  [[maybe_unused]] const auto _ = write(fileno(stderr), "\n", 1);
+  m_status_shown = false;
 }
 
 void Text_progress::render_status() {
@@ -194,8 +202,8 @@ void Text_progress::render_status() {
   m_status.clear();
   m_status += "\r";
   m_status += m_left_label;
-  m_status +=
-      progress() + " (" + current() + " / " + total() + "), " + throughput();
+  m_status += format_progress() + " (" + format_current() + " / " +
+              format_total() + "), " + format_throughput();
   m_status += m_right_label;
 }
 
@@ -208,20 +216,56 @@ void Json_progress::show_status(bool force) {
   if ((refresh_timeout && m_changed) || force) {
     render_status();
     m_changed = false;
-    mysqlsh::current_console()->raw_print(m_status,
-                                          mysqlsh::Output_stream::STDOUT, true);
+    mysqlsh::current_console()->raw_print(
+        m_status, mysqlsh::Output_stream::STDOUT, true, extra_attributes());
     m_refresh_clock = current_time;
+
+    if (!m_status_shown) {
+      // display config only once
+      extra_attributes()->erase(k_throughput_progress_config);
+
+      m_status_shown = true;
+    }
   }
 }
 
 void Json_progress::render_status() {
+  const auto rate = throughput_rate();
+
+  auto progress_update = shcore::make_dict();
+  progress_update->emplace("current", current());
+  progress_update->emplace("total", total());
+  progress_update->emplace("throughput", format_json_throughput(rate, 1.0));
+
+  extra_attributes()->set("throughputProgressUpdate",
+                          shcore::Value{std::move(progress_update)});
+
   // 100% (1024.00 MB / 1024.00 MB), 1024.00 MB/s
-  // todo(kg): build proper json doc
   m_status.clear();
   m_status += m_left_label;
-  m_status +=
-      progress() + " (" + current() + " / " + total() + "), " + throughput();
+  m_status += format_progress() + " (" + format_current() + " / " +
+              format_total() + "), " + format_throughput(rate);
   m_status += m_right_label;
+}
+
+void Json_progress::reset(const char *items_full, const char *items_abbrev,
+                          const char *item_singular, const char *item_plural,
+                          bool space_before_item, bool total_is_approx) {
+  Base_progress::reset(items_full, items_abbrev, item_singular, item_plural,
+                       space_before_item, total_is_approx);
+
+  m_status_shown = false;
+
+  auto progress_config = shcore::make_dict();
+  progress_config->emplace("itemsFull", items_full);
+  progress_config->emplace("itemsAbbreviated", items_abbrev);
+  progress_config->emplace("itemSingular", item_singular);
+  progress_config->emplace("itemPlural", item_plural);
+  progress_config->emplace("spaceBeforeItem", space_before_item);
+  progress_config->emplace("totalIsApproximate", total_is_approx);
+
+  set_extra_attributes(shcore::make_dict(k_throughput_progress_config,
+                                         std::move(progress_config)));
 }
 
 }  // namespace textui

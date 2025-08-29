@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,8 @@
 
 #include <chrono>
 #include <string>
+
+#include "mysqlshdk/libs/textui/progress_attribs.h"
 
 namespace mysqlshdk {
 namespace textui {
@@ -102,8 +104,10 @@ inline void Throughput::push(uint64_t total_bytes) {
 /**
  * Class that represents No-operation progress.
  */
-class IProgress {
+class IProgress : public Progress_attributes {
  public:
+  using Attributes = shcore::Dictionary_t;
+
   IProgress() = default;
 
   IProgress(const IProgress &other) = default;
@@ -196,22 +200,39 @@ class Base_progress : public IProgress {
   /**
    * Formats current progress.
    */
-  std::string progress() const;
+  std::string format_progress() const;
 
   /**
    * Formats current value.
    */
-  std::string current() const;
+  std::string format_current() const;
 
   /**
    * Formats total value.
    */
-  std::string total() const;
+  std::string format_total() const;
 
   /**
    * Formats current throughput.
    */
-  std::string throughput() const;
+  inline std::string format_throughput() const {
+    return format_throughput(throughput_rate());
+  }
+
+  /**
+   * Formats throughput as number of items per one second.
+   *
+   * @param items Number of items in one second.
+   */
+  std::string format_throughput(uint64_t items) const;
+
+  inline uint64_t current() const noexcept { return m_current; }
+
+  inline uint64_t total() const noexcept { return m_total; }
+
+  inline uint64_t throughput_rate() const noexcept {
+    return m_throughput.rate();
+  }
 
   std::string m_status;
   std::string m_left_label;
@@ -303,7 +324,7 @@ class Text_progress final : public Base_progress {
   unsigned int m_last_status_size = 0;  //< Last displayed status length
   std::string m_prev_status;
   int m_hide = 0;
-  bool was_shown = false;
+  bool m_status_shown = false;
 };
 
 class Json_progress final : public Base_progress {
@@ -330,6 +351,12 @@ class Json_progress final : public Base_progress {
    * Renders progress information status string.
    */
   void render_status() override;
+
+  void reset(const char *items_full, const char *items_abbrev,
+             const char *item_singular, const char *item_plural,
+             bool space_before_item, bool total_is_approx) override;
+
+  bool m_status_shown = false;
 };
 
 }  // namespace textui

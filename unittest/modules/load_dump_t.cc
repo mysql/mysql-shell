@@ -635,7 +635,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
 
     // open the mock dump
     loader.open_dump(std::move(dir));
-    loader.m_dump->rescan();
+    [[maybe_unused]] const auto dump_status = loader.m_dump->rescan();
 
     // run the load
     loader.spawn_workers();
