@@ -37,6 +37,7 @@
 // needs to be included first for FRIEND_TEST
 #include "unittest/gprod_clean.h"
 
+#include "modules/util/dump/compatibility_issue.h"
 #include "modules/util/dump/schema_dumper.h"
 
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -69,70 +70,14 @@ using ::testing::Not;
 using mysqlshdk::db::Filtering_options;
 using User_filters = Filtering_options::User_filters;
 
-std::string to_string(Schema_dumper::Issue::Status s) {
-  using Status = Schema_dumper::Issue::Status;
-
-  switch (s) {
-    case Status::FIXED_BY_CREATE_INVISIBLE_PKS:
-      return "FIXED_BY_CREATE_INVISIBLE_PKS";
-
-    case Status::FIXED_BY_IGNORE_MISSING_PKS:
-      return "FIXED_BY_IGNORE_MISSING_PKS";
-
-    case Status::FIXED:
-      return "FIXED";
-
-    case Status::NOTE:
-      return "NOTE";
-
-    case Status::WARNING_DEPRECATED_DEFINERS:
-      return "WARNING_DEPRECATED_STRIP_DEFINERS";
-
-    case Status::WARNING_ESCAPED_WILDCARDS:
-      return "WARNING_ESCAPED_WILDCARDS";
-
-    case Status::WARNING_INVALID_VIEW_REFERENCE:
-      return "WARNING_INVALID_VIEW_REFERENCE";
-
-    case Status::WARNING:
-      return "WARNING";
-
-    case Status::FIX_MANUALLY:
-      return "FIX_MANUALLY";
-
-    case Status::FIX_WILDCARD_GRANTS:
-      return "FIX_WILDCARD_GRANTS";
-
-    case Status::FIX_INVALID_VIEW_REFERENCE:
-      return "FIX_INVALID_VIEW_REFERENCE";
-
-    case Status::USE_CREATE_OR_IGNORE_PKS:
-      return "USE_CREATE_OR_IGNORE_PKS";
-
-    case Status::USE_FORCE_INNODB:
-      return "USE_FORCE_INNODB";
-
-    case Status::USE_STRIP_DEFINERS:
-      return "USE_STRIP_DEFINERS";
-
-    case Status::USE_STRIP_RESTRICTED_GRANTS:
-      return "USE_STRIP_RESTRICTED_GRANTS";
-
-    case Status::USE_STRIP_TABLESPACES:
-      return "USE_STRIP_TABLESPACES";
-
-    case Status::USE_LOCK_OR_SKIP_INVALID_ACCOUNTS:
-      return "USE_LOCK_OR_SKIP_INVALID_ACCOUNTS";
-
-    case Status::USE_STRIP_INVALID_GRANTS:
-      return "USE_STRIP_INVALID_GRANTS";
-  }
-
-  throw std::logic_error("Should not happen");
-}
-
-std::ostream &operator<<(std::ostream &os, const Schema_dumper::Issue &issue) {
-  return os << issue.description << " - " << to_string(issue.status);
+std::ostream &operator<<(std::ostream &os, const Compatibility_issue &issue) {
+  return os << "c=" << to_string(issue.check)
+            << ", s=" << to_string(issue.status)
+            << ", t=" << to_string(issue.object_type)
+            << ", n=" << issue.object_name << ", d=" << issue.description
+            << ", co="
+            << shcore::str_join(issue.compatibility_options.values(), ",",
+                                [](const auto o) { return to_string(o); });
 }
 
 class Schema_dumper_test : public Shell_core_test_wrapper {
@@ -1065,7 +1010,6 @@ GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
 TEST_F(Schema_dumper_test, opt_mysqlaas) {
   Schema_dumper sd(session);
   sd.opt_mysqlaas = true;
-  sd.opt_pk_mandatory_check = true;
 
   session->execute(std::string("use ") + compat_db_name);
   auto mstg = create_table_in_mysql_schema_for_grant("testusr6@localhost");
@@ -1074,7 +1018,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
                                 std::vector<std::string> msg) {
     SCOPED_TRACE(table);
     ASSERT_TRUE(file->is_open());
-    std::vector<Schema_dumper::Issue> iss;
+    std::vector<Compatibility_issue> iss;
     try {
       iss = sd.dump_table_ddl(file.get(), compat_db_name, table);
     } catch (const std::exception &e) {
@@ -1097,9 +1041,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
 
   EXPECT_TABLE(
       "blackhole_tbl1",
-      {"Table `mysqlaas_compat`.`blackhole_tbl1` does not have primary or "
-       "unique non null key defined",
-       "Table `mysqlaas_compat`.`blackhole_tbl1` uses unsupported storage "
+      {"Table `mysqlaas_compat`.`blackhole_tbl1` uses unsupported storage "
        "engine BLACKHOLE",
        "Table `mysqlaas_compat`.`blackhole_tbl1` does not have a Primary Key, "
        "which is required for High Availability in MySQL HeatWave Service"});
@@ -1113,7 +1055,7 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
                             "unsupported tablespace option"});
 
   // DEFINERS
-  std::vector<Schema_dumper::Issue> iss;
+  std::vector<Compatibility_issue> iss;
   EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
                       file.get(), compat_db_name, "myisam_tbl1"));
   ASSERT_EQ(1, iss.size());
@@ -1266,7 +1208,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
     file.reset(new mysqlshdk::storage::backend::File(file_path));
     file->open(mysqlshdk::storage::Mode::WRITE);
     ASSERT_TRUE(file->is_open());
-    std::vector<Schema_dumper::Issue> iss;
+    std::vector<Compatibility_issue> iss;
     try {
       iss = sd.dump_table_ddl(file.get(), compat_db_name, table);
     } catch (const std::exception &e) {
@@ -1459,7 +1401,7 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   file.reset(new mysqlshdk::storage::backend::File(file_path));
   file->open(mysqlshdk::storage::Mode::WRITE);
-  std::vector<Schema_dumper::Issue> iss;
+  std::vector<Compatibility_issue> iss;
   EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
                       file.get(), compat_db_name, "myisam_tbl1"));
   ASSERT_EQ(1, iss.size());
@@ -1841,13 +1783,18 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
 
   sd.opt_strip_definer = true;
 
-  std::vector<std::string> statements = {
-      "CREATE ${definer} PROCEDURE ${schema}.${object}() ${security} BEGIN END",
-      "CREATE ${definer} FUNCTION ${schema}.${object}() RETURNS integer "
-      "DETERMINISTIC ${security} RETURN 1",
-      "CREATE ${definer} ${security} VIEW ${schema}.${object}() AS SELECT "
-      "COUNT(*) FROM s.t",
-  };
+  std::vector<std::pair<std::string, Compatibility_issue::Object_type>>
+      statements = {
+          {"CREATE ${definer} PROCEDURE ${schema}.${object}() ${security} "
+           "BEGIN END",
+           Compatibility_issue::Object_type::PROCEDURE},
+          {"CREATE ${definer} FUNCTION ${schema}.${object}() RETURNS integer "
+           "DETERMINISTIC ${security} RETURN 1",
+           Compatibility_issue::Object_type::FUNCTION},
+          {"CREATE ${definer} ${security} VIEW ${schema}.${object}() AS SELECT "
+           "COUNT(*) FROM s.t",
+           Compatibility_issue::Object_type::VIEW},
+      };
 
   const std::string schema = "test_schema";
   const std::string object = "test_object";
@@ -1859,11 +1806,11 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
           "DEFINER = \"root\"@\"host\"", ""}) {
       for (const auto &security :
            {sql_security_invoker.c_str(), "SQL SECURITY DEFINER", ""}) {
-        SCOPED_TRACE("statement: " + stmt + ", definer: " + definer +
+        SCOPED_TRACE("statement: " + stmt.first + ", definer: " + definer +
                      ", security: " + security);
 
         auto ddl = shcore::str_subvars(
-            stmt,
+            stmt.first,
             [&](std::string_view var) -> std::string {
               if ("schema" == var) return schema;
               if ("object" == var) return object;
@@ -1873,9 +1820,9 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
               throw std::logic_error("Unknown variable: " + std::string{var});
             },
             "${", "}");
-        std::vector<Schema_dumper::Issue> issues;
+        std::vector<Compatibility_issue> issues;
 
-        sd.check_object_for_definer(schema, "OBJECT", object, &ddl, &issues);
+        sd.check_object_for_definer(schema, stmt.second, object, &ddl, &issues);
 
         EXPECT_THAT(ddl, HasSubstr(sql_security_invoker));
         EXPECT_THAT(ddl, Not(HasSubstr("DEFINER")));
@@ -1896,13 +1843,18 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer) {
 
   sd.use_cache(&cache);
 
-  std::vector<std::string> statements = {
-      "CREATE ${definer} PROCEDURE ${schema}.${object}() ${security} BEGIN END",
-      "CREATE ${definer} FUNCTION ${schema}.${object}() RETURNS integer "
-      "DETERMINISTIC ${security} RETURN 1",
-      "CREATE ${definer} ${security} VIEW ${schema}.${object}() AS SELECT "
-      "COUNT(*) FROM s.t",
-  };
+  std::vector<std::pair<std::string, Compatibility_issue::Object_type>>
+      statements = {
+          {"CREATE ${definer} PROCEDURE ${schema}.${object}() ${security} "
+           "BEGIN END",
+           Compatibility_issue::Object_type::PROCEDURE},
+          {"CREATE ${definer} FUNCTION ${schema}.${object}() RETURNS integer "
+           "DETERMINISTIC ${security} RETURN 1",
+           Compatibility_issue::Object_type::FUNCTION},
+          {"CREATE ${definer} ${security} VIEW ${schema}.${object}() AS SELECT "
+           "COUNT(*) FROM s.t",
+           Compatibility_issue::Object_type::VIEW},
+      };
 
   const std::string schema = "test_schema";
   const std::string object = "test_object";
@@ -1914,11 +1866,11 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer) {
           "DEFINER = \"root\"@\"host\"", ""}) {
       for (const auto &security :
            {sql_security_invoker.c_str(), "SQL SECURITY DEFINER", ""}) {
-        SCOPED_TRACE("statement: " + stmt + ", definer: " + definer +
+        SCOPED_TRACE("statement: " + stmt.first + ", definer: " + definer +
                      ", security: " + security);
 
         auto ddl = shcore::str_subvars(
-            stmt,
+            stmt.first,
             [&](std::string_view var) -> std::string {
               if ("schema" == var) return schema;
               if ("object" == var) return object;
@@ -1928,9 +1880,9 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer) {
               throw std::logic_error("Unknown variable: " + std::string{var});
             },
             "${", "}");
-        std::vector<Schema_dumper::Issue> issues;
+        std::vector<Compatibility_issue> issues;
 
-        EXPECT_NO_THROW(sd.check_object_for_definer(schema, "OBJECT", object,
+        EXPECT_NO_THROW(sd.check_object_for_definer(schema, stmt.second, object,
                                                     &ddl, &issues));
       }
     }
@@ -1939,7 +1891,8 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer) {
 
 TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
   // WL#15887 - test SET_ANY_DEFINER issues
-  using Status = Schema_dumper::Issue::Status;
+  using Status = Compatibility_issue::Status;
+  using Object_type = Compatibility_issue::Object_type;
   using Version = mysqlshdk::utils::Version;
 
   Schema_dumper sd(session);
@@ -1967,43 +1920,67 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
         },
         "${", "}");
   };
-  const auto issue = [&](const std::string &text) {
-    return "Object `" + schema + "`.`" + object + "` - " + text;
+  const auto description = [&](const std::string &text) {
+    return "Procedure `" + schema + "`.`" + object + "` - " + text;
   };
   const auto unknown_user = [&](const std::string &user) {
-    return issue("definition uses DEFINER clause set to user " + user +
-                 " which does not exist or is not included");
+    return description("definition uses DEFINER clause set to user " + user +
+                       " which does not exist or is not included");
   };
   const auto restricted_user = [&](const std::string &user) {
-    return issue("definition uses DEFINER clause set to user " + user +
-                 " whose user name is restricted in MySQL HeatWave Service");
+    return description(
+        "definition uses DEFINER clause set to user " + user +
+        " whose user name is restricted in MySQL HeatWave Service");
   };
   const auto definer_disallowed = [&](const std::string &user) {
-    return issue("definition uses DEFINER clause set to user " + user +
-                 " which can only be executed by this user or a user with "
-                 "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges");
+    return description(
+        "definition uses DEFINER clause set to user " + user +
+        " which can only be executed by this user or a user with "
+        "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges");
   };
   const auto definer_or_invoker_required = [&]() {
-    return issue(
+    return description(
         "definition does not have a DEFINER clause and does not use SQL "
         "SECURITY INVOKER characteristic, either one of these is required");
   };
   const auto security_definer_disallowed = [&]() {
-    return issue(
+    return description(
         "definition does not use SQL SECURITY INVOKER characteristic, which is "
         "mandatory when the DEFINER clause is omitted or removed");
   };
+  const auto no_users = []() {
+    return "One or more DDL statements contain DEFINER clause but user "
+           "information is not included in the dump. Loading will fail if "
+           "accounts set as definers do not already exist in the target DB "
+           "System instance.";
+  };
+  const auto issue = [](Compatibility_check c, Status s, const std::string &d,
+                        auto... options) {
+    Compatibility_issue i{c, s, Object_type::PROCEDURE,
+                          "`test_schema`.`test_object`"};
+    i.description = d;
+    (i.compatibility_options.set(options), ...);
+    return i;
+  };
+  const auto issue_no_users = [&]() {
+    auto i = issue(Compatibility_check::OBJECT_INVALID_DEFINER_USERS_NOT_DUMPED,
+                   Status::WARNING, no_users());
+    i.object_type = Object_type::UNSPECIFIED;
+    i.object_name.clear();
+    return i;
+  };
   const auto EXPECT =
       [&](const std::string &definer,
-          const std::vector<Schema_dumper::Issue> &expected_issues = {},
+          const std::vector<Compatibility_issue> &expected_issues = {},
           const std::string &security = {}) {
         auto ddl = make_ddl(definer, security);
 
         SCOPED_TRACE("statement: " + ddl);
 
-        std::vector<Schema_dumper::Issue> issues;
+        std::vector<Compatibility_issue> issues;
 
-        sd.check_object_for_definer(schema, "OBJECT", object, &ddl, &issues);
+        sd.check_object_for_definer(schema, Object_type::PROCEDURE, object,
+                                    &ddl, &issues);
         EXPECT_EQ(expected_issues, issues);
       };
 
@@ -2016,21 +1993,19 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
 
   // no users in cache, warning that it's not possible to verify if user exits,
   // but only once
-  EXPECT("DEFINER=root@host",
-         {{"One or more DDL statements contain DEFINER clause but user "
-           "information is not included in the dump. Loading will fail if "
-           "accounts set as definers do not already exist in the target DB "
-           "System instance.",
-           Status::WARNING}});
+  EXPECT("DEFINER=root@host", {issue_no_users()});
   EXPECT("DEFINER=root@host");
 
   // add a user to cache
   cache.users = {{"user", "host"}};
 
   // warnings about unknown user, reported for each user
-  EXPECT("DEFINER=root@host", {{unknown_user("root@host"), Status::WARNING}});
+  EXPECT("DEFINER=root@host",
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER_MISSING_USER,
+                Status::WARNING, unknown_user("root@host"))});
   EXPECT("DEFINER=user@localhost",
-         {{unknown_user("user@localhost"), Status::WARNING}});
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER_MISSING_USER,
+                Status::WARNING, unknown_user("user@localhost"))});
 
   // restricted user names
   for (const std::string user : {
@@ -2043,8 +2018,10 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
        }) {
     const auto account = user + "@localhost";
     EXPECT("DEFINER=" + account,
-           {{restricted_user(account), Status::FIX_MANUALLY},
-            {unknown_user(account), Status::WARNING}});
+           {issue(Compatibility_check::OBJECT_RESTRICTED_DEFINER, Status::ERROR,
+                  restricted_user(account)),
+            issue(Compatibility_check::OBJECT_INVALID_DEFINER_MISSING_USER,
+                  Status::WARNING, unknown_user(account))});
   }
 
   // user known, no security clause - OK
@@ -2059,37 +2036,56 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
   // display deprecated errors
   sd.opt_report_deprecated_errors_as_warnings = true;
   //  - user known, no security clause
-  EXPECT(
-      "DEFINER=user@host",
-      {{definer_disallowed("user@host"), Status::WARNING_DEPRECATED_DEFINERS},
-       {security_definer_disallowed(), Status::WARNING_DEPRECATED_DEFINERS}});
+  EXPECT("DEFINER=user@host",
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::WARNING,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS),
+          issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY,
+                Status::WARNING, security_definer_disallowed(),
+                Compatibility_option::STRIP_DEFINERS)});
+
   //  - user known, definer security
-  EXPECT(
-      "DEFINER=user@host",
-      {{definer_disallowed("user@host"), Status::WARNING_DEPRECATED_DEFINERS},
-       {security_definer_disallowed(), Status::WARNING_DEPRECATED_DEFINERS}},
-      sql_security_definer);
+  EXPECT("DEFINER=user@host",
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::WARNING,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS),
+          issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY,
+                Status::WARNING, security_definer_disallowed(),
+                Compatibility_option::STRIP_DEFINERS)},
+         sql_security_definer);
+
   //  - user known, invoker security
-  EXPECT(
-      "DEFINER=user@host",
-      {{definer_disallowed("user@host"), Status::WARNING_DEPRECATED_DEFINERS}},
-      sql_security_invoker);
+  EXPECT("DEFINER=user@host",
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::WARNING,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS)},
+         sql_security_invoker);
   sd.opt_report_deprecated_errors_as_warnings = false;
 
   // version which does not support SET_ANY_DEFINER - regular error
   sd.opt_target_version = Version(8, 1, 0);
   //  - user known, no security clause
   EXPECT("DEFINER=user@host",
-         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
-          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}});
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::ERROR,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS),
+          issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY, Status::ERROR,
+                security_definer_disallowed(),
+                Compatibility_option::STRIP_DEFINERS)});
   //  - user known, definer security
   EXPECT("DEFINER=user@host",
-         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
-          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}},
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::ERROR,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS),
+          issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY, Status::ERROR,
+                security_definer_disallowed(),
+                Compatibility_option::STRIP_DEFINERS)},
          sql_security_definer);
   //  - user known, invoker security
   EXPECT("DEFINER=user@host",
-         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS}},
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::ERROR,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS)},
          sql_security_invoker);
   sd.opt_target_version = Version(8, 2, 0);
 
@@ -2099,27 +2095,41 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
   sd.opt_report_deprecated_errors_as_warnings = true;
   //  - user known, no security clause
   EXPECT("DEFINER=user@host",
-         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
-          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}});
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::ERROR,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS),
+          issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY, Status::ERROR,
+                security_definer_disallowed(),
+                Compatibility_option::STRIP_DEFINERS)});
   //  - user known, definer security
   EXPECT("DEFINER=user@host",
-         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS},
-          {security_definer_disallowed(), Status::USE_STRIP_DEFINERS}},
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::ERROR,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS),
+          issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY, Status::ERROR,
+                security_definer_disallowed(),
+                Compatibility_option::STRIP_DEFINERS)},
          sql_security_definer);
   //  - user known, invoker security
   EXPECT("DEFINER=user@host",
-         {{definer_disallowed("user@host"), Status::USE_STRIP_DEFINERS}},
+         {issue(Compatibility_check::OBJECT_INVALID_DEFINER, Status::ERROR,
+                definer_disallowed("user@host"),
+                Compatibility_option::STRIP_DEFINERS)},
          sql_security_invoker);
   sd.opt_target_version = Version(8, 2, 0);
   sd.opt_report_deprecated_errors_as_warnings = false;
 
   // no definer & no security - error
   // WL15887-TSFR_3_4_1
-  EXPECT("", {{definer_or_invoker_required(), Status::FIX_MANUALLY}});
+  EXPECT("",
+         {issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY_AND_DEFINER,
+                Status::ERROR, definer_or_invoker_required())});
 
   // no definer clause & definer security - error
   // WL15887-TSFR_3_4_1
-  EXPECT("", {{definer_or_invoker_required(), Status::FIX_MANUALLY}},
+  EXPECT("",
+         {issue(Compatibility_check::OBJECT_MISSING_SQL_SECURITY_AND_DEFINER,
+                Status::ERROR, definer_or_invoker_required())},
          sql_security_definer);
   // no definer clause & invoker security - OK
   // WL15887-TSFR_3_4_1
@@ -2128,7 +2138,8 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
 
 TEST_F(Schema_dumper_test, strip_restricted_grants_set_any_definer) {
   // WL#15887 - test SET_ANY_DEFINER grant
-  using Status = Schema_dumper::Issue::Status;
+  using Status = Compatibility_issue::Status;
+  using Object_type = Compatibility_issue::Object_type;
   using Version = mysqlshdk::utils::Version;
 
   Schema_dumper sd(session);
@@ -2149,21 +2160,23 @@ TEST_F(Schema_dumper_test, strip_restricted_grants_set_any_definer) {
         "${", "}");
   };
   const auto privilege_replaced = [&]() {
-    return Schema_dumper::Issue{"User " + user + " had restricted privilege " +
-                                    std::string(set_user_id) +
-                                    " replaced with " +
-                                    std::string(set_any_definer),
-                                Status::FIXED};
+    Compatibility_issue i{Compatibility_check::USER_RESTRICTED_GRANTS,
+                          Status::FIXED, Object_type::USER, "user@host"};
+    i.description = "User " + user + " had restricted privilege " +
+                    std::string(set_user_id) + " replaced with " +
+                    std::string(set_any_definer);
+    i.compatibility_options |= Compatibility_option::STRIP_RESTRICTED_GRANTS;
+    return i;
   };
   const auto EXPECT =
       [&](const std::vector<std::string> &privileges,
           const std::vector<std::string> &expected_restricted,
-          const std::vector<Schema_dumper::Issue> &expected_issues = {}) {
+          const std::vector<Compatibility_issue> &expected_issues = {}) {
         auto ddl = make_ddl(privileges);
 
         SCOPED_TRACE("statement: " + ddl);
 
-        std::vector<Schema_dumper::Issue> issues;
+        std::vector<Compatibility_issue> issues;
 
         const auto restricted = sd.strip_restricted_grants(user, &ddl, &issues);
 
@@ -2251,12 +2264,14 @@ CREATE DATABASE `s` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE %.*s */;
               result.first);
     ASSERT_EQ(1, result.second.size());
     EXPECT_EQ(shcore::str_format(
-                  "Database `s` had default collation set to '%.*s', it has "
-                  "been replaced with '%.*s'",
+                  "Schema `s` had default collation set to '%.*s', it has been "
+                  "replaced with '%.*s'",
                   static_cast<int>(map.first.size()), map.first.data(),
                   static_cast<int>(map.second.size()), map.second.data()),
               result.second[0].description);
-    EXPECT_EQ(Schema_dumper::Issue::Status::WARNING, result.second[0].status);
+    EXPECT_EQ(Compatibility_issue::Status::WARNING, result.second[0].status);
+    EXPECT_EQ(Compatibility_check::OBJECT_COLLATION_REPLACED,
+              result.second[0].check);
   }
 
   for (const auto &unsupported : k_unsupported_collations) {
@@ -2278,13 +2293,14 @@ CREATE DATABASE `s` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE %.*s */;
                                  unsupported.data()),
               result.first);
     ASSERT_EQ(1, result.second.size());
-    EXPECT_EQ(shcore::str_format("Database `s` has default collation set to "
+    EXPECT_EQ(shcore::str_format("Schema `s` has default collation set to "
                                  "unsupported collation '%.*s'",
                                  static_cast<int>(unsupported.size()),
                                  unsupported.data()),
               result.second[0].description);
-    EXPECT_EQ(Schema_dumper::Issue::Status::FIX_MANUALLY,
-              result.second[0].status);
+    EXPECT_EQ(Compatibility_issue::Status::ERROR, result.second[0].status);
+    EXPECT_EQ(Compatibility_check::OBJECT_COLLATION_UNSUPPORTED,
+              result.second[0].check);
   }
 }
 

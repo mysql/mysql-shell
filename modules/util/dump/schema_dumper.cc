@@ -39,7 +39,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cctype>
 #include <functional>
 #include <map>
 #include <optional>
@@ -320,65 +319,48 @@ const std::string &map_collation(std::string_view collation) {
   return k_unknown_collation;
 }
 
-Schema_dumper::Issue warning_object_collation_replaced(
-    const char *object_type, const std::string &object_name, const char *what,
-    std::string_view from, std::string_view to) {
-  auto msg = shcore::str_format(
-      "%s %s had %s set to '%.*s', it has been replaced with '%.*s'",
-      object_type, object_name.c_str(), what, static_cast<int>(from.size()),
-      from.data(), static_cast<int>(to.size()), to.data());
-  msg[0] = std::toupper(msg[0]);
-
-  return {msg, Schema_dumper::Issue::Status::WARNING};
-}
-
-Schema_dumper::Issue error_object_unsupported_collation(
-    const char *object_type, const std::string &object_name, const char *what,
-    std::string_view collation) {
-  auto msg =
-      shcore::str_format("%s %s has %s set to unsupported collation '%.*s'",
-                         object_type, object_name.c_str(), what,
-                         static_cast<int>(collation.size()), collation.data());
-  msg[0] = std::toupper(msg[0]);
-  return {msg, Schema_dumper::Issue::Status::FIX_MANUALLY};
-}
-
 namespace detail {
 
 void handle_collation(
-    const char *object_type, const std::string &object_name, const char *what,
+    Compatibility_issue::Object_type object_type,
+    const std::string &object_name, const char *collation_type,
     std::string_view collation,
     const std::function<bool(std::string_view, std::string_view)>
         &replace_collation,
-    std::vector<Schema_dumper::Issue> *issues) {
+    std::vector<Compatibility_issue> *issues) {
   if (is_supported_collation(collation)) {
     return;
   }
 
   if (const auto &mapped = map_collation(collation); mapped.empty()) {
-    issues->emplace_back(error_object_unsupported_collation(
-        object_type, object_name, what, collation));
+    issues->emplace_back(
+        Compatibility_issue::error::object_unsupported_collation(
+            object_type, object_name, collation_type, collation));
   } else {
     if (!replace_collation(collation, mapped)) {
+      const auto type = to_string(object_type);
       throw std::runtime_error(shcore::str_format(
-          "Failed to replace %s of %s %s from '%.*s' to '%.*s'", what,
-          object_type, object_name.c_str(), static_cast<int>(collation.size()),
+          "Failed to replace %s of %.*s %s from '%.*s' to '%.*s'",
+          collation_type, static_cast<int>(type.size()), type.data(),
+          object_name.c_str(), static_cast<int>(collation.size()),
           collation.data(), static_cast<int>(mapped.size()), mapped.data()));
     }
 
-    issues->emplace_back(warning_object_collation_replaced(
-        object_type, object_name, what, collation, mapped));
+    issues->emplace_back(
+        Compatibility_issue::warning::object_collation_replaced(
+            object_type, object_name, collation_type, collation, mapped));
   }
 }
 
 }  // namespace detail
 
 void handle_collation_update_statement(
-    const char *object_type, const std::string &object_name, const char *what,
+    Compatibility_issue::Object_type object_type,
+    const std::string &object_name, const char *collation_type,
     std::string_view collation, std::string *statement,
-    std::vector<Schema_dumper::Issue> *issues) {
+    std::vector<Compatibility_issue> *issues) {
   detail::handle_collation(
-      object_type, object_name, what, collation,
+      object_type, object_name, collation_type, collation,
       [statement](std::string_view from, std::string_view to) {
         return compatibility::replace_keyword(*statement, from, to, statement);
       },
@@ -386,15 +368,16 @@ void handle_collation_update_statement(
 }
 
 void handle_collation_update_variable(
-    const char *object_type, const std::string &object_name, const char *what,
-    std::string *collation, std::vector<Schema_dumper::Issue> *issues) {
+    Compatibility_issue::Object_type object_type,
+    const std::string &object_name, const char *collation_type,
+    std::string *collation, std::vector<Compatibility_issue> *issues) {
   DBUG_EXECUTE_IF("dumper_unsupported_collation",
                   { use_unsupported_collation(collation); });
 
   std::string new_collation;
 
   detail::handle_collation(
-      object_type, object_name, what, *collation,
+      object_type, object_name, collation_type, *collation,
       [&new_collation](std::string_view, std::string_view to) {
         new_collation = to;
         return true;
@@ -980,9 +963,9 @@ char *Schema_dumper::create_delimiter(const std::string &query,
   RETURN
     List of issues found.
 */
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
+std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
     IFile *sql_file, const std::string &db) {
-  std::vector<Issue> res;
+  std::vector<Compatibility_issue> res;
   char query_buff[QUERY_LENGTH];
   char delimiter[QUERY_LENGTH];
   std::string db_name;
@@ -1043,9 +1026,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
             auto event_db_col = row->get_string(6);
 
             // BUG#38089433 - handle unsupported collations
-            handle_collation_update_variable("event", quote(db, event),
-                                             "DATABASE_COLLATION",
-                                             &event_db_col, &res);
+            handle_collation_update_variable(
+                Compatibility_issue::Object_type::EVENT, quote(db, event),
+                "DATABASE_COLLATION", &event_db_col, &res);
 
             switch_db_collation(sql_file, db_name, delimiter, db_cl_name,
                                 event_db_col, &db_cl_altered);
@@ -1054,9 +1037,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
             auto connection_col = row->get_string(5);
 
             // BUG#38089433 - handle unsupported collations
-            handle_collation_update_variable("event", quote(db, event),
-                                             "COLLATION_CONNECTION",
-                                             &connection_col, &res);
+            handle_collation_update_variable(
+                Compatibility_issue::Object_type::EVENT, quote(db, event),
+                "COLLATION_CONNECTION", &connection_col, &res);
 
             switch_cs_variables(
                 sql_file, delimiter,
@@ -1088,7 +1071,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
           auto ces = opt_reexecutable ? fixup_event_ddl(row->get_string(3))
                                       : row->get_string(3);
 
-          check_object_for_definer(db, "Event", event, &ces, &res);
+          check_object_for_definer(db, Compatibility_issue::Object_type::EVENT,
+                                   event, &ces, &res);
 
           fprintf(sql_file, "/*!50106 %s */ %s\n", ces.c_str(),
                   (const char *)delimiter);
@@ -1130,11 +1114,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
     mysqlaas issues list
 */
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
+std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
     IFile *sql_file, const std::string &db) {
-  std::vector<Issue> res;
+  std::vector<Compatibility_issue> res;
   char query_buff[QUERY_LENGTH];
-  const std::array<std::string, 2> routine_types = {"FUNCTION", "PROCEDURE"};
+  const std::array<std::pair<std::string, Compatibility_issue::Object_type>, 2>
+      routine_types{
+          {{"FUNCTION", Compatibility_issue::Object_type::FUNCTION},
+           {"PROCEDURE", Compatibility_issue::Object_type::PROCEDURE}}};
   std::string db_name;
 
   std::string db_cl_name;
@@ -1156,13 +1143,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
   /* 0, retrieve and dump functions, 1, procedures */
   for (const auto &routine_type : routine_types) {
-    const auto routine_list = get_routines(db, routine_type);
+    const auto routine_list = get_routines(db, routine_type.first);
     for (const auto &routine : routine_list) {
       const auto routine_name = shcore::quote_identifier(routine);
-      log_debug("retrieving CREATE %s for %s", routine_type.c_str(),
+      log_debug("retrieving CREATE %s for %s", routine_type.first.c_str(),
                 routine_name.c_str());
       snprintf(query_buff, sizeof(query_buff), "SHOW CREATE %s %s.%s",
-               routine_type.c_str(), shcore::quote_identifier(db).c_str(),
+               routine_type.first.c_str(), shcore::quote_identifier(db).c_str(),
                routine_name.c_str());
 
       auto routine_res = query_log_and_throw(query_buff);
@@ -1189,18 +1176,19 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
                       m_mysql->get_connection_options().get_user().c_str(),
                       query_buff);
         } else if (body.length() > 0) {
-          Object_guard_msg guard(sql_file, routine_type, db, routine_name);
+          Object_guard_msg guard(sql_file, routine_type.first, db,
+                                 routine_name);
           if (opt_drop_routine || opt_reexecutable)
             fprintf(sql_file, "/*!50003 DROP %s IF EXISTS %s */;\n",
-                    routine_type.c_str(), routine_name.c_str());
+                    routine_type.first.c_str(), routine_name.c_str());
 
           if (routine_res->get_metadata().size() >= 6) {
             auto routine_db_col = row->get_string(5);
 
             // BUG#38089433 - handle unsupported collations
-            handle_collation_update_variable("routine", quote(db, routine),
-                                             "DATABASE_COLLATION",
-                                             &routine_db_col, &res);
+            handle_collation_update_variable(
+                routine_type.second, quote(db, routine), "DATABASE_COLLATION",
+                &routine_db_col, &res);
 
             switch_db_collation(sql_file, db_name, ";", db_cl_name,
                                 routine_db_col, &db_cl_altered);
@@ -1209,9 +1197,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
             auto connection_col = row->get_string(4);
 
             // BUG#38089433 - handle unsupported collations
-            handle_collation_update_variable("routine", quote(db, routine),
-                                             "COLLATION_CONNECTION",
-                                             &connection_col, &res);
+            handle_collation_update_variable(
+                routine_type.second, quote(db, routine), "COLLATION_CONNECTION",
+                &connection_col, &res);
 
             switch_cs_variables(
                 sql_file, ";", client_cs.c_str(), /* character_set_client */
@@ -1238,15 +1226,19 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
           switch_sql_mode(sql_file, ";", row->get_string(1).c_str());
 
-          check_object_for_definer(db, routine_type, routine, &body, &res);
-          check_routine_for_dependencies(db, routine, routine_type, &res);
+          check_object_for_definer(db, routine_type.second, routine, &body,
+                                   &res);
+          check_routine_for_dependencies(db, routine, routine_type.second,
+                                         &res);
 
           if (m_cache) {
             // BUG#38089433 - handle unsupported collations
             const auto &s = m_cache->schemas.at(db);
-            const auto &r =
-                ("FUNCTION" == routine_type ? s.functions : s.procedures)
-                    .at(routine);
+            const auto &r = (Compatibility_issue::Object_type::FUNCTION ==
+                                     routine_type.second
+                                 ? s.functions
+                                 : s.procedures)
+                                .at(routine);
             const auto quoted = quote(db, routine);
 
             DBUG_EXECUTE_IF("dumper_unsupported_collation",
@@ -1254,13 +1246,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
             for (const auto &p : r.parameters) {
               handle_collation_update_statement(
-                  "parameter", quoted + '.' + shcore::quote_identifier(p.name),
-                  "collation", p.collation, &body, &res);
+                  Compatibility_issue::Object_type::PARAMETER,
+                  quoted + '.' + shcore::quote_identifier(p.name), "collation",
+                  p.collation, &body, &res);
             }
 
             handle_collation_update_statement(
-                "return value of routine", quoted, "collation",
-                r.return_value.collation, &body, &res);
+                Compatibility_issue::Object_type::RETURN_VALUE, quoted,
+                "collation", r.return_value.collation, &body, &res);
           }
 
           fprintf(sql_file,
@@ -1290,7 +1283,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
   return res;
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_libraries_for_db(
+std::vector<Compatibility_issue> Schema_dumper::dump_libraries_for_db(
     IFile *sql_file, const std::string &db) {
   print_comment(sql_file, false,
                 "\n--\n-- Dumping libraries for database '%s'\n--\n\n",
@@ -1366,57 +1359,34 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_libraries_for_db(
   return {};
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
+std::vector<Compatibility_issue> Schema_dumper::check_ct_for_mysqlaas(
     const std::string &db, const std::string &table,
     std::string *create_table) {
-  std::vector<Schema_dumper::Issue> res;
-  const auto prefix = "Table " + quote(db, table) + " ";
-
-  if (opt_pk_mandatory_check) {
-    try {
-      // check if table has primary key
-      const auto result = query_log_error(
-          "SELECT count(column_name) FROM information_schema.columns where "
-          "table_schema = ? and table_name = ? and column_key = 'PRI';",
-          db.c_str(), table.c_str());
-      if (auto row = result->fetch_one()) {
-        if (row->get_int(0) == 0)
-          res.emplace_back(
-              prefix + "does not have primary or unique non null key defined",
-              Issue::Status::FIX_MANUALLY);
-      } else {
-        throw std::runtime_error("Table not present in information_schema");
-      }
-    } catch (const std::exception &e) {
-      log_error("Exception caught when checking private keys for t%s: %s",
-                prefix.c_str() + 1, e.what());
-    }
-  }
+  std::vector<Compatibility_issue> res;
+  const auto quoted_table = quote(db, table);
 
   if (opt_mysqlaas) {
     if (compatibility::check_create_table_for_data_index_dir_option(
             *create_table, create_table))
       res.emplace_back(
-          prefix + "had {DATA|INDEX} DIRECTORY table option commented out",
-          Issue::Status::FIXED);
+          Compatibility_issue::fixed::table_data_or_index_dir(quoted_table));
 
     if (compatibility::check_create_table_for_encryption_option(*create_table,
                                                                 create_table))
-      res.emplace_back(prefix + "had ENCRYPTION table option commented out",
-                       Issue::Status::FIXED);
+      res.emplace_back(
+          Compatibility_issue::fixed::table_encryption(quoted_table));
   }
 
   if (opt_mysqlaas || opt_force_innodb) {
     const auto engine = compatibility::check_create_table_for_engine_option(
         *create_table, opt_force_innodb ? create_table : nullptr);
     if (!engine.empty()) {
-      if (opt_force_innodb)
-        res.emplace_back(
-            prefix + "had unsupported engine " + engine + " changed to InnoDB",
-            Issue::Status::FIXED);
-      else
-        res.emplace_back(prefix + "uses unsupported storage engine " + engine,
-                         Issue::Status::USE_FORCE_INNODB);
+      res.emplace_back(
+          opt_force_innodb
+              ? Compatibility_issue::fixed::table_unsupported_engine(
+                    quoted_table, engine)
+              : Compatibility_issue::error::table_unsupported_engine(
+                    quoted_table, engine));
     }
 
     // if engine is empty, table is already using InnoDB, we want to remove
@@ -1425,26 +1395,22 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
 
     if (compatibility::check_create_table_for_fixed_row_format(
             *create_table, remove_fixed_row_format ? create_table : nullptr)) {
-      if (remove_fixed_row_format) {
-        res.emplace_back(
-            prefix + "had unsupported ROW_FORMAT=FIXED option removed",
-            Issue::Status::FIXED);
-      } else {
-        res.emplace_back(prefix + "uses unsupported ROW_FORMAT=FIXED option",
-                         Issue::Status::USE_FORCE_INNODB);
-      }
+      res.emplace_back(
+          remove_fixed_row_format
+              ? Compatibility_issue::fixed::table_unsupported_row_format(
+                    quoted_table)
+              : Compatibility_issue::error::table_unsupported_row_format(
+                    quoted_table));
     }
   }
 
   if (opt_mysqlaas || opt_strip_tablespaces) {
     if (compatibility::check_create_table_for_tablespace_option(
             *create_table, opt_strip_tablespaces ? create_table : nullptr)) {
-      if (opt_strip_tablespaces)
-        res.emplace_back(prefix + "had unsupported tablespace option removed",
-                         Issue::Status::FIXED);
-      else
-        res.emplace_back(prefix + "uses unsupported tablespace option",
-                         Issue::Status::USE_STRIP_TABLESPACES);
+      res.emplace_back(
+          opt_strip_tablespaces
+              ? Compatibility_issue::fixed::table_tablespace(quoted_table)
+              : Compatibility_issue::error::table_tablespace(quoted_table));
     }
   }
 
@@ -1462,36 +1428,23 @@ std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
       if (const auto row = result->fetch_one()) {
         count = row->get_uint(0);
       } else {
-        THROW_ERROR(SHERR_DUMP_SD_MISSING_TABLE, prefix.c_str());
+        THROW_ERROR(SHERR_DUMP_SD_MISSING_TABLE, quoted_table.c_str());
       }
     }
 
     if (count > k_max_innodb_columns) {
-      res.emplace_back(
-          prefix + "has " + std::to_string(count) +
-              " columns, while the limit for the InnoDB engine is " +
-              std::to_string(k_max_innodb_columns) + " columns",
-          Issue::Status::FIX_MANUALLY);
+      res.emplace_back(Compatibility_issue::error::table_too_many_columns(
+          quoted_table, count, k_max_innodb_columns));
     }
   }
 
   return res;
 }
 
-namespace {
-std::string get_object_err_prefix(const std::string &db,
-                                  const std::string_view object,
-                                  const std::string &name) {
-  return static_cast<char>(std::toupper(object[0])) +
-         shcore::str_lower(object.substr(1)) + " " + quote(db, name) + " ";
-}
-}  // namespace
-
-void Schema_dumper::check_object_for_definer(const std::string &db,
-                                             const std::string &object,
-                                             const std::string &name,
-                                             std::string *ddl,
-                                             std::vector<Issue> *issues) {
+void Schema_dumper::check_object_for_definer(
+    const std::string &db, Compatibility_issue::Object_type object,
+    const std::string &name, std::string *ddl,
+    std::vector<Compatibility_issue> *issues) {
   if (!(opt_mysqlaas || opt_strip_definer)) {
     return;
   }
@@ -1499,14 +1452,13 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
   const auto rewritten = opt_strip_definer ? ddl : nullptr;
   const auto user =
       compatibility::check_statement_for_definer_clause(*ddl, rewritten);
-  const auto prefix = get_object_err_prefix(db, object, name);
-
+  const auto quoted_name = quote(db, name);
   const auto set_any_definer = set_any_definer_check();
 
   if (!user.empty()) {
     if (opt_strip_definer) {
-      issues->emplace_back(prefix + "had definer clause removed",
-                           Issue::Status::FIXED);
+      issues->emplace_back(Compatibility_issue::fixed::object_invalid_definer(
+          object, quoted_name));
     } else {
       if (set_any_definer.supported) {
         if (!m_cache) {
@@ -1519,39 +1471,34 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
         if (compatibility::k_mds_users_with_system_user_priv.count(
                 account.user)) {
           issues->emplace_back(
-              prefix + "- definition uses DEFINER clause set to user " + user +
-                  " whose user name is restricted in MySQL HeatWave Service",
-              Issue::Status::FIX_MANUALLY);
+              Compatibility_issue::error::object_restricted_definer(
+                  object, quoted_name, user));
         }
 
         if (m_cache->users.empty()) {
           if (!m_non_existing_definer_reported) {
-            issues->emplace_back(
-                "One or more DDL statements contain DEFINER clause but user "
-                "information is not included in the dump. Loading will fail if "
-                "accounts set as definers do not already exist in the target "
-                "DB System instance.",
-                Issue::Status::WARNING);
+            issues->emplace_back(Compatibility_issue::warning::
+                                     object_invalid_definer_users_not_dumped());
             m_non_existing_definer_reported = true;
           }
         } else {
           if (m_cache->users.end() == std::find(m_cache->users.begin(),
                                                 m_cache->users.end(),
                                                 account)) {
-            issues->emplace_back(
-                prefix + "- definition uses DEFINER clause set to user " +
-                    user + " which does not exist or is not included",
-                Issue::Status::WARNING);
+            issues->emplace_back(Compatibility_issue::warning::
+                                     object_invalid_definer_missing_user(
+                                         object, quoted_name, user));
           }
         }
       }
 
       if (set_any_definer.deprecated.report_errors) {
         issues->emplace_back(
-            prefix + "- definition uses DEFINER clause set to user " + user +
-                " which can only be executed by this user or a user with "
-                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-            set_any_definer.deprecated.status_on_error);
+            set_any_definer.deprecated.downgrade_errors
+                ? Compatibility_issue::warning::object_invalid_definer(
+                      object, quoted_name, user)
+                : Compatibility_issue::error::object_invalid_definer(
+                      object, quoted_name, user));
       }
     }
   }
@@ -1559,27 +1506,24 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
   if (compatibility::check_statement_for_sqlsecurity_clause(*ddl, rewritten)) {
     if (opt_strip_definer) {
       issues->emplace_back(
-          prefix + "had SQL SECURITY characteristic set to INVOKER",
-          Issue::Status::FIXED);
+          Compatibility_issue::fixed::object_missing_sql_security(object,
+                                                                  quoted_name));
     } else {
       if (set_any_definer.supported) {
         if (user.empty()) {
           issues->emplace_back(
-              prefix +
-                  "- definition does not have a DEFINER clause and does not "
-                  "use SQL SECURITY INVOKER characteristic, either one of "
-                  "these is required",
-              Issue::Status::FIX_MANUALLY);
+              Compatibility_issue::error::
+                  object_missing_sql_security_and_definer(object, quoted_name));
         }
       }
 
       if (set_any_definer.deprecated.report_errors) {
         issues->emplace_back(
-            prefix +
-                "- definition does not use SQL SECURITY "
-                "INVOKER characteristic, which is mandatory when the DEFINER "
-                "clause is omitted or removed",
-            set_any_definer.deprecated.status_on_error);
+            set_any_definer.deprecated.downgrade_errors
+                ? Compatibility_issue::warning::object_missing_sql_security(
+                      object, quoted_name)
+                : Compatibility_issue::error::object_missing_sql_security(
+                      object, quoted_name));
       }
     }
   }
@@ -1598,10 +1542,10 @@ void Schema_dumper::check_object_for_definer(const std::string &db,
     vector with compatibility issues with mysqlaas
 */
 
-std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
+std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
     IFile *sql_file, const std::string &table, const std::string &db,
     std::string *out_table_type, char *ignore_flag) {
-  std::vector<Issue> res;
+  std::vector<Compatibility_issue> res;
   bool init = false, skip_ddl;
   std::string result_table;
   const char *show_fields_stmt =
@@ -1623,7 +1567,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
   bool has_my_row_id = false;
   bool has_auto_increment = false;
   bool has_partitions = false;
-  const auto my_row_id = "my_row_id";
+  static constexpr std::string_view k_my_row_id = "my_row_id";
   const std::string auto_increment = "auto_increment";
 
   *ignore_flag = check_if_ignore_table(db, table, out_table_type);
@@ -1803,12 +1747,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
         for (const auto &c : t.all_columns) {
           handle_collation_update_statement(
-              "column", quoted + '.' + c.quoted_name, "collation", c.collation,
+              Compatibility_issue::Object_type::COLUMN,
+              quoted + '.' + c.quoted_name, "collation", c.collation,
               &create_table, &res);
         }
 
-        handle_collation_update_statement("table", quoted, "default collation",
-                                          t.collation, &create_table, &res);
+        handle_collation_update_statement(
+            Compatibility_issue::Object_type::TABLE, quoted,
+            "default collation", t.collation, &create_table, &res);
       }
 
       if (opt_reexecutable || is_log_table || is_replication_metadata_table)
@@ -1851,7 +1797,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
       for (const auto &column : all_columns) {
         has_auto_increment |= column.auto_increment;
-        has_my_row_id |= shcore::str_caseeq(column.name.c_str(), my_row_id);
+        has_my_row_id |= shcore::str_caseeq(column.name.c_str(), k_my_row_id);
       }
     }
 
@@ -1905,7 +1851,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
         const auto fieldname = row->get_string(SHOW_FIELDNAME);
 
         if (opt_create_invisible_pks) {
-          has_my_row_id |= shcore::str_caseeq(fieldname, my_row_id);
+          has_my_row_id |= shcore::str_caseeq(fieldname, k_my_row_id);
         }
 
         fprintf(sql_file, "  %s.%s %s", result_table.c_str(),
@@ -2049,66 +1995,59 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
   }
 
   if (!has_pk) {
-    const auto prefix =
-        "Table " + quote(db, table) + " does not have a Primary Key, ";
+    const auto quoted_table = quote(db, table);
 
     if (opt_create_invisible_pks) {
       if (has_my_row_id || has_auto_increment || has_partitions) {
         if (has_my_row_id) {
-          res.emplace_back(prefix +
-                               "this cannot be fixed automatically because the "
-                               "table has a column named `" +
-                               my_row_id + "`",
-                           Issue::Status::FIX_MANUALLY);
+          res.emplace_back(
+              Compatibility_issue::error::table_missing_pk_manual_fix(
+                  quoted_table, "has a column named `my_row_id`"));
         }
 
         if (has_auto_increment) {
           res.emplace_back(
-              prefix +
-                  "this cannot be fixed automatically because the table has a "
-                  "column with 'AUTO_INCREMENT' attribute",
-              Issue::Status::FIX_MANUALLY);
+              Compatibility_issue::error::table_missing_pk_manual_fix(
+                  quoted_table,
+                  "has a column with 'AUTO_INCREMENT' attribute"));
         }
 
         if (has_partitions) {
-          res.emplace_back(prefix +
-                               "this cannot be fixed automatically because the "
-                               "table is partitioned",
-                           Issue::Status::FIX_MANUALLY);
+          res.emplace_back(
+              Compatibility_issue::error::table_missing_pk_manual_fix(
+                  quoted_table, "is partitioned"));
         }
       } else {
-        res.emplace_back(prefix + "this will be fixed when the dump is loaded",
-                         Issue::Status::FIXED_BY_CREATE_INVISIBLE_PKS);
+        res.emplace_back(
+            Compatibility_issue::fixed::table_missing_pk_create(quoted_table));
       }
     } else if (opt_ignore_missing_pks) {
-      res.emplace_back(prefix + "this is ignored",
-                       Issue::Status::FIXED_BY_IGNORE_MISSING_PKS);
+      res.emplace_back(
+          Compatibility_issue::fixed::table_missing_pk_ignore(quoted_table));
     } else if (opt_mysqlaas) {
-      res.emplace_back(prefix +
-                           "which is required for High Availability in MySQL "
-                           "HeatWave Service",
-                       Issue::Status::USE_CREATE_OR_IGNORE_PKS);
+      res.emplace_back(
+          Compatibility_issue::error::table_missing_pk(quoted_table));
     }
   }
 
   return res;
 } /* get_table_structure */
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
+std::vector<Compatibility_issue> Schema_dumper::dump_trigger(
     IFile *sql_file,
     const std::shared_ptr<mysqlshdk::db::IResult> &show_create_trigger_rs,
     const std::string &db_name, const std::string &db_cl_name,
     const std::string &trigger) {
   int db_cl_altered = false;
-  std::vector<Issue> res;
+  std::vector<Compatibility_issue> res;
 
   while (auto row = show_create_trigger_rs->fetch_one()) {
     auto trigger_db_col = row->get_string(5);
 
     // BUG#38089433 - handle unsupported collations
-    handle_collation_update_variable("trigger", quote(db_name, trigger),
-                                     "DATABASE_COLLATION", &trigger_db_col,
-                                     &res);
+    handle_collation_update_variable(
+        Compatibility_issue::Object_type::TRIGGER, quote(db_name, trigger),
+        "DATABASE_COLLATION", &trigger_db_col, &res);
 
     switch_db_collation(sql_file, db_name, ";", db_cl_name, trigger_db_col,
                         &db_cl_altered);
@@ -2117,9 +2056,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
     auto connection_col = row->get_string(4);
 
     // BUG#38089433 - handle unsupported collations
-    handle_collation_update_variable("trigger", quote(db_name, trigger),
-                                     "COLLATION_CONNECTION", &connection_col,
-                                     &res);
+    handle_collation_update_variable(
+        Compatibility_issue::Object_type::TRIGGER, quote(db_name, trigger),
+        "COLLATION_CONNECTION", &connection_col, &res);
 
     switch_cs_variables(sql_file, ";",
                         client_cs.c_str(),       /* character_set_client */
@@ -2138,7 +2077,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
 
     std::string body = shcore::str_replace(row->get_string(2),
                                            trigger_with_schema, " TRIGGER ");
-    check_object_for_definer(db_name, "Trigger", trigger, &body, &res);
+    check_object_for_definer(db_name, Compatibility_issue::Object_type::TRIGGER,
+                             trigger, &body, &res);
 
     fprintf(sql_file,
             "DELIMITER ;;\n"
@@ -2168,9 +2108,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
   @return mysqlaas issues list
 */
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table(
+std::vector<Compatibility_issue> Schema_dumper::dump_triggers_for_table(
     IFile *sql_file, const std::string &table, const std::string &db) {
-  std::vector<Issue> res;
+  std::vector<Compatibility_issue> res;
   bool old_ansi_quotes_mode = ansi_quotes_mode;
 
   std::string db_cl_name;
@@ -2294,7 +2234,7 @@ void Schema_dumper::dump_column_statistics_for_table(
     mysqlaas issues list
 */
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_table(
+std::vector<Compatibility_issue> Schema_dumper::dump_table(
     IFile *file, const std::string &table, const std::string &db) {
   char ignore_flag;
   std::string query_string;
@@ -2834,9 +2774,9 @@ bool Schema_dumper::process_set_gtid_purged(IFile *file) {
     mysqlaas issues list
 */
 
-std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
+std::vector<Compatibility_issue> Schema_dumper::get_view_structure(
     IFile *sql_file, const std::string &table, const std::string &db) {
-  std::vector<Issue> res;
+  std::vector<Compatibility_issue> res;
   std::shared_ptr<mysqlshdk::db::IResult> table_res, infoschema_res;
   std::string result_table;
 
@@ -2907,13 +2847,14 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
       connection_col = row->get_string(4);
     }
 
-    check_object_for_definer(db, "View", table, &ds_view, &res);
+    check_object_for_definer(db, Compatibility_issue::Object_type::VIEW, table,
+                             &ds_view, &res);
     check_view_for_table_references(db, table, &res);
 
     // BUG#38089433 - handle unsupported collations
-    handle_collation_update_variable("view", quote(db, table),
-                                     "COLLATION_CONNECTION", &connection_col,
-                                     &res);
+    handle_collation_update_variable(Compatibility_issue::Object_type::VIEW,
+                                     quote(db, table), "COLLATION_CONNECTION",
+                                     &connection_col, &res);
 
     /* Dump view structure to file */
     fprintf(
@@ -2956,12 +2897,12 @@ void Schema_dumper::dump_tablespaces_ddl_for_tables(
   dump_tablespaces_for_tables(file, db, tables);
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
+std::vector<Compatibility_issue> Schema_dumper::dump_schema_ddl(
     IFile *file, const std::string &db) {
   log_debug("Dumping database %s", db.c_str());
 
   try {
-    std::vector<Issue> res;
+    std::vector<Compatibility_issue> res;
 
     if (!opt_create_db) {
       const auto qdatabase = shcore::quote_identifier(db);
@@ -2975,9 +2916,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
           if (compatibility::check_create_table_for_encryption_option(
                   createdb, &createdb))
             res.emplace_back(
-                "Database " + qdatabase +
-                    " had unsupported ENCRYPTION option commented out",
-                Issue::Status::FIXED);
+                Compatibility_issue::fixed::schema_encryption(qdatabase));
         }
 
         {
@@ -2989,9 +2928,9 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
           DBUG_EXECUTE_IF("dumper_unsupported_collation",
                           { use_unsupported_collation(&createdb); });
 
-          handle_collation_update_statement("database", qdatabase,
-                                            "default collation", collation,
-                                            &createdb, &res);
+          handle_collation_update_statement(
+              Compatibility_issue::Object_type::SCHEMA, qdatabase,
+              "default collation", collation, &createdb, &res);
         }
 
         print_comment(file, false, "\n--\n-- Dumping database '%s'\n--\n\n",
@@ -3015,7 +2954,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
   }
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_table_ddl(
+std::vector<Compatibility_issue> Schema_dumper::dump_table_ddl(
     IFile *file, const std::string &db, const std::string &table) {
   try {
     log_debug("Dumping table %s from database %s", table.c_str(), db.c_str());
@@ -3046,7 +2985,7 @@ void Schema_dumper::dump_temporary_view_ddl(IFile *file, const std::string &db,
   }
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_view_ddl(
+std::vector<Compatibility_issue> Schema_dumper::dump_view_ddl(
     IFile *file, const std::string &db, const std::string &view) {
   try {
     log_debug("Dumping view %s from database %s", view.c_str(), db.c_str());
@@ -3072,7 +3011,7 @@ int Schema_dumper::count_triggers_for_table(const std::string &db,
   }
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_triggers_for_table_ddl(
+std::vector<Compatibility_issue> Schema_dumper::dump_triggers_for_table_ddl(
     IFile *file, const std::string &db, const std::string &table) {
   try {
     log_debug("Dumping triggers for table %s from database %s", table.c_str(),
@@ -3106,7 +3045,7 @@ std::vector<std::string> Schema_dumper::get_triggers(const std::string &db,
   return triggers;
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_ddl(
+std::vector<Compatibility_issue> Schema_dumper::dump_events_ddl(
     IFile *file, const std::string &db) {
   try {
     log_debug("Dumping events for database %s", db.c_str());
@@ -3135,7 +3074,7 @@ std::vector<std::string> Schema_dumper::get_events(const std::string &db) {
   return events;
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_ddl(
+std::vector<Compatibility_issue> Schema_dumper::dump_routines_ddl(
     IFile *file, const std::string &db) {
   try {
     log_debug("Dumping routines for database %s", db.c_str());
@@ -3212,7 +3151,7 @@ Schema_dumper::get_routine_dependencies(const std::string &db,
   return dependency_list;
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_libraries_ddl(
+std::vector<Compatibility_issue> Schema_dumper::dump_libraries_ddl(
     IFile *file, const std::string &db) {
   try {
     log_debug("Dumping libraries for database %s", db.c_str());
@@ -3313,10 +3252,10 @@ std::string Schema_dumper::expand_all_privileges(const std::string &stmt,
   return stmt;
 }
 
-std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
+std::vector<Compatibility_issue> Schema_dumper::dump_grants(IFile *file) {
   const auto &filters = m_filters ? *m_filters : Filtering_options{};
 
-  std::vector<Issue> problems;
+  std::vector<Compatibility_issue> problems;
   std::map<std::string, std::string> default_roles;
 
   log_debug("Dumping grants for server");
@@ -3425,35 +3364,21 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
     if (opt_mysqlaas || opt_skip_invalid_accounts ||
         opt_lock_invalid_accounts) {
       bool account_migrated = false;
+      using handler =
+          const std::function<Compatibility_issue(const std::string &)> &;
 
-      const auto handle_invalid_account = [&](const std::string &context) {
+      const auto handle_invalid_account = [&](handler error, handler remove,
+                                              handler lock) {
         // we're removing the user from the list unless lock_invalid_accounts
         // is set, account is invalid in MDS, so other checks can be skipped
         add_user = opt_lock_invalid_accounts;
 
-        std::string issue;
-        issue.reserve(256);
-
-        issue += "User ";
-        issue += user;
-        issue += ' ';
-        issue += context;
-
-        if (opt_skip_invalid_accounts) {
-          issue += ", this account has been removed from the dump";
-        }
-
-        if (opt_lock_invalid_accounts) {
-          issue += ", this account has been updated and locked";
-        }
-
         // notify about migrated account only once
         if (!account_migrated) {
           problems.emplace_back(
-              std::move(issue),
-              opt_skip_invalid_accounts || opt_lock_invalid_accounts
-                  ? Issue::Status::FIXED
-                  : Issue::Status::USE_LOCK_OR_SKIP_INVALID_ACCOUNTS);
+              opt_skip_invalid_accounts
+                  ? remove(user)
+                  : (opt_lock_invalid_accounts ? lock(user) : error(user)));
 
           account_migrated = opt_lock_invalid_accounts;
         }
@@ -3465,8 +3390,17 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
               compatibility::replace_authentication_plugin(create_user, plugin);
         }
 
+        const auto wrap = [&plugin](Compatibility_issue (*f)(
+                              const std::string &, const std::string &)) {
+          return [&plugin, f](const std::string &us) { return f(us, plugin); };
+        };
+
         handle_invalid_account(
-            "is using an unsupported authentication plugin '" + plugin + "'");
+            wrap(&Compatibility_issue::error::user_unsupported_auth_plugin),
+            wrap(&Compatibility_issue::fixed::
+                     user_unsupported_auth_plugin_removed),
+            wrap(&Compatibility_issue::fixed::
+                     user_unsupported_auth_plugin_locked));
       };
 
       for (const auto &plugin :
@@ -3483,16 +3417,16 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
               opt_target_version >= *version_info.removed) {
             handle_unsupported_plugin(plugin);
           } else if (opt_target_version >= version_info.deprecated) {
-            std::string issue =
-                "User " + user +
-                " is using a deprecated authentication plugin '" + plugin + "'";
+            auto issue =
+                Compatibility_issue::warning::user_deprecated_auth_plugin(
+                    user, plugin);
 
             if ("mysql_native_password" == plugin &&
                 opt_target_version >= Version{8, 4, 0}) {
-              issue += " which is disabled by default";
+              issue.description += " which is disabled by default";
             }
 
-            problems.emplace_back(std::move(issue), Issue::Status::WARNING);
+            problems.emplace_back(std::move(issue));
           }
         }
       }
@@ -3510,7 +3444,10 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
             create_user = compatibility::replace_empty_passwords(create_user);
           }
 
-          handle_invalid_account("does not have a password set");
+          handle_invalid_account(
+              &Compatibility_issue::error::user_no_password,
+              &Compatibility_issue::fixed::user_no_password_removed,
+              &Compatibility_issue::fixed::user_no_password_locked);
         }
       }
 
@@ -3552,17 +3489,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
           if (opt_strip_restricted_grants) {
             grant.clear();
             problems.emplace_back(
-                "User " + user +
-                    " had explicit grants on mysql schema object " +
-                    std::string(mysql_table_grant) + " removed",
-                Issue::Status::FIXED);
+                Compatibility_issue::fixed::user_restricted_grants_on_mysql(
+                    user, mysql_table_grant));
             continue;
           } else {
             problems.emplace_back(
-                "User " + user +
-                    " has explicit grants on mysql schema object: " +
-                    std::string(mysql_table_grant),
-                Issue::Status::USE_STRIP_RESTRICTED_GRANTS);
+                Compatibility_issue::error::user_restricted_grants_on_mysql(
+                    user, mysql_table_grant));
           }
         }
 
@@ -3591,45 +3524,43 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
           // check if grant is on an existing object
           using Level = compatibility::Privilege_level_info::Level;
 
-          const auto check_if_missing = [this, &priv, &problems, &user, &grant,
-                                         &comment_out](
-                                            const std::string &query) {
-            const auto result =
-                query_log_error(query, priv.schema, priv.object);
+          const auto check_if_missing =
+              [this, &priv, &problems, &user, &grant,
+               &comment_out](const std::string &query) {
+                const auto result =
+                    query_log_error(query, priv.schema, priv.object);
 
-            if (result->fetch_one()) {
-              // object exists
-              return;
-            }
+                if (result->fetch_one()) {
+                  // object exists
+                  return;
+                }
 
-            std::string object_type;
+                const char *object_type;
 
-            switch (priv.level) {
-              case Level::TABLE:
-                object_type = "table";
-                break;
+                switch (priv.level) {
+                  case Level::TABLE:
+                    object_type = "table";
+                    break;
 
-              case Level::ROUTINE:
-                object_type = "routine";
-                break;
+                  case Level::ROUTINE:
+                    object_type = "routine";
+                    break;
 
-              default:
-                throw std::logic_error("Unexpected object type");
-            }
+                  default:
+                    throw std::logic_error("Unexpected object type");
+                }
 
-            if (opt_strip_invalid_grants) {
-              comment_out = true;
-              problems.emplace_back(
-                  "User " + user + " had grant statement on a non-existent " +
-                      object_type + " removed (" + grant + ")",
-                  Issue::Status::FIXED);
-            } else {
-              problems.emplace_back(
-                  "User " + user + " has grant statement on a non-existent " +
-                      object_type + " (" + grant + ")",
-                  Issue::Status::USE_STRIP_INVALID_GRANTS);
-            }
-          };
+                if (opt_strip_invalid_grants) {
+                  comment_out = true;
+                  problems.emplace_back(
+                      Compatibility_issue::fixed::user_invalid_grants(
+                          user, object_type, grant));
+                } else {
+                  problems.emplace_back(
+                      Compatibility_issue::error::user_invalid_grants(
+                          user, object_type, grant));
+                }
+              };
 
           bool included_object = true;
 
@@ -3644,47 +3575,37 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
               if ((opt_mysqlaas || opt_ignore_wildcard_grants ||
                    opt_unescape_wildcard_grants) &&
                   shcore::has_sql_wildcard(priv.schema)) {
-                // we report the one always, even if ignore_wildcard_grants is
+                // we report this one always, even if ignore_wildcard_grants is
                 // used, as this grant will not work as expected
                 if (shcore::has_escaped_sql_wildcard(priv.schema)) {
-                  std::string issue = "User " + user +
-                                      " has a wildcard grant statement at the "
-                                      "database level which is using escaped "
-                                      "wildcard characters (" +
-                                      priv.schema + ")";
-
                   if (opt_unescape_wildcard_grants) {
+                    const auto old_schema = priv.schema;
                     priv.schema = shcore::unescape_sql_wildcards(priv.schema);
                     grant = compatibility::to_grant_statement(priv);
                     problems.emplace_back(
-                        issue + ", schema name has been replaced with: " +
-                            priv.schema,
-                        Issue::Status::FIXED);
+                        Compatibility_issue::fixed::user_escaped_wildcard_grant(
+                            user, old_schema, priv.schema));
                   } else if (!partial_revokes()) {
                     // only report error if partial_revokes is disabled, if it's
                     // enabled we assume that grants are valid
                     problems.emplace_back(
-                        std::move(issue),
-                        Issue::Status::WARNING_ESCAPED_WILDCARDS);
+                        Compatibility_issue::warning::
+                            user_escaped_wildcard_grant(user, priv.schema));
                   }
                 }
 
-                // we don't report this one if only unescape_wildcard_grants
-                // is used
+                // we report this one if only unescape_wildcard_grants is used
                 if (opt_mysqlaas || opt_ignore_wildcard_grants) {
-                  std::string issue = "User " + user +
-                                      " has a wildcard grant statement at the "
-                                      "database level (" +
-                                      grant + ")";
-
                   if (opt_ignore_wildcard_grants) {
-                    problems.emplace_back(issue + ", this issue is ignored",
-                                          Issue::Status::FIXED);
+                    problems.emplace_back(
+                        Compatibility_issue::fixed::user_wildcard_grant(user,
+                                                                        grant));
                   } else if (!partial_revokes()) {
                     // only report error if partial_revokes is disabled, if it's
                     // enabled we assume that grants are valid
-                    problems.emplace_back(std::move(issue),
-                                          Issue::Status::FIX_WILDCARD_GRANTS);
+                    problems.emplace_back(
+                        Compatibility_issue::error::user_wildcard_grant(user,
+                                                                        grant));
                   }
                 }
               }
@@ -3753,25 +3674,23 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
             case Level::ROLE:
               for (const auto &role : priv.privileges) {
                 if (!filters.users().is_included(role)) {
+                  // BUG#38264847 - grants on MHS roles which are automatically
+                  // excluded are downgraded to notes
                   problems.emplace_back(
-                      "User " + user + " has a grant statement on a role " +
-                          role + " which is not included in the dump (" +
-                          grant + ")",
-                      // BUG#38264847 - grants on MHS roles which are
-                      // automatically excluded are downgraded to notes
-                      mhs_roles.is_included(role) ? Issue::Status::NOTE
-                                                  : Issue::Status::WARNING);
+                      mhs_roles.is_included(role)
+                          ? Compatibility_issue::note::
+                                user_grant_on_missing_role(user, role, grant)
+                          : Compatibility_issue::warning::
+                                user_grant_on_missing_role(user, role, grant));
                 }
               }
               break;
           }
 
           if (!included_object && !is_system_schema(priv.schema)) {
-            problems.emplace_back("User " + user +
-                                      " has a grant statement on an object "
-                                      "which is not included in the dump (" +
-                                      grant + ")",
-                                  Issue::Status::WARNING);
+            problems.emplace_back(
+                Compatibility_issue::warning::user_grant_on_missing_object(
+                    user, grant));
           }
         }
 
@@ -3782,19 +3701,12 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
     }
 
     if (!restricted.empty()) {
-      if (opt_strip_restricted_grants) {
-        problems.emplace_back(
-            "User " + user + " had restricted " +
-                (restricted.size() > 1 ? "privileges (" : "privilege (") +
-                shcore::str_join(restricted, ", ") + ") removed",
-            Issue::Status::FIXED);
-      } else {
-        problems.emplace_back(
-            "User " + user + " is granted restricted " +
-                (restricted.size() > 1 ? "privileges: " : "privilege: ") +
-                shcore::str_join(restricted, ", "),
-            Issue::Status::USE_STRIP_RESTRICTED_GRANTS);
-      }
+      problems.emplace_back(
+          opt_strip_restricted_grants
+              ? Compatibility_issue::fixed::user_restricted_grants(user,
+                                                                   restricted)
+              : Compatibility_issue::error::user_restricted_grants(user,
+                                                                   restricted));
     }
 
     grants.erase(std::remove_if(grants.begin(), grants.end(),
@@ -4105,16 +4017,14 @@ Schema_dumper::Version_dependent_check Schema_dumper::set_any_definer_check()
       compatibility::supports_set_any_definer_privilege(opt_target_version);
   check.deprecated.report_errors =
       !check.supported || opt_report_deprecated_errors_as_warnings;
-  check.deprecated.status_on_error =
-      check.supported ? Issue::Status::WARNING_DEPRECATED_DEFINERS
-                      : Issue::Status::USE_STRIP_DEFINERS;
+  check.deprecated.downgrade_errors = check.supported;
 
   return check;
 }
 
 std::vector<std::string> Schema_dumper::strip_restricted_grants(
     const std::string &user, std::string *ddl,
-    std::vector<Issue> *issues) const {
+    std::vector<Compatibility_issue> *issues) const {
   if (!(opt_mysqlaas || opt_strip_restricted_grants)) {
     return {};
   }
@@ -4125,15 +4035,14 @@ std::vector<std::string> Schema_dumper::strip_restricted_grants(
   auto allowed_privs = compatibility::k_mysqlaas_allowed_privileges;
 
   if (set_any_definer.supported) {
-    constexpr std::string_view k_set_user_id = "SET_USER_ID";
-    constexpr std::string_view k_set_any_definer = "SET_ANY_DEFINER";
+    static constexpr std::string_view k_set_user_id = "SET_USER_ID";
+    static constexpr std::string_view k_set_any_definer = "SET_ANY_DEFINER";
 
     if (rewritten && compatibility::replace_keyword(
                          *ddl, k_set_user_id, k_set_any_definer, rewritten)) {
-      issues->emplace_back("User " + user + " had restricted privilege " +
-                               std::string(k_set_user_id) + " replaced with " +
-                               std::string(k_set_any_definer),
-                           Issue::Status::FIXED);
+      issues->emplace_back(
+          Compatibility_issue::fixed::user_restricted_grants_replaced(
+              user, k_set_user_id, k_set_any_definer));
     }
 
     allowed_privs.emplace(k_set_any_definer);
@@ -4144,7 +4053,7 @@ std::vector<std::string> Schema_dumper::strip_restricted_grants(
 
 void Schema_dumper::check_view_for_table_references(
     const std::string &db, const std::string &name,
-    std::vector<Issue> *issues) const {
+    std::vector<Compatibility_issue> *issues) const {
   if (!m_cache) {
     return;
   }
@@ -4154,6 +4063,7 @@ void Schema_dumper::check_view_for_table_references(
 
   const auto case_insensitive_search =
       2 == m_cache->server.sysvars.lower_case_table_names;
+  const auto quoted_name = quote(db, name);
 
   // NOTE: Invalid views (i.e. referencing non-existing tables/columns) are
   // detected earlier (when fetching view information by instance cache) and
@@ -4187,50 +4097,51 @@ void Schema_dumper::check_view_for_table_references(
 
       if (found) {
         issues->emplace_back(
-            "View " + quote(db, name) + " references table/view " +
-                quote(ref.schema, ref.table) +
-                " which was not found using case-sensitive search",
-            opt_mysqlaas ? Issue::Status::FIX_INVALID_VIEW_REFERENCE
-                         : Issue::Status::WARNING_INVALID_VIEW_REFERENCE);
+            opt_mysqlaas
+                ? Compatibility_issue::error::view_mismatched_reference(
+                      quoted_name, quote(ref.schema, ref.table))
+                : Compatibility_issue::warning::view_mismatched_reference(
+                      quoted_name, quote(ref.schema, ref.table)));
         // don't report the other error
         included = true;
       }
     }
 
     if (!included) {
-      issues->emplace_back("View " + quote(db, name) +
-                               " references table/view " +
-                               quote(ref.schema, ref.table) +
-                               " which is not included in the dump",
-                           Issue::Status::WARNING);
+      issues->emplace_back(Compatibility_issue::warning::view_invalid_reference(
+          quoted_name, quote(ref.schema, ref.table)));
     }
   }
 }
 
 void Schema_dumper::check_routine_for_dependencies(
-    const std::string &db, const std::string &name, const std::string_view type,
-    std::vector<Issue> *issues) const {
+    const std::string &db, const std::string &name,
+    Compatibility_issue::Object_type type,
+    std::vector<Compatibility_issue> *issues) const {
   if (!m_cache || !m_filters) {
     return;
   }
 
+  const auto quoted_name = quote(db, name);
   const auto &schema = m_cache->schemas.at(db);
   const auto &routine =
-      ("PROCEDURE" == type ? schema.procedures : schema.functions).at(name);
-  const auto msg = [&db, &name, &type](
-                       const Instance_cache::Routine::Library_reference &dep,
-                       const char *reason) {
-    return get_object_err_prefix(db, type, name) + "references library " +
-           quote(dep.schema, dep.library) + " which " + reason;
-  };
+      (Compatibility_issue::Object_type::PROCEDURE == type ? schema.procedures
+                                                           : schema.functions)
+          .at(name);
+  const auto quote_library =
+      [](const Instance_cache::Routine::Library_reference &dep) {
+        return quote(dep.schema, dep.library);
+      };
 
   for (const auto &dependency : routine.library_references) {
     if (!dependency.exists) {
-      issues->emplace_back(msg(dependency, "does not exist"),
-                           Issue::Status::WARNING);
+      issues->emplace_back(
+          Compatibility_issue::warning::routine_missing_dependency(
+              type, quoted_name, quote_library(dependency)));
     } else if (!is_library_included(dependency.schema, dependency.library)) {
-      issues->emplace_back(msg(dependency, "is not included in the dump"),
-                           Issue::Status::NOTE);
+      issues->emplace_back(
+          Compatibility_issue::note::routine_missing_dependency(
+              type, quoted_name, quote_library(dependency)));
     }
   }
 }

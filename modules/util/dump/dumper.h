@@ -74,7 +74,7 @@ enum class Status {
   WARNING,
   WARNING_DEPRECATED_DEFINERS,
   WARNING_ESCAPED_WILDCARDS,
-  WARNING_HAS_INVALID_VIEW_REFERENCES,
+  WARNING_HAS_MISMATCHED_VIEW_REFERENCES,
   ERROR,
   ERROR_MISSING_PKS,
   ERROR_HAS_INVALID_GRANTS,
@@ -496,8 +496,8 @@ class Dumper {
 
   bool all_tasks_produced() const;
 
-  void handle_invalid_view_references(issues::Status_set status,
-                                      bool as_error) const;
+  void handle_mismatched_view_references(issues::Status_set status,
+                                         bool as_error) const;
 
   std::string gtid_executed(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
@@ -563,7 +563,7 @@ class Dumper {
   bool m_ftwrl_used = false;
   std::unordered_set<Capability> m_used_capabilities;
   Capability_set m_capability_set;
-  bool m_has_invalid_view_references = false;
+  bool m_has_mismatched_view_references = false;
 
   // counters
   uint64_t m_total_rows = 0;

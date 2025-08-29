@@ -4047,18 +4047,18 @@ EXPECT_STDOUT_CONTAINS(f"WARNING: Table `test_schema`.`t` had default collation 
 
 EXPECT_STDOUT_CONTAINS(f"WARNING: View `test_schema`.`v` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
-EXPECT_STDOUT_CONTAINS(f"WARNING: Database `test_schema` had default collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Schema `test_schema` had default collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
 EXPECT_STDOUT_CONTAINS(f"WARNING: Event `test_schema`.`e` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 EXPECT_STDOUT_CONTAINS(f"WARNING: Event `test_schema`.`e` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
-EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`f` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
-EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`f` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Function `test_schema`.`f` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Function `test_schema`.`f` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 EXPECT_STDOUT_CONTAINS(f"WARNING: Parameter `test_schema`.`f`.`a` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
-EXPECT_STDOUT_CONTAINS(f"WARNING: Return value of routine `test_schema`.`f` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Return value of the function `test_schema`.`f` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
-EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`p` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
-EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`p` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Procedure `test_schema`.`p` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Procedure `test_schema`.`p` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 EXPECT_STDOUT_CONTAINS(f"WARNING: Parameter `test_schema`.`p`.`b` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
 EXPECT_STDOUT_CONTAINS(f"WARNING: Trigger `test_schema`.`tt` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")

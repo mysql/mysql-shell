@@ -465,7 +465,7 @@ def view_references_excluded_table(schema, view, ref_schema, ref_table):
 
 def view_references_invalid_table(schema, view, ref_schema, ref_table):
     warning = f"View `{schema}`.`{view}` references table/view `{ref_schema}`.`{ref_table}` which was not found using case-sensitive search"
-    return Compatibility_issue(warning, None, warning)
+    return Compatibility_issue(warning + " (this issue needs to be fixed manually)", None, warning)
 
 def routine_references_excluded_library(label, schema, routine, library_schema, library_name):
     note = f"{label} `{schema}`.`{routine}` references library `{library_schema}`.`{library_name}` which is not included in the dump"
