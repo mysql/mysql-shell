@@ -91,6 +91,7 @@ void Base_progress::reset(const char *items_full, const char *items_abbrev,
   m_total = 0;
   m_changed = true;
   m_throughput.reset();
+  m_eta.reset();
   m_status = std::string(80, ' ');
   m_refresh_clock = {};
   m_items_full = items_full;
@@ -236,6 +237,7 @@ void Json_progress::render_status() {
   progress_update->emplace("current", current());
   progress_update->emplace("total", total());
   progress_update->emplace("throughput", format_json_throughput(rate, 1.0));
+  progress_update->emplace("etaSeconds", eta());
 
   extra_attributes()->set("throughputProgressUpdate",
                           shcore::Value{std::move(progress_update)});

@@ -814,6 +814,7 @@ class Dump_loader {
   std::atomic<size_t> m_num_errors{0};
   mysqlshdk::textui::Throughput m_rows_throughput;
   std::mutex m_rows_throughput_mutex;
+  mysqlshdk::textui::Eta m_rows_eta;
 
   std::atomic<uint64_t> m_ddl_executed;
 

@@ -26,6 +26,7 @@
 #ifndef MYSQLSHDK_LIBS_TEXTUI_TEXT_PROGRESS_H_
 #define MYSQLSHDK_LIBS_TEXTUI_TEXT_PROGRESS_H_
 
+#include <array>
 #include <chrono>
 #include <string>
 
@@ -33,6 +34,122 @@
 
 namespace mysqlshdk {
 namespace textui {
+
+/**
+ * Class calculating estimated time to finish an operation.
+ */
+class Eta final {
+ public:
+  Eta() { reset(); }
+
+  Eta(const Eta &) = default;
+  Eta(Eta &&) = default;
+
+  Eta &operator=(const Eta &) = default;
+  Eta &operator=(Eta &&) = default;
+
+  ~Eta() = default;
+
+  /**
+   * Resets the counters.
+   */
+  inline void reset() noexcept {
+    m_started_at = k_time_point_not_set;
+    m_initialized = false;
+    m_total = 0;
+    m_sum = 0.0;
+    m_index = 0;
+  }
+
+  /**
+   * Sets the total value.
+   */
+  inline void set_total(std::uint64_t total) noexcept {
+    // if total is not known or didn't change, there's nothing to do
+    if (!total || total == m_total) {
+      return;
+    }
+
+    // total has changed, reset all the stats, keep the starting time
+    const auto started_at = m_started_at;
+    reset();
+    m_started_at = started_at;
+
+    // finally, set the total value
+    m_total = total;
+  }
+
+  /**
+   * Pushes the current value.
+   */
+  inline void push(std::uint64_t current) noexcept {
+    // if total is not known, there's nothing to do
+    if (!m_total) [[unlikely]] {
+      return;
+    }
+
+    if (k_time_point_not_set == m_started_at) [[unlikely]] {
+      m_started_at = std::chrono::steady_clock::now();
+    }
+
+    // if progress didn't start, or already has passed the total, there's
+    // nothing to do
+    if (!current || current > m_total) [[unlikely]] {
+      return;
+    }
+
+    const auto elapsed_time =
+        std::chrono::duration_cast<std::chrono::duration<double>>(
+            std::chrono::steady_clock::now() - m_started_at)
+            .count();
+
+    // start computing ETA after a while
+    if (elapsed_time < 5.0) [[unlikely]] {
+      return;
+    }
+
+    const auto estimated_time = (m_total * elapsed_time) / current;
+    const auto remaining_time = estimated_time - elapsed_time;
+
+    if (!m_initialized) [[unlikely]] {
+      // first value, initialize the structure
+      m_eta.fill(remaining_time);
+      m_sum = remaining_time * k_sliding_window_size;
+      m_initialized = true;
+    } else {
+      // update the sum
+      m_sum -= m_eta[m_index];
+      m_eta[m_index] = remaining_time;
+      m_sum += remaining_time;
+
+      m_index = (m_index + 1) % k_sliding_window_size;
+    }
+  }
+
+  /**
+   * Provides the ETA in seconds.
+   */
+  inline std::uint64_t eta() const noexcept {
+    return m_sum / k_sliding_window_size;
+  }
+
+ private:
+  using time_point = std::chrono::steady_clock::time_point;
+
+  static constexpr std::uint8_t k_sliding_window_size = 10;
+  static constexpr time_point k_time_point_not_set{};
+
+  time_point m_started_at;
+  bool m_initialized;
+
+  std::uint64_t m_total;
+
+  // uses sliding window to compute the average of ETAs to smooth out the result
+  std::array<double, k_sliding_window_size> m_eta;
+  double m_sum;
+  std::uint8_t m_index;
+};
+
 /**
  * Class calculating throughput based on total bytes transferred.
  */
@@ -156,7 +273,9 @@ class Base_progress : public IProgress {
    */
   void set_current(uint64_t value) override {
     m_current = value;
-    m_throughput.push(value - m_initial);
+    const auto delta = value - m_initial;
+    m_throughput.push(delta);
+    m_eta.push(delta);
     m_changed = true;
   }
 
@@ -176,6 +295,7 @@ class Base_progress : public IProgress {
   void set_total(uint64_t value, uint64_t initial) override {
     m_total = value;
     m_initial = initial;
+    m_eta.set_total(value ? value - initial : value);
   }
 
   void set_left_label(const std::string &label) override {
@@ -234,6 +354,8 @@ class Base_progress : public IProgress {
     return m_throughput.rate();
   }
 
+  inline uint64_t eta() const noexcept { return m_eta.eta(); }
+
   std::string m_status;
   std::string m_left_label;
   std::string m_right_label;
@@ -264,6 +386,7 @@ class Base_progress : public IProgress {
   uint64_t m_current = 0;
   uint64_t m_total = 0;
   Throughput m_throughput;
+  Eta m_eta;
   std::string m_items_full;
   std::string m_items_abbrev;
   std::string m_item_singular;

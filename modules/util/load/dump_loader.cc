@@ -5386,6 +5386,10 @@ void Dump_loader::setup_load_data_progress() {
       load_progress->emplace("rowsLoaded", m_load_stats.records);
       load_progress->emplace("rowsToLoad", m_dump->filtered_row_count());
 
+      m_rows_eta.set_total(m_dump->filtered_row_count());
+      m_rows_eta.push(m_load_stats.records);
+      load_progress->emplace("rowsEtaSeconds", m_rows_eta.eta());
+
       load_progress->emplace("tablesLoaded", m_unique_tables_loaded);
       load_progress->emplace("tablesToLoad", m_total_tables_with_data);
 
