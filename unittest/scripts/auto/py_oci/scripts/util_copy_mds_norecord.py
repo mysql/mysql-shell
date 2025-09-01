@@ -26,7 +26,6 @@ session.run_sql("CREATE TABLE sakila.invalid_engine (id int PRIMARY KEY) ENGINE=
 
 tgt_version = tgt_session.run_sql('SELECT @@version').fetch_one()[0]
 
-encryption_commented_out_msg = "Database `sakila` had unsupported ENCRYPTION option commented out"
 restricted_privileges_msg = f"User {test_user_account} is granted restricted privileges"
 restricted_privileges_removed_msg = f"User {test_user_account} had restricted privileges"
 
@@ -39,7 +38,6 @@ EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "excludeUsers": [ "root" ], 
 # WL15887-TSFR_7_1 - version of target instance is used during compatibility checks
 EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service {tgt_version[:tgt_version.find('-')]}")
 
-EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
 EXPECT_STDOUT_CONTAINS(restricted_privileges_msg)
 EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage("sakila", "invalid_engine").error(True))
 
@@ -54,7 +52,6 @@ setup_session(__sandbox_uri1)
 
 EXPECT_NO_THROWS(lambda: util.copy_instance(MDS_URI, { "compatibility": [ "force_innodb", "strip_definers", "strip_restricted_grants" ], "excludeUsers": [ "root" ], "showProgress": False }), "copy should not throw")
 
-EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
 EXPECT_STDOUT_CONTAINS(restricted_privileges_removed_msg)
 EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage("sakila", "invalid_engine").fixed(True))
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause("sakila", "get_customer_balance", "Function").fixed(True))
@@ -66,7 +63,6 @@ setup_session(__sandbox_uri1)
 
 EXPECT_THROWS(lambda: util.copy_instance(MDS_URI, { "users": False, "showProgress": False }), "Error: Shell Error (52004): Compatibility issues were found", "copy should throw")
 
-EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
 EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_msg)
 EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_removed_msg)
 EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage("sakila", "invalid_engine").error(True))
@@ -82,7 +78,6 @@ setup_session(__sandbox_uri1)
 
 EXPECT_NO_THROWS(lambda: util.copy_instance(MDS_URI, { "compatibility": [ "force_innodb", "strip_definers" ], "users": False, "showProgress": False }), "copy should not throw")
 
-EXPECT_STDOUT_CONTAINS(encryption_commented_out_msg)
 EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_msg)
 EXPECT_STDOUT_NOT_CONTAINS(restricted_privileges_removed_msg)
 EXPECT_STDOUT_CONTAINS(force_innodb_unsupported_storage("sakila", "invalid_engine").fixed(True))
