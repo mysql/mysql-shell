@@ -114,9 +114,15 @@
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
 ||Instance check failed (MYSQLSH 51150)
 
-//@# bad configs: filepos replication (should fail) {VER(>=8.3.0)}
+//@# bad configs: filepos replication (should fail) {VER(>=8.3.0) && VER(<9.5.0)}
 @| enforce_gtid_consistency | OFF           | ON             | Update read-only variable and restart the server |@
 @| gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |@
+|Some variables need to be changed, but cannot be done dynamically on the server.|
+|ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
+||Instance check failed (MYSQLSH 51150)
+
+//@# bad configs: filepos replication (should fail) {VER(>=9.5.0)}
+@| gtid_mode | OFF           | ON             | Update read-only variable and restart the server |@
 |Some variables need to be changed, but cannot be done dynamically on the server.|
 |ERROR: 127.0.0.1:<<<__mysql_sandbox_port1>>>: Instance must be configured and validated with dba.configureReplicaSetInstance() before it can be used in a replicaset.|
 ||Instance check failed (MYSQLSH 51150)

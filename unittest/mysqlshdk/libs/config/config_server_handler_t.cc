@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -633,14 +633,15 @@ TEST_F(Config_server_handler_test, undo) {
   // default values
   instance.set_sysvar("auto_increment_increment", int64_t{11},
                       Var_qualifier::GLOBAL);
-  instance.set_sysvar("enforce_gtid_consistency", bool{true},
+  instance.set_sysvar("binlog_direct_non_transactional_updates", bool{false},
                       Var_qualifier::GLOBAL);
   instance.set_sysvar("character_set_client", std::string{"greek"},
                       Var_qualifier::GLOBAL);
 
   cfg_h.set("auto_increment_increment", std::optional<int64_t>(10));
   cfg_h.set("auto_increment_increment", std::optional<int64_t>(9));
-  cfg_h.set("enforce_gtid_consistency", std::optional<bool>(false));
+  cfg_h.set("binlog_direct_non_transactional_updates",
+            std::optional<bool>(true));
   cfg_h.set("character_set_client", std::optional<std::string>("latin2"));
   cfg_h.apply();
 
@@ -653,9 +654,10 @@ TEST_F(Config_server_handler_test, undo) {
   }
 
   {
-    auto var = instance.get_sysvar_bool("enforce_gtid_consistency");
+    auto var =
+        instance.get_sysvar_bool("binlog_direct_non_transactional_updates");
     EXPECT_TRUE(var.has_value());
-    EXPECT_EQ(var.value(), true);
+    EXPECT_EQ(var.value(), false);
   }
 
   {
@@ -667,7 +669,7 @@ TEST_F(Config_server_handler_test, undo) {
   // reset values
   instance.set_sysvar_default("auto_increment_increment",
                               Var_qualifier::GLOBAL);
-  instance.set_sysvar_default("enforce_gtid_consistency",
+  instance.set_sysvar_default("binlog_direct_non_transactional_updates",
                               Var_qualifier::GLOBAL);
   instance.set_sysvar_default("character_set_client", Var_qualifier::GLOBAL);
 }
@@ -679,16 +681,17 @@ TEST_F(Config_server_handler_test, undo_ignore) {
   // default values
   instance.set_sysvar("auto_increment_increment", int64_t{11},
                       Var_qualifier::GLOBAL);
-  instance.set_sysvar("enforce_gtid_consistency", bool{true},
+  instance.set_sysvar("binlog_direct_non_transactional_updates", bool{false},
                       Var_qualifier::GLOBAL);
   instance.set_sysvar("character_set_client", std::string{"greek"},
                       Var_qualifier::GLOBAL);
 
-  cfg_h.remove_from_undo("enforce_gtid_consistency");
+  cfg_h.remove_from_undo("binlog_direct_non_transactional_updates");
 
   cfg_h.set("auto_increment_increment", std::optional<int64_t>(10));
   cfg_h.set("auto_increment_increment", std::optional<int64_t>(9));
-  cfg_h.set("enforce_gtid_consistency", std::optional<bool>(false));
+  cfg_h.set("binlog_direct_non_transactional_updates",
+            std::optional<bool>(true));
   cfg_h.set("character_set_client", std::optional<std::string>("latin2"));
   cfg_h.apply();
 
@@ -702,9 +705,10 @@ TEST_F(Config_server_handler_test, undo_ignore) {
   }
 
   {
-    auto var = instance.get_sysvar_bool("enforce_gtid_consistency");
+    auto var =
+        instance.get_sysvar_bool("binlog_direct_non_transactional_updates");
     EXPECT_TRUE(var.has_value());
-    EXPECT_EQ(var.value(), false);
+    EXPECT_EQ(var.value(), true);
   }
 
   {
@@ -728,14 +732,15 @@ TEST_F(Config_server_handler_test, undo_ignore_all) {
   // default values
   instance.set_sysvar("auto_increment_increment", int64_t{11},
                       Var_qualifier::GLOBAL);
-  instance.set_sysvar("enforce_gtid_consistency", bool{false},
+  instance.set_sysvar("binlog_direct_non_transactional_updates", bool{true},
                       Var_qualifier::GLOBAL);
   instance.set_sysvar("character_set_client", std::string{"greek"},
                       Var_qualifier::GLOBAL);
 
   cfg_h.set("auto_increment_increment", std::optional<int64_t>(10));
   cfg_h.set("auto_increment_increment", std::optional<int64_t>(9));
-  cfg_h.set("enforce_gtid_consistency", std::optional<bool>(true));
+  cfg_h.set("binlog_direct_non_transactional_updates",
+            std::optional<bool>(false));
   cfg_h.set("character_set_client", std::optional<std::string>("latin2"));
   cfg_h.apply();
 
@@ -749,9 +754,10 @@ TEST_F(Config_server_handler_test, undo_ignore_all) {
   }
 
   {
-    auto var = instance.get_sysvar_bool("enforce_gtid_consistency");
+    auto var =
+        instance.get_sysvar_bool("binlog_direct_non_transactional_updates");
     EXPECT_TRUE(var.has_value());
-    EXPECT_EQ(var.value(), true);
+    EXPECT_EQ(var.value(), false);
   }
 
   {
@@ -763,7 +769,7 @@ TEST_F(Config_server_handler_test, undo_ignore_all) {
   // reset values
   instance.set_sysvar_default("auto_increment_increment",
                               Var_qualifier::GLOBAL);
-  instance.set_sysvar_default("enforce_gtid_consistency",
+  instance.set_sysvar_default("binlog_direct_non_transactional_updates",
                               Var_qualifier::GLOBAL);
   instance.set_sysvar_default("character_set_client", Var_qualifier::GLOBAL);
 }

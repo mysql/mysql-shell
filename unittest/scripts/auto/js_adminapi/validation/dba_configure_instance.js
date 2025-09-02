@@ -181,13 +181,32 @@ Account repl_admin@% was successfully created.
 
 Configuring instance...
 ?{}
-?{VER(>=8.4.0)}
+?{VER(>=8.4.0) && VER(<9.5.0)}
 +-------------------------------+---------------+----------------+-----------------------------------------------+
 | Variable                      | Current Value | Required Value | Note                                          |
 +-------------------------------+---------------+----------------+-----------------------------------------------+
 | binlog_format                 | <not set>     | ROW            | Update the config file                        |
 | enforce_gtid_consistency      | OFF           | ON             | Update the config file and restart the server |
 | gtid_mode                     | OFF           | ON             | Update the config file and restart the server |
+| replica_preserve_commit_order | <not set>     | ON             | Update the config file                        |
+| report_port                   | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
+| server_id                     | 1             | <unique ID>    | Update the config file and restart the server |
++-------------------------------+---------------+----------------+-----------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
+Creating user repl_admin@%.
+Account repl_admin@% was successfully created.
+
+Configuring instance...
+?{}
+?{VER(>=9.5.0)}
++-------------------------------+---------------+----------------+-----------------------------------------------+
+| Variable                      | Current Value | Required Value | Note                                          |
++-------------------------------+---------------+----------------+-----------------------------------------------+
+| binlog_format                 | <not set>     | ROW            | Update the config file                        |
+| enforce_gtid_consistency      | <not set>     | ON             | Update the config file                        |
+| gtid_mode                     | <not set>     | ON             | Update the config file                        |
 | replica_preserve_commit_order | <not set>     | ON             | Update the config file                        |
 | report_port                   | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
 | server_id                     | 1             | <unique ID>    | Update the config file and restart the server |
@@ -252,7 +271,7 @@ Configuring instance...
 The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.
 NOTE: MySQL server needs to be restarted for configuration changes to take effect.
 ?{}
-?{VER(>=8.0.11)}
+?{VER(>=8.0.11) && VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -260,6 +279,22 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 | gtid_mode                | OFF           | ON             | Restart the server                               |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+
+Some variables need to be changed, but cannot be done dynamically on the server.
+Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:
+Creating user repl_admin2@%.
+Account repl_admin2@% was successfully created.
+
+Configuring instance...
+The instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>' was configured to be used in an InnoDB Cluster.
+NOTE: MySQL server needs to be restarted for configuration changes to take effect.
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]:

@@ -289,8 +289,10 @@ shell.connect(__sandbox_uri1);
 if (testutil.versionCheck(__version, "<", "8.0.21")) {
     session.runSql("RESET PERSIST binlog_checksum");
 }
+if (testutil.versionCheck(__version, "<", "9.5.0")) {
 session.runSql("RESET PERSIST enforce_gtid_consistency");
 session.runSql("RESET PERSIST gtid_mode");
+}
 session.runSql("RESET PERSIST server_id");
 set_sysvar(session, "super_read_only", 1);
 EXPECT_EQ(1, get_sysvar(session, "super_read_only"));

@@ -58,7 +58,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -66,6 +66,13 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
@@ -223,7 +230,7 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
     "status": "error"
 }
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<9.5.0)}
 {
     "config_errors": [
         {
@@ -238,6 +245,19 @@ NOTE: Please use the dba.configureInstance() command to repair these issues.
             "option": "gtid_mode",
             "required": "ON"
         },
+        {
+            "action": "server_update+restart",
+            "current": "1",
+            "option": "server_id",
+            "required": "<unique ID>"
+        }
+    ],
+    "status": "error"
+}
+?{}
+?{VER(>=9.5.0)}
+{
+    "config_errors": [
         {
             "action": "server_update+restart",
             "current": "1",
@@ -300,7 +320,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -308,6 +328,13 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
@@ -450,13 +477,25 @@ NOTE: MySQL server needs to be restarted for configuration changes to take effec
 | transaction_write_set_extraction       | <not set>     | XXHASH64       | Update the config file                         |
 +----------------------------------------+---------------+----------------+------------------------------------------------+
 ?{}
-?{VER(>=8.4.0)}
+?{VER(>=8.4.0) && VER(<9.5.0)}
 +-------------------------------+---------------+----------------+-----------------------------------------------+
 | Variable                      | Current Value | Required Value | Note                                          |
 +-------------------------------+---------------+----------------+-----------------------------------------------+
 | binlog_format                 | <not set>     | ROW            | Update the config file                        |
 | enforce_gtid_consistency      | OFF           | ON             | Update the config file and restart the server |
 | gtid_mode                     | OFF           | ON             | Update the config file and restart the server |
+| replica_preserve_commit_order | <not set>     | ON             | Update the config file                        |
+| report_port                   | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
+| server_id                     | 1             | <unique ID>    | Update the config file and restart the server |
++-------------------------------+---------------+----------------+-----------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-------------------------------+---------------+----------------+-----------------------------------------------+
+| Variable                      | Current Value | Required Value | Note                                          |
++-------------------------------+---------------+----------------+-----------------------------------------------+
+| binlog_format                 | <not set>     | ROW            | Update the config file                        |
+| enforce_gtid_consistency      | <not set>     | ON             | Update the config file                        |
+| gtid_mode                     | <not set>     | ON             | Update the config file                        |
 | replica_preserve_commit_order | <not set>     | ON             | Update the config file                        |
 | report_port                   | <not set>     | <<<__mysql_sandbox_port1>>>           | Update the config file                        |
 | server_id                     | 1             | <unique ID>    | Update the config file and restart the server |
@@ -629,7 +668,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -637,6 +676,13 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
@@ -723,7 +769,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -731,6 +777,13 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
@@ -756,6 +809,7 @@ applierWorkerThreads will be set to the default value of 4.
 
 ?{}
 NOTE: Some configuration options need to be fixed:
+?{VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -763,6 +817,14 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
+?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
 Do you want to perform the required configuration changes? [y/n]: Do you want to restart the instance after configuring it? [y/n]: Disabled super_read_only on the instance '<<<hostname>>>:<<<__mysql_sandbox_port1>>>'

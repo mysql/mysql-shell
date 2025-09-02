@@ -52,7 +52,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -60,6 +60,13 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
@@ -127,7 +134,7 @@ NOTE: Some configuration options need to be fixed:
 | server_id                              | 1             | <unique ID>    | Update read-only variable and restart the server |
 +----------------------------------------+---------------+----------------+--------------------------------------------------+
 ?{}
-?{VER(>=8.3.0)}
+?{VER(>=8.3.0) && VER(<9.5.0)}
 +--------------------------+---------------+----------------+--------------------------------------------------+
 | Variable                 | Current Value | Required Value | Note                                             |
 +--------------------------+---------------+----------------+--------------------------------------------------+
@@ -135,6 +142,13 @@ NOTE: Some configuration options need to be fixed:
 | gtid_mode                | OFF           | ON             | Update read-only variable and restart the server |
 | server_id                | 1             | <unique ID>    | Update read-only variable and restart the server |
 +--------------------------+---------------+----------------+--------------------------------------------------+
+?{}
+?{VER(>=9.5.0)}
++-----------+---------------+----------------+--------------------------------------------------+
+| Variable  | Current Value | Required Value | Note                                             |
++-----------+---------------+----------------+--------------------------------------------------+
+| server_id | 1             | <unique ID>    | Update read-only variable and restart the server |
++-----------+---------------+----------------+--------------------------------------------------+
 ?{}
 
 Some variables need to be changed, but cannot be done dynamically on the server.
