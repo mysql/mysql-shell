@@ -190,6 +190,10 @@ class Load_data_worker final {
 
   static std::string load_data_body(const Import_table_options &options);
 
+  void set_warnings_to_show(std::size_t warnings_to_show) noexcept {
+    m_warnings_to_show = warnings_to_show;
+  }
+
  private:
   void handle_exception();
 
@@ -204,6 +208,7 @@ class Load_data_worker final {
   Load_stats *m_load_stats;
   std::string m_query_comment;
   Thread_state m_state;
+  std::size_t m_warnings_to_show = 5;
 };
 
 }  // namespace import_table

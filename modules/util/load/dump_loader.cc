@@ -34,6 +34,7 @@
 #include <cstdint>
 #include <functional>
 #include <iterator>
+#include <limits>
 #include <list>
 #include <mutex>
 #include <string>
@@ -1472,6 +1473,11 @@ void Dump_loader::Worker::Load_chunk_task::do_load(Worker *worker,
       import_options, id(), &loader->m_progress_stats,
       &loader->m_worker_hard_interrupt, nullptr,
       &loader->m_thread_exceptions[id()], &load_stats, query_comment());
+
+  // display all the warnings when using JSON output
+  if (loader->m_progress_thread.uses_json_output()) {
+    op.set_warnings_to_show(std::numeric_limits<std::size_t>::max());
+  }
 
   {
     // If max_transaction_size > 0, chunk truncation is enabled, where LOAD
