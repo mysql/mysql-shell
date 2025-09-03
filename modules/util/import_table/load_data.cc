@@ -44,11 +44,13 @@ using off64_t = off_t;
 #include <algorithm>
 #include <cassert>
 #include <cinttypes>
+#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
 
 #include "modules/util/import_table/helpers.h"
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
@@ -1028,9 +1030,9 @@ void Load_data_worker::execute(
         }
 
         if (warnings_num > 0) {
-          // number of warnings to show
-          constexpr std::size_t k_warnings_to_show = 5;
           std::size_t warnings_count = 0;
+          const auto console = mysqlsh::current_console();
+          auto print_callback = &IConsole::print_error;
 
           while (const auto w = load_result->fetch_one_warning()) {
             const std::string msg = shcore::str_format(
@@ -1039,21 +1041,35 @@ void Load_data_worker::execute(
                 m_opt.schema().c_str(), m_opt.table().c_str(), filename.c_str(),
                 w->code, w->msg.c_str());
 
-            if (warnings_count++ < k_warnings_to_show) {
+            if (warnings_count++ < m_warnings_to_show) {
               // show first k warnings
               switch (w->level) {
                 case mysqlshdk::db::Warning::Level::Error:
-                  mysqlsh::current_console()->print_error(msg);
+                  print_callback = &IConsole::print_error;
                   break;
 
                 case mysqlshdk::db::Warning::Level::Warn:
-                  mysqlsh::current_console()->print_warning(msg);
+                  print_callback = &IConsole::print_warning;
                   break;
 
                 case mysqlshdk::db::Warning::Level::Note:
-                  mysqlsh::current_console()->print_note(msg);
+                  print_callback = &IConsole::print_note;
                   break;
               }
+
+              auto load_warning = shcore::make_dict();
+
+              load_warning->emplace("schema", m_opt.schema());
+              load_warning->emplace("table", m_opt.table());
+              load_warning->emplace("filename", filename);
+              load_warning->emplace("level",
+                                    mysqlshdk::db::to_string(w->level));
+              load_warning->emplace("code", w->code);
+              load_warning->emplace("message", w->msg);
+
+              std::invoke(
+                  print_callback, console, msg,
+                  shcore::make_dict("loadWarning", std::move(load_warning)));
             } else {
               // log remaining warnings
               switch (w->level) {
@@ -1072,9 +1088,9 @@ void Load_data_worker::execute(
             }
           }
 
-          if (warnings_count > k_warnings_to_show) {
+          if (warnings_count > m_warnings_to_show) {
             const auto remaining_warnings_count =
-                warnings_count - k_warnings_to_show;
+                warnings_count - m_warnings_to_show;
 
             mysqlsh::current_console()->print_info(
                 "Check mysqlsh.log for " +
