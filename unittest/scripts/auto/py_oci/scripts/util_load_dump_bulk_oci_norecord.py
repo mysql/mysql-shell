@@ -401,6 +401,16 @@ EXPECT_STDOUT_CONTAINS("Aborting load...")
 
 testutil.clear_traps("mysql")
 
+#@<> BUG#38228889 - table without a PK but with a unique key is loaded {bulk_load_supported}
+prepare_test_table("(f1 INT PRIMARY KEY)", test_table)
+src_session.run_sql("ALTER TABLE !.! DROP PRIMARY KEY", [ test_schema, test_table ])
+src_session.run_sql("ALTER TABLE !.! ADD UNIQUE KEY f1k (f1)", [ test_schema, test_table ])
+TEST_DUMP_AND_LOAD(expect_bulk_loaded = 1)
+
+#@<> BUG#38228889 - table without a PK is loaded {bulk_load_supported}
+prepare_test_table("(f1 INT)", test_table)
+TEST_DUMP_AND_LOAD(expect_bulk_loaded = 1)
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)
