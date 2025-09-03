@@ -948,11 +948,25 @@ loader_test(setup_local_test(Load_test_case(
     output="NOTE: The 'convertInnoDbVectorStore' option is set, but dump does not contain InnoDB based vector store tables."
 )))
 
+# nothing printed when 'convertInnoDbVectorStore' is not given and target is not MHS
+loader_test(setup_local_test(Load_test_case(
+    local_dump,
+    {},
+    not_output="convertInnoDbVectorStore"
+)))
+
 #@<> WL16802-TSFR_2_2_2 - 'lakehouseSource' set when loading a dump without vector data
 loader_test(setup_local_test(Load_test_case(
     local_dump,
     {"lakehouseSource": {"bucket": "bucket", "namespace": "namespace", "region": "region"}},
     output="NOTE: The 'lakehouseSource' option is set, but dump does not contain InnoDB based vector store tables."
+)))
+
+# nothing printed when 'lakehouseSource' is not given and target is not MHS
+loader_test(setup_local_test(Load_test_case(
+    local_dump,
+    {},
+    not_output="lakehouseSource"
 )))
 
 #@<> 'heatwaveLoad' set when loading a dump without vector data
@@ -962,11 +976,11 @@ loader_test(setup_local_test(Load_test_case(
     output="NOTE: The 'heatwaveLoad' option is set, but dump does not contain InnoDB based vector store tables."
 )))
 
-# nothing printed when 'convertInnoDbVectorStore' is not given
+# BUG#38384946 - nothing printed when 'heatwaveLoad' is not given and target is not MHS
 loader_test(setup_local_test(Load_test_case(
     local_dump,
     {},
-    not_output="convertInnoDbVectorStore"
+    not_output="heatwaveLoad"
 )))
 
 #@<> WL16802-TSFR_1_2_4 - cleanup

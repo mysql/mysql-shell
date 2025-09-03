@@ -270,7 +270,7 @@ class Load_dump_options : public common::Common_options {
   }
 
   inline bool has_heatwave_load_option() const {
-    return m_heatwave_load.has_value();
+    return m_has_heatwave_load_option;
   }
 
   inline void set_heatwave_load(load::Heatwave_load mode) {
@@ -278,10 +278,7 @@ class Load_dump_options : public common::Common_options {
   }
 
   inline load::Heatwave_load heatwave_load() const {
-    // WL16802-FR2.3.2: heatwaveLoad is set to 'vector_store' by default
-    return load_data()
-               ? m_heatwave_load.value_or(load::Heatwave_load::VECTOR_STORE)
-               : load::Heatwave_load::NONE;
+    return load_data() ? m_heatwave_load : load::Heatwave_load::NONE;
   }
 
   using Storage_options::set_storage_config;
@@ -378,7 +375,9 @@ class Load_dump_options : public common::Common_options {
 
   std::optional<load::Convert_vector_store> m_convert_vector_store;
 
-  std::optional<load::Heatwave_load> m_heatwave_load;
+  // WL16802-FR2.3.2: heatwaveLoad is set to 'vector_store' by default
+  load::Heatwave_load m_heatwave_load = load::Heatwave_load::VECTOR_STORE;
+  bool m_has_heatwave_load_option = false;
 };
 
 }  // namespace mysqlsh

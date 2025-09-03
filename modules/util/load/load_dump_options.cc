@@ -668,6 +668,7 @@ void Load_dump_options::set_convert_vector_store_option(
 void Load_dump_options::set_heatwave_load_option(const std::string &value) {
   try {
     m_heatwave_load = load::to_heatwave_load(value);
+    m_has_heatwave_load_option = true;
   } catch (const std::exception &e) {
     throw std::invalid_argument(shcore::str_format(
         "The value of the 'heatwaveLoad' option must be set to one of: %s.",
