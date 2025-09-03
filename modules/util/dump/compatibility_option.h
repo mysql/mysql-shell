@@ -47,7 +47,7 @@ enum class Compatibility_option {
   IGNORE_WILDCARD_GRANTS,
   UNESCAPE_WILDCARD_GRANTS,
   FORCE_NON_STANDARD_FKS,
-  MIGRATE_INVALID_ACCOUNTS,
+  LOCK_INVALID_ACCOUNTS,
 };
 
 Compatibility_option to_compatibility_option(const std::string &c);
@@ -58,7 +58,7 @@ std::string to_string(Compatibility_option c);
 
 using Compatibility_options =
     mysqlshdk::utils::Enum_set<Compatibility_option,
-                               Compatibility_option::MIGRATE_INVALID_ACCOUNTS>;
+                               Compatibility_option::LOCK_INVALID_ACCOUNTS>;
 
 }  // namespace dump
 }  // namespace mysqlsh

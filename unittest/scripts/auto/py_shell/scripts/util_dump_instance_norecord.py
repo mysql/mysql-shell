@@ -2118,20 +2118,20 @@ for plugin in disallowed_authentication_plugins:
 # BUG#32741098 - users which do not have a passwords are removed from the dump by 'skip_invalid_accounts'
 EXPECT_STDOUT_CONTAINS(skip_invalid_accounts_no_password(test_user_no_pwd).fixed())
 
-#@<> BUG#38237729 - added `migrate_invalid_accounts` - migrates users using unsupported authentication plugins or empty passwords
-EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "migrate_invalid_accounts" ], "targetVersion": target_version, "ddlOnly": True, "showProgress": False })
+#@<> BUG#38237729 - added `lock_invalid_accounts` - updates users using unsupported authentication plugins or empty passwords and locks the account
+EXPECT_SUCCESS([incompatible_schema], test_output_absolute, { "compatibility": [ "lock_invalid_accounts" ], "targetVersion": target_version, "ddlOnly": True, "showProgress": False })
 
 for plugin in disallowed_authentication_plugins:
-    EXPECT_STDOUT_CONTAINS(migrate_invalid_accounts_plugin(get_test_user_account(plugin), plugin).fixed())
+    EXPECT_STDOUT_CONTAINS(lock_invalid_accounts_plugin(get_test_user_account(plugin), plugin).fixed())
 
-EXPECT_STDOUT_CONTAINS(migrate_invalid_accounts_no_password(test_user_no_pwd).fixed())
+EXPECT_STDOUT_CONTAINS(lock_invalid_accounts_no_password(test_user_no_pwd).fixed())
 
 #@<> BUG#38237729 - load the dump {VER(>=8.0.0)}
 wipeout_users(session)
 EXPECT_NO_THROWS(lambda: util.load_dump(test_output_absolute, { "showProgress": False, "loadUsers": True, "loadDdl": False, "loadData": False, "resetProgress": True }), "loading should not throw")
 
-#@<> BUG#38237729 - migrate_invalid_accounts and skip_invalid_accounts cannot be used at the same time
-EXPECT_FAIL("ValueError", "Argument #2: The 'migrate_invalid_accounts' and 'skip_invalid_accounts' compatibility options cannot be used at the same time.", test_output_relative, { "compatibility": [ "migrate_invalid_accounts", "skip_invalid_accounts" ] })
+#@<> BUG#38237729 - lock_invalid_accounts and skip_invalid_accounts cannot be used at the same time
+EXPECT_FAIL("ValueError", "Argument #2: The 'lock_invalid_accounts' and 'skip_invalid_accounts' compatibility options cannot be used at the same time.", test_output_relative, { "compatibility": [ "lock_invalid_accounts", "skip_invalid_accounts" ] })
 
 #@<> BUG#38237729 - cleanup
 create_users()

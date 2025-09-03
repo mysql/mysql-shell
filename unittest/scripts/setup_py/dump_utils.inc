@@ -388,23 +388,23 @@ def definer_clause_uses_unknown_account_once():
     return Compatibility_issue(None, None, warning)
 
 def skip_invalid_accounts_plugin(user, plugin):
-    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
+    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with either 'lock_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
     fixed = f"User {user} is using an unsupported authentication plugin '{plugin}', this account has been removed from the dump"
     return Compatibility_issue(error, fixed)
 
 def skip_invalid_accounts_no_password(user):
-    error = f"User {user} does not have a password set (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
+    error = f"User {user} does not have a password set (fix this with either 'lock_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
     fixed = f"User {user} does not have a password set, this account has been removed from the dump"
     return Compatibility_issue(error, fixed)
 
-def migrate_invalid_accounts_plugin(user, plugin):
-    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
-    fixed = f"User {user} is using an unsupported authentication plugin '{plugin}', this account has been migrated"
+def lock_invalid_accounts_plugin(user, plugin):
+    error = f"User {user} is using an unsupported authentication plugin '{plugin}' (fix this with either 'lock_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
+    fixed = f"User {user} is using an unsupported authentication plugin '{plugin}', this account has been updated and locked"
     return Compatibility_issue(error, fixed)
 
-def migrate_invalid_accounts_no_password(user):
-    error = f"User {user} does not have a password set (fix this with either 'migrate_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
-    fixed = f"User {user} does not have a password set, this account has been migrated"
+def lock_invalid_accounts_no_password(user):
+    error = f"User {user} does not have a password set (fix this with either 'lock_invalid_accounts' or 'skip_invalid_accounts' compatibility option)"
+    fixed = f"User {user} does not have a password set, this account has been updated and locked"
     return Compatibility_issue(error, fixed)
 
 def create_invisible_pks(schema, table):

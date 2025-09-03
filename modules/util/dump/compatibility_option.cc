@@ -42,7 +42,7 @@ constexpr auto k_strip_invalid_grants = "strip_invalid_grants";
 constexpr auto k_ignore_wildcard_grants = "ignore_wildcard_grants";
 constexpr auto k_unescape_wildcard_grants = "unescape_wildcard_grants";
 constexpr auto k_force_non_standard_fks = "force_non_standard_fks";
-constexpr auto k_migrate_invalid_accounts = "migrate_invalid_accounts";
+constexpr auto k_lock_invalid_accounts = "lock_invalid_accounts";
 }  // namespace
 
 Compatibility_option to_compatibility_option(const std::string &c) {
@@ -65,8 +65,8 @@ Compatibility_option to_compatibility_option(const std::string &c) {
     return Compatibility_option::UNESCAPE_WILDCARD_GRANTS;
   if (c == k_force_non_standard_fks)
     return Compatibility_option::FORCE_NON_STANDARD_FKS;
-  if (c == k_migrate_invalid_accounts)
-    return Compatibility_option::MIGRATE_INVALID_ACCOUNTS;
+  if (c == k_lock_invalid_accounts)
+    return Compatibility_option::LOCK_INVALID_ACCOUNTS;
 
   throw std::invalid_argument("Unknown compatibility option: " + c);
 }
@@ -122,8 +122,8 @@ std::string to_string(Compatibility_option c) {
     case Compatibility_option::FORCE_NON_STANDARD_FKS:
       return k_force_non_standard_fks;
 
-    case Compatibility_option::MIGRATE_INVALID_ACCOUNTS:
-      return k_migrate_invalid_accounts;
+    case Compatibility_option::LOCK_INVALID_ACCOUNTS:
+      return k_lock_invalid_accounts;
   }
 
   throw std::logic_error("Shouldn't happen, but compiler complains");

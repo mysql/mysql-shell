@@ -200,9 +200,9 @@ issues::Status_set show_issues(
                  issue.status) {
         status.set(issues::Status::WARNING_HAS_INVALID_VIEW_REFERENCES);
       } else if (Schema_dumper::Issue::Status::
-                     USE_MIGRATE_OR_SKIP_INVALID_ACCOUNTS == issue.status) {
+                     USE_LOCK_OR_SKIP_INVALID_ACCOUNTS == issue.status) {
         hint = "fix this with either '" +
-               to_string(Compatibility_option::MIGRATE_INVALID_ACCOUNTS) +
+               to_string(Compatibility_option::LOCK_INVALID_ACCOUNTS) +
                "' or '" +
                to_string(Compatibility_option::SKIP_INVALID_ACCOUNTS) +
                "' compatibility option";

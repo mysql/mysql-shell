@@ -3057,13 +3057,13 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
     bool add_user = true;
 
     if (opt_mysqlaas || opt_skip_invalid_accounts ||
-        opt_migrate_invalid_accounts) {
+        opt_lock_invalid_accounts) {
       bool account_migrated = false;
 
       const auto handle_invalid_account = [&](const std::string &context) {
-        // we're removing the user from the list unless migrate_invalid_accounts
+        // we're removing the user from the list unless lock_invalid_accounts
         // is set, account is invalid in MDS, so other checks can be skipped
-        add_user = opt_migrate_invalid_accounts;
+        add_user = opt_lock_invalid_accounts;
 
         std::string issue;
         issue.reserve(256);
@@ -3077,24 +3077,24 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
           issue += ", this account has been removed from the dump";
         }
 
-        if (opt_migrate_invalid_accounts) {
-          issue += ", this account has been migrated";
+        if (opt_lock_invalid_accounts) {
+          issue += ", this account has been updated and locked";
         }
 
         // notify about migrated account only once
         if (!account_migrated) {
           problems.emplace_back(
               std::move(issue),
-              opt_skip_invalid_accounts || opt_migrate_invalid_accounts
+              opt_skip_invalid_accounts || opt_lock_invalid_accounts
                   ? Issue::Status::FIXED
-                  : Issue::Status::USE_MIGRATE_OR_SKIP_INVALID_ACCOUNTS);
+                  : Issue::Status::USE_LOCK_OR_SKIP_INVALID_ACCOUNTS);
 
-          account_migrated = opt_migrate_invalid_accounts;
+          account_migrated = opt_lock_invalid_accounts;
         }
       };
 
       const auto handle_unsupported_plugin = [&](const std::string &plugin) {
-        if (opt_migrate_invalid_accounts) {
+        if (opt_lock_invalid_accounts) {
           create_user =
               compatibility::replace_authentication_plugin(create_user, plugin);
         }
@@ -3140,7 +3140,7 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_grants(IFile *file) {
           create_user =
               compatibility::convert_create_user_to_create_role(create_user);
         } else {
-          if (opt_migrate_invalid_accounts) {
+          if (opt_lock_invalid_accounts) {
             create_user = compatibility::replace_empty_passwords(create_user);
           }
 

@@ -106,8 +106,8 @@ std::string to_string(Schema_dumper::Issue::Status s) {
     case Status::USE_STRIP_TABLESPACES:
       return "USE_STRIP_TABLESPACES";
 
-    case Status::USE_MIGRATE_OR_SKIP_INVALID_ACCOUNTS:
-      return "USE_MIGRATE_OR_SKIP_INVALID_ACCOUNTS";
+    case Status::USE_LOCK_OR_SKIP_INVALID_ACCOUNTS:
+      return "USE_LOCK_OR_SKIP_INVALID_ACCOUNTS";
 
     case Status::USE_STRIP_INVALID_GRANTS:
       return "USE_STRIP_INVALID_GRANTS";

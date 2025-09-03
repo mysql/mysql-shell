@@ -225,7 +225,7 @@ DESCRIPTION
         Service compatibility modifications when copying the DDL. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "ignore_wildcard_grants", "lock_invalid_accounts",
         "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
         "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
@@ -378,7 +378,7 @@ DESCRIPTION
         Service compatibility modifications when copying the DDL. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "ignore_wildcard_grants", "lock_invalid_accounts",
         "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
         "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
@@ -514,7 +514,7 @@ DESCRIPTION
         Service compatibility modifications when copying the DDL. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "ignore_wildcard_grants", "lock_invalid_accounts",
         "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
         "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
@@ -754,7 +754,7 @@ DESCRIPTION
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "ignore_wildcard_grants", "lock_invalid_accounts",
         "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
         "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
@@ -1061,11 +1061,11 @@ DESCRIPTION
       to unexpected results. Before using this compatibility option, each such
       grant should be carefully reviewed.
 
-      migrate_invalid_accounts - Migrates accounts which do not have a password
-      or use authentication methods (plugins) not supported by the MySQL
-      HeatWave Service. Migrated accounts are configured to use
-      'caching_sha2_password' authentication plugin, are assigned an invalid
-      password, and are initially locked.
+      lock_invalid_accounts - Locks accounts which do not have a password or
+      use authentication methods (plugins) not supported by the MySQL HeatWave
+      Service. Invalid accounts are configured to use 'caching_sha2_password'
+      authentication plugin, are assigned an invalid password, and are
+      initially locked.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
@@ -1224,7 +1224,7 @@ DESCRIPTION
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "ignore_wildcard_grants", "lock_invalid_accounts",
         "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
         "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
@@ -1510,11 +1510,11 @@ DESCRIPTION
       to unexpected results. Before using this compatibility option, each such
       grant should be carefully reviewed.
 
-      migrate_invalid_accounts - Migrates accounts which do not have a password
-      or use authentication methods (plugins) not supported by the MySQL
-      HeatWave Service. Migrated accounts are configured to use
-      'caching_sha2_password' authentication plugin, are assigned an invalid
-      password, and are initially locked.
+      lock_invalid_accounts - Locks accounts which do not have a password or
+      use authentication methods (plugins) not supported by the MySQL HeatWave
+      Service. Invalid accounts are configured to use 'caching_sha2_password'
+      authentication plugin, are assigned an invalid password, and are
+      initially locked.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
@@ -1672,7 +1672,7 @@ DESCRIPTION
         Service compatibility modifications when writing dump files. Supported
         values: "create_invisible_pks", "force_innodb",
         "force_non_standard_fks", "ignore_missing_pks",
-        "ignore_wildcard_grants", "migrate_invalid_accounts",
+        "ignore_wildcard_grants", "lock_invalid_accounts",
         "skip_invalid_accounts", "strip_definers", "strip_invalid_grants",
         "strip_restricted_grants", "strip_tablespaces",
         "unescape_wildcard_grants".
@@ -1947,11 +1947,11 @@ DESCRIPTION
       to unexpected results. Before using this compatibility option, each such
       grant should be carefully reviewed.
 
-      migrate_invalid_accounts - Migrates accounts which do not have a password
-      or use authentication methods (plugins) not supported by the MySQL
-      HeatWave Service. Migrated accounts are configured to use
-      'caching_sha2_password' authentication plugin, are assigned an invalid
-      password, and are initially locked.
+      lock_invalid_accounts - Locks accounts which do not have a password or
+      use authentication methods (plugins) not supported by the MySQL HeatWave
+      Service. Invalid accounts are configured to use 'caching_sha2_password'
+      authentication plugin, are assigned an invalid password, and are
+      initially locked.
 
       skip_invalid_accounts - Skips accounts which do not have a password or
       use authentication methods (plugins) not supported by the MySQL HeatWave
