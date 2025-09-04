@@ -1649,8 +1649,15 @@ from (select
     GROUP BY 
       table_schema, table_name, index_name) idx
     on 
-      fk.target_fk_definition = idx.fk_definition AND 
-      idx.non_unique_count > 0)",
+      fk.target_fk_definition = idx.fk_definition
+  group by
+    fk.constraint_schema,
+    fk.constraint_name,
+    fk.parent_fk_definition,
+    fk.REFERENCED_TABLE_NAME
+  having
+    SUM(idx.non_unique_count = 0) = 0
+)",
                        Upgrade_issue::Object_type::FOREIGN_KEY},
                        {
 /*
