@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -129,16 +129,7 @@ Checksums::Checksum_data::Checksum_data(const Checksums *parent,
                                         std::string_view partition,
                                         int64_t chunk)
     : m_parent(parent), m_info(info), m_partition(partition), m_chunk(chunk) {
-  m_id = "table ";
-  m_id += m_info->query.from;
-
-  if (!m_partition.empty()) {
-    m_id += ", partition ";
-    m_id += quote(m_partition);
-  }
-
-  m_id += ", chunk ";
-  m_id += std::to_string(chunk);
+  update_id();
 }
 
 void Checksums::Checksum_data::compute(
@@ -251,6 +242,19 @@ std::string Checksums::Checksum_data::query() const {
   }
 
   return q;
+}
+
+void Checksums::Checksum_data::update_id() {
+  m_id = "table ";
+  m_id += m_info->query.from;
+
+  if (!m_partition.empty()) {
+    m_id += ", partition ";
+    m_id += quote(m_partition);
+  }
+
+  m_id += ", chunk ";
+  m_id += std::to_string(m_chunk);
 }
 
 void Checksums::configure(
@@ -1088,6 +1092,26 @@ std::string Checksums::generator(const std::vector<std::string> &values) const {
       m_generator_template,
       [&values](std::string_view) { return shcore::str_join(values, ","); },
       "{", "}");
+}
+
+void Checksums::rename_schema(const std::string &from, const std::string &to) {
+  // rename the key
+  auto node = m_schemas.extract(from);
+  node.key() = to;
+  auto s = m_schemas.insert(std::move(node)).position;
+
+  // update the references
+  for (auto &t : s->second) {
+    auto &ti = t.second;
+    ti.schema = s->first;
+    ti.query.from = quote(ti.schema, ti.table);
+
+    for (auto &p : ti.partitions) {
+      for (auto &ch : p.second) {
+        ch.second.update_id();
+      }
+    }
+  }
 }
 
 }  // namespace common

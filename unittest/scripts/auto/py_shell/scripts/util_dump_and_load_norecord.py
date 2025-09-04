@@ -3458,6 +3458,12 @@ EXPECT_STDOUT_CONTAINS(f"ERROR: Could not verify checksum of `{schema_name}`.`{t
 EXPECT_STDOUT_CONTAINS(f"ERROR: Could not verify checksum of `{schema_name}`.`{test_table_no_index}`: table does not exist")
 EXPECT_STDOUT_CONTAINS("ERROR: 7 checksum verification errors were reported during the load.")
 
+#@<> BUG#38034277 - loading with "schema" option set should not throw
+renamed_schema_name = schema_name + "-renamed"
+
+wipeout_server(session2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "includeSchemas": [schema_name], "schema": renamed_schema_name, "checksum": True, "resetProgress": True, "showProgress": False }))
+
 #@<> WL15947 - cleanup
 shell.connect(__sandbox_uri1)
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])

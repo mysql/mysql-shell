@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -132,6 +132,8 @@ class Checksums {
 
     std::string query() const;
 
+    void update_id();
+
     friend class Checksums;
 
     const Checksums *m_parent;
@@ -232,6 +234,11 @@ class Checksums {
    * @param file Input file.
    */
   void deserialize(std::unique_ptr<mysqlshdk::storage::IFile> file);
+
+  /**
+   * Renames a schema.
+   */
+  void rename_schema(const std::string &from, const std::string &to);
 
  private:
   // schema -> table -> info

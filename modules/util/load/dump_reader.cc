@@ -950,6 +950,10 @@ void Dump_reader::replace_target_schema(const std::string &schema) {
     }
   }
 
+  if (m_contents.checksum) {
+    m_contents.checksum->rename_schema(info->name, schema);
+  }
+
   m_schema_override = {schema, info->name};
   info->name = schema;
 
