@@ -64,6 +64,7 @@ struct Instance_cache {
     bool nullable = true;
     mysqlshdk::db::Type type = mysqlshdk::db::Type::Null;
     bool is_innodb_vector_store_column = false;
+    std::string collation;
   };
 
   class Index final {
@@ -112,6 +113,7 @@ struct Instance_cache {
     std::string secondary_engine;
     std::string create_options;
     std::string comment;
+    std::string collation;
     std::unordered_map<std::string, Index> indexes;
     const Index *primary_key = nullptr;
     // indexes are ordered to ensure repeatability of the selection algorithm
@@ -131,6 +133,11 @@ struct Instance_cache {
     std::set<mysqlshdk::parser::Table_reference> table_references;
   };
 
+  struct Parameter {
+    std::string name;
+    std::string collation;
+  };
+
   struct Routine {
     struct Library_reference {
       std::string schema;
@@ -139,10 +146,12 @@ struct Instance_cache {
     };
 
     std::vector<Library_reference> library_references;
+    std::vector<Parameter> parameters;
+    Parameter return_value;
   };
 
   struct Schema {
-    std::string collation;
+    std::string default_collation;
     std::unordered_map<std::string, Table> tables;
     std::unordered_map<std::string, Table *> tables_lowercase;
     std::unordered_map<std::string, View> views;
@@ -247,6 +256,8 @@ class Instance_cache_builder final {
   void fetch_table_histograms();
 
   void fetch_table_partitions(const Partition_filters &partitions);
+
+  void fetch_routine_parameters();
 
   void iterate_schemas(
       const Iterate_schema &info,

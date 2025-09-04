@@ -4009,6 +4009,73 @@ session.run_sql(f"DROP USER IF EXISTS {tested_user}")
 shell.connect(__sandbox_uri2)
 session.run_sql("SET @@GLOBAL.log_bin_trust_function_creators = 0")
 
+#@<> BUG#38089433 - replace unsupported collations with closest compatible collation available in MySQL {not __dbug_off and VER(>=8.0.0)}
+# constants
+tested_schema = "test_schema"
+dump_dir = os.path.join(outdir, "bug_38089433")
+
+unsupported_collation = "utf8mb4_uca1400_polish_nopad_ai_cs"
+supported_collation = "utf8mb4_pl_0900_as_cs"
+
+# setup
+# change collation_connection, this affects views, events, triggers and routines
+session1.run_sql("set names utf8mb4")
+session1.run_sql(f"set @@collation_connection = '{supported_collation}'")
+
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql(f"CREATE SCHEMA ! COLLATE {supported_collation}", [ tested_schema ])
+session1.run_sql(f"CREATE TABLE !.t (c TEXT COLLATE {supported_collation}) COLLATE {supported_collation}", [ tested_schema ])
+session1.run_sql("CREATE VIEW !.v AS SELECT * FROM !.t", [ tested_schema, tested_schema ])
+session1.run_sql("CREATE TRIGGER !.tt BEFORE INSERT ON t FOR EACH ROW BEGIN END", [ tested_schema ])
+session1.run_sql(f"CREATE FUNCTION !.f(a TEXT CHARACTER SET utf8mb4 COLLATE {supported_collation}) RETURNS TEXT CHARACTER SET utf8mb4 COLLATE {supported_collation} DETERMINISTIC RETURN 1", [ tested_schema ])
+session1.run_sql(f"CREATE PROCEDURE !.p(a INT, b TEXT CHARACTER SET utf8mb4 COLLATE {supported_collation}) BEGIN END", [ tested_schema ])
+session1.run_sql("CREATE EVENT !.e ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 HOUR DO BEGIN END", [ tested_schema ])
+
+# restore collations
+session1.run_sql("set names utf8mb4")
+
+#@<> BUG#38089433 - dump {not __dbug_off and VER(>=8.0.0)}
+testutil.dbug_set("+d,dumper_unsupported_collation")
+
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "showProgress": False }), "Dump should not fail")
+
+testutil.dbug_set("")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: Column `test_schema`.`t`.`c` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Table `test_schema`.`t` had default collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: View `test_schema`.`v` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: Database `test_schema` had default collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: Event `test_schema`.`e` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Event `test_schema`.`e` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`f` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`f` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Parameter `test_schema`.`f`.`a` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Return value of routine `test_schema`.`f` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`p` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Routine `test_schema`.`p` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Parameter `test_schema`.`p`.`b` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: Trigger `test_schema`.`tt` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Trigger `test_schema`.`tt` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+
+#@<> BUG#38089433 - load {not __dbug_off and VER(>=8.0.0)}
+wipeout_server(session2)
+
+shell.connect(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Load should not fail")
+
+EXPECT_JSON_EQ(snapshot_schema(session1, tested_schema), snapshot_schema(session2, tested_schema), "Verifying schema")
+
+#@<> BUG#38089433 - cleanup {not __dbug_off and VER(>=8.0.0)}
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

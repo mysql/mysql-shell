@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <functional>
 #include <map>
 #include <optional>
@@ -136,6 +137,275 @@ const std::unordered_map<std::string, Version_info>
         {"sha256_password", {Version{8, 0, 16}, std::nullopt}},
 };
 
+[[maybe_unused]] void use_unsupported_collation(std::string *statement) {
+  while (compatibility::replace_keyword(*statement, "utf8mb4_pl_0900_as_cs",
+                                        "utf8mb4_uca1400_polish_nopad_ai_cs",
+                                        statement))
+    ;
+}
+
+/**
+ * NOTE: this returns true if collation name is empty, this helps dealing with
+ *       i.e. non-string columns which do not have collation set.
+ */
+bool is_supported_collation(std::string_view collation) {
+  static const auto k_all_collations = []() {
+    // dummy call, will initialize the all_charsets array
+    [[maybe_unused]] const auto k_unused = get_charset(0, 0);
+
+    std::unordered_set<std::string_view> collations;
+
+    for (int i = 0; i < MY_ALL_CHARSETS_SIZE; ++i) {
+      if (const auto charset = all_charsets[i]) {
+        collations.emplace(charset->m_coll_name);
+      }
+    }
+
+    return collations;
+  }();
+
+  if (collation.empty()) {
+    return true;
+  }
+
+  if (shcore::str_beginswith(collation, "utf8_")) {
+    // this is a 5.7 alias for utf8mb3_
+    std::string alias = "utf8mb3_";
+    alias += collation.substr(5);
+
+    return k_all_collations.contains(alias);
+  }
+
+  return k_all_collations.contains(collation);
+}
+
+const std::string &map_collation(std::string_view collation) {
+  static shcore::heterogeneous_map<std::string, std::string> k_collation_cache;
+  static std::string k_unknown_collation;
+
+#define RETURN_IF_FOUND(it) \
+  if (const auto c = (it); k_collation_cache.end() != c) return c->second
+
+  {
+    const auto &needle =
+#if __cpp_lib_generic_unordered_lookup
+        collation
+#else
+        std::string{collation}
+#endif
+        ;
+
+    RETURN_IF_FOUND(k_collation_cache.find(needle));
+  }
+
+  const auto candidate = [collation](std::string &&c) {
+    if (is_supported_collation(c)) {
+      return k_collation_cache.emplace(std::string{collation}, std::move(c))
+          .first;
+    } else {
+      return k_collation_cache.end();
+    }
+  };
+
+  const auto contains = [collation](std::string_view needle) {
+    return std::string::npos != collation.find(needle);
+  };
+
+  if (contains("_nopad_")) {
+    RETURN_IF_FOUND(candidate(shcore::str_replace(collation, "_nopad", "")));
+  }
+
+  if (contains("_mysql561_")) {
+    RETURN_IF_FOUND(candidate(shcore::str_replace(collation, "_mysql561", "")));
+  }
+
+  if (contains("general1400_as_ci")) {
+    RETURN_IF_FOUND(candidate(
+        shcore::str_replace(collation, "general1400_as_ci", "general_ci")));
+  }
+
+  static constexpr std::string_view k_uca_1400 = "uca1400";
+
+  if (contains(k_uca_1400)) {
+    static constexpr std::string_view k_utf8mb4 = "utf8mb4";
+
+    auto parts = shcore::str_split(collation, "_");
+    std::size_t idx = 0;
+
+    // erase 'nopad' part
+    std::erase(parts, "nopad");
+
+    // if collation does not begin with 'utf8mb4', insert it
+    if (parts.size() > idx && k_utf8mb4 != parts[idx]) {
+      parts.emplace(parts.begin() + idx, k_utf8mb4);
+    }
+
+    // move to the next element
+    ++idx;
+
+    // we should now be at 'uca1400', erase it
+    if (parts.size() > idx && k_uca_1400 == parts[idx]) {
+      parts.erase(parts.begin() + idx);
+
+      std::string original_language;
+
+      // if there are more than two parts left, we're now at the language name
+      if (parts.size() > idx + 2) {
+        static const std::unordered_map<std::string_view, std::string_view>
+            k_language_to_subtag = {
+                {"croatian", "hr"},
+                {"czech", "cs"},
+                {"danish", "da"},
+                {"esperanto", "eo"},
+                {"estonian", "et"},
+                {"german2", "de_pb"},  // German phone book order
+                {"hungarian", "hu"},
+                {"icelandic", "is"},
+                {"latvian", "lv"},
+                {"lithuanian", "lt"},
+                {"persian", "fa"},
+                {"polish", "pl"},
+                {"romanian", "ro"},
+                {"roman", "la"},  // Classical Latin
+                {"sinhala", "si"},
+                {"slovak", "sk"},
+                {"slovenian", "sl"},
+                {"spanish2", "es_trad"},  // Traditional Spanish
+                {"spanish", "es"},        // Modern Spanish
+                {"swedish", "sv"},
+                {"turkish", "tr"},
+                {"vietnamese", "vi"},
+            };
+
+        original_language = std::move(parts[idx]);
+
+        if (const auto it = k_language_to_subtag.find(original_language);
+            k_language_to_subtag.end() != it) {
+          // we have a mapping, use the subtag
+          parts[idx] = it->second;
+        } else {
+          // unknown language, use the original value
+          parts[idx] = original_language;
+        }
+
+        // move to the next element
+        ++idx;
+      }
+
+      // insert the version number
+      parts.emplace(parts.begin() + idx, "0900");
+
+      RETURN_IF_FOUND(candidate(shcore::str_join(parts, "_")));
+
+      // convert accent and case sensitivity pairs keeping the case sensitivity
+      if (auto it = parts.rbegin(); "cs" == *it && "ai" == *++it) {
+        *it = "as";
+        RETURN_IF_FOUND(candidate(shcore::str_join(parts, "_")));
+      }
+
+      if (auto it = parts.rbegin(); "ci" == *it && "as" == *++it) {
+        *it = "ai";
+        RETURN_IF_FOUND(candidate(shcore::str_join(parts, "_")));
+      }
+
+      // last resort, try original language and case insensitive collation
+      if (!original_language.empty()) {
+        RETURN_IF_FOUND(candidate("utf8mb4_" + original_language + "_ci"));
+      }
+    }
+  }
+
+#undef RETURN_IF_FOUND
+
+  return k_unknown_collation;
+}
+
+Schema_dumper::Issue warning_object_collation_replaced(
+    const char *object_type, const std::string &object_name, const char *what,
+    std::string_view from, std::string_view to) {
+  auto msg = shcore::str_format(
+      "%s %s had %s set to '%.*s', it has been replaced with '%.*s'",
+      object_type, object_name.c_str(), what, static_cast<int>(from.size()),
+      from.data(), static_cast<int>(to.size()), to.data());
+  msg[0] = std::toupper(msg[0]);
+
+  return {msg, Schema_dumper::Issue::Status::WARNING};
+}
+
+Schema_dumper::Issue error_object_unsupported_collation(
+    const char *object_type, const std::string &object_name, const char *what,
+    std::string_view collation) {
+  auto msg =
+      shcore::str_format("%s %s has %s set to unsupported collation '%.*s'",
+                         object_type, object_name.c_str(), what,
+                         static_cast<int>(collation.size()), collation.data());
+  msg[0] = std::toupper(msg[0]);
+  return {msg, Schema_dumper::Issue::Status::FIX_MANUALLY};
+}
+
+namespace detail {
+
+void handle_collation(
+    const char *object_type, const std::string &object_name, const char *what,
+    std::string_view collation,
+    const std::function<bool(std::string_view, std::string_view)>
+        &replace_collation,
+    std::vector<Schema_dumper::Issue> *issues) {
+  if (is_supported_collation(collation)) {
+    return;
+  }
+
+  if (const auto &mapped = map_collation(collation); mapped.empty()) {
+    issues->emplace_back(error_object_unsupported_collation(
+        object_type, object_name, what, collation));
+  } else {
+    if (!replace_collation(collation, mapped)) {
+      throw std::runtime_error(shcore::str_format(
+          "Failed to replace %s of %s %s from '%.*s' to '%.*s'", what,
+          object_type, object_name.c_str(), static_cast<int>(collation.size()),
+          collation.data(), static_cast<int>(mapped.size()), mapped.data()));
+    }
+
+    issues->emplace_back(warning_object_collation_replaced(
+        object_type, object_name, what, collation, mapped));
+  }
+}
+
+}  // namespace detail
+
+void handle_collation_update_statement(
+    const char *object_type, const std::string &object_name, const char *what,
+    std::string_view collation, std::string *statement,
+    std::vector<Schema_dumper::Issue> *issues) {
+  detail::handle_collation(
+      object_type, object_name, what, collation,
+      [statement](std::string_view from, std::string_view to) {
+        return compatibility::replace_keyword(*statement, from, to, statement);
+      },
+      issues);
+}
+
+void handle_collation_update_variable(
+    const char *object_type, const std::string &object_name, const char *what,
+    std::string *collation, std::vector<Schema_dumper::Issue> *issues) {
+  DBUG_EXECUTE_IF("dumper_unsupported_collation",
+                  { use_unsupported_collation(collation); });
+
+  std::string new_collation;
+
+  detail::handle_collation(
+      object_type, object_name, what, *collation,
+      [&new_collation](std::string_view, std::string_view to) {
+        new_collation = to;
+        return true;
+      },
+      issues);
+
+  if (!new_collation.empty()) {
+    *collation = std::move(new_collation);
+  }
+}
+
 inline bool is_system_schema(const std::string &s) {
   return k_system_schemas.end() != k_system_schemas.find(s);
 }
@@ -183,18 +453,15 @@ void switch_db_collation(IFile *sql_file, const std::string &db_name,
                          const std::string &required_db_cl_name,
                          int *db_cl_altered) {
   if (current_db_cl_name != required_db_cl_name) {
-    std::string quoted_db_name = shcore::quote_identifier(db_name);
-
-    CHARSET_INFO *db_cl =
-        get_charset_by_name(required_db_cl_name.c_str(), MYF(0));
+    auto db_cl = get_charset_by_name(required_db_cl_name.c_str(), MYF(0));
 
     if (!db_cl) {
       THROW_ERROR(SHERR_DUMP_SD_CHARSET_NOT_FOUND, required_db_cl_name.c_str());
     }
 
     fprintf(sql_file, "ALTER DATABASE %s CHARACTER SET %s COLLATE %s %s\n",
-            quoted_db_name.c_str(), (const char *)db_cl->csname,
-            (const char *)db_cl->m_coll_name, (const char *)delimiter);
+            shcore::quote_identifier(db_name).c_str(), db_cl->csname,
+            db_cl->m_coll_name, delimiter);
 
     *db_cl_altered = 1;
     return;
@@ -213,8 +480,7 @@ void restore_db_collation(IFile *sql_file, const std::string &db_name,
   }
 
   fprintf(sql_file, "ALTER DATABASE %s CHARACTER SET %s COLLATE %s %s\n",
-          quoted_db_name.c_str(), (const char *)db_cl->csname,
-          (const char *)db_cl->m_coll_name, (const char *)delimiter);
+          quoted_db_name.c_str(), db_cl->csname, db_cl->m_coll_name, delimiter);
 }
 
 void switch_cs_variables(IFile *sql_file, const char *delimiter,
@@ -541,9 +807,10 @@ int Schema_dumper::query_with_binary_charset(
 }
 
 void Schema_dumper::fetch_db_collation(const std::string &db,
-                                       std::string *out_db_cl_name) {
+                                       std::string *out_db_cl_name,
+                                       bool replace_unknown_collation) {
   if (m_cache) {
-    *out_db_cl_name = m_cache->schemas.at(db).collation;
+    *out_db_cl_name = m_cache->schemas.at(db).default_collation;
   } else {
     bool err_status = false;
 
@@ -567,6 +834,16 @@ void Schema_dumper::fetch_db_collation(const std::string &db,
 
     if (err_status) {
       THROW_ERROR(SHERR_DUMP_SD_COLLATION_DATABASE_ERROR);
+    }
+  }
+
+  // BUG#38089433 - if database is using an unknown collation we need to replace
+  // it with the mapped one in order to keep collations in sync
+  if (replace_unknown_collation && !is_supported_collation(*out_db_cl_name)) {
+    // don't update the collation if we don't know how to map it,
+    // switch_db_collation() will later throw due to unknown collation
+    if (const auto &mapped = map_collation(*out_db_cl_name); !mapped.empty()) {
+      *out_db_cl_name = mapped;
     }
   }
 }
@@ -763,11 +1040,24 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_events_for_db(
           fprintf(sql_file, "DELIMITER %s\n", delimiter);
 
           if (event_res->get_metadata().size() >= 7) {
-            switch_db_collation(sql_file, db_name, delimiter, db_cl_name,
-                                row->get_string(6), &db_cl_altered);
+            auto event_db_col = row->get_string(6);
 
-            auto client_cs = row->get_string(4);
+            // BUG#38089433 - handle unsupported collations
+            handle_collation_update_variable("event", quote(db, event),
+                                             "DATABASE_COLLATION",
+                                             &event_db_col, &res);
+
+            switch_db_collation(sql_file, db_name, delimiter, db_cl_name,
+                                event_db_col, &db_cl_altered);
+
+            const auto client_cs = row->get_string(4);
             auto connection_col = row->get_string(5);
+
+            // BUG#38089433 - handle unsupported collations
+            handle_collation_update_variable("event", quote(db, event),
+                                             "COLLATION_CONNECTION",
+                                             &connection_col, &res);
+
             switch_cs_variables(
                 sql_file, delimiter,
                 client_cs.c_str(),       /* character_set_client */
@@ -905,11 +1195,24 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
                     routine_type.c_str(), routine_name.c_str());
 
           if (routine_res->get_metadata().size() >= 6) {
-            switch_db_collation(sql_file, db_name, ";", db_cl_name,
-                                row->get_string(5), &db_cl_altered);
+            auto routine_db_col = row->get_string(5);
 
-            auto client_cs = row->get_string(3);
+            // BUG#38089433 - handle unsupported collations
+            handle_collation_update_variable("routine", quote(db, routine),
+                                             "DATABASE_COLLATION",
+                                             &routine_db_col, &res);
+
+            switch_db_collation(sql_file, db_name, ";", db_cl_name,
+                                routine_db_col, &db_cl_altered);
+
+            const auto client_cs = row->get_string(3);
             auto connection_col = row->get_string(4);
+
+            // BUG#38089433 - handle unsupported collations
+            handle_collation_update_variable("routine", quote(db, routine),
+                                             "COLLATION_CONNECTION",
+                                             &connection_col, &res);
+
             switch_cs_variables(
                 sql_file, ";", client_cs.c_str(), /* character_set_client */
                 client_cs.c_str(),                /* character_set_results */
@@ -937,6 +1240,28 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_routines_for_db(
 
           check_object_for_definer(db, routine_type, routine, &body, &res);
           check_routine_for_dependencies(db, routine, routine_type, &res);
+
+          if (m_cache) {
+            // BUG#38089433 - handle unsupported collations
+            const auto &s = m_cache->schemas.at(db);
+            const auto &r =
+                ("FUNCTION" == routine_type ? s.functions : s.procedures)
+                    .at(routine);
+            const auto quoted = quote(db, routine);
+
+            DBUG_EXECUTE_IF("dumper_unsupported_collation",
+                            { use_unsupported_collation(&body); });
+
+            for (const auto &p : r.parameters) {
+              handle_collation_update_statement(
+                  "parameter", quoted + '.' + shcore::quote_identifier(p.name),
+                  "collation", p.collation, &body, &res);
+            }
+
+            handle_collation_update_statement(
+                "return value of routine", quoted, "collation",
+                r.return_value.collation, &body, &res);
+          }
 
           fprintf(sql_file,
                   "DELIMITER ;;\n"
@@ -1039,14 +1364,6 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_libraries_for_db(
   switch_character_set_results(opt_character_set_results.c_str());
 
   return {};
-}
-
-bool Schema_dumper::is_charset_supported(const std::string &charset) {
-  bool supported = false;
-  for (const auto &m : m_mysqlaas_supported_charsets)
-    // beginswith to support checking collations
-    if (shcore::str_ibeginswith(charset, m)) supported = true;
-  return supported;
 }
 
 std::vector<Schema_dumper::Issue> Schema_dumper::check_ct_for_mysqlaas(
@@ -1476,6 +1793,24 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
 
       res = check_ct_for_mysqlaas(db, table, &create_table);
 
+      if (m_cache) {
+        // BUG#38089433 - handle unsupported collations
+        const auto &t = m_cache->schemas.at(db).tables.at(table);
+        const auto quoted = quote(db, table);
+
+        DBUG_EXECUTE_IF("dumper_unsupported_collation",
+                        { use_unsupported_collation(&create_table); });
+
+        for (const auto &c : t.all_columns) {
+          handle_collation_update_statement(
+              "column", quoted + '.' + c.quoted_name, "collation", c.collation,
+              &create_table, &res);
+        }
+
+        handle_collation_update_statement("table", quoted, "default collation",
+                                          t.collation, &create_table, &res);
+      }
+
       if (opt_reexecutable || is_log_table || is_replication_metadata_table)
         create_table = shcore::str_replace(create_table, "CREATE TABLE ",
                                            "CREATE TABLE IF NOT EXISTS ");
@@ -1532,6 +1867,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_table_structure(
       }
     }
   } else {
+    // the SQL_QUOTE_SHOW_CREATE system variable was added in 3.23.26, we should
+    // remove this code at some point
     result =
         query_log_and_throw(shcore::sqlformat(show_fields_stmt, db, table));
     {
@@ -1766,11 +2103,24 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_trigger(
   std::vector<Issue> res;
 
   while (auto row = show_create_trigger_rs->fetch_one()) {
-    switch_db_collation(sql_file, db_name, ";", db_cl_name, row->get_string(5),
+    auto trigger_db_col = row->get_string(5);
+
+    // BUG#38089433 - handle unsupported collations
+    handle_collation_update_variable("trigger", quote(db_name, trigger),
+                                     "DATABASE_COLLATION", &trigger_db_col,
+                                     &res);
+
+    switch_db_collation(sql_file, db_name, ";", db_cl_name, trigger_db_col,
                         &db_cl_altered);
 
-    auto client_cs = row->get_string(3);
+    const auto client_cs = row->get_string(3);
     auto connection_col = row->get_string(4);
+
+    // BUG#38089433 - handle unsupported collations
+    handle_collation_update_variable("trigger", quote(db_name, trigger),
+                                     "COLLATION_CONNECTION", &connection_col,
+                                     &res);
+
     switch_cs_variables(sql_file, ";",
                         client_cs.c_str(),       /* character_set_client */
                         client_cs.c_str(),       /* character_set_results */
@@ -2560,6 +2910,11 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
     check_object_for_definer(db, "View", table, &ds_view, &res);
     check_view_for_table_references(db, table, &res);
 
+    // BUG#38089433 - handle unsupported collations
+    handle_collation_update_variable("view", quote(db, table),
+                                     "COLLATION_CONNECTION", &connection_col,
+                                     &res);
+
     /* Dump view structure to file */
     fprintf(
         sql_file,
@@ -2583,11 +2938,8 @@ std::vector<Schema_dumper::Issue> Schema_dumper::get_view_structure(
 }
 
 Schema_dumper::Schema_dumper(
-    const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
-    const std::vector<std::string> &mysqlaas_supported_charsets)
-    : m_mysql(mysql),
-      m_mysqlaas_supported_charsets(mysqlaas_supported_charsets),
-      default_charset(MYSQL_UNIVERSAL_CLIENT_CHARSET) {}
+    const std::shared_ptr<mysqlshdk::db::ISession> &mysql)
+    : m_mysql(mysql), default_charset(MYSQL_UNIVERSAL_CLIENT_CHARSET) {}
 
 void Schema_dumper::dump_all_tablespaces_ddl(IFile *file) {
   dump_all_tablespaces(file);
@@ -2626,6 +2978,20 @@ std::vector<Schema_dumper::Issue> Schema_dumper::dump_schema_ddl(
                 "Database " + qdatabase +
                     " had unsupported ENCRYPTION option commented out",
                 Issue::Status::FIXED);
+        }
+
+        {
+          // BUG#38089433 - handle unsupported collations
+          std::string collation;
+
+          fetch_db_collation(db, &collation, false);
+
+          DBUG_EXECUTE_IF("dumper_unsupported_collation",
+                          { use_unsupported_collation(&createdb); });
+
+          handle_collation_update_statement("database", qdatabase,
+                                            "default collation", collation,
+                                            &createdb, &res);
         }
 
         print_comment(file, false, "\n--\n-- Dumping database '%s'\n--\n\n",

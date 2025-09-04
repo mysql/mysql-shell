@@ -98,9 +98,7 @@ class Schema_dumper {
     std::vector<std::string> statements;
   };
 
-  explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
-                         const std::vector<std::string>
-                             &mysqlaas_supported_charsets = {"utf8mb4"});
+  explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql);
 
   static std::vector<User_statements> preprocess_users_script(
       const std::string &script,
@@ -219,7 +217,6 @@ class Schema_dumper {
   };
 
   std::shared_ptr<mysqlshdk::db::ISession> m_mysql;
-  const std::vector<std::string> m_mysqlaas_supported_charsets;
 
   bool stats_tables_included = false;
 
@@ -268,7 +265,8 @@ class Schema_dumper {
       const std::string &s, std::shared_ptr<mysqlshdk::db::IResult> *out_result,
       mysqlshdk::db::Error *out_error = nullptr);
 
-  void fetch_db_collation(const std::string &db, std::string *out_db_cl_name);
+  void fetch_db_collation(const std::string &db, std::string *out_db_cl_name,
+                          bool replace_unknown_collation = true);
 
   void switch_character_set_results(const char *cs_name);
 
@@ -292,8 +290,6 @@ class Schema_dumper {
 
   std::vector<Issue> dump_libraries_for_db(IFile *sql_file,
                                            const std::string &db);
-
-  bool is_charset_supported(const std::string &cs);
 
   std::vector<Issue> check_ct_for_mysqlaas(const std::string &db,
                                            const std::string &table,

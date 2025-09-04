@@ -454,6 +454,9 @@ std::string Testutils::get_mysqld_version(const std::string &mysqld_path) {
 
 void Testutils::dbug_set(const std::string &s) {
   (void)s;
+  // set debug string for all new threads
+  DBUG_SET_INITIAL(s.c_str());
+  // set debug string for this thread
   DBUG_SET(s.c_str());
 }
 

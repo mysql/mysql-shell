@@ -54,6 +54,8 @@ namespace dump {
 
 namespace {
 
+constexpr std::string_view k_procedure_type = "PROCEDURE";
+
 bool has_vector_store_comment(std::string_view comment) {
   static constexpr std::string_view k_genai_options = "GENAI_OPTIONS=";
   static constexpr std::string_view k_embed_model_id = "EMBED_MODEL_ID=";
@@ -124,6 +126,12 @@ std::vector<std::unique_ptr<mysqlshdk::db::Warning>> fetch_warnings(
   }
 
   return warnings;
+}
+
+[[maybe_unused]] void use_unsupported_collation(std::string *collation) {
+  if ("utf8mb4_pl_0900_as_cs" == *collation) {
+    *collation = "utf8mb4_uca1400_polish_nopad_ai_cs";
+  }
 }
 
 }  // namespace
@@ -230,20 +238,18 @@ Instance_cache_builder &Instance_cache_builder::routines() {
   // routine names are case insensitive
   info.where = m_query_helper.routine_filter(info);
 
-  const std::string procedure = "PROCEDURE";
+  iterate_schemas(info,
+                  [this](const std::string &, Instance_cache::Schema *schema,
+                         const mysqlshdk::db::IRow *row) {
+                    auto &target = row->get_string(2) == k_procedure_type
+                                       ? schema->procedures
+                                       : schema->functions;  // ROUTINE_TYPE
 
-  iterate_schemas(info, [&procedure, this](const std::string &,
-                                           Instance_cache::Schema *schema,
-                                           const mysqlshdk::db::IRow *row) {
-    auto &target = row->get_string(2) == procedure
-                       ? schema->procedures
-                       : schema->functions;  // ROUTINE_TYPE
+                    target.emplace(row->get_string(1),
+                                   Instance_cache::Routine{});  // ROUTINE_NAME
 
-    target.emplace(row->get_string(1),
-                   Instance_cache::Routine{});  // ROUTINE_NAME
-
-    ++m_cache.filtered.routines;
-  });
+                    ++m_cache.filtered.routines;
+                  });
 
   // the total number of routines within the filtered schemas
   m_cache.total.routines = count(info);
@@ -269,26 +275,27 @@ Instance_cache_builder &Instance_cache_builder::routines() {
 
     auto has_library_ddl = m_cache.has_library_ddl;
 
-    iterate_schemas(
-        info, [&procedure, &has_library_ddl](const std::string &,
+    iterate_schemas(info, [&has_library_ddl](const std::string &,
                                              Instance_cache::Schema *schema,
                                              const mysqlshdk::db::IRow *row) {
-          auto &target = row->get_string(2) == procedure
-                             ? schema->procedures
-                             : schema->functions;  // ROUTINE_TYPE
+      auto &target = row->get_string(2) == k_procedure_type
+                         ? schema->procedures
+                         : schema->functions;  // ROUTINE_TYPE
 
-          auto &routine = target.at(row->get_string(1));  // ROUTINE_NAME
-          routine.library_references.emplace_back(
-              Instance_cache::Routine::Library_reference{
-                  row->get_string(3),      // LIBRARY_SCHEMA
-                  row->get_string(4),      // LIBRARY_NAME
-                  1 == row->get_int(5)});  // EXISTS
+      auto &routine = target.at(row->get_string(1));  // ROUTINE_NAME
+      routine.library_references.emplace_back(
+          Instance_cache::Routine::Library_reference{
+              row->get_string(3),      // LIBRARY_SCHEMA
+              row->get_string(4),      // LIBRARY_NAME
+              1 == row->get_int(5)});  // EXISTS
 
-          has_library_ddl = true;
-        });
+      has_library_ddl = true;
+    });
 
     m_cache.has_library_ddl = has_library_ddl;
   }
+
+  fetch_routine_parameters();
 
   return *this;
 }
@@ -409,8 +416,12 @@ void Instance_cache_builder::filter_schemas() {
     while (const auto row = result->fetch_one()) {
       const auto schema = row->get_string(0);  // SCHEMA_NAME
 
-      m_cache.schemas[schema].collation =
+      m_cache.schemas[schema].default_collation =
           row->get_string(1);  // DEFAULT_COLLATION_NAME
+
+      DBUG_EXECUTE_IF("dumper_unsupported_collation", {
+        use_unsupported_collation(&m_cache.schemas[schema].default_collation);
+      });
     }
   }
 
@@ -428,13 +439,14 @@ void Instance_cache_builder::filter_tables() {
   Iterate_schema info;
   info.schema_column = schema_column;  // NOT NULL
   info.extra_columns = {
-      table_column,      // NOT NULL
-      "TABLE_TYPE",      // NOT NULL
-      "TABLE_ROWS",      // can be NULL
-      "AVG_ROW_LENGTH",  // can be NULL
-      "ENGINE",          // can be NULL
-      "CREATE_OPTIONS",  // can be NULL
-      "TABLE_COMMENT"    // can be NULL in 8.0
+      table_column,       // NOT NULL
+      "TABLE_TYPE",       // NOT NULL
+      "TABLE_ROWS",       // can be NULL
+      "AVG_ROW_LENGTH",   // can be NULL
+      "ENGINE",           // can be NULL
+      "CREATE_OPTIONS",   // can be NULL
+      "TABLE_COMMENT",    // can be NULL in 8.0
+      "TABLE_COLLATION",  // can be NULL
   };
   info.table_name = "tables";
   info.where = m_query_helper.table_filter(schema_column, table_column);
@@ -458,6 +470,10 @@ void Instance_cache_builder::filter_tables() {
     target.engine = row->get_string(5, "");           // ENGINE
     target.create_options = row->get_string(6, "");   // CREATE_OPTIONS
     target.comment = row->get_string(7, "");          // TABLE_COMMENT
+    target.collation = row->get_string(8, "");        // TABLE_COLLATION
+
+    DBUG_EXECUTE_IF("dumper_unsupported_collation",
+                    { use_unsupported_collation(&target.collation); });
 
     if (is_table) {
       set_has_tables();
@@ -570,6 +586,10 @@ void Instance_cache_builder::fetch_view_metadata() {
     view->character_set_client = row->get_string(2);  // CHARACTER_SET_CLIENT
     view->collation_connection = row->get_string(3);  // COLLATION_CONNECTION
 
+    DBUG_EXECUTE_IF("dumper_unsupported_collation", {
+      use_unsupported_collation(&view->collation_connection);
+    });
+
     if (row->num_fields() > 4) {
       for (auto &ref : mysqlshdk::parser::extract_table_references(
                row->get_string(4, {}),  // VIEW_DEFINITION
@@ -621,6 +641,7 @@ void Instance_cache_builder::fetch_columns() {
       "COLUMN_TYPE",       // NOT NULL
       "EXTRA",             // can be NULL in 8.0
       "COLUMN_COMMENT",    // NOT NULL
+      "COLLATION_NAME",    // can be NULL
   };
   info.table_name = "columns";
 
@@ -657,6 +678,10 @@ void Instance_cache_builder::fetch_columns() {
     column.is_innodb_vector_store_column =
         mysqlshdk::db::Type::Vector == column.type &&
         has_vector_store_comment(row->get_string(8));  // COLUMN_COMMENT
+    column.collation = row->get_string(9, "");         // COLLATION_NAME
+
+    DBUG_EXECUTE_IF("dumper_unsupported_collation",
+                    { use_unsupported_collation(&column.collation); });
 
     return column;
   };
@@ -1156,6 +1181,50 @@ void Instance_cache_builder::initialize_lowercase_names() {
       s.views_lowercase.emplace(shcore::utf8_lower(view.first), &view.second);
     }
   }
+}
+
+void Instance_cache_builder::fetch_routine_parameters() {
+  Profiler profiler{"fetching routine parameters"};
+
+  Iterate_schema info;
+  info.schema_column = "SPECIFIC_SCHEMA";  // NOT NULL
+  info.extra_columns = {
+      "SPECIFIC_NAME",     // NOT NULL
+      "ROUTINE_TYPE",      // NOT NULL
+      "ORDINAL_POSITION",  // NOT NULL
+      "PARAMETER_NAME",    // can be NULL
+      "COLLATION_NAME",    // can be NULL
+  };
+  info.table_name = "parameters";
+  // routine names are case insensitive
+  info.where = m_query_helper.routine_filter(info);
+
+  iterate_schemas(info, [](const std::string &, Instance_cache::Schema *schema,
+                           const mysqlshdk::db::IRow *row) {
+    auto &target = row->get_string(2) == k_procedure_type
+                       ? schema->procedures
+                       : schema->functions;         // ROUTINE_TYPE
+    auto &routine = target.at(row->get_string(1));  // ROUTINE_NAME
+    const auto position = row->get_uint(3);         // ORDINAL_POSITION
+    Instance_cache::Parameter parameter{
+        row->get_string(4, ""),  // PARAMETER_NAME
+        row->get_string(5, ""),  // COLLATION_NAME
+    };
+
+    DBUG_EXECUTE_IF("dumper_unsupported_collation",
+                    { use_unsupported_collation(&parameter.collation); });
+
+    // if ORDINAL_POSITION is 0, this is a return value
+    if (0 == position) {
+      routine.return_value = std::move(parameter);
+    } else {
+      if (routine.parameters.size() < position) {
+        routine.parameters.resize(position);
+      }
+
+      routine.parameters[position - 1] = std::move(parameter);
+    }
+  });
 }
 
 }  // namespace dump

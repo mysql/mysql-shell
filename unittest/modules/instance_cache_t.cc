@@ -1086,9 +1086,10 @@ TEST_F(Instance_cache_test, schema_collation) {
     Filtering_options filters;
     const auto cache = Instance_cache_builder(m_session, filters).build();
 
-    EXPECT_EQ("utf8mb4_polish_ci", cache.schemas.at("first").collation);
-    EXPECT_EQ("utf8mb4_bin", cache.schemas.at("second").collation);
-    EXPECT_EQ("utf8mb4_unicode_ci", cache.schemas.at("third").collation);
+    EXPECT_EQ("utf8mb4_polish_ci", cache.schemas.at("first").default_collation);
+    EXPECT_EQ("utf8mb4_bin", cache.schemas.at("second").default_collation);
+    EXPECT_EQ("utf8mb4_unicode_ci",
+              cache.schemas.at("third").default_collation);
   }
 }
 

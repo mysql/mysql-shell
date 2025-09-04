@@ -26,7 +26,13 @@
 
 #include <algorithm>
 #include <array>
+#include <memory>
 #include <set>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 // needs to be included first for FRIEND_TEST
 #include "unittest/gprod_clean.h"
@@ -35,17 +41,26 @@
 
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/storage/backend/file.h"
+#include "mysqlshdk/libs/storage/backend/memory_file.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_mysql_session.h"
 
 extern "C" const char *g_test_home;
 
 namespace mysqlsh {
 namespace dump {
+
+namespace {
+
+#include "unittest/modules/mapped_collations.inc"
+
+}  // namespace
 
 using ::testing::AnyOf;
 using ::testing::HasSubstr;
@@ -2185,6 +2200,92 @@ TEST_F(Schema_dumper_test, strip_restricted_grants_set_any_definer) {
   sd.opt_strip_restricted_grants = true;
   EXPECT({set_user_id}, {set_user_id});
   sd.opt_strip_restricted_grants = false;
+}
+
+TEST_F(Schema_dumper_test, unknown_collations) {
+  const auto dump_schema = [](std::string_view collation) {
+    const auto s = std::make_shared<testing::Mock_mysql_session>();
+
+    s->expect_query("SHOW CREATE DATABASE IF NOT EXISTS `s`")
+        .then({"Database", "Create Database"})
+        .add_row(
+            {"s", shcore::str_format("CREATE DATABASE `s` /*!40100 DEFAULT "
+                                     "CHARACTER SET utf8mb4 COLLATE %.*s */",
+                                     static_cast<int>(collation.size()),
+                                     collation.data())});
+
+    EXPECT_CALL(*s, executes(::testing::StrEq("USE `s`"), ::testing::_))
+        .Times(::testing::Exactly(1));
+
+    s->expect_query("select @@collation_database")
+        .then({"@@collation_database"})
+        .add_row({std::string{collation}});
+
+    const auto f =
+        std::make_unique<mysqlshdk::storage::backend::Memory_file>("f");
+
+    f->open(mysqlshdk::storage::Mode::WRITE);
+    auto issues = Schema_dumper{s}.dump_schema_ddl(f.get(), "s");
+    f->close();
+
+    return std::make_pair(f->content(), std::move(issues));
+  };
+
+  for (const auto &map : k_collation_map) {
+    SCOPED_TRACE(map.first);
+
+    const auto result = dump_schema(map.first);
+
+    EXPECT_EQ(shcore::str_format(R"(
+--
+-- Dumping database 's'
+--
+
+-- begin database `s`
+CREATE DATABASE `s` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE %.*s */;
+-- end database `s`
+
+)",
+                                 static_cast<int>(map.second.size()),
+                                 map.second.data()),
+              result.first);
+    ASSERT_EQ(1, result.second.size());
+    EXPECT_EQ(shcore::str_format(
+                  "Database `s` had default collation set to '%.*s', it has "
+                  "been replaced with '%.*s'",
+                  static_cast<int>(map.first.size()), map.first.data(),
+                  static_cast<int>(map.second.size()), map.second.data()),
+              result.second[0].description);
+    EXPECT_EQ(Schema_dumper::Issue::Status::WARNING, result.second[0].status);
+  }
+
+  for (const auto &unsupported : k_unsupported_collations) {
+    SCOPED_TRACE(unsupported);
+
+    const auto result = dump_schema(unsupported);
+
+    EXPECT_EQ(shcore::str_format(R"(
+--
+-- Dumping database 's'
+--
+
+-- begin database `s`
+CREATE DATABASE `s` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE %.*s */;
+-- end database `s`
+
+)",
+                                 static_cast<int>(unsupported.size()),
+                                 unsupported.data()),
+              result.first);
+    ASSERT_EQ(1, result.second.size());
+    EXPECT_EQ(shcore::str_format("Database `s` has default collation set to "
+                                 "unsupported collation '%.*s'",
+                                 static_cast<int>(unsupported.size()),
+                                 unsupported.data()),
+              result.second[0].description);
+    EXPECT_EQ(Schema_dumper::Issue::Status::FIX_MANUALLY,
+              result.second[0].status);
+  }
 }
 
 }  // namespace dump
