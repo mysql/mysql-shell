@@ -72,6 +72,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Undefined setSession(Session session);
   Undefined setCurrentSchema(String name);
   Undefined log(String level, String message);
+  Undefined print(String text, String type);
   Undefined disconnect();
   Bool reconnect();
   Undefined status();
@@ -117,6 +118,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   None set_session(Session session);
   None set_current_schema(str name);
   None log(str level, str message);
+  None print(str text, str type);
   None disconnect();
   bool reconnect();
   None status();
@@ -183,6 +185,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   void disconnect();
   bool reconnect();
   void log(const std::string &level, const std::string &message);
+  void print(const std::string &text, const std::string &type);
   void status();
 
   shcore::Array_t list_credential_helpers();

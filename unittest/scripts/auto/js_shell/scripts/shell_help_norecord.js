@@ -226,6 +226,12 @@ shell.help("status")
 //@ Help on status, \? [USE:Help on status]
 \? shell.status
 
+//@ Help on print
+shell.help("print")
+
+//@ Help on print, \? [USE:Help on print]
+\? shell.print
+
 //@ Help on storeCredential
 shell.help("storeCredential")
 

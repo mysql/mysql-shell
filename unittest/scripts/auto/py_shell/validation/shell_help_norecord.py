@@ -94,6 +94,9 @@ FUNCTIONS
       parse_uri(uri)
             Utility function to parse a URI string.
 
+      print(text[, type])
+            Prints text with a specific formatting.
+
       prompt(message[, options])
             Utility function to prompt data from the user.
 
@@ -1300,6 +1303,25 @@ SYNTAX
 
 DESCRIPTION
       This shows the same information shown by the \status command.
+
+#@<OUT> shell.print
+NAME
+      print - Prints text with a specific formatting.
+
+SYNTAX
+      shell.print(text[, type])
+
+WHERE
+      text: The text to be printed.
+      type: Indicator of the formatting to be used in the printing.
+
+DESCRIPTION
+      Allowed values for type include: error, warning, info, note and status.
+
+      If no type is provided, the text will be printed as info.
+
+      If an invalid type is provided, the text will be printed info and a
+      warning will be logged.
 
 #@<OUT> shell.store_credential
 NAME

@@ -180,6 +180,7 @@ void Shell::init() {
   expose("setSession", &Shell::set_session, "session")->cli(false);
   expose("getSession", &Shell::get_session)->cli(false);
   expose("log", &Shell::log, "level", "message")->cli(false);
+  expose("print", &Shell::print, "text", "?type", "info")->cli(false);
   expose("status", &Shell::status)->cli();
   expose("listCredentialHelpers", &Shell::list_credential_helpers)->cli();
   expose("storeCredential", &Shell::store_credential, "url", "?password")
@@ -1239,6 +1240,54 @@ void Shell::log(const std::string &str_level, const std::string &message) {
                                             "'");
   }
   shcore::Logger::log(level, "%s", message.c_str());
+}
+
+REGISTER_HELP_FUNCTION(print, shell);
+REGISTER_HELP_FUNCTION_TEXT(SHELL_PRINT, R"*(
+Prints text with a specific formatting.
+
+@param text The text to be printed.
+@param type Optional indicator of the formatting to be used in the printing.
+
+Allowed values for type include: error, warning, info, note and status.
+
+If no type is provided, the text will be printed as info.
+
+If an invalid type is provided, the text will be printed info and a warning will
+be logged.
+)*");
+
+/**
+ * $(SHELL_PRINT_BRIEF)
+ *
+ * $(SHELL_PRINT)
+ */
+#if DOXYGEN_JS
+Undefined Shell::print(String text, String type) {}
+#elif DOXYGEN_PY
+None Shell::print(str text, str type) {}
+#endif
+void Shell::print(const std::string &text, const std::string &type) {
+  const auto &console = current_console();
+  const auto lower_type = shcore::str_lower(type);
+
+  if (lower_type.compare("info") == 0) {
+    console->print_info(text);
+  } else if (lower_type.compare("error") == 0) {
+    console->print_error(text);
+  } else if (lower_type.compare("warning") == 0) {
+    console->print_warning(text);
+  } else if (lower_type.compare("note") == 0) {
+    console->print_note(text);
+  } else if (lower_type.compare("status") == 0) {
+    console->print_status(text);
+  } else {
+    if (!type.empty()) {
+      shcore::Logger::log(shcore::Logger::LOG_WARNING,
+                          "Invalid print type provided: '%s'", type.c_str());
+    }
+    console->print(text);
+  }
 }
 
 REGISTER_HELP_FUNCTION(status, shell);

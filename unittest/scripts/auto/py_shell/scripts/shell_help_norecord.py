@@ -311,6 +311,15 @@ shell.help('status')
 #@ global help for status[USE:shell.status]
 \help Shell.status
 
+#@ shell.print
+shell.help("print")
+
+#@ global ? for print[USE:shell.print]
+\? shell.print
+
+#@ global help for print[USE:shell.print]
+\help Shell.print
+
 #@ shell.store_credential
 shell.help('store_credential')
 
