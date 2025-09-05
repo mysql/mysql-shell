@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,9 @@
 
 #ifndef MODULES_UTIL_DUMP_COMMON_ERRORS_H_
 #define MODULES_UTIL_DUMP_COMMON_ERRORS_H_
+
+#include <exception>
+#include <string_view>
 
 #include "mysqlshdk/libs/rest/error_codes.h"
 
@@ -54,7 +57,14 @@ class Progress_thread;
  *
  * @param progress Used to obtain information about the current stage.
  */
-void translate_current_exception(const Progress_thread &progress);
+void translate_current_exception(std::string_view context,
+                                 const Progress_thread &progress);
+
+/**
+ * Logs the given exception if Shell is running in JSON mode.
+ */
+void log_exception(std::string_view context,
+                   const std::exception_ptr exception);
 
 }  // namespace dump
 }  // namespace mysqlsh
