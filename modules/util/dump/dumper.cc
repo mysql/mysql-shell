@@ -2158,7 +2158,8 @@ void Dumper::run() {
     do_run();
   } catch (...) {
     kill_workers();
-    translate_current_exception(m_progress_thread);
+    translate_current_exception(shcore::str_format("%s()", name()),
+                                m_progress_thread);
   }
 
   if (m_worker_interrupt.test()) {

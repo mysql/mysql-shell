@@ -3039,7 +3039,7 @@ void Dump_loader::run() {
       execute_tasks();
     }
   } catch (...) {
-    translate_current_exception(m_progress_thread);
+    dump::translate_current_exception("loadDump()", m_progress_thread);
   }
 
   show_summary();
@@ -3049,8 +3049,16 @@ void Dump_loader::run() {
     throw shcore::cancelled("Aborted");
   }
 
-  for (const auto &e : m_thread_exceptions) {
-    if (e) {
+  for (std::size_t i = 0, e = m_thread_exceptions.size(); i < e; ++i) {
+    bool failure = false;
+
+    if (m_thread_exceptions[i]) {
+      dump::log_exception(shcore::str_format("loadDump() (thread %zu)", i),
+                          m_thread_exceptions[i]);
+      failure = true;
+    }
+
+    if (failure) {
       THROW_ERROR(SHERR_LOAD_WORKER_THREAD_FATAL_ERROR);
     }
   }
