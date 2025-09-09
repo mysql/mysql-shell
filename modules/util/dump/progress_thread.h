@@ -205,8 +205,14 @@ class Progress_thread final {
      * Initializes a stage with the given description.
      *
      * @param config The configuration of a stage.
+     * @param json_output Whether JSON output is used.
      */
-    explicit Stage(Stage_config config);
+    Stage(Stage_config config, bool json_output);
+
+    /**
+     * Called when a stage is started.
+     */
+    virtual void on_stage_started();
 
     /**
      * Write the progress to the console.
@@ -233,6 +239,18 @@ class Progress_thread final {
      * Called when the stage should update its progress.
      */
     virtual void on_update();
+
+    /**
+     * Whether progress is displayed in JSON format.
+     */
+    inline bool uses_json_output() const noexcept { return m_json_output; }
+
+    /**
+     * Whether progress is being shown.
+     */
+    inline bool show_progress() const noexcept {
+      return *m_config.show_progress;
+    }
 
    private:
     friend class Progress_thread;
@@ -262,6 +280,8 @@ class Progress_thread final {
 
     std::atomic_bool m_terminated = false;
     bool m_started = false;
+
+    bool m_json_output = false;
   };
 
   /**
@@ -376,7 +396,7 @@ class Progress_thread final {
   /**
    * Whether progress is displayed in JSON format.
    */
-  bool uses_json_output() const noexcept { return m_json_output; }
+  inline bool uses_json_output() const noexcept { return m_json_output; }
 
   /**
    * Starts handling of the registered stages. Each of them is going to be
