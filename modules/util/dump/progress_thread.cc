@@ -57,7 +57,8 @@ std::string format_seconds(double seconds) {
 class Spinner_progress : public Progress_thread::Stage {
  public:
   Spinner_progress(Progress_thread::Stage_config stage_config, bool use_json)
-      : Stage(std::move(stage_config)), m_spinner(description(), use_json) {}
+      : Stage(std::move(stage_config), use_json),
+        m_spinner(description(), use_json) {}
 
  protected:
   void draw() override { m_spinner.update(); }
@@ -71,6 +72,17 @@ class Spinner_progress : public Progress_thread::Stage {
   void on_display_done() override {
     update_ui();
     m_spinner.done(k_done);
+  }
+
+  void on_stage_started() override {
+    Stage::on_stage_started();
+
+    if (uses_json_output() && show_progress()) {
+      // make sure that the JSON output contains a progress message when this
+      // stage starts
+      update_ui();
+      m_spinner.update();
+    }
   }
 
   /**
@@ -143,11 +155,11 @@ class Numeric_progress : public Spinner_progress {
 
 class Throughput_progress : public Progress_thread::Stage {
  public:
-  Throughput_progress(Progress_thread::Stage_config stage_config,
+  Throughput_progress(Progress_thread::Stage_config stage_config, bool use_json,
                       Progress_thread::Throughput_config config,
                       mysqlshdk::textui::Base_progress *progress,
                       std::recursive_mutex *mutex)
-      : Stage(std::move(stage_config)),
+      : Stage(std::move(stage_config), use_json),
         m_config(std::move(config)),
         m_progress(progress),
         m_progress_mutex(mutex) {
@@ -275,22 +287,16 @@ void Progress_thread::Duration::validate() const {
   }
 }
 
-Progress_thread::Stage::Stage(Stage_config config)
-    : m_config(std::move(config)) {
+Progress_thread::Stage::Stage(Stage_config config, bool json_output)
+    : m_config(std::move(config)), m_json_output(json_output) {
   assert(m_config.show_progress.has_value());
 }
 
 void Progress_thread::Stage::start() {
-  if (m_config.log_progress) {
-    log_debug("%s%s", description().c_str(), k_ellipsis);
-  }
-
-  if (!*m_config.show_progress) {
-    current_console()->print_status(description() + k_ellipsis);
-  }
-
   m_duration.start();
   m_started = true;
+
+  on_stage_started();
 }
 
 void Progress_thread::Stage::finish(bool wait) {
@@ -324,7 +330,7 @@ void Progress_thread::Stage::finish(bool wait) {
                  duration().seconds());
       }
 
-      if (!*m_config.show_progress) {
+      if (!show_progress()) {
         current_console()->print_status(description() + " " + k_done);
       }
     }
@@ -337,14 +343,14 @@ void Progress_thread::Stage::display() {
   while (!m_finished) {
     on_update();
 
-    if (*m_config.show_progress) {
+    if (show_progress()) {
       draw();
     }
 
     wait_for_finish();
   }
 
-  if (*m_config.show_progress) {
+  if (show_progress()) {
     if (m_terminated) {
       on_display_terminated();
     } else {
@@ -358,6 +364,16 @@ void Progress_thread::Stage::display() {
   }
 
   m_display_done_cv.notify_one();
+}
+
+void Progress_thread::Stage::on_stage_started() {
+  if (m_config.log_progress) {
+    log_debug("%s%s", description().c_str(), k_ellipsis);
+  }
+
+  if (!show_progress()) {
+    current_console()->print_status(description() + k_ellipsis);
+  }
 }
 
 void Progress_thread::Stage::on_display_started() {}
@@ -398,7 +414,7 @@ Progress_thread::Progress_thread(std::string description, bool show_progress)
     : m_description(std::move(description)), m_show_progress(show_progress) {
   m_json_output = "off" != mysqlsh::current_shell_options()->get().wrap_json;
 
-  if (m_json_output) {
+  if (uses_json_output()) {
     m_progress = std::make_unique<mysqlshdk::textui::Json_progress>();
   } else {
     m_progress = std::make_unique<mysqlshdk::textui::Text_progress>();
@@ -452,37 +468,39 @@ void Progress_thread::start() {
 
 Progress_thread::Stage *Progress_thread::start_stage(
     Stage_config stage_config) {
-  return start_stage<Spinner_progress>(std::move(stage_config), m_json_output);
+  return start_stage<Spinner_progress>(std::move(stage_config),
+                                       uses_json_output());
 }
 
 Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
                                                      Progress_config config) {
-  return start_stage<Numeric_progress>(std::move(stage_config), m_json_output,
-                                       std::move(config));
+  return start_stage<Numeric_progress>(std::move(stage_config),
+                                       uses_json_output(), std::move(config));
 }
 
 Progress_thread::Stage *Progress_thread::start_stage(Stage_config stage_config,
                                                      Throughput_config config) {
   return start_stage<Throughput_progress>(std::move(stage_config),
-                                          std::move(config), m_progress.get(),
-                                          &m_progress_mutex);
+                                          uses_json_output(), std::move(config),
+                                          m_progress.get(), &m_progress_mutex);
 }
 
 Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config) {
-  return push_stage<Spinner_progress>(std::move(stage_config), m_json_output);
+  return push_stage<Spinner_progress>(std::move(stage_config),
+                                      uses_json_output());
 }
 
 Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config,
                                                     Progress_config config) {
-  return push_stage<Numeric_progress>(std::move(stage_config), m_json_output,
-                                      std::move(config));
+  return push_stage<Numeric_progress>(std::move(stage_config),
+                                      uses_json_output(), std::move(config));
 }
 
 Progress_thread::Stage *Progress_thread::push_stage(Stage_config stage_config,
                                                     Throughput_config config) {
   return push_stage<Throughput_progress>(std::move(stage_config),
-                                         std::move(config), m_progress.get(),
-                                         &m_progress_mutex);
+                                         uses_json_output(), std::move(config),
+                                         m_progress.get(), &m_progress_mutex);
 }
 
 void Progress_thread::finish() {
