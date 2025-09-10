@@ -907,10 +907,9 @@ TEST(Plugin_usage_check, errors) {
   Plugin_usage_check check(info);
 
   std::map<std::string, bool> tested_plugins = {
-      {"authentication_fido", false},
-      {"keyring_file", false},
-      {"keyring_encrypted_file", false},
-      {"keyring_oci", false}};
+      {"authentication_fido", false},    {"keyring_file", false},
+      {"keyring_encrypted_file", false}, {"keyring_oci", false},
+      {"rpl_semi_sync_master", true},    {"rpl_semi_sync_slave", true}};
 
   auto features = check.get_features();
   for (const auto feature : features) {
@@ -941,8 +940,8 @@ TEST(Plugin_usage_check, errors) {
        {"keyring_file", true},            // No start version so no notices
        {"keyring_encrypted_file", true},  // No start version so no notices
        {"keyring_oci", true},             // No start version so no notices
-       {"rpl_semi_sync_master", false},   // No removed version so no errors
-       {"rpl_semi_sync_slave", false}},   // No removed version so no errors
+       {"rpl_semi_sync_master", true},
+       {"rpl_semi_sync_slave", true}},
       tested_plugins);
 }
 

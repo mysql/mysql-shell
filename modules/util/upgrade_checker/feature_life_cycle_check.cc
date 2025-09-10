@@ -284,12 +284,12 @@ Plugin_usage_check::Plugin_usage_check(const Upgrade_info &server_info)
   add_feature({"rpl_semi_sync_master",
                {},
                Version(8, 0, 26),
-               {},
+               Version(9, 5, 0),
                "'rpl_semi_sync_source' plugin"});
   add_feature({"rpl_semi_sync_slave",
                {},
                Version(8, 0, 26),
-               {},
+               Version(9, 5, 0),
                "'rpl_semi_sync_replica' plugin"});
 }
 

@@ -183,7 +183,8 @@ Excluded:
 - pluginUsage
   Check for deprecated or removed plugin usage.
   Category: config
-  Condition: Target version is at least 8.0.26
+  Condition: Server version is lower than 9.5.0 and the target version is at
+  least 8.0.26
 
 - deprecatedDefaultAuth
   Check for deprecated or invalid default authentication methods in system
@@ -413,7 +414,8 @@ Included:
 - pluginUsage
   Check for deprecated or removed plugin usage.
   Category: config
-  Condition: Target version is at least 8.0.26
+  Condition: Server version is lower than 9.5.0 and the target version is at
+  least 8.0.26
 
 - deprecatedDefaultAuth
   Check for deprecated or invalid default authentication methods in system
