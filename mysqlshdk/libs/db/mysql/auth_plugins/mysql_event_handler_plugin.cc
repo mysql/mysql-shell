@@ -38,6 +38,7 @@
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/common.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/kerberos.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/oci.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/openid_connect.h"
 #include "mysqlshdk/libs/db/mysql/auth_plugins/webauthn.h"
