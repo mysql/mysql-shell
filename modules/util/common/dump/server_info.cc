@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -115,8 +115,11 @@ Binlog binlog(const std::shared_ptr<mysqlshdk::db::ISession> &session,
       binlog.file.position = row->get_uint(1);            // Position
       binlog.startup_options.do_db = row->get_string(2);  // Binlog_Do_DB
       binlog.startup_options.ignore_db =
-          row->get_string(3);                     // Binlog_Ignore_DB
-      binlog.gtid_executed = row->get_string(4);  // Executed_Gtid_Set
+          row->get_string(3);  // Binlog_Ignore_DB
+
+      if (result->get_metadata().size() > 4) {
+        binlog.gtid_executed = row->get_string(4);  // Executed_Gtid_Set
+      }
     }
   } catch (const mysqlshdk::db::Error &e) {
     if (e.code() == ER_SPECIFIC_ACCESS_DENIED_ERROR) {
