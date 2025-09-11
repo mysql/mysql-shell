@@ -257,7 +257,14 @@ function(create_parser_plugin)
         # no need to copy the source file, it uses the public interface of the plugin
         add_executable(${TEST_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/parser_test.cc")
         add_dependencies(${TEST_NAME} ${PLUGIN_NAME})
-        target_link_options(${TEST_NAME} PRIVATE "$<TARGET_FILE:${PLUGIN_NAME}>" "-Wl,--allow-shlib-undefined")
+        target_link_options(${TEST_NAME} PRIVATE "-Wl,--allow-shlib-undefined")
+
+        # create an imported library from the plugin, so that it can be linked with the test executable
+        set(PLUGIN_LIBRARY "${PLUGIN_NAME}-lib")
+        add_library(${PLUGIN_LIBRARY} SHARED IMPORTED)
+        set_target_properties(${PLUGIN_LIBRARY} PROPERTIES IMPORTED_LOCATION "${CMAKE_BINARY_DIR}/${PLUGIN_INSTALL_DIR}/${PLUGIN_NAME}.so")
+
+        target_link_libraries(${TEST_NAME} PRIVATE ${PLUGIN_LIBRARY})
     endif()
 endfunction()
 
