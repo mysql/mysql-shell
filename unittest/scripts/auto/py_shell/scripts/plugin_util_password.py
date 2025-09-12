@@ -214,6 +214,17 @@ EXPECT_OUTPUT_CONTAINS(test_account1)
 testutil.assert_no_prompts()
 
 
+#@<> Error when passing new pasword and random arguments
+shell.connect(__mysql_uri)
+recreate_test_user(test_user1, "test")
+shell.connect(get_test_user_uri(test_user1, "test"))
+shell.options["useWizards"] = 1
+EXPECT_THROWS(lambda: util.change_password({"newPassword": "1234", "random": True}), "random and newPassword options are mutually exclusive.")
+shell.options["useWizards"] = 0
+EXPECT_OUTPUT_NOT_CONTAINS("NOTE: Password has been successfully updated.")
+testutil.assert_no_prompts()
+
+
 #@<> Check for mysql_native_password {VER(>=8.0.0) and VER(<9.0.0)}
 shell.connect(__mysql_uri)
 recreate_test_user(test_user1, "test", "mysql_native_password")

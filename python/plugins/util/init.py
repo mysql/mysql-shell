@@ -121,6 +121,9 @@ def internal_change_password(
         print("Not connected!")
         return None
 
+    if random and newPassword:
+        raise Error("random and newPassword options are mutually exclusive.")
+
     session = globals.shell.get_session()
 
     account_data, account = common.collect_account_data(account)
@@ -232,10 +235,10 @@ def change_password(**options) -> str:
 
     Keyword Args:
         account (str): account of wchich password will be changed. If not set, currently authenticated user will be used (default not set)
-        random (bool): changes password to a random one and returns it (default False)
+        random (bool): changes password to a random one and returns it. Cannot be used with "newPassword" option (default False)
         dual (bool): retains current password after changing (default False)
         discardOld (bool):  discards retained old password if present. If True, will ignore other options (beside account) and not change current password. (default False)
-        newPassword (str): password to change to for the specified account. If not set, it will be prompted (default not set)
+        newPassword (str): password to change to for the specified account. If not set, it will be prompted. Cannot be used with "random" option (default not set)
     """
     return internal_change_password(**options)
 
