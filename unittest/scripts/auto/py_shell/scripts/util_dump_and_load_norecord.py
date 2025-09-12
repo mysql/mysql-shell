@@ -4076,6 +4076,37 @@ EXPECT_JSON_EQ(snapshot_schema(session1, tested_schema), snapshot_schema(session
 #@<> BUG#38089433 - cleanup {not __dbug_off and VER(>=8.0.0)}
 session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
+#@<> BUG#37326937 - if the first load attempt failed with duplicate objects error, the second one should also fail
+# constants
+tested_schema = "test_schema"
+tested_table = "test_table"
+dump_dir = os.path.join(outdir, "bug_37326937")
+
+# setup
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql("CREATE SCHEMA !", [tested_schema])
+session1.run_sql("CREATE TABLE !.! (a int)", [tested_schema, tested_table])
+
+# prepare the dump and load it for the first time
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "showProgress": False }), "Dump should not fail")
+
+wipeout_server(session2)
+
+shell.connect(__sandbox_uri2)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Load should not fail")
+
+#@<> BUG#37326937 - test
+# remove progress file and load again, load fails due to duplicate objects
+testutil.rmfile(os.path.join(dump_dir, "load-progress*.json"))
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Duplicate objects found in destination database")
+
+# load once again, load still fails for the same reason
+EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Duplicate objects found in destination database")
+
+#@<> BUG#37326937 - cleanup
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

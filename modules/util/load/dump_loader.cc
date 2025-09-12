@@ -2323,6 +2323,8 @@ Dump_loader::filter_schema_objects(const std::string &schema) const {
 }
 
 void Dump_loader::on_dump_begin() {
+  m_load_log->set_server_uuid(m_options.server_uuid());
+
   const auto stage =
       m_progress_thread.start_stage("Executing common preamble SQL");
   shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
@@ -3947,8 +3949,6 @@ void Dump_loader::setup_progress_file(bool *out_is_resuming) {
     } else {
       log_info("Logging load progress to %s", path.c_str());
     }
-
-    m_load_log->set_server_uuid(m_options.server_uuid());
   }
 }
 
