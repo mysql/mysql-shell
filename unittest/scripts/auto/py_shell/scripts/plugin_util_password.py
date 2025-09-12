@@ -391,6 +391,23 @@ session.run_sql("select current_user();")
 EXPECT_OUTPUT_CONTAINS(test_account1)
 testutil.assert_no_prompts()
 
+#@<> Error when auth method upgrading a dual password account {VER(>=8.0.0) and VER(<9.0.0)}
+shell.connect(__mysql_uri)
+recreate_test_user(test_user1, "1234", "mysql_native_password")
+shell.options["useWizards"] = 1
+testutil.expect_password("Enter new password: ", "test")
+testutil.expect_password("Confirm new password: ", "test")
+EXPECT_NO_THROWS(lambda: util.change_password(
+    {"account": test_account1, "dual": True}))
+
+EXPECT_THROWS(lambda: util.upgrade_auth_method({"password": "test", "account": test_account1}),
+              f"Unable to discard existing dual password implicitly")
+EXPECT_OUTPUT_CONTAINS(f"ERROR: The account {test_account1} has a retained old (dual) password. It will be lost on auth method replacement. "
+                       "Please discard it first using util.change_password({\"account\":\"" + test_account1 + "\", \"discardOld\": True}).")
+
+shell.options["useWizards"] = 0
+testutil.assert_no_prompts()
+
 #@<> Setup password policy validation {VER(>=8.0.0)}
 shell.connect(__mysql_uri)
 ensure_plugin_enabled('validate_password', session)

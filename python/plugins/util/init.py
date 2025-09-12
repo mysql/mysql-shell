@@ -71,7 +71,7 @@ def discard_dual_if_present(discardOld: bool, account_data: dict):
     return True
 
 
-def check_dual_password(session, account_data: dict, dual: bool):
+def check_dual_password(session, account_data: dict, dual: bool, auth_replace : bool = False):
     if dual and not accountlib.is_password_extensions_supported(session):
         raise Error("Dual password functionality is only supported from server version at least 8.0.")
     has_dual = False
@@ -83,10 +83,12 @@ def check_dual_password(session, account_data: dict, dual: bool):
     
     if has_dual:
         message = f"The account {account_data["account"]} has a retained old (dual) password."
+        if auth_replace:
+            message += " It will be lost on auth method replacement."
         type = "warning"
         suggestion = "It can be discarded"
         instruction = "using util.<<<changePassword>>>({\"account\":\"" + account_data["account"] + "\", \"discardOld\": True})."
-        if dual:
+        if dual or auth_replace:
             type = "error"
             suggestion = "Please discard it first"
 
@@ -184,6 +186,8 @@ def internal_upgrade_auth_method(
 
     if not check_mysql_native_method(session, account_data):
         return
+
+    check_dual_password(session, account_data, False, True)
 
     description = None
     for _ in range(3):
