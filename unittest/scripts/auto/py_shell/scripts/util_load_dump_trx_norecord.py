@@ -97,13 +97,13 @@ session.run_sql("insert into testdb.data0 values (?)", ["g"+rand_text(chunk_size
 session.run_sql("insert into testdb.data0 values ('\\n\\t\\\\')")
 
 session.run_sql("create table testdb.data1 (n int)")
-session.run_sql("insert into testdb.data1 values (1111111)" + ",(1111111)"*chunk_size)
+session.run_sql(f"insert into testdb.data1 values {','.join(['({0})'.format(1000000 + i) for i in range(chunk_size + 1)])}")
 
 session.run_sql("create table testdb.data2 (n int, pk int PRIMARY KEY AUTO_INCREMENT)")
-session.run_sql("insert into testdb.data2 (n) values (1111111)" + ",(1111111)"*chunk_size)
+session.run_sql("insert into testdb.data2 (n) select n from testdb.data1 order by n")
 
 session.run_sql("create table testdb.data3 (n int, pk int PRIMARY KEY AUTO_INCREMENT)")
-session.run_sql("insert into testdb.data3 (n) values (1111111)" + ",(1111111)"*4)
+session.run_sql("insert into testdb.data3 (n) select n from testdb.data1 order by n limit 5")
 
 set_test_table_count(4)
 
@@ -282,6 +282,30 @@ testutil.clear_traps("dump_loader")
 TEST_LOAD("dump-trxlimit-none", trx_size_limit, trx_size_limit, False)
 EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
 EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 8 sub-chunks")
+
+#@<> BUG#38144597 - resuming a dump interrupted while loading a table in subchunks resulted in duplicate progress file entries {not __dbug_off}
+# fail after loading first subchunk
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 0"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit), "Error: Shell Error (53005): Error loading dump")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+# fail after loading seventh subchunk (six subchunks loaded this time)
+testutil.set_trap("dump_loader", ["op == AFTER_LOAD_SUBCHUNK_END", "schema == testdb", "table == data2", "chunk == -1", "subchunk == 6"], {"msg": "Injected exception"})
+
+EXPECT_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False), "Error: Shell Error (53005): Error loading dump")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+EXPECT_STDOUT_CONTAINS("testdb@data2.tsv.zst: Injected exception")
+
+testutil.clear_traps("dump_loader")
+
+# load till the end
+EXPECT_NO_THROWS(lambda:TEST_LOAD("dump-trxlimit", trx_size_limit, trx_size_limit, False), "load should succeed")
+EXPECT_STDOUT_CONTAINS("NOTE: Load progress file detected. Load will be resumed from where it was left, assuming no external updates were made.")
+# there are 14 sub-chunks, first we loaded 1, then 6, so this should load 7 sub-chunks
+EXPECT_SHELL_LOG_CONTAINS("testdb@data2.tsv.zst: Records: 382  Deleted: 0  Skipped: 0  Warnings: 0 - loading finished in 7 sub-chunks")
 
 ##
 

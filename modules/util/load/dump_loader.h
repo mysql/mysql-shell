@@ -322,9 +322,10 @@ class Dump_loader {
     class Load_chunk_task : public Load_data_task {
      public:
       Load_chunk_task(Dump_reader::Table_chunk &&chunk, bool resume,
-                      uint64_t bytes_to_skip)
+                      uint64_t bytes_to_skip, uint64_t first_subchunk)
           : Load_data_task(std::move(chunk), resume),
-            m_bytes_to_skip(bytes_to_skip) {}
+            m_bytes_to_skip(bytes_to_skip),
+            m_first_subchunk(first_subchunk) {}
 
      private:
       void on_load_start(Worker *, Dump_loader *) override;
@@ -334,6 +335,8 @@ class Dump_loader {
       void on_load_end(Worker *, Dump_loader *) override;
 
       uint64_t m_bytes_to_skip = 0;
+
+      uint64_t m_first_subchunk = 0;
     };
 
     class Bulk_load_task : public Load_data_task {
@@ -652,7 +655,8 @@ class Dump_loader {
   void push_pending_task(Task_ptr task);
 
   Task_ptr load_chunk_file(Dump_reader::Table_chunk &&chunk, bool resuming,
-                           uint64_t bytes_to_skip) const;
+                           uint64_t bytes_to_skip,
+                           uint64_t first_subchunk) const;
 
   Task_ptr bulk_load_table(Dump_reader::Table_chunk &&chunk,
                            bool resuming) const;

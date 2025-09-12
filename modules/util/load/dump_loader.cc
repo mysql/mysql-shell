@@ -1503,7 +1503,7 @@ void Dump_loader::Worker::Load_chunk_task::do_load(Worker *worker,
       }
     }
 
-    uint64_t subchunk = 0;
+    uint64_t subchunk = m_first_subchunk;
 
     options.transaction_started = [this, &loader, &worker, &subchunk]() {
       log_debug("Transaction for '%s'.'%s'/%zi subchunk %" PRIu64
@@ -2572,12 +2572,11 @@ bool Dump_loader::schedule_table_chunk(Dump_reader::Table_chunk &&chunk) {
 
   uint64_t bytes_to_skip = 0;
   const auto resuming = status == Load_progress_log::INTERRUPTED;
+  uint64_t subchunk = 0;
 
   // if task was interrupted, check if any of the subchunks were loaded, if
   // yes then we need to skip them
   if (resuming) {
-    uint64_t subchunk = 0;
-
     while (m_load_log->status(progress::Table_subchunk{
                chunk.schema, chunk.table, chunk.partition, chunk.index,
                subchunk}) == Load_progress_log::DONE) {
@@ -2603,7 +2602,8 @@ bool Dump_loader::schedule_table_chunk(Dump_reader::Table_chunk &&chunk) {
             chunk.file->full_path().masked().c_str());
 
   mark_table_as_in_progress(chunk);
-  push_pending_task(load_chunk_file(std::move(chunk), resuming, bytes_to_skip));
+  push_pending_task(
+      load_chunk_file(std::move(chunk), resuming, bytes_to_skip, subchunk));
 
   return true;
 }
@@ -5570,8 +5570,8 @@ void Dump_loader::push_pending_task(Task_ptr task) {
 }
 
 Dump_loader::Task_ptr Dump_loader::load_chunk_file(
-    Dump_reader::Table_chunk &&chunk, bool resuming,
-    uint64_t bytes_to_skip) const {
+    Dump_reader::Table_chunk &&chunk, bool resuming, uint64_t bytes_to_skip,
+    uint64_t first_subchunk) const {
   log_debug("Loading data for %s", format_table(chunk).c_str());
   assert(!chunk.schema.empty());
   assert(!chunk.table.empty());
@@ -5582,8 +5582,8 @@ Dump_loader::Task_ptr Dump_loader::load_chunk_file(
   // for the chunk loading order. But we need to be able to dynamically
   // schedule chunks based on the current conditions at the time each new
   // chunk needs to be scheduled.
-  return std::make_unique<Worker::Load_chunk_task>(std::move(chunk), resuming,
-                                                   bytes_to_skip);
+  return std::make_unique<Worker::Load_chunk_task>(
+      std::move(chunk), resuming, bytes_to_skip, first_subchunk);
 }
 
 Dump_loader::Task_ptr Dump_loader::bulk_load_table(
