@@ -104,8 +104,8 @@ session.runSql("SET GLOBAL server_id = DEFAULT");
 shell.options.useWizards=1;
 
 var admin_uri = "admin_user:admin_pwd@" + hostname + ":" + __mysql_sandbox_port1;
-testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
 if (__version_num >= 80011 && __version_num < 90500) {
+    testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]: ", "y");
     testutil.expectPrompt("Do you want to restart the instance after configuring it? [y/n]: ", "n");
 }
 
@@ -272,9 +272,8 @@ testutil.restartSandbox(__mysql_sandbox_port1);
 
 testutil.dbugSet("+d,dba_abort_instance_restart");
 
-if (__version_num < 90500) {
 testutil.expectPrompt("Do you want to perform the required configuration changes? [y/n]:", "y");
-}
+
 EXPECT_THROWS(function () { dba.configureInstance(__sandbox_uri1, {restart:true, mycnfPath:testutil.getSandboxConfPath(__mysql_sandbox_port1)}) }, "restart aborted (debug)");
 EXPECT_OUTPUT_CONTAINS("Please restart MySQL manually (check https://dev.mysql.com/doc/refman/en/restart.html for more details).");
 
