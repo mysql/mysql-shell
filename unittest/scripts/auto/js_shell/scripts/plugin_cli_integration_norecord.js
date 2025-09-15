@@ -564,7 +564,14 @@ WIPE_OUTPUT()
 //@<> Tests missing mandatory argument
 // NOTE: this is possible in CLI calls when a dictionary or list comes after other parameters
 rc = callMysqlsh(["--", "custom_plugin", "print-element", "--item='this is a custom element'"])
-EXPECT_STDOUT_CONTAINS("ERROR: Missing value for required 'key' parameter.")
+// BUG#38377905 - print syntax if a required parameter is missing
+EXPECT_STDOUT_CONTAINS(`This command line operation uses the following syntax:
+SYNTAX
+      custom_plugin print-element <key> [<elements>]
+
+WHERE
+      key: String - identifies the element to be printed.
+ERROR: Missing value for required 'key' parameter.`)
 WIPE_OUTPUT()
 
 
@@ -575,4 +582,3 @@ WIPE_OUTPUT()
 
 //@<> Finalization
 testutil.rmdir(plugins_path, true)
-

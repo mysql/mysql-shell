@@ -160,11 +160,13 @@ std::string get_cli_param_type(shcore::Value_type type) {
   }
 }
 
-std::string format_cli_option(const std::shared_ptr<Parameter> &option) {
+std::string format_cli_option(const std::shared_ptr<Parameter> &option,
+                              std::string_view option_name) {
   std::string option_detail;
   if (!option->short_name.empty())
     option_detail = "-" + option->short_name + ", ";
-  option_detail.append("--" + option->name);
+
+  option_detail.append(option_name);
 
   if (option->type() == shcore::Array) {
     auto validator = option->validator<List_validator>();
@@ -183,6 +185,21 @@ std::string format_cli_option(const std::shared_ptr<Parameter> &option) {
   }
 
   return option_detail;
+}
+
+std::string format_cli_option_name(std::string_view name) {
+  assert(!name.empty());
+
+  std::string option = "--";
+
+  if ('-' == name.front()) {
+    assert(name.size() > 2 && '-' == name[1]);
+    name.remove_prefix(2);
+  }
+
+  option += to_camel_case(name);
+
+  return option;
 }
 
 std::string strip_param_type(const std::string &input) {
@@ -1424,123 +1441,141 @@ Help_manager::parse_function_parameters(
 
 void Help_manager::add_simple_function_help(const Help_topic &function,
                                             std::vector<std::string> *sections,
+                                            const Help_options &options,
                                             cli::Shell_cli_mapper *cli) {
-  std::string name = function.get_base_name();
-  Help_topic *parent = function.m_parent;
-
-  // Starts the syntax
-  std::string display_name = function.get_name(m_mode);
-  std::string syntax =
-      textui::bold(HELP_TITLE_SYNTAX) + HEADER_CONTENT_SEPARATOR;
-
-  std::string fsyntax;
-
-  if (cli) {
-    fsyntax = shcore::str_join(cli->get_object_chain(), " ") + " " +
-              textui::bold(shcore::from_camel_case_to_dashes(name));
-  } else {
-    if (parent->is_api()) {
-      if (parent->is_class()) {
-        fsyntax += "<" + parent->m_name + ">." + textui::bold(display_name);
-      } else {
-        std::string parent_name = function.m_parent->get_id(
-            m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
-        fsyntax += parent_name + HELP_API_SPLITTER + textui::bold(display_name);
-      }
-    } else {
-      fsyntax += textui::bold(display_name);
-    }
-  }
-  // Gets the function signature
-  std::string signature = get_signature(function, cli);
-
-  // Ellipsis indicates the function is overloaded
-  std::vector<std::string> signatures;
-  if (signature == "(...)") {
-    signatures = resolve_help_text(function, "SIGNATURE");
-    for (auto &item : signatures) {
-      item = fsyntax + item;
-    }
-  } else {
-    signatures.push_back(fsyntax + signature);
-  }
-
-  syntax += textui::format_markup_text(signatures, MAX_HELP_WIDTH,
-                                       SECTION_PADDING, false);
-  sections->push_back(syntax);
+  const auto name = function.get_base_name();
+  const auto parent = function.m_parent;
 
   std::vector<std::pair<std::string, std::string>> pdata;
-  if (signature != "()" || (cli && !signature.empty())) {
-    auto params = resolve_help_text(function, "PARAM");
 
-    pdata = parse_function_parameters(params);
+  if (options.is_set(Help_option::Syntax)) {
+    // Gets the function signature
+    const auto signature = get_signature(function, cli);
 
-    if (!pdata.empty()) {
-      // Describes the parameters
-      std::string where = textui::bold("WHERE") + HEADER_CONTENT_SEPARATOR;
-      std::vector<std::string> where_items;
+    {
+      // Starts the syntax
+      std::string syntax =
+          textui::bold(HELP_TITLE_SYNTAX) + HEADER_CONTENT_SEPARATOR;
+      std::string fsyntax;
 
-      size_t index;
-      for (index = 0; index < params.size(); index++) {
-        // for CLI only anonymous parameters get explained on the WHERE section,
-        // the rest (the options) will be explained on the OPTIONS section
-        if (!cli || !cli->has_argument_options(pdata[index].first) ||
-            cli->metadata()->param_codes[index] == 'C') {
-          // Padding includes two spaces at the beggining, colon and space at
-          // the end like:"  name: "<description>.
-          size_t desc_padding = SECTION_PADDING;
-          desc_padding += pdata[index].first.size() + 2;
-          std::vector<std::string> data = {pdata[index].second};
+      if (cli) {
+        fsyntax = shcore::str_join(cli->get_object_chain(), " ") + " " +
+                  textui::bold(shcore::from_camel_case_to_dashes(name));
+      } else {
+        const auto display_name = function.get_name(m_mode);
 
-          std::string desc = format_help_text(function, &data, MAX_HELP_WIDTH,
-                                              desc_padding, true);
-
-          if (!desc.empty()) {
-            desc.replace(SECTION_PADDING, pdata[index].first.size() + 1,
-                         pdata[index].first + ":");
-
-            where_items.push_back(desc);
+        if (parent->is_api()) {
+          if (parent->is_class()) {
+            fsyntax += "<" + parent->m_name + ">." + textui::bold(display_name);
+          } else {
+            std::string parent_name = function.m_parent->get_id(
+                m_mode, Topic_id_mode::EXCLUDE_CATEGORIES);
+            fsyntax +=
+                parent_name + HELP_API_SPLITTER + textui::bold(display_name);
           }
+        } else {
+          fsyntax += textui::bold(display_name);
         }
       }
 
-      if (!where_items.empty()) {
-        where += shcore::str_join(where_items, "\n");
-        sections->push_back(where);
+      std::vector<std::string> signatures;
+
+      // Ellipsis indicates the function is overloaded
+      if (signature == "(...)") {
+        signatures = resolve_help_text(function, "SIGNATURE");
+
+        for (auto &item : signatures) {
+          item = fsyntax + item;
+        }
+      } else {
+        signatures.emplace_back(fsyntax + signature);
       }
+
+      syntax += textui::format_markup_text(signatures, MAX_HELP_WIDTH,
+                                           SECTION_PADDING, false);
+      sections->emplace_back(std::move(syntax));
+    }
+
+    if (signature != "()" || (cli && !signature.empty())) {
+      const auto params = resolve_help_text(function, "PARAM");
+
+      pdata = parse_function_parameters(params);
+
+      if (!pdata.empty()) {
+        // Describes the parameters
+        std::string where = textui::bold("WHERE") + HEADER_CONTENT_SEPARATOR;
+        std::vector<std::string> where_items;
+
+        size_t index;
+        for (index = 0; index < params.size(); index++) {
+          // for CLI only anonymous parameters get explained on the WHERE
+          // section, the rest (the options) will be explained on the OPTIONS
+          // section
+          if (!cli || !cli->has_argument_options(pdata[index].first) ||
+              cli->metadata()->param_codes[index] == 'C') {
+            // Padding includes two spaces at the beggining, colon and space at
+            // the end like:"  name: "<description>.
+            size_t desc_padding = SECTION_PADDING;
+            desc_padding += pdata[index].first.size() + 2;
+            std::vector<std::string> data = {pdata[index].second};
+
+            std::string desc = format_help_text(function, &data, MAX_HELP_WIDTH,
+                                                desc_padding, true);
+
+            if (!desc.empty()) {
+              desc.replace(SECTION_PADDING, pdata[index].first.size() + 1,
+                           pdata[index].first + ":");
+
+              where_items.emplace_back(std::move(desc));
+            }
+          }
+        }
+
+        if (!where_items.empty()) {
+          where += shcore::str_join(where_items, "\n");
+          sections->emplace_back(std::move(where));
+        }
+      }
+    }
+
+    if (auto returns = resolve_help_text(function, "RETURNS");
+        !returns.empty()) {
+      std::string ret = textui::bold("RETURNS") + HEADER_CONTENT_SEPARATOR;
+      // Removes the @returns tag
+      returns[0] = returns[0].substr(returns[0].find_first_of(" \t") + 1);
+      ret += format_help_text(function, &returns, MAX_HELP_WIDTH,
+                              SECTION_PADDING, true);
+      sections->emplace_back(std::move(ret));
     }
   }
 
-  auto returns = resolve_help_text(function, "RETURNS");
-  if (!returns.empty()) {
-    std::string ret = textui::bold("RETURNS") + HEADER_CONTENT_SEPARATOR;
-    // Removes the @returns tag
-    returns[0] = returns[0].substr(returns[0].find_first_of(" \t") + 1);
-    ret += format_help_text(function, &returns, MAX_HELP_WIDTH, SECTION_PADDING,
-                            true);
-    sections->push_back(ret);
-  }
-
   if (cli) {
-    add_cli_options_section("DETAIL", function, pdata, sections,
-                            SECTION_PADDING, cli);
+    if (options.is_set(Help_option::Detail)) {
+      add_cli_options_section("DETAIL", function, pdata, sections,
+                              SECTION_PADDING, cli);
+    }
   } else {
-    // Description
-    add_member_section(HELP_TITLE_DESCRIPTION, "DETAIL", function, sections,
-                       SECTION_PADDING);
+    if (options.is_set(Help_option::Detail)) {
+      // Description
+      add_member_section(HELP_TITLE_DESCRIPTION, "DETAIL", function, sections,
+                         SECTION_PADDING);
 
-    // Exceptions
-    add_member_section("EXCEPTIONS", "THROWS", function, sections,
-                       SECTION_PADDING);
+      // Exceptions
+      add_member_section("EXCEPTIONS", "THROWS", function, sections,
+                         SECTION_PADDING);
+    }
 
-    // Examples are registered in sequential order, identifies the proper prefix
-    // to be used in the example lookup, uses the fully qualified ID first and
-    // falls back to the old format then
-    std::string x_tag = parent->m_id + "." + name + "_EXAMPLE";
-    if (m_registry->get_token(x_tag).empty())
-      x_tag = parent->m_name + "_" + name + "_EXAMPLE";
+    if (options.is_set(Help_option::Example)) {
+      // Examples are registered in sequential order, identifies the proper
+      // prefix to be used in the example lookup, uses the fully qualified ID
+      // first and falls back to the old format then
+      std::string x_tag = parent->m_id + "." + name + "_EXAMPLE";
 
-    add_examples_section(function, x_tag, sections, SECTION_PADDING);
+      if (m_registry->get_token(x_tag).empty())
+        x_tag = parent->m_name + "_" + name + "_EXAMPLE";
+
+      add_examples_section(function, x_tag, sections, SECTION_PADDING);
+    }
   }
 }
 
@@ -2179,11 +2214,29 @@ void Help_manager::add_cli_options_section(
           for (const auto &allowed : allowed_list) {
             // Only options that are enabled for CLI
             if (allowed->cmd_line_enabled && !allowed->is_deprecated) {
-              std::string option_detail = format_cli_option(allowed);
+              const auto option_name = format_cli_option_name(allowed->name);
+              const auto is_ambiguous = cli->is_ambiguous_option(option_name);
+              const auto &cli_option_name =
+                  is_ambiguous ? format_cli_option_name(
+                                     cli::Shell_cli_mapper::disambiguate_option(
+                                         param->name, allowed->name))
+                               : option_name;
+
+              std::string option_detail =
+                  format_cli_option(allowed, cli_option_name);
 
               auto param_data = option_data.find(allowed->name);
               if (param_data != option_data.end()) {
                 std::vector<std::string> brief{param_data->second};
+
+                if (is_ambiguous) {
+                  auto &text = brief[0];
+
+                  text += " NOTE: this is a disambiguation of the ";
+                  text += option_name;
+                  text += " option.";
+                }
+
                 option_detail += "\n";
                 option_detail +=
                     format_help_text(member, &brief, MAX_HELP_WIDTH,
@@ -2193,7 +2246,8 @@ void Help_manager::add_cli_options_section(
             }
           }
         } else {
-          std::string option_detail = format_cli_option(param);
+          std::string option_detail =
+              format_cli_option(param, format_cli_option_name(param->name));
 
           for (const auto &param_data : pdata) {
             if (param_data.first == param->name) {
@@ -2238,18 +2292,21 @@ void Help_manager::add_section(const Help_topic &topic,
 }
 
 std::string Help_manager::format_function_help(const Help_topic &function,
+                                               const Help_options &options,
                                                cli::Shell_cli_mapper *cli) {
   std::string name = function.get_base_name();
   std::vector<std::string> sections;
 
-  // Brief Description
-  add_name_section(function, &sections, cli);
+  if (options.is_set(Help_option::Name)) {
+    // Brief Description
+    add_name_section(function, &sections, cli);
+  }
 
   auto chain_definition = resolve_help_text(function, "CHAINED");
 
   std::string additional_help;
   if (chain_definition.empty()) {
-    add_simple_function_help(function, &sections, cli);
+    add_simple_function_help(function, &sections, options, cli);
   } else {
     add_chained_function_help(function, &sections);
   }
@@ -2425,7 +2482,7 @@ std::string Help_manager::get_help(const Help_topic &topic,
       return format_object_help(topic, options);
     }
     case Topic_type::FUNCTION: {
-      return format_function_help(topic, cli);
+      return format_function_help(topic, options, cli);
     }
     case Topic_type::PROPERTY: {
       return format_property_help(topic);

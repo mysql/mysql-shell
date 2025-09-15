@@ -581,6 +581,7 @@ class Help_manager {
   std::string format_object_help(const Help_topic &object,
                                  const Help_options &options);
   std::string format_function_help(const Help_topic &function,
+                                   const Help_options &options,
                                    cli::Shell_cli_mapper *cli = nullptr);
   std::string format_property_help(const Help_topic &property);
   std::string format_command_help(const Help_topic &property,
@@ -651,6 +652,7 @@ class Help_manager {
    */
   void add_simple_function_help(const Help_topic &function,
                                 std::vector<std::string> *sections,
+                                const Help_options &options,
                                 cli::Shell_cli_mapper *cli = nullptr);
 
   /**

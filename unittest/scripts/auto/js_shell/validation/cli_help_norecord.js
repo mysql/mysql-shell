@@ -466,9 +466,10 @@ OPTIONS
             Include functions and stored procedures for each copied schema.
             Default: true.
 
---schema=<str>
+--optionsSchema=<str>
             Copy the data into the given schema. This option can only be used
-            when copying just one schema. Default: not set.
+            when copying just one schema. Default: not set. NOTE: this is a
+            disambiguation of the --schema option.
 
 --sessionInitSql=<str list>
             Execute the given list of SQL statements in each session about to
@@ -673,9 +674,10 @@ OPTIONS
             Include functions and stored procedures for each copied schema.
             Default: true.
 
---schema=<str>
+--optionsSchema=<str>
             Copy the data into the given schema. This option can only be used
-            when copying just one schema. Default: not set.
+            when copying just one schema. Default: not set. NOTE: this is a
+            disambiguation of the --schema option.
 
 --sessionInitSql=<str list>
             Execute the given list of SQL statements in each session about to
@@ -841,9 +843,10 @@ OPTIONS
             a list of valid partition names used to limit the data copy to just
             the specified partitions. Default: not set.
 
---schema=<str>
+--optionsSchema=<str>
             Copy the data into the given schema. This option can only be used
-            when copying just one schema. Default: not set.
+            when copying just one schema. Default: not set. NOTE: this is a
+            disambiguation of the --schema option.
 
 --sessionInitSql=<str list>
             Execute the given list of SQL statements in each session about to

@@ -29,6 +29,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "mysqlshdk/include/scripting/types.h"
@@ -119,6 +120,11 @@ class Shell_cli_mapper {
   const std::vector<std::string> &get_object_chain() const {
     return m_object_chain;
   }
+
+  bool is_ambiguous_option(std::string_view option) const;
+
+  static std::string disambiguate_option(std::string_view param,
+                                         std::string_view option);
 
  private:
   void add_argument(const shcore::Value &argument);

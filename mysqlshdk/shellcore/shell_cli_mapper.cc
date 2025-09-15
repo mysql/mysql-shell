@@ -30,11 +30,15 @@
 #include <stdexcept>
 #include <string_view>
 #include <tuple>
+#include <vector>
 
 #include "mysqlshdk/libs/db/utils_connection.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+
+#include "mysqlshdk/include/shellcore/console.h"
+#include "mysqlshdk/include/shellcore/utils_help.h"
 
 namespace shcore {
 namespace cli {
@@ -392,6 +396,46 @@ void add_value_to_dict(shcore::Dictionary_t *target_map,
     }
   }
 }
+
+std::string get_help(Shell_cli_mapper *mapper, const Help_options &options) {
+  Help_manager help;
+  help.set_mode(shcore::IShell_core::Mode::JavaScript);
+
+  auto search_item = str_join(mapper->get_object_chain(), ".");
+  search_item += '.';
+  search_item += to_camel_case(mapper->operation_name());
+
+  auto topics = help.search_topics(search_item);
+
+  if (topics.size() > 1) {
+    std::erase_if(topics, [](const shcore::Help_topic *t) {
+      return Topic_type::FUNCTION != t->m_type;
+    });
+  }
+
+  if (topics.empty()) {
+    return {};
+  }
+
+  return help.get_help(*topics.front(), options, mapper);
+}
+
+std::string to_cli_option(std::string_view name) {
+  assert(!name.empty());
+
+  std::string option;
+
+  if ('-' != name.front()) {
+    option += "--";
+  } else {
+    assert(name.size() > 2 && '-' == name[1]);
+  }
+
+  option += from_camel_case_to_dashes(name);
+
+  return option;
+}
+
 }  // namespace
 
 std::string Shell_cli_mapper::object_name() const {
@@ -599,8 +643,10 @@ void Shell_cli_mapper::process_named_args() {
         } else if (!m_any_options_param.empty()) {
           if (opt_name.size() > 2) {
             // Full named option
-            set_named_option(m_any_options_param,
-                             shcore::to_camel_case(opt_name.substr(2)), arg);
+            set_named_option(
+                m_any_options_param,
+                shcore::to_camel_case(std::string_view{opt_name}.substr(2)),
+                arg);
           } else {
             // Short named option
             set_named_option(m_any_options_param, opt_name.substr(1), arg);
@@ -612,9 +658,8 @@ void Shell_cli_mapper::process_named_args() {
       } else {
         std::vector<std::string> valid_options;
         for (const auto &param : ambiguous->second) {
-          valid_options.push_back("--" +
-                                  shcore::from_camel_case_to_dashes(param) +
-                                  ambiguous->first.substr(1));
+          valid_options.push_back(disambiguate_option(
+              param, std::string_view{ambiguous->first}.substr(2)));
         }
 
         throw std::invalid_argument(shcore::str_format(
@@ -665,8 +710,7 @@ void Shell_cli_mapper::process_positional_args() {
           if (!connection_data->empty()) {
             std::vector<std::string> options;
             for (const auto &item : *connection_data) {
-              options.push_back("--" +
-                                shcore::from_camel_case_to_dashes(item.first));
+              options.push_back(to_cli_option(item.first));
             }
             throw std::invalid_argument(shcore::str_format(
                 "Either a URI or connection data should be defined for "
@@ -793,6 +837,16 @@ void Shell_cli_mapper::process_positional_args() {
             m_missing_optionals.push_back(
                 m_metadata->signature[index]->def_value);
           } else {
+            if (const auto help =
+                    get_help(this, Help_options{Help_option::Syntax});
+                !help.empty()) {
+              const auto console = mysqlsh::current_console();
+
+              console->println(
+                  "This command line operation uses the following syntax:");
+              console->println(help);
+            }
+
             throw std::runtime_error(
                 shcore::str_format("Missing value for required '%s' parameter.",
                                    m_metadata->signature[index]->name.c_str()));
@@ -872,24 +926,23 @@ void Shell_cli_mapper::define_named_arg(const std::string &param,
                                         const std::string &option,
                                         const std::string &short_option,
                                         bool required) {
-  auto cmd_line_option =
-      "--" + shcore::from_camel_case_to_dashes(option.empty() ? param : option);
+  const auto cmd_line_option = to_cli_option(option.empty() ? param : option);
+  const auto cli_short_option = [&short_option]() {
+    return short_option.empty() ? "" : "-" + short_option;
+  };
 
-  auto ambiguous = m_ambiguous_cli_options.find(cmd_line_option);
   // If the option is already ambiguous...(already registered for >1 param)
-  if (ambiguous != m_ambiguous_cli_options.end()) {
+  if (const auto ambiguous = m_ambiguous_cli_options.find(cmd_line_option);
+      ambiguous != m_ambiguous_cli_options.end()) {
     (*ambiguous).second.push_back(param);
-    define_named_arg(
-        {cmd_line_option + "-" + shcore::from_camel_case_to_dashes(option),
-         short_option.empty() ? "" : "-" + short_option, param, option,
-         required, false});
+    define_named_arg({disambiguate_option(param, option), cli_short_option(),
+                      param, option, required, false});
   } else {
-    auto existing_option = cli_option(cmd_line_option);
     // The option is new....(not yet registered for any param)
-    if (existing_option == nullptr) {
-      define_named_arg({cmd_line_option,
-                        short_option.empty() ? "" : "-" + short_option, param,
-                        option, required, false});
+    if (const auto existing_option = cli_option(cmd_line_option);
+        existing_option == nullptr) {
+      define_named_arg({cmd_line_option, cli_short_option(), param, option,
+                        required, false});
     } else {
       // The option now becomes ambiguous...(already registered for other
       // param)
@@ -897,17 +950,13 @@ void Shell_cli_mapper::define_named_arg(const std::string &param,
                                                   param};
 
       existing_option->name =
-          "--" + shcore::from_camel_case_to_dashes(existing_option->param) +
-          "-" + shcore::from_camel_case_to_dashes(existing_option->option);
+          disambiguate_option(existing_option->param, existing_option->option);
 
       m_normalized_cli_options[existing_option->name] =
           m_normalized_cli_options.at(cmd_line_option);
 
-      define_named_arg(
-          {"--" + shcore::from_camel_case_to_dashes(param) + "-" +
-               shcore::from_camel_case_to_dashes(existing_option->option),
-           short_option.empty() ? "" : "-" + short_option, param, option,
-           required, false});
+      define_named_arg({disambiguate_option(param, existing_option->option),
+                        cli_short_option(), param, option, required, false});
 
       m_normalized_cli_options.erase(cmd_line_option);
     }
@@ -1047,6 +1096,22 @@ void Shell_cli_mapper::process_arguments(shcore::Argument_list *argument_list) {
 
   process_named_args();
   process_positional_args();
+}
+
+bool Shell_cli_mapper::is_ambiguous_option(std::string_view option) const {
+  return m_ambiguous_cli_options.contains(to_cli_option(option));
+}
+
+std::string Shell_cli_mapper::disambiguate_option(std::string_view param,
+                                                  std::string_view option) {
+  std::string merged;
+
+  merged.reserve(param.size() + 1 + option.size());
+  merged += param;
+  merged += '-';
+  merged += option;
+
+  return to_cli_option(merged);
 }
 
 }  // namespace cli
