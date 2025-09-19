@@ -59,5 +59,52 @@ session.run_sql("drop table if exists test_table_c")
 session.run_sql("drop table if exists test_table_b")
 session.run_sql("drop table if exists test_table_a")
 
+
 #@<> Cleanup
-session.run_sql(f"drop schema {test_schema}")
+session.run_sql(f"drop schema if exists {test_schema}")
+
+
+#@<> BUG#38442101 - Setup {VER(<8.0.0)}
+test_chars = """-~!@#$%^&*()-+={};"""
+# using []:\/"',.<>|? in table name will silently fail to create a foreign key reference entry in information_schema.innodb_sys_foreign
+test_schema = "schema" + test_chars
+test_table1 = "parent" + test_chars
+test_table2 = "child" + test_chars
+test_table2 = "child" + test_chars
+
+session.run_sql(f"drop schema if exists `{test_schema}`")
+
+session.run_sql(f"create schema `{test_schema}`")
+session.run_sql(f"use `{test_schema}`")
+
+
+#@<> BUG#38442101 invalidEngineForeignKey, table name with special chars {VER(<8.0.0)}
+session.run_sql(f"""
+CREATE TABLE `{test_table1}` (
+    id INT NOT NULL,
+    PRIMARY KEY (id)
+) ENGINE=INNODB;
+""")
+
+session.run_sql(f"""
+CREATE TABLE `{test_table2}` (
+    id INT,
+    parent_id INT,
+    INDEX par_ind (parent_id),
+    FOREIGN KEY (parent_id)
+        REFERENCES `{test_table1}`(id)
+        ON DELETE CASCADE
+) ENGINE=INNODB;
+""")
+
+EXPECT_NO_THROWS(lambda: util.check_for_server_upgrade(None, {"include": ["invalidEngineForeignKey"]}))
+EXPECT_OUTPUT_CONTAINS("Errors:   0")
+EXPECT_OUTPUT_CONTAINS("Warnings: 0")
+EXPECT_OUTPUT_NOT_CONTAINS("is defined on table whose name can not be decoded.")
+EXPECT_OUTPUT_NOT_CONTAINS("references an unavailable table.")
+
+
+#@<> BUG#38442101 - CleanUp {VER(<8.0.0)}
+session.run_sql(f"drop table if exists `{test_table2}`")
+session.run_sql(f"drop table if exists `{test_table1}`")
+session.run_sql(f"drop schema if exists `{test_schema}`")

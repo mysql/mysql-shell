@@ -33,10 +33,49 @@
 #include "modules/util/upgrade_checker/custom_check.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 
+#include "mysql/strings/m_ctype.h"
 #include "mysqlshdk/libs/db/result.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
+
+namespace internal {
+std::string decode_filename_part(std::string_view text) {
+  std::string result;
+  result.resize(text.length() * my_charset_utf8mb4_general_ci.mbmaxlen);
+  unsigned errors = 0;
+  const auto len =
+      my_convert(result.data(), result.length(), &my_charset_utf8mb4_general_ci,
+                 text.data(), text.length(), &my_charset_filename, &errors);
+  result.resize(len);
+
+  if (errors) {
+    log_warning("Conversion of table filename '%.*s' had %u errors",
+                static_cast<int>(text.length()), text.data(), errors);
+  }
+  if (!text.empty() && len == 0) {
+    // conversion failed, returning original string
+    return std::string(text);
+  }
+
+  return result;
+}
+
+std::string decode_escaped_table_name(const std::string &name) {
+  std::string result;
+  result.reserve(name.length());
+
+  const auto half_pos = name.find('/');
+  if (half_pos == std::string::npos || half_pos + 1 >= name.length()) {
+    return decode_filename_part(name);
+  }
+  result = decode_filename_part(name.substr(0, half_pos));
+  result += "/";
+  result += decode_filename_part(name.substr(half_pos + 1));
+
+  return result;
+}
+}  // namespace internal
 
 using mysqlshdk::utils::Version;
 
@@ -96,11 +135,27 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
     // FK sreferences may be stored in different case sensitivity depending on
     // the OS and the MySQL configuration, so we need to search for table
     // references disabling case sensitivity
-    auto table = cache->get_table(row->get_string(1), false);
-    auto ref_table = cache->get_table(row->get_string(2));
-    assert(table);
 
-    if (ref_table == nullptr) {
+    auto table_name = internal::decode_escaped_table_name(row->get_string(1));
+    auto table = cache->get_table(table_name, false);
+
+    auto ref_name = internal::decode_escaped_table_name(row->get_string(2));
+    auto ref_table = cache->get_table(ref_name, false);
+
+    if (table == nullptr) {
+      auto problem = create_issue();
+      auto tokens = shcore::str_split(table_name, "/");
+      problem.schema = tokens[0];
+      if (tokens.size() > 1) {
+        problem.table = tokens[1];
+      }
+      problem.description =
+          "foreign key '" + row->get_string(0) +
+          "' is defined on table whose name can not be decoded.";
+      problem.level = Upgrade_issue::ERROR;
+
+      issues.emplace_back(std::move(problem));
+    } else if (ref_table == nullptr) {
       auto problem = create_issue();
 
       problem.schema = table->schema_name;
@@ -112,7 +167,9 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
       issues.emplace_back(std::move(problem));
     } else {
       // skip cases where the engines match
-      if (table && ref_table && table->engine == ref_table->engine) continue;
+      if (table->engine == ref_table->engine) {
+        continue;
+      }
 
       FKInfo fk;
       fk.schema = table->schema_name;
@@ -128,7 +185,7 @@ std::vector<Upgrade_issue> Invalid_engine_foreign_key_check::run(
   // Early exit, if there are not even FKs that met the criteria being searched,
   // we are done.
   if (foreign_keys.empty()) {
-    return {};
+    return issues;
   }
 
   result = session->query(
