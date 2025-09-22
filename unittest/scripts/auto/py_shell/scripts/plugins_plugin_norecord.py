@@ -262,9 +262,6 @@ x.start()
 def execute(command, prompt_answers=""):
     args = ["--py", "--quiet-start=2", "-ifull", "-e"]
     env = ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + __user_config_path]
-    # Hacks the official plugin for all calls except the help ones
-    if not command.startswith("\\?"):
-        command = "from mysqlsh.plugin_manager import repositories;repositories.DEFAULT_PLUGIN_REPOSITORIES[0]['url']='http://127.0.0.1:" + str(PORT) + "/windows/installer/manifest.zip';" + command
     rc = testutil.call_mysqlsh(args + [command], prompt_answers, env)
 
 

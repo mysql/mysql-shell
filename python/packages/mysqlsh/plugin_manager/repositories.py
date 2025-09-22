@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -30,17 +30,7 @@ from mysqlsh.plugin_manager import plugin, plugin_function
 from . import general
 
 # Define default repositories
-DEFAULT_PLUGIN_REPOSITORIES = [{
-    "name":
-    "Official MySQL Shell Plugin Repository",
-    "description":
-    "The official MySQL Shell Plugin Repository maintained by "
-    "the MySQL Team at Oracle.",
-    "url":
-    "https://cdn.mysql.com/mysql_shell/plugins_manifest.zip",
-    "manifestPath":
-    "manifest/mysql-shell-plugins-manifest.json"
-}]
+DEFAULT_PLUGIN_REPOSITORIES = []
 
 
 def format_repository_listing(repositories):

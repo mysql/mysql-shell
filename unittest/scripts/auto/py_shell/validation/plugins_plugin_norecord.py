@@ -117,9 +117,7 @@ Fetching list of all plugins...
 
    # Name                 Caption                            Version          Installed
 ---- -------------------- ---------------------------------- ---------------- ----------------
-   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No
-
-   2 repo                 Repo Testing Plugin                0.0.1 PREVIEW    No
+   1 repo                 Repo Testing Plugin                0.0.1 PREVIEW    No
 
 
 Repo Testing Plugin
@@ -152,15 +150,11 @@ Repo Testing Plugin
 [[*]]plugins.repositories.list()
 Registered MySQL Shell Plugin Repositories.
 
-   1 Official MySQL Shell Plugin Repository
-     The official MySQL Shell Plugin Repository maintained by the MySQL Team at Oracle.
-     http://127.0.0.1:<<<PORT>>>/windows/installer/manifest.zip
-
-   2 Testing MySQL Shell Plugin Repository
+   1 Testing MySQL Shell Plugin Repository
      A testing repository to be used while testing the plugins builtin plugin.
      http://127.0.0.1:<<<PORT>>>/mysql-shell-plugins-manifest.json
 
-Total of 2 repositories.
+Total of 1 repository.
 
 #@<OUT> Lists the plugins
 [[*]]plugins.list()
@@ -168,13 +162,10 @@ Fetching list of all plugins...
 
    # Name                 Caption                            Version          Installed
 ---- -------------------- ---------------------------------- ---------------- ----------------
-   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No
-     Plugin to manage the MySQL Database Service on OCI.
-
-   2 repo                 Repo Testing Plugin                0.0.1 PREVIEW    No
+   1 repo                 Repo Testing Plugin                0.0.1 PREVIEW    No
      Plugin to test the plugins builtin plugin.
 
-2 plugins total.
+1 plugin total.
 
 Use plugins.details() to get more information about a specific plugin.
 
@@ -215,13 +206,10 @@ Fetching list of all plugins...
 
    # Name                 Caption                            Version          Installed
 ---- -------------------- ---------------------------------- ---------------- ----------------
-   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No
-     Plugin to manage the MySQL Database Service on OCI.
-
-*  2 repo                 Repo Testing Plugin                0.0.4 PREVIEW    0.0.4 PREVIEW
+*  1 repo                 Repo Testing Plugin                0.0.4 PREVIEW    0.0.4 PREVIEW
      Plugin to test the plugins builtin plugin.
 
-* 1 plugin installed, 2 plugins total.
+* 1 plugin installed, 1 plugin total.
 
 Use plugins.details() to get more information about a specific plugin.
 
@@ -246,13 +234,10 @@ Fetching list of all plugins...
 
    # Name                 Caption                            Version          Installed
 ---- -------------------- ---------------------------------- ---------------- ----------------
-   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No
-     Plugin to manage the MySQL Database Service on OCI.
-
-*  2 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.4 PREVIEW^
+*  1 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.4 PREVIEW^
      Plugin to test the plugins builtin plugin.
 
-* 1 plugin installed, 2 plugins total.
+* 1 plugin installed, 1 plugin total.
 ^ One update is available. Use plugins.update() to install the update.
 
 Use plugins.details() to get more information about a specific plugin.
@@ -263,7 +248,7 @@ Fetching list of updatable plugins...
 ${*}
    # Name                 Caption                            Version          Installed
 ---- -------------------- ---------------------------------- ---------------- ----------------
-*  2 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.4 PREVIEW^
+*  1 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.4 PREVIEW^
 
 
 Updating Repo Testing Plugin ...
@@ -293,13 +278,10 @@ Fetching list of all plugins...
 
    # Name                 Caption                            Version          Installed
 ---- -------------------- ---------------------------------- ---------------- ----------------
-   1 cloud                Oracle Cloud Plugin                0.1.9 PREVIEW    No
-     Plugin to manage the MySQL Database Service on OCI.
-
-*  2 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.4 PREVIEW^
+*  1 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.4 PREVIEW^
      Plugin to test the plugins builtin plugin.
 
-* 1 plugin installed, 2 plugins total.
+* 1 plugin installed, 1 plugin total.
 ^ One update is available. Use plugins.update() to install the update.
 
 Use plugins.details() to get more information about a specific plugin.
@@ -322,7 +304,7 @@ Fetching list of installed plugins...
 
    # Name                 Caption                            Version          Installed
 ---- -------------------- ---------------------------------- ---------------- ----------------
-*  2 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.5 PREVIEW
+*  1 repo                 Repo Testing Plugin                0.0.5 PREVIEW    0.0.5 PREVIEW
 
 
 
@@ -346,9 +328,6 @@ Repository successfully removed.
 [[*]]plugins.repositories.list()
 Registered MySQL Shell Plugin Repositories.
 
-   1 Official MySQL Shell Plugin Repository
-     The official MySQL Shell Plugin Repository maintained by the MySQL Team at Oracle.
-     http://127.0.0.1:<<<PORT>>>/windows/installer/manifest.zip
+Total of 0 repositories.
 
-Total of 1 repository.
 
