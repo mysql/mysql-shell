@@ -677,12 +677,16 @@ class Dump_loader::Bulk_load_support {
 
     // BULK LOAD does not support column list specification or input
     // preprocessing. Dumper always provides a list of columns, which is a
-    // filtered list of all columns (with generated columns removed). Given that
-    // BULK LOAD does not support tables with generated columns, we can safely
-    // remove this list. Dumper also sometimes provides a list of columns which
-    // are encoded, and need to be preprocessed while loading. Since this is not
-    // supported, we don't remove the column list in such case, so that the test
-    // load fails, and loader falls back to regular load.
+    // filtered list of all columns (with generated columns removed). WL#17016
+    // has introduced support for generated columns in BULK LOAD, but it
+    // requires the generated columns to be present in the data file, while our
+    // files do not have them. As a workaround, we've introduced an additional
+    // check to prevent tables with generated columns from being loaded by BULK
+    // LOAD component.
+    // Dumper also sometimes provides a list of columns which are encoded, and
+    // need to be preprocessed while loading. Since this is not supported, we
+    // don't remove the column list in such case, so that the test load fails,
+    // and loader falls back to regular load.
     if (import_options.decode_columns().empty()) {
       import_options.clear_columns();
     }
@@ -782,16 +786,34 @@ class Dump_loader::Bulk_load_support {
       cleanup = shcore::on_leave_scope{
           copy_table_remove_partition(chunk, reconnect, session, &table_name)};
 
-      // bulk load requires non-empty tables, we're creating a new one here to
-      // run the compatibility test and need to make sure that if original table
-      // has some data, copied has it as well
+      // BULK LOAD requires destination tables to be empty, we're creating a new
+      // one here to run the compatibility test and need to make sure that if
+      // original table has some data, copied has it as well
       sql::ar::executef(reconnect, session,
                         "INSERT IGNORE INTO !.! SELECT * FROM !.! LIMIT 1",
                         chunk.schema, table_name, chunk.schema, chunk.table);
     }
 
-    const auto compatible =
+    auto compatible =
         is_table_compatible(chunk, reconnect, session, table_name);
+
+    if (compatible) {
+      // WL#17016 has introduced support for generated columns in BULK LOAD, but
+      // it requires the generated columns to be present in the data file, while
+      // our files do not have them. We need to explicitly skip such tables.
+      compatible =
+          sql::ar::queryf(
+              reconnect, session,
+              "SELECT 1 FROM information_schema.columns WHERE TABLE_SCHEMA=? "
+              "AND TABLE_NAME=? AND GENERATION_EXPRESSION<>'' LIMIT 1",
+              chunk.schema, chunk.table)
+              ->fetch_one() == nullptr;
+
+      if (!compatible) {
+        log_info("Table %s contains generated columns, skipping BULK LOAD",
+                 schema_object_key(chunk.schema, chunk.table).c_str());
+      }
+    }
 
     m_compatibility_status[chunk.schema][chunk.table] = compatible;
 
