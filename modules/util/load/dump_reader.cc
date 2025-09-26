@@ -1869,7 +1869,7 @@ void Dump_reader::show_metadata() const {
   const auto console = current_console();
 
   console->println();
-  console->println(yaml);
+  console->print_status(yaml, metadata);
 
   log_info("%s", yaml.c_str());
 }
