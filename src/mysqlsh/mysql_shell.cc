@@ -975,8 +975,12 @@ void Mysql_shell::get_plugins(File_list *file_list) {
   const auto initial_mode = _shell->interactive_mode();
 
   // Embedded plugins are loaded all the time
-  std::vector<std::string> plugin_directories = {
-      shcore::path::join_path(shcore::get_library_folder(), "plugins")};
+  std::vector<std::string> plugin_directories;
+
+  if (!options().disable_builtin_plugins) {
+    plugin_directories.push_back(
+        shcore::path::join_path(shcore::get_library_folder(), "plugins"));
+  }
 
   if (!options().disable_user_plugins) {
     if (options().plugins_path.has_value()) {

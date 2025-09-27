@@ -193,6 +193,7 @@ class Shell_options final : public shcore::Options {
     // Indicates the Shell trunning for the GUI
     bool gui_mode = false;
     bool disable_user_plugins = false;
+    bool disable_builtin_plugins = false;
     Js_options js_options;
 
     // TODO(anyone): Expose the option

@@ -258,6 +258,7 @@ Usage: mysqlsh [OPTIONS] [URI]
   --js-debug-wait-attached         Waits for a debug client to get attached to
                                    a JavaScript debug server.
   --disable-plugins                Disable loading user plugins.
+  --disable-builtin-plugins        Disable loading built-in plugins.
   --quiet-start[={1|2}]            Avoids printing information when the shell
                                    is started. A value of 1 will prevent
                                    printing the shell version information. A
