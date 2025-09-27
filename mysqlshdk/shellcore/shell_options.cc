@@ -887,7 +887,9 @@ Shell_options::Shell_options(
     "attached to a JavaScript debug server.",
     assign_value(&storage.js_options.wait_attached, true))
     (cmdline("--disable-plugins"), "Disable loading user plugins.",
-    assign_value(&storage.disable_user_plugins, true));
+    assign_value(&storage.disable_user_plugins, true))
+    (cmdline("--disable-builtin-plugins"), "Disable loading built-in plugins.",
+    assign_value(&storage.disable_builtin_plugins, true));
 
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
 #ifndef NDEBUG
