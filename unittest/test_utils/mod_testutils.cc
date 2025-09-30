@@ -219,6 +219,19 @@ void handle_remote_root_user(const std::string &rootpass,
   }
 }
 
+void install_hashing_component(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) {
+  if (session->get_server_version() < mysqlshdk::utils::Version(9, 6, 0)) {
+    return;
+  }
+
+  // WL#16956 has moved MD5(), SHA1() and SHA() to a component
+  try {
+    session->execute("INSTALL COMPONENT 'file://component_classic_hashing'");
+  } catch (...) {
+  }
+}
+
 }  // namespace
 
 Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -1533,6 +1546,8 @@ void Testutils::deploy_sandbox(int port, const std::string &rootpass,
   _general_log_files[port] = session->query("select @@general_log_file")
                                  ->fetch_one_or_throw()
                                  ->get_string(0);
+
+  install_hashing_component(session);
 }
 
 //!<  @name Sandbox Operations
@@ -1603,6 +1618,8 @@ void Testutils::deploy_raw_sandbox(int port, const std::string &rootpass,
   _general_log_files[port] = session->query("select @@general_log_file")
                                  ->fetch_one_or_throw()
                                  ->get_string(0);
+
+  install_hashing_component(session);
 }
 
 //!<  @name Sandbox Operations

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -259,6 +259,11 @@ void detect_mysql_environment(int port, const char *pwd) {
       }
     }
 
+    if (g_target_server_version >= mysqlshdk::utils::Version(9, 6, 0)) {
+      // WL#16956 has moved MD5(), SHA1() and SHA() to a component
+      const auto query = "INSTALL COMPONENT 'file://component_classic_hashing'";
+      mysql_real_query(mysql, query, strlen(query));
+    }
   } else {
     std::cerr << "Cannot connect to MySQL server at " << port << ": "
               << mysql_error(mysql) << "\n";

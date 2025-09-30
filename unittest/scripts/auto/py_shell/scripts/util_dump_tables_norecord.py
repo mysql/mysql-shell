@@ -2571,12 +2571,13 @@ session.run_sql("CREATE SCHEMA !;", [ tested_schema ])
 session.run_sql("""CREATE TABLE !.! (
   `md5_1` varchar(8) NOT NULL,
   `md5_2` varchar(8) NOT NULL,
-  `md5_3` varchar(8) GENERATED ALWAYS AS (substr(md5(email), 17, 8)) VIRTUAL NOT NULL,
-  `md5_4` varchar(8) GENERATED ALWAYS AS (substr(md5(email), 25, 8)) STORED NOT NULL,
+  `md5_3` varchar(8) GENERATED ALWAYS AS (substr(md5_full, 17, 8)) VIRTUAL NOT NULL,
+  `md5_4` varchar(8) GENERATED ALWAYS AS (substr(md5_full, 25, 8)) STORED NOT NULL,
   `email` varchar(100) DEFAULT NULL,
+  `md5_full` varchar(32) DEFAULT NULL,
   UNIQUE KEY `pk` (`md5_1`,`md5_2`,`md5_3`,`md5_4`)
 );""", [ tested_schema, tested_table ])
-session.run_sql(f"""INSERT INTO !.! (`md5_1`,`md5_2`, `email`) VALUES {",".join([f"('{md5sum(email)[0:8]}', '{md5sum(email)[8:16]}', '{email}')" for email in [random_email() for i in range(items)]])};""", [ tested_schema, tested_table ])
+session.run_sql(f"""INSERT INTO !.! (`md5_1`,`md5_2`, `email`, `md5_full`) VALUES {",".join([f"('{md5sum(email)[0:8]}', '{md5sum(email)[8:16]}', '{email}', '{md5sum(email)}')" for email in [random_email() for i in range(items)]])};""", [ tested_schema, tested_table ])
 session.run_sql("ANALYZE TABLE !.!;", [ tested_schema, tested_table ])
 
 #@<> composite non-integer key - test

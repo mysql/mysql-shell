@@ -223,7 +223,7 @@ Prepared statements:      0
 Bytes received:           [[*]]
 Bytes sent:               [[*]]
 Info:                     [[*]]
-Previous statement:       DEALLOCATE PREPARE stmt1
+Previous statement:       [[*]]
 
 #@ WL11651-TSFR22_2 - When using the --vars (-V) option, validate that the report display information about the session system variables of the thread.
 |auto_increment_increment:|
