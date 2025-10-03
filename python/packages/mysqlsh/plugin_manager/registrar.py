@@ -797,6 +797,18 @@ def get_parameters(signature):
     signature_without_defaults = f"({', '.join(params)})"
     return signature_without_defaults
 
+def get_raw_signature(function):
+    """Get the function signature without type annotations."""
+    signature = inspect.signature(function)
+
+    params = []
+    for param in signature.parameters.values():
+        if param.annotation != inspect.Parameter.empty:
+            param = param.replace(annotation=inspect.Parameter.empty)
+        params.append(param)
+
+    return signature.replace(parameters=params, return_annotation=inspect.Signature.empty)
+
 def plugin_function(fully_qualified_name,
                     plugin_docs=None,
                     shell=True,
@@ -832,7 +844,7 @@ def plugin_function(fully_qualified_name,
             )
 
 
-            signature = inspect.signature(function)
+            signature = get_raw_signature(function)
             original_signature = str(signature)
             parameters = get_parameters(signature)
 
