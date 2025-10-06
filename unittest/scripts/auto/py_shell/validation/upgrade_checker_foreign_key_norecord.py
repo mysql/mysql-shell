@@ -14,8 +14,8 @@ No known compatibility errors or issues were found.
    Foreign keys to partial indexes may be forbidden as of 8.4.0, this check
    identifies such cases to warn the user.
 
-   foreign_test_db.test_constraint_two - invalid foreign key defined as
-      'test_table_c(other_column)' references a non unique key at table
+   foreign_test_db.test_table_c.test_constraint_two - invalid foreign key
+      defined as 'test_table_c(other_column)' references a non unique key at table
       'test_table_a'.
 
    Solutions:
