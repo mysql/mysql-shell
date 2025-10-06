@@ -1609,8 +1609,8 @@ std::unique_ptr<Upgrade_check> get_foreign_key_references_check() {
  */
 R"(select 
   fk.constraint_schema, 
+  fk.table_name,
   fk.constraint_name,
-  '', 
   fk.parent_fk_definition as fk_definition,
   fk.REFERENCED_TABLE_NAME as target_table,
   '##fkToNonUniqueKey'
@@ -1619,7 +1619,8 @@ from (select
       rc.constraint_name,
       CONCAT(rc.table_name, '(', GROUP_CONCAT(kc.column_name order by kc.ORDINAL_POSITION),')') as parent_fk_definition,
       CONCAT(kc.REFERENCED_TABLE_SCHEMA,'.',kc.REFERENCED_TABLE_NAME, '(', GROUP_CONCAT(kc.REFERENCED_COLUMN_NAME order by kc.POSITION_IN_UNIQUE_CONSTRAINT),')') as target_fk_definition,
-      rc.REFERENCED_TABLE_NAME
+      rc.REFERENCED_TABLE_NAME,
+      rc.table_name
     from 
       information_schema.REFERENTIAL_CONSTRAINTS rc
         join 
@@ -1654,7 +1655,8 @@ from (select
     fk.constraint_schema,
     fk.constraint_name,
     fk.parent_fk_definition,
-    fk.REFERENCED_TABLE_NAME
+    fk.REFERENCED_TABLE_NAME,
+    fk.table_name
   having
     SUM(idx.non_unique_count = 0) = 0
 )",
@@ -1673,8 +1675,8 @@ from (select
  */
                          R"(SELECT
   constraint_schema,
+  table_name,
   name,
-  '',
   fk_definition,
   col_list,
   target_table,
@@ -1685,7 +1687,8 @@ FROM (
     rc.constraint_name name,
     rc.referenced_table_name target_table,
     CONCAT(kc.table_schema,'.',rc.table_name,'(',GROUP_CONCAT(kc.column_name order by kc.ORDINAL_POSITION),')') fk_definition,
-    CONCAT(kc.referenced_table_schema,'.',kc.referenced_table_name,'(',GROUP_CONCAT(kc.referenced_column_name order by kc.ORDINAL_POSITION),')') col_list
+    CONCAT(kc.referenced_table_schema,'.',kc.referenced_table_name,'(',GROUP_CONCAT(kc.referenced_column_name order by kc.ORDINAL_POSITION),')') col_list,
+    rc.table_name
   FROM
     INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
     INNER JOIN

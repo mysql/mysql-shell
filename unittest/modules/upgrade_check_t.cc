@@ -5189,7 +5189,7 @@ TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
 
   auto find_issue = [&](const std::string &pk_name) -> const Upgrade_issue * {
     for (const auto &issue : issues) {
-      if (issue.table == pk_name) {
+      if (issue.column == pk_name) {
         return &issue;
       }
     }
@@ -5201,9 +5201,9 @@ TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
 
   auto issue = find_issue("child_ccc_full_fk_to_non_unique_index_ibfk_1");
 
-  EXPECT_ISSUE(*issue, "fk_invalid_reference",
-               "child_ccc_full_fk_to_non_unique_index_ibfk_1", "",
-               Upgrade_issue::WARNING);
+  EXPECT_ISSUE(
+      *issue, "fk_invalid_reference", "child_ccc_full_fk_to_non_unique_index",
+      "child_ccc_full_fk_to_non_unique_index_ibfk_1", Upgrade_issue::WARNING);
   EXPECT_EQ(
       "invalid foreign key defined as "
       "'child_ccc_full_fk_to_non_unique_index(a,b)' references a non unique "
@@ -5212,9 +5212,9 @@ TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
 
   issue = find_issue("child_bbb_partial_fk_to_unique_index_ibfk_1");
 
-  EXPECT_ISSUE(*issue, "fk_invalid_reference",
-               "child_bbb_partial_fk_to_unique_index_ibfk_1", "",
-               Upgrade_issue::WARNING);
+  EXPECT_ISSUE(
+      *issue, "fk_invalid_reference", "child_bbb_partial_fk_to_unique_index",
+      "child_bbb_partial_fk_to_unique_index_ibfk_1", Upgrade_issue::WARNING);
   EXPECT_EQ(
       "invalid foreign key defined as "
       "'fk_invalid_reference.child_aaa_partial_fk_to_primary(a)' references a "
@@ -5223,9 +5223,9 @@ TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
 
   issue = find_issue("child_aaa_partial_fk_to_primary_ibfk_1");
 
-  EXPECT_ISSUE(*issue, "fk_invalid_reference",
-               "child_aaa_partial_fk_to_primary_ibfk_1", "",
-               Upgrade_issue::WARNING);
+  EXPECT_ISSUE(
+      *issue, "fk_invalid_reference", "child_aaa_partial_fk_to_primary",
+      "child_aaa_partial_fk_to_primary_ibfk_1", Upgrade_issue::WARNING);
   EXPECT_EQ(
       "invalid foreign key defined as "
       "'fk_invalid_reference.child_bbb_partial_fk_to_unique_index(a)' "
