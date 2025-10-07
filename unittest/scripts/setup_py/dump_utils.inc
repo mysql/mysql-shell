@@ -365,22 +365,30 @@ def strip_tablespaces(schema, table):
     fixed = f"Table `{schema}`.`{table}` had unsupported tablespace option removed"
     return Compatibility_issue(error, fixed)
 
-def strip_definers_definer_clause(schema, name, label = "View", user = "`root`@`localhost`"):
-    error = f"""{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} which can only be executed by this user or a user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)"""
-    fixed = f"{label} `{schema}`.`{name}` had definer clause removed"
+def strip_definers_definer_clause(schema, name, label = "View", user = "`root`@`localhost`", trigger_name = None):
+    assert not trigger_name or "Trigger" == label
+    qualified_name = quote_identifier(schema, name, trigger_name)
+    error = f"""{label} {qualified_name} - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} which can only be executed by this user or a user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges (fix this with 'strip_definers' compatibility option)"""
+    fixed = f"{label} {qualified_name} had definer clause removed"
     return Compatibility_issue(error, fixed, error[:error.find(" (fix")])
 
-def strip_definers_security_clause(schema, name, label = "View"):
-    error = f"{label} `{schema}`.`{name}` - definition does not use SQL SECURITY INVOKER characteristic, which is mandatory when the DEFINER clause is omitted or removed (fix this with 'strip_definers' compatibility option)"
-    fixed = f"{label} `{schema}`.`{name}` had SQL SECURITY characteristic set to INVOKER"
+def strip_definers_security_clause(schema, name, label = "View", trigger_name = None):
+    assert not trigger_name or "Trigger" == label
+    qualified_name = quote_identifier(schema, name, trigger_name)
+    error = f"{label} {qualified_name} - definition does not use SQL SECURITY INVOKER characteristic, which is mandatory when the DEFINER clause is omitted or removed (fix this with 'strip_definers' compatibility option)"
+    fixed = f"{label} {qualified_name} had SQL SECURITY characteristic set to INVOKER"
     return Compatibility_issue(error, fixed, error[:error.find(" (fix")])
 
-def definer_clause_uses_restricted_user_name(schema, name, label = "View", user = "`root`@`localhost`"):
-    error = f"""{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} whose user name is restricted in MySQL HeatWave Service (this issue needs to be fixed manually)"""
+def definer_clause_uses_restricted_user_name(schema, name, label = "View", user = "`root`@`localhost`", trigger_name = None):
+    assert not trigger_name or "Trigger" == label
+    qualified_name = quote_identifier(schema, name, trigger_name)
+    error = f"""{label} {qualified_name} - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} whose user name is restricted in MySQL HeatWave Service (this issue needs to be fixed manually)"""
     return Compatibility_issue(error, None)
 
-def definer_clause_uses_unknown_account(schema, name, label = "View", user = "`root`@`localhost`"):
-    warning = f"""{label} `{schema}`.`{name}` - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} which does not exist or is not included"""
+def definer_clause_uses_unknown_account(schema, name, label = "View", user = "`root`@`localhost`", trigger_name = None):
+    assert not trigger_name or "Trigger" == label
+    qualified_name = quote_identifier(schema, name, trigger_name)
+    warning = f"""{label} {qualified_name} - definition uses DEFINER clause set to user {user.replace("'", "`").replace('"', "`")} which does not exist or is not included"""
     return Compatibility_issue(None, None, warning)
 
 def definer_clause_uses_unknown_account_once():
@@ -606,12 +614,15 @@ def EXPECT_NO_CAPABILITIES(path, capabilities):
         actual = next(filter(lambda capability: expected["id"] == capability["id"], metadata["capabilities"]), None)
         EXPECT_FALSE(actual is not None, f"Metadata should NOT have '{expected['id']}' capability")
 
-def quote_identifier(schema, object = None):
+def quote_identifier(schema, object = None, target = None):
     def quote(identifier):
         return f"`{identifier.replace('`', '``')}`"
     ret = quote(schema)
     if object is not None:
         ret += "." + quote(object)
+    if target is not None:
+        assert object
+        ret += "." + quote(target)
     return ret
 
 def count_rows(schema, table):

@@ -269,9 +269,9 @@ class Schema_dumper {
       const std::string &db, const std::string &table,
       std::string *create_table);
 
-  void check_object_for_definer(const std::string &db,
-                                Compatibility_issue::Object_type object,
-                                const std::string &name, std::string *ddl,
+  void check_object_for_definer(Compatibility_issue::Object_type object,
+                                const std::string &qualified_name,
+                                std::string *ddl,
                                 std::vector<Compatibility_issue> *issues);
 
   std::vector<Compatibility_issue> get_table_structure(
@@ -281,8 +281,8 @@ class Schema_dumper {
   std::vector<Compatibility_issue> dump_trigger(
       IFile *sql_file,
       const std::shared_ptr<mysqlshdk::db::IResult> &show_create_trigger_rs,
-      const std::string &db_name, const std::string &db_cl_name,
-      const std::string &trigger_name);
+      const std::string &db_name, const std::string &table_name,
+      const std::string &trigger_name, const std::string &db_collation_name);
 
   std::vector<Compatibility_issue> dump_triggers_for_table(
       IFile *sql_file, const std::string &table, const std::string &db);

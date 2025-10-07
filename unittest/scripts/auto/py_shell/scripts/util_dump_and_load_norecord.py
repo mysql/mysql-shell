@@ -4061,8 +4061,8 @@ EXPECT_STDOUT_CONTAINS(f"WARNING: Procedure `test_schema`.`p` had DATABASE_COLLA
 EXPECT_STDOUT_CONTAINS(f"WARNING: Procedure `test_schema`.`p` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 EXPECT_STDOUT_CONTAINS(f"WARNING: Parameter `test_schema`.`p`.`b` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
-EXPECT_STDOUT_CONTAINS(f"WARNING: Trigger `test_schema`.`tt` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
-EXPECT_STDOUT_CONTAINS(f"WARNING: Trigger `test_schema`.`tt` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Trigger `test_schema`.`t`.`tt` had DATABASE_COLLATION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Trigger `test_schema`.`t`.`tt` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
 
 #@<> BUG#38089433 - load {not __dbug_off and VER(>=8.0.0)}

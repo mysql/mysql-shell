@@ -885,7 +885,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_ISSUE(issues[3], "grouping", "System", "cube");
   EXPECT_ISSUE(issues[4], "grouping", "ntile", "JSON_TABLE");
   EXPECT_ISSUE(issues[5], "grouping", "ntile", "cube");
-  EXPECT_ISSUE(issues[6], "grouping", "first_value");
+  EXPECT_ISSUE(issues[6], "grouping", "System", "first_value");
   EXPECT_ISSUE(issues[7], "grouping", "lateral");
   EXPECT_ISSUE(issues[8], "grouping", "ntile");
 #else
@@ -893,7 +893,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
   EXPECT_ISSUE(issues[3], "grouping", "NTile", "cube");
   EXPECT_ISSUE(issues[4], "grouping", "System", "JSON_TABLE");
   EXPECT_ISSUE(issues[5], "grouping", "System", "cube");
-  EXPECT_ISSUE(issues[6], "grouping", "first_value");
+  EXPECT_ISSUE(issues[6], "grouping", "System", "first_value");
   EXPECT_ISSUE(issues[7], "grouping", "LATERAL");
   EXPECT_ISSUE(issues[8], "grouping", "NTile");
 #endif
@@ -971,7 +971,7 @@ TEST_F(MySQL_upgrade_check_test, reserved_keywords) {
 #endif
   EXPECT_JSON_CONTAINS(
       json_issues,
-      "{'dbObject':'grouping.first_value', 'dbObjectType':'Trigger'}");
+      "{'dbObject':'grouping.System.first_value', 'dbObjectType':'Trigger'}");
 #ifdef __APPLE__
   EXPECT_JSON_CONTAINS(
       json_issues, "{'dbObject':'grouping.lateral', 'dbObjectType':'View'}");
@@ -1075,7 +1075,8 @@ END)*",
   EXPECT_ISSUE(issues[0], "testdb", "testsp1", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[1], "testdb", "testsp2", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[2], "testdb", "testf1", "", Upgrade_issue::ERROR);
-  EXPECT_ISSUE(issues[3], "testdb", "mytrigger", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[3], "testdb", "testbl", "mytrigger",
+               Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[4], "testdb", "myevent", "", Upgrade_issue::ERROR);
 
   // Backups all issues for the filtering
@@ -1108,7 +1109,8 @@ END)*",
   EXPECT_JSON_CONTAINS(
       json_issues, "{'dbObject':'testdb.testf1', 'dbObjectType':'Routine'}");
   EXPECT_JSON_CONTAINS(
-      json_issues, "{'dbObject':'testdb.mytrigger', 'dbObjectType':'Trigger'}");
+      json_issues,
+      "{'dbObject':'testdb.testbl.mytrigger', 'dbObjectType':'Trigger'}");
   EXPECT_JSON_CONTAINS(json_issues,
                        "{'dbObject':'testdb.myevent', 'dbObjectType':'Event'}");
 }
@@ -1211,7 +1213,8 @@ TEST_F(MySQL_upgrade_check_test, syntax_check_from_5_7) {
   EXPECT_ISSUE(issues[0], "testdb", "test_r_80_01", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[1], "testdb", "test_r_80_03", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[2], "testdb", "test_r_80_02", "", Upgrade_issue::ERROR);
-  EXPECT_ISSUE(issues[3], "testdb", "test_t_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[3], "testdb", "testbl", "test_t_80_01",
+               Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[4], "testdb", "test_e_80_01", "", Upgrade_issue::ERROR);
 
   check = get_syntax_check(upgrade_info(Version(5, 7, 44), Version(8, 4, 0)));
@@ -1228,7 +1231,8 @@ TEST_F(MySQL_upgrade_check_test, syntax_check_from_5_7) {
   EXPECT_ISSUE(issues[3], "testdb", "test_r_80_02", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[4], "testdb", "test_r_80_03", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[5], "testdb", "test_r_84_01", "", Upgrade_issue::ERROR);
-  EXPECT_ISSUE(issues[6], "testdb", "test_t_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[6], "testdb", "testbl", "test_t_80_01",
+               Upgrade_issue::ERROR);
 
   check = get_syntax_check(upgrade_info(Version(5, 7, 44), Version(9, 0, 0)));
 
@@ -1244,7 +1248,8 @@ TEST_F(MySQL_upgrade_check_test, syntax_check_from_5_7) {
   EXPECT_ISSUE(issues[3], "testdb", "test_r_80_02", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[4], "testdb", "test_r_80_03", "", Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[5], "testdb", "test_r_84_01", "", Upgrade_issue::ERROR);
-  EXPECT_ISSUE(issues[6], "testdb", "test_t_80_01", "", Upgrade_issue::ERROR);
+  EXPECT_ISSUE(issues[6], "testdb", "testbl", "test_t_80_01",
+               Upgrade_issue::ERROR);
 }
 
 TEST_F(MySQL_upgrade_check_test, syntax_parser_sql_mode_check) {
@@ -1341,7 +1346,7 @@ end)*"};
     EXPECT_ISSUE(issues[0], "testsyntaxdb", "testsp1", "",
                  Upgrade_issue::ERROR);
     EXPECT_ISSUE(issues[1], "testsyntaxdb", "testf1", "", Upgrade_issue::ERROR);
-    EXPECT_ISSUE(issues[2], "testsyntaxdb", "mytrigger", "",
+    EXPECT_ISSUE(issues[2], "testsyntaxdb", "testbl", "mytrigger",
                  Upgrade_issue::ERROR);
     EXPECT_ISSUE(issues[3], "testsyntaxdb", "myevent", "",
                  Upgrade_issue::ERROR);
@@ -1352,7 +1357,7 @@ end)*"};
     EXPECT_ISSUE(issues[0], "testsyntaxdb", "testsp1", "",
                  Upgrade_issue::ERROR);
     EXPECT_ISSUE(issues[1], "testsyntaxdb", "testf1", "", Upgrade_issue::ERROR);
-    EXPECT_ISSUE(issues[2], "testsyntaxdb", "mytrigger", "",
+    EXPECT_ISSUE(issues[2], "testsyntaxdb", "testbl", "mytrigger",
                  Upgrade_issue::ERROR);
     EXPECT_ISSUE(issues[3], "testsyntaxdb", "myevent", "",
                  Upgrade_issue::ERROR);
@@ -1699,7 +1704,7 @@ TEST_F(MySQL_upgrade_check_test, maxdb_sqlmode) {
                        "'dbObjectType':'Event'}");
 
   EXPECT_JSON_CONTAINS(json_issues,
-                       "{'dbObject':'aaa_test_maxdb_sql_mode.TR_MAXDB', "
+                       "{'dbObject':'aaa_test_maxdb_sql_mode.Clone.TR_MAXDB', "
                        "'dbObjectType':'Trigger'}");
 }
 
@@ -1798,9 +1803,10 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
                            "{'dbObject':'aaa_test_obsolete_sql_modes.EV_DB2', "
                            "'dbObjectType':'Event'}");
 
-      EXPECT_JSON_CONTAINS(json_issues,
-                           "{'dbObject':'aaa_test_obsolete_sql_modes.TR_DB2', "
-                           "'dbObjectType':'Trigger'}");
+      EXPECT_JSON_CONTAINS(
+          json_issues,
+          "{'dbObject':'aaa_test_obsolete_sql_modes.Clone.TR_DB2', "
+          "'dbObjectType':'Trigger'}");
 
       EXPECT_JSON_CONTAINS(
           json_issues,
@@ -2043,7 +2049,7 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
                        " 'dbObjectType':'Routine'}");
 
   EXPECT_JSON_CONTAINS(json_issues,
-                       "{'dbObject':'aaa_test_removed_functions.contr',"
+                       "{'dbObject':'aaa_test_removed_functions.geotab1.contr',"
                        " 'dbObjectType':'Trigger'}");
 
   EXPECT_JSON_CONTAINS(json_issues,
@@ -2114,9 +2120,11 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   EXPECT_TRUE(shcore::str_beginswith(issues[1].description, "PROCEDURE"));
   EXPECT_EQ("list_genres_desc", issues[2].table);
   EXPECT_TRUE(shcore::str_beginswith(issues[2].description, "PROCEDURE"));
-  EXPECT_EQ("genre_summary_asc", issues[3].table);
+  EXPECT_EQ("movies", issues[3].table);
+  EXPECT_EQ("genre_summary_asc", issues[3].column);
   EXPECT_TRUE(shcore::str_beginswith(issues[3].description, "TRIGGER"));
-  EXPECT_EQ("genre_summary_desc", issues[4].table);
+  EXPECT_EQ("movies", issues[4].table);
+  EXPECT_EQ("genre_summary_desc", issues[4].column);
   EXPECT_TRUE(shcore::str_beginswith(issues[4].description, "TRIGGER"));
   EXPECT_EQ("mov_sec", issues[5].table);
   EXPECT_TRUE(shcore::str_beginswith(issues[5].description, "EVENT"));
@@ -2157,13 +2165,14 @@ TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
                        "{'dbObject':'aaa_test_group_by_asc.list_genres_desc', "
                        "'dbObjectType':'Routine'}");
 
-  EXPECT_JSON_CONTAINS(json_issues,
-                       "{'dbObject':'aaa_test_group_by_asc.genre_summary_asc', "
-                       "'dbObjectType':'Trigger'}");
+  EXPECT_JSON_CONTAINS(
+      json_issues,
+      "{'dbObject':'aaa_test_group_by_asc.movies.genre_summary_asc', "
+      "'dbObjectType':'Trigger'}");
 
   EXPECT_JSON_CONTAINS(
       json_issues,
-      "{'dbObject':'aaa_test_group_by_asc.genre_summary_desc', "
+      "{'dbObject':'aaa_test_group_by_asc.movies.genre_summary_desc', "
       "'dbObjectType':'Trigger'}");
 
   EXPECT_JSON_CONTAINS(json_issues,
@@ -2662,10 +2671,10 @@ TEST_F(MySQL_upgrade_check_test, check_table_command) {
   auto check = get_table_command_check();
   EXPECT_NO_ISSUES(check.get());
 
-  ASSERT_NO_THROW(
-      session->execute("create table part(i integer) engine=myisam partition "
-                       "by range(i) (partition p0 values less than (1000), "
-                       "partition p1 values less than MAXVALUE);"));
+  ASSERT_NO_THROW(session->execute(
+      "create table mysql_check_table_test.part(i integer) engine=myisam "
+      "partition by range(i) (partition p0 values less than (1000), partition "
+      "p1 values less than MAXVALUE);"));
   EXPECT_NO_ISSUES(check.get());
 }
 
