@@ -4166,7 +4166,7 @@ EXPECT_STDOUT_CONTAINS(f"Checking for compatibility with MySQL HeatWave Service 
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning())
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_function, "Function", test_user_account).warning())
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_procedure, "Procedure", test_user_account).warning())
-EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_trigger, "Trigger", test_user_account).warning())
+EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_primary, "Trigger", test_user_account, test_table_trigger).warning())
 EXPECT_STDOUT_CONTAINS(strip_definers_definer_clause(schema_name, test_view, "View", test_user_account).warning())
 
 EXPECT_STDOUT_CONTAINS(strip_definers_security_clause(schema_name, test_schema_function, "Function").warning())
@@ -4189,7 +4189,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_event, "Event", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_function, "Function", account).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_schema_procedure, "Procedure", account).error())
-    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_table_trigger, "Trigger", account).error())
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_table_primary, "Trigger", account, test_table_trigger).error())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_view, "View", account).error())
 
 # restore schema
@@ -4202,7 +4202,7 @@ EXPECT_SUCCESS([ schema_name ], test_output_relative, { "targetVersion": __mysh_
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_event, "Event", test_user_account).warning())
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_function, "Function", test_user_account).warning())
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_schema_procedure, "Procedure", test_user_account).warning())
-EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_trigger, "Trigger", test_user_account).warning())
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_primary, "Trigger", test_user_account, test_table_trigger).warning())
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_view, "View", test_user_account).warning())
 
 # WL15887-TSFR_3_5_1 - no warnings about SQL SECURITY
@@ -4221,7 +4221,7 @@ for account in [ account_name, "`invalid-account`@`localhost`" ]:
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_event, "Event", account).warning())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_function, "Function", account).warning())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_schema_procedure, "Procedure", account).warning())
-    EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_table_trigger, "Trigger", account).warning())
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_table_primary, "Trigger", account, test_table_trigger).warning())
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_unknown_account(schema_name, test_view, "View", account).warning())
 
 # restore schema

@@ -602,6 +602,11 @@ std::string quote(const std::string &db, const std::string &object) {
   return shcore::quote_identifier(db) + "." + shcore::quote_identifier(object);
 }
 
+std::string quote(const std::string &db, const std::string &table,
+                  const std::string &object) {
+  return quote(db, table) + "." + shcore::quote_identifier(object);
+}
+
 }  // namespace
 
 void Schema_dumper::write_header(IFile *sql_file) {
@@ -993,10 +998,11 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
     switch_character_set_results("binary");
 
     for (const auto &event : events) {
+      const auto qualified_name = quote(db, event);
       const auto event_name = shcore::quote_identifier(event);
       log_debug("retrieving CREATE EVENT for %s", event_name.c_str());
-      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE EVENT %s.%s",
-               shcore::quote_identifier(db).c_str(), event_name.c_str());
+      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE EVENT %s",
+               qualified_name.c_str());
 
       auto event_res = query_log_and_throw(query_buff);
 
@@ -1014,10 +1020,10 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
 
           if (create_delimiter(field3.c_str(), delimiter, sizeof(delimiter)) ==
               nullptr) {
-            fprintf(stderr, "Warning: Can't create delimiter for event '%s'\n",
-                    event_name.c_str());
+            fprintf(stderr, "Warning: Can't create delimiter for event %s\n",
+                    qualified_name.c_str());
             THROW_ERROR(SHERR_DUMP_SD_CANNOT_CREATE_DELIMITER,
-                        event_name.c_str());
+                        qualified_name.c_str());
           }
 
           fprintf(sql_file, "DELIMITER %s\n", delimiter);
@@ -1027,7 +1033,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
 
             // BUG#38089433 - handle unsupported collations
             handle_collation_update_variable(
-                Compatibility_issue::Object_type::EVENT, quote(db, event),
+                Compatibility_issue::Object_type::EVENT, qualified_name,
                 "DATABASE_COLLATION", &event_db_col, &res);
 
             switch_db_collation(sql_file, db_name, delimiter, db_cl_name,
@@ -1038,7 +1044,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
 
             // BUG#38089433 - handle unsupported collations
             handle_collation_update_variable(
-                Compatibility_issue::Object_type::EVENT, quote(db, event),
+                Compatibility_issue::Object_type::EVENT, qualified_name,
                 "COLLATION_CONNECTION", &connection_col, &res);
 
             switch_cs_variables(
@@ -1071,8 +1077,8 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
           auto ces = opt_reexecutable ? fixup_event_ddl(row->get_string(3))
                                       : row->get_string(3);
 
-          check_object_for_definer(db, Compatibility_issue::Object_type::EVENT,
-                                   event, &ces, &res);
+          check_object_for_definer(Compatibility_issue::Object_type::EVENT,
+                                   qualified_name, &ces, &res);
 
           fprintf(sql_file, "/*!50106 %s */ %s\n", ces.c_str(),
                   (const char *)delimiter);
@@ -1145,12 +1151,12 @@ std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
   for (const auto &routine_type : routine_types) {
     const auto routine_list = get_routines(db, routine_type.first);
     for (const auto &routine : routine_list) {
+      const auto qualified_name = quote(db, routine);
       const auto routine_name = shcore::quote_identifier(routine);
       log_debug("retrieving CREATE %s for %s", routine_type.first.c_str(),
-                routine_name.c_str());
-      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE %s %s.%s",
-               routine_type.first.c_str(), shcore::quote_identifier(db).c_str(),
-               routine_name.c_str());
+                qualified_name.c_str());
+      snprintf(query_buff, sizeof(query_buff), "SHOW CREATE %s %s",
+               routine_type.first.c_str(), qualified_name.c_str());
 
       auto routine_res = query_log_and_throw(query_buff);
       while (auto row = routine_res->fetch_one()) {
@@ -1160,7 +1166,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
         */
         std::string body = row->is_null(2) ? "" : row->get_string(2);
         log_debug("length of body for %s row[2] '%s' is %zu",
-                  routine_name.c_str(),
+                  qualified_name.c_str(),
                   !row->is_null(2) ? body.c_str() : "(null)", body.length());
         if (row->is_null(2)) {
           print_comment(sql_file, true, "\n-- insufficient privileges to %s\n",
@@ -1187,7 +1193,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
 
             // BUG#38089433 - handle unsupported collations
             handle_collation_update_variable(
-                routine_type.second, quote(db, routine), "DATABASE_COLLATION",
+                routine_type.second, qualified_name, "DATABASE_COLLATION",
                 &routine_db_col, &res);
 
             switch_db_collation(sql_file, db_name, ";", db_cl_name,
@@ -1198,7 +1204,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
 
             // BUG#38089433 - handle unsupported collations
             handle_collation_update_variable(
-                routine_type.second, quote(db, routine), "COLLATION_CONNECTION",
+                routine_type.second, qualified_name, "COLLATION_CONNECTION",
                 &connection_col, &res);
 
             switch_cs_variables(
@@ -1226,7 +1232,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
 
           switch_sql_mode(sql_file, ";", row->get_string(1).c_str());
 
-          check_object_for_definer(db, routine_type.second, routine, &body,
+          check_object_for_definer(routine_type.second, qualified_name, &body,
                                    &res);
           check_routine_for_dependencies(db, routine, routine_type.second,
                                          &res);
@@ -1239,20 +1245,18 @@ std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
                                  ? s.functions
                                  : s.procedures)
                                 .at(routine);
-            const auto quoted = quote(db, routine);
-
             DBUG_EXECUTE_IF("dumper_unsupported_collation",
                             { use_unsupported_collation(&body); });
 
             for (const auto &p : r.parameters) {
               handle_collation_update_statement(
                   Compatibility_issue::Object_type::PARAMETER,
-                  quoted + '.' + shcore::quote_identifier(p.name), "collation",
-                  p.collation, &body, &res);
+                  qualified_name + '.' + shcore::quote_identifier(p.name),
+                  "collation", p.collation, &body, &res);
             }
 
             handle_collation_update_statement(
-                Compatibility_issue::Object_type::RETURN_VALUE, quoted,
+                Compatibility_issue::Object_type::RETURN_VALUE, qualified_name,
                 "collation", r.return_value.collation, &body, &res);
           }
 
@@ -1442,9 +1446,8 @@ std::vector<Compatibility_issue> Schema_dumper::check_ct_for_mysqlaas(
 }
 
 void Schema_dumper::check_object_for_definer(
-    const std::string &db, Compatibility_issue::Object_type object,
-    const std::string &name, std::string *ddl,
-    std::vector<Compatibility_issue> *issues) {
+    Compatibility_issue::Object_type object, const std::string &qualified_name,
+    std::string *ddl, std::vector<Compatibility_issue> *issues) {
   if (!(opt_mysqlaas || opt_strip_definer)) {
     return;
   }
@@ -1452,13 +1455,12 @@ void Schema_dumper::check_object_for_definer(
   const auto rewritten = opt_strip_definer ? ddl : nullptr;
   const auto user =
       compatibility::check_statement_for_definer_clause(*ddl, rewritten);
-  const auto quoted_name = quote(db, name);
   const auto set_any_definer = set_any_definer_check();
 
   if (!user.empty()) {
     if (opt_strip_definer) {
       issues->emplace_back(Compatibility_issue::fixed::object_invalid_definer(
-          object, quoted_name));
+          object, qualified_name));
     } else {
       if (set_any_definer.supported) {
         if (!m_cache) {
@@ -1472,7 +1474,7 @@ void Schema_dumper::check_object_for_definer(
                 account.user)) {
           issues->emplace_back(
               Compatibility_issue::error::object_restricted_definer(
-                  object, quoted_name, user));
+                  object, qualified_name, user));
         }
 
         if (m_cache->users.empty()) {
@@ -1487,7 +1489,7 @@ void Schema_dumper::check_object_for_definer(
                                                 account)) {
             issues->emplace_back(Compatibility_issue::warning::
                                      object_invalid_definer_missing_user(
-                                         object, quoted_name, user));
+                                         object, qualified_name, user));
           }
         }
       }
@@ -1496,9 +1498,9 @@ void Schema_dumper::check_object_for_definer(
         issues->emplace_back(
             set_any_definer.deprecated.downgrade_errors
                 ? Compatibility_issue::warning::object_invalid_definer(
-                      object, quoted_name, user)
+                      object, qualified_name, user)
                 : Compatibility_issue::error::object_invalid_definer(
-                      object, quoted_name, user));
+                      object, qualified_name, user));
       }
     }
   }
@@ -1506,14 +1508,14 @@ void Schema_dumper::check_object_for_definer(
   if (compatibility::check_statement_for_sqlsecurity_clause(*ddl, rewritten)) {
     if (opt_strip_definer) {
       issues->emplace_back(
-          Compatibility_issue::fixed::object_missing_sql_security(object,
-                                                                  quoted_name));
+          Compatibility_issue::fixed::object_missing_sql_security(
+              object, qualified_name));
     } else {
       if (set_any_definer.supported) {
         if (user.empty()) {
-          issues->emplace_back(
-              Compatibility_issue::error::
-                  object_missing_sql_security_and_definer(object, quoted_name));
+          issues->emplace_back(Compatibility_issue::error::
+                                   object_missing_sql_security_and_definer(
+                                       object, qualified_name));
         }
       }
 
@@ -1521,9 +1523,9 @@ void Schema_dumper::check_object_for_definer(
         issues->emplace_back(
             set_any_definer.deprecated.downgrade_errors
                 ? Compatibility_issue::warning::object_missing_sql_security(
-                      object, quoted_name)
+                      object, qualified_name)
                 : Compatibility_issue::error::object_missing_sql_security(
-                      object, quoted_name));
+                      object, qualified_name));
       }
     }
   }
@@ -2036,29 +2038,31 @@ std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
 std::vector<Compatibility_issue> Schema_dumper::dump_trigger(
     IFile *sql_file,
     const std::shared_ptr<mysqlshdk::db::IResult> &show_create_trigger_rs,
-    const std::string &db_name, const std::string &db_cl_name,
-    const std::string &trigger) {
+    const std::string &db_name, const std::string &table_name,
+    const std::string &trigger_name, const std::string &db_collation_name) {
   int db_cl_altered = false;
   std::vector<Compatibility_issue> res;
+
+  const auto qualified_name = quote(db_name, table_name, trigger_name);
 
   while (auto row = show_create_trigger_rs->fetch_one()) {
     auto trigger_db_col = row->get_string(5);
 
     // BUG#38089433 - handle unsupported collations
-    handle_collation_update_variable(
-        Compatibility_issue::Object_type::TRIGGER, quote(db_name, trigger),
-        "DATABASE_COLLATION", &trigger_db_col, &res);
+    handle_collation_update_variable(Compatibility_issue::Object_type::TRIGGER,
+                                     qualified_name, "DATABASE_COLLATION",
+                                     &trigger_db_col, &res);
 
-    switch_db_collation(sql_file, db_name, ";", db_cl_name, trigger_db_col,
-                        &db_cl_altered);
+    switch_db_collation(sql_file, db_name, ";", db_collation_name,
+                        trigger_db_col, &db_cl_altered);
 
     const auto client_cs = row->get_string(3);
     auto connection_col = row->get_string(4);
 
     // BUG#38089433 - handle unsupported collations
-    handle_collation_update_variable(
-        Compatibility_issue::Object_type::TRIGGER, quote(db_name, trigger),
-        "COLLATION_CONNECTION", &connection_col, &res);
+    handle_collation_update_variable(Compatibility_issue::Object_type::TRIGGER,
+                                     qualified_name, "COLLATION_CONNECTION",
+                                     &connection_col, &res);
 
     switch_cs_variables(sql_file, ";",
                         client_cs.c_str(),       /* character_set_client */
@@ -2077,8 +2081,8 @@ std::vector<Compatibility_issue> Schema_dumper::dump_trigger(
 
     std::string body = shcore::str_replace(row->get_string(2),
                                            trigger_with_schema, " TRIGGER ");
-    check_object_for_definer(db_name, Compatibility_issue::Object_type::TRIGGER,
-                             trigger, &body, &res);
+    check_object_for_definer(Compatibility_issue::Object_type::TRIGGER,
+                             qualified_name, &body, &res);
 
     fprintf(sql_file,
             "DELIMITER ;;\n"
@@ -2090,7 +2094,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_trigger(
     restore_cs_variables(sql_file, ";");
 
     if (db_cl_altered)
-      restore_db_collation(sql_file, db_name, ";", db_cl_name.c_str());
+      restore_db_collation(sql_file, db_name, ";", db_collation_name.c_str());
   }
 
   return res;
@@ -2141,8 +2145,8 @@ std::vector<Compatibility_issue> Schema_dumper::dump_triggers_for_table(
                            "." + trigger_name,
                        &show_create_trigger_rs) == 0) {
       Object_guard_msg guard(sql_file, "trigger", db, trigger_name);
-      const auto out = dump_trigger(sql_file, show_create_trigger_rs, db,
-                                    db_cl_name, trigger);
+      const auto out = dump_trigger(sql_file, show_create_trigger_rs, db, table,
+                                    trigger, db_cl_name);
       if (!out.empty()) res.insert(res.end(), out.begin(), out.end());
     }
   }
@@ -2847,13 +2851,15 @@ std::vector<Compatibility_issue> Schema_dumper::get_view_structure(
       connection_col = row->get_string(4);
     }
 
-    check_object_for_definer(db, Compatibility_issue::Object_type::VIEW, table,
-                             &ds_view, &res);
+    const auto qualified_name = quote(db, table);
+
+    check_object_for_definer(Compatibility_issue::Object_type::VIEW,
+                             qualified_name, &ds_view, &res);
     check_view_for_table_references(db, table, &res);
 
     // BUG#38089433 - handle unsupported collations
     handle_collation_update_variable(Compatibility_issue::Object_type::VIEW,
-                                     quote(db, table), "COLLATION_CONNECTION",
+                                     qualified_name, "COLLATION_CONNECTION",
                                      &connection_col, &res);
 
     /* Dump view structure to file */
@@ -4063,7 +4069,7 @@ void Schema_dumper::check_view_for_table_references(
 
   const auto case_insensitive_search =
       2 == m_cache->server.sysvars.lower_case_table_names;
-  const auto quoted_name = quote(db, name);
+  const auto qualified_name = quote(db, name);
 
   // NOTE: Invalid views (i.e. referencing non-existing tables/columns) are
   // detected earlier (when fetching view information by instance cache) and
@@ -4099,9 +4105,9 @@ void Schema_dumper::check_view_for_table_references(
         issues->emplace_back(
             opt_mysqlaas
                 ? Compatibility_issue::error::view_mismatched_reference(
-                      quoted_name, quote(ref.schema, ref.table))
+                      qualified_name, quote(ref.schema, ref.table))
                 : Compatibility_issue::warning::view_mismatched_reference(
-                      quoted_name, quote(ref.schema, ref.table)));
+                      qualified_name, quote(ref.schema, ref.table)));
         // don't report the other error
         included = true;
       }
@@ -4109,7 +4115,7 @@ void Schema_dumper::check_view_for_table_references(
 
     if (!included) {
       issues->emplace_back(Compatibility_issue::warning::view_invalid_reference(
-          quoted_name, quote(ref.schema, ref.table)));
+          qualified_name, quote(ref.schema, ref.table)));
     }
   }
 }
@@ -4122,7 +4128,7 @@ void Schema_dumper::check_routine_for_dependencies(
     return;
   }
 
-  const auto quoted_name = quote(db, name);
+  const auto qualified_name = quote(db, name);
   const auto &schema = m_cache->schemas.at(db);
   const auto &routine =
       (Compatibility_issue::Object_type::PROCEDURE == type ? schema.procedures
@@ -4137,11 +4143,11 @@ void Schema_dumper::check_routine_for_dependencies(
     if (!dependency.exists) {
       issues->emplace_back(
           Compatibility_issue::warning::routine_missing_dependency(
-              type, quoted_name, quote_library(dependency)));
+              type, qualified_name, quote_library(dependency)));
     } else if (!is_library_included(dependency.schema, dependency.library)) {
       issues->emplace_back(
           Compatibility_issue::note::routine_missing_dependency(
-              type, quoted_name, quote_library(dependency)));
+              type, qualified_name, quote_library(dependency)));
     }
   }
 }

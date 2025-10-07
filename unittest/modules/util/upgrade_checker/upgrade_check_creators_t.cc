@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -71,8 +71,9 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
 
     msession
         ->expect_query(
-            {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE FROM "
-             "information_schema.triggers WHERE (TRIGGER_SCHEMA NOT "
+            {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE, "
+             "EVENT_OBJECT_TABLE FROM information_schema.triggers WHERE "
+             "(TRIGGER_SCHEMA NOT "
              "IN('mysql','sys','performance_schema','information_schema'))",
              [](const std::string &query) {
                return remove_quoted_strings(query, k_sys_schemas);
@@ -134,9 +135,9 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
 
     msession
         ->expect_query(
-            "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE FROM "
-            "information_schema.triggers WHERE (STRCMP(TRIGGER_SCHEMA COLLATE "
-            "utf8_bin,'sakila'))=0 AND (STRCMP(TRIGGER_SCHEMA COLLATE "
+            "SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE, EVENT_OBJECT_TABLE "
+            "FROM information_schema.triggers WHERE (STRCMP(TRIGGER_SCHEMA "
+            "COLLATE utf8_bin,'sakila'))=0 AND (STRCMP(TRIGGER_SCHEMA COLLATE "
             "utf8_bin,'exclude'))<>0 AND ((STRCMP(TRIGGER_SCHEMA COLLATE "
             "utf8_bin,'sakila')=0 AND STRCMP(EVENT_OBJECT_TABLE COLLATE "
             "utf8_bin,'trigger_table')=0 AND(STRCMP(TRIGGER_NAME COLLATE "

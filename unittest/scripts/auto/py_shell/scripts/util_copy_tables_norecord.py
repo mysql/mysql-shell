@@ -119,7 +119,7 @@ EXPECT_SUCCESS(__sandbox_uri2, { "compatibility": [ "force_innodb", "ignore_miss
 EXPECT_STDOUT_NOT_CONTAINS(f"User {test_user_account} had restricted privileges")
 EXPECT_STDOUT_CONTAINS("View `sakila`.`customer_list` had definer clause removed")
 EXPECT_STDOUT_CONTAINS("View `sakila`.`customer_list` had SQL SECURITY characteristic set to INVOKER")
-EXPECT_STDOUT_CONTAINS("Trigger `sakila`.`customer_create_date` had definer clause removed")
+EXPECT_STDOUT_CONTAINS("Trigger `sakila`.`customer`.`customer_create_date` had definer clause removed")
 
 #@<> WL15298_TSFR_4_4_19
 EXPECT_SUCCESS(__sandbox_uri2, { "triggers": True })
@@ -523,7 +523,7 @@ for account in ["mysql.infoschema", "mysql.session", "mysql.sys", "ociadmin", "o
     setup_db(account)
     WIPE_OUTPUT()
     EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", __sandbox_uri2, { "dryRun": True, "showProgress": False }, schema = schema_name , tables = test_tables)
-    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_table_trigger, "Trigger", account).error(True))
+    EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_table_primary, "Trigger", account, test_table_trigger).error(True))
     EXPECT_STDOUT_CONTAINS(definer_clause_uses_restricted_user_name(schema_name, test_view, "View", account).error(True))
 
 # restore schema
@@ -533,7 +533,7 @@ setup_db(test_user_account)
 EXPECT_SUCCESS(__sandbox_uri2, { "dryRun": True, "showProgress": False }, schema = schema_name , tables = test_tables)
 
 # no warnings about DEFINER=
-EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_trigger, "Trigger", test_user_account).warning(True))
+EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_table_primary, "Trigger", test_user_account, test_table_trigger).warning(True))
 EXPECT_STDOUT_NOT_CONTAINS(strip_definers_definer_clause(schema_name, test_view, "View", test_user_account).warning(True))
 
 # WL15887-TSFR_3_5_1 - no warnings about SQL SECURITY

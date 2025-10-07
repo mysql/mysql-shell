@@ -61,6 +61,10 @@ namespace {
 
 #include "unittest/modules/mapped_collations.inc"
 
+std::string quote(const std::string &db, const std::string &object) {
+  return shcore::quote_identifier(db) + "." + shcore::quote_identifier(object);
+}
+
 }  // namespace
 
 using ::testing::AnyOf;
@@ -1060,9 +1064,10 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
                       file.get(), compat_db_name, "myisam_tbl1"));
   ASSERT_EQ(1, iss.size());
   EXPECT_EQ(
-      "Trigger `mysqlaas_compat`.`ins_sum` - definition uses DEFINER clause "
-      "set to user `root`@`localhost` which can only be executed by this user "
-      "or a user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+      "Trigger `mysqlaas_compat`.`myisam_tbl1`.`ins_sum` - definition uses "
+      "DEFINER clause set to user `root`@`localhost` which can only be "
+      "executed by this user or a user with SET_ANY_DEFINER, SET_USER_ID or "
+      "SUPER privileges",
       iss.front().description);
 
   EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
@@ -1405,8 +1410,10 @@ TEST_F(Schema_dumper_test, compat_ddl) {
   EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
                       file.get(), compat_db_name, "myisam_tbl1"));
   ASSERT_EQ(1, iss.size());
-  EXPECT_EQ("Trigger `mysqlaas_compat`.`ins_sum` had definer clause removed",
-            iss.front().description);
+  EXPECT_EQ(
+      "Trigger `mysqlaas_compat`.`myisam_tbl1`.`ins_sum` had definer clause "
+      "removed",
+      iss.front().description);
   EXPECT_DUMP_CONTAINS(
       {"/*!50003 CREATE TRIGGER ins_sum BEFORE INSERT ON myisam_tbl1"});
 
@@ -1822,7 +1829,8 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
             "${", "}");
         std::vector<Compatibility_issue> issues;
 
-        sd.check_object_for_definer(schema, stmt.second, object, &ddl, &issues);
+        sd.check_object_for_definer(stmt.second, quote(schema, object), &ddl,
+                                    &issues);
 
         EXPECT_THAT(ddl, HasSubstr(sql_security_invoker));
         EXPECT_THAT(ddl, Not(HasSubstr("DEFINER")));
@@ -1882,8 +1890,8 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer) {
             "${", "}");
         std::vector<Compatibility_issue> issues;
 
-        EXPECT_NO_THROW(sd.check_object_for_definer(schema, stmt.second, object,
-                                                    &ddl, &issues));
+        EXPECT_NO_THROW(sd.check_object_for_definer(
+            stmt.second, quote(schema, object), &ddl, &issues));
       }
     }
   }
@@ -1979,8 +1987,8 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
 
         std::vector<Compatibility_issue> issues;
 
-        sd.check_object_for_definer(schema, Object_type::PROCEDURE, object,
-                                    &ddl, &issues);
+        sd.check_object_for_definer(Object_type::PROCEDURE,
+                                    quote(schema, object), &ddl, &issues);
         EXPECT_EQ(expected_issues, issues);
       };
 

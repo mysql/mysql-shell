@@ -102,8 +102,8 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
            "<<schema_and_table_filter>> and COLUMN_NAME in " +
                keywords,
            Upgrade_issue::Object_type::COLUMN},
-          {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, 'Trigger name' as WARNING "
-           "FROM INFORMATION_SCHEMA.TRIGGERS WHERE "
+          {"SELECT TRIGGER_SCHEMA, EVENT_OBJECT_TABLE, TRIGGER_NAME, 'Trigger "
+           "name' as WARNING FROM INFORMATION_SCHEMA.TRIGGERS WHERE "
            "<<schema_and_trigger_filter>> and TRIGGER_NAME in " +
                keywords,
            Upgrade_issue::Object_type::TRIGGER},
@@ -178,9 +178,8 @@ class Syntax_check : public Upgrade_check {
          " AND " +
              qh.schema_and_routine_filter(),
          "SHOW CREATE FUNCTION !.!", 2, Upgrade_issue::Object_type::ROUTINE},
-        {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE"
-         " FROM information_schema.triggers"
-         " WHERE " +
+        {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE, EVENT_OBJECT_TABLE"
+         " FROM information_schema.triggers WHERE " +
              qh.schema_and_trigger_filter(),
          "SHOW CREATE TRIGGER !.!", 2, Upgrade_issue::Object_type::TRIGGER},
         {"SELECT EVENT_SCHEMA, EVENT_NAME, SQL_MODE"
@@ -315,13 +314,21 @@ class Syntax_check : public Upgrade_check {
     auto syntax_issues =
         check_routine_syntax(session, show_template, show_sql_field,
                              issue.schema, issue.table, sql_mode);
+
+    if (Upgrade_issue::Object_type::TRIGGER == object_type) {
+      // when reporting trigger-related issues we want to include the associated
+      // table's name
+      issue.column = std::move(issue.table);
+      issue.table = row->get_as_string(3);
+    }
+
     for (auto &syntax_issue : syntax_issues) {
       if (syntax_issue.empty()) {
         continue;
       }
 
       auto new_issue = issue;
-      new_issue.description = syntax_issue;
+      new_issue.description = std::move(syntax_issue);
       result.emplace_back(std::move(new_issue));
     }
 
@@ -430,9 +437,10 @@ std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check() {
            "sql_mode' from information_schema.EVENTS where "
            "<<schema_and_event_filter>> and find_in_set('MAXDB', sql_mode);",
            Upgrade_issue::Object_type::EVENT},
-          {"select trigger_schema, trigger_name, 'TRIGGER uses obsolete MAXDB "
-           "sql_mode' from information_schema.TRIGGERS where "
-           "<<schema_and_trigger_filter>> and find_in_set('MAXDB', sql_mode);",
+          {"select trigger_schema, event_object_table, trigger_name, 'TRIGGER "
+           "uses obsolete MAXDB sql_mode' from information_schema.TRIGGERS "
+           "where <<schema_and_trigger_filter>> and find_in_set('MAXDB', "
+           "sql_mode);",
            Upgrade_issue::Object_type::TRIGGER},
           {"select concat('@@global.', variable_name), 'defined "
            "using obsolete MAXDB option' as reason from "
@@ -468,10 +476,9 @@ std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
         Upgrade_issue::Object_type::EVENT);
     queries.emplace_back(
         shcore::str_format(
-            "select trigger_schema, trigger_name, 'TRIGGER uses obsolete %s "
-            "sql_mode' from information_schema.TRIGGERS where "
-            "<<schema_and_trigger_filter>> and find_in_set('%s', "
-            "sql_mode);",
+            "select trigger_schema, event_object_table, trigger_name, 'TRIGGER "
+            "uses obsolete %s sql_mode' from information_schema.TRIGGERS where "
+            "<<schema_and_trigger_filter>> and find_in_set('%s', sql_mode);",
             mode, mode),
         Upgrade_issue::Object_type::TRIGGER);
     queries.emplace_back(
@@ -756,9 +763,9 @@ class Removed_functions_check : public Sql_upgrade_check {
               "information_schema.columns where extra regexp 'generated' and "
               "<<schema_and_table_filter>>",
               Upgrade_issue::Object_type::COLUMN},
-             {"select TRIGGER_SCHEMA, TRIGGER_NAME, '', 'TRIGGER', "
-              "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
-              "<<schema_and_trigger_filter>>",
+             {"select TRIGGER_SCHEMA, EVENT_OBJECT_TABLE, TRIGGER_NAME, "
+              "'TRIGGER', UPPER(ACTION_STATEMENT) from "
+              "information_schema.triggers where <<schema_and_trigger_filter>>",
               Upgrade_issue::Object_type::TRIGGER},
              {"select event_schema, event_name, '', 'EVENT', "
               "UPPER(EVENT_DEFINITION) from information_schema.events where "
@@ -822,11 +829,10 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
               "UPPER(routine_definition) like '%DESC%');",
               Upgrade_issue::Object_type::ROUTINE},
              {"select TRIGGER_SCHEMA, TRIGGER_NAME, 'TRIGGER', "
-              "UPPER(ACTION_STATEMENT) from information_schema.triggers where "
-              "<<schema_and_trigger_filter>> and "
-              "(UPPER(ACTION_STATEMENT) like '%ASC%' or "
-              "UPPER(ACTION_STATEMENT) "
-              "like '%DESC%');",
+              "UPPER(ACTION_STATEMENT), EVENT_OBJECT_TABLE from "
+              "information_schema.triggers where <<schema_and_trigger_filter>> "
+              "and (UPPER(ACTION_STATEMENT) like '%ASC%' or "
+              "UPPER(ACTION_STATEMENT) like '%DESC%');",
               Upgrade_issue::Object_type::TRIGGER},
              {"select event_schema, event_name, 'EVENT', "
               "UPPER(EVENT_DEFINITION) from information_schema.events where "
@@ -874,6 +880,14 @@ class Groupby_asc_syntax_check : public Sql_upgrade_check {
     if (!res.description.empty()) {
       res.schema = row->get_as_string(0);
       res.table = row->get_as_string(1);
+
+      if (Upgrade_issue::Object_type::TRIGGER == object_type) {
+        // when reporting trigger-related issues we want to include the
+        // associated table's name
+        res.column = std::move(res.table);
+        res.table = row->get_as_string(4);
+      }
+
       res.level = m_level;
       res.object_type = object_type;
     }
@@ -1205,9 +1219,10 @@ std::unique_ptr<Sql_upgrade_check> get_empty_dot_table_syntax_check() {
            "<<schema_and_event_filter>> AND EVENT_DEFINITION REGEXP '" +
                regex + "';",
            Upgrade_issue::Object_type::EVENT},
-          {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, ' trigger body contains "
-           "deprecated identifiers.' FROM information_schema.triggers WHERE "
-           "<<schema_and_trigger_filter>> AND ACTION_STATEMENT REGEXP '" +
+          {"SELECT TRIGGER_SCHEMA, EVENT_OBJECT_TABLE, TRIGGER_NAME, ' trigger "
+           "body contains deprecated identifiers.' FROM "
+           "information_schema.triggers WHERE <<schema_and_trigger_filter>> "
+           "AND ACTION_STATEMENT REGEXP '" +
                regex + "';",
            Upgrade_issue::Object_type::TRIGGER}},
       Upgrade_issue::ERROR);
