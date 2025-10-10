@@ -145,6 +145,48 @@
     ]
   },
   {
+    "name": "group_replication_recovery_use_ssl",
+    "version": "5.7.17",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "OFF"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "ON"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group_replication_ssl_mode",
+    "version": "5.7.17",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "DISABLED"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "REQUIRED"
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "group_replication_transaction_size_limit",
     "version": "5.7.19",
     "initial": {
@@ -607,6 +649,27 @@
     "removal": "5.7.6"
   },
   {
+    "name": "caching_sha2_password_digest_rounds",
+    "version": "8.0.24",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "5000"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "10000"
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "character_set_server",
     "version": "4.1.3",
     "initial": {
@@ -949,6 +1012,21 @@
             ]
           }
         }
+      },
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "ON"
+          },
+          "allowed": {
+            "all": [
+              "OFF",
+              "ON",
+              "WARN"
+            ]
+          }
+        }
       }
     ]
   },
@@ -1024,6 +1102,48 @@
         "all": {
           "default": {
             "all": "0 (Days)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "explain_format",
+    "version": "8.0.32",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "TRADITIONAL"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "TREE"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "explain_json_format_version",
+    "version": "8.3.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "2"
           }
         }
       }
@@ -1106,6 +1226,22 @@
         "all": {
           "default": {
             "all": "OFF"
+          },
+          "allowed": {
+            "all": [
+              "OFF",
+              "OFF_PERMISSIVE",
+              "ON_PERMISSIVE",
+              "ON"
+            ]
+          }
+        }
+      },
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "ON"
           },
           "allowed": {
             "all": [
@@ -1389,6 +1525,14 @@
         "all": {
           "default": {
             "all": "none"
+          }
+        }
+      },
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "all"
           }
         }
       }
@@ -1819,7 +1963,7 @@
         "version": "9.5.0",
         "all": {
           "default": {
-            "all": "If binary logging is enabled and available logical         processors > 32: ON; if binary logging is not enabled and available         logical processors > 4: ON; in all other cases: OFF"
+            "all": "If binary logging is enabled and available logical processors > 32: ON; if binary logging is not enabled and available logical processors > 4: ON; in all other cases: OFF"
           }
         }
       }
@@ -2847,6 +2991,27 @@
     "removal": "8.0.13"
   },
   {
+    "name": "mle.memory_max",
+    "version": "9.0.0",
+    "initial": {
+      "all": {
+        "default": {
+          "64": "1300M (Bytes)"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "64": "(0.05) * (total physical memory in GB) (Bytes)"
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "myisam_max_extra_sort_file_size",
     "deprecation": "5.0.6"
   },
@@ -3454,6 +3619,7 @@
               "engine_condition_pushdown={on|off}",
               "firstmatch={on|off}",
               "hash_join={on|off}",
+              "hash_set_operations={on|off}",
               "hypergraph_optimizer=off",
               "index_condition_pushdown={on|off}",
               "index_merge={on|off}",
@@ -3489,6 +3655,7 @@
               "engine_condition_pushdown={on|off}",
               "firstmatch={on|off}",
               "hash_join={on|off}",
+              "hash_set_operations={on|off}",
               "hypergraph_optimizer=on",
               "index_condition_pushdown={on|off}",
               "index_merge={on|off}",
@@ -4022,6 +4189,48 @@
     "deprecation": "5.5.3"
   },
   {
+    "name": "rpl_semi_sync_master_enabled",
+    "version": "6.0.8",
+    "deprecation": "8.0.26",
+    "removal": "9.5.0"
+  },
+  {
+    "name": "rpl_semi_sync_master_timeout",
+    "version": "6.0.8",
+    "deprecation": "8.0.26",
+    "removal": "9.5.0"
+  },
+  {
+    "name": "rpl_semi_sync_master_trace_level",
+    "version": "6.0.8",
+    "deprecation": "8.0.26",
+    "removal": "9.5.0"
+  },
+  {
+    "name": "rpl_semi_sync_master_wait_for_slave_count",
+    "version": "5.7.3",
+    "deprecation": "8.0.26",
+    "removal": "9.5.0"
+  },
+  {
+    "name": "rpl_semi_sync_master_wait_point",
+    "version": "5.7.2",
+    "deprecation": "8.0.26",
+    "removal": "9.5.0"
+  },
+  {
+    "name": "rpl_semi_sync_slave_enabled",
+    "version": "6.0.8",
+    "deprecation": "8.0.26",
+    "removal": "9.5.0"
+  },
+  {
+    "name": "rpl_semi_sync_slave_trace_level",
+    "version": "6.0.8",
+    "deprecation": "8.0.26",
+    "removal": "9.5.0"
+  },
+  {
     "name": "rpl_stop_slave_timeout",
     "version": "5.6.13",
     "deprecation": "8.0.26",
@@ -4253,6 +4462,11 @@
     "replacement": "replica_compressed_protocol"
   },
   {
+    "name": "slave_exec_mode",
+    "version": "5.1.23",
+    "deprecation": "8.0.26"
+  },
+  {
     "name": "slave_max_allowed_packet",
     "version": "5.1.64",
     "deprecation": "8.0.26",
@@ -4262,6 +4476,7 @@
     "name": "slave_parallel_type",
     "version": "5.7.2",
     "deprecation": "8.0.26",
+    "removal": "9.5.0",
     "replacement": "replica_parallel_type",
     "initial": {
       "all": {
@@ -4972,9 +5187,112 @@
     ]
   },
   {
+    "name": "thread_pool_algorithm",
+    "version": "5.5.16",
+    "changes": [
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "0"
+          }
+        }
+      },
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "1"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "thread_pool_max_transactions_limit",
+    "version": "8.0.23",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "0"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "MIN( 32 * (thread_pool_size), 512)"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "thread_pool_max_unused_threads",
+    "version": "5.5.16",
+    "changes": [
+      {
+        "version": "8.0.11",
+        "all": {
+          "default": {
+            "all": "0"
+          }
+        }
+      },
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "2"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "thread_pool_query_threads_per_group",
+    "version": "8.0.31",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "1"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "2"
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "thread_pool_size",
     "version": "5.5.16",
-    "removal": "6.0.14"
+    "removal": "6.0.14",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "16"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "MIN(VCPU/2, 16)"
+          }
+        }
+      }
+    ]
   },
   {
     "name": "thread_stack",
@@ -5210,6 +5528,132 @@
     "version": "5.7.8",
     "deprecation": "9.2.0",
     "removal": "9.3.0"
+  },
+  {
+    "name": "telemetry.metrics_enabled",
+    "version": "8.3.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "telemetry.trace_enabled",
+    "version": "8.1.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "telemetry.otel_exporter_otlp_traces_endpoint",
+    "version": "8.1.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "http://localhost:4318/v1/traces"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": ""
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "telemetry.otel_exporter_otlp_metrics_endpoint",
+    "version": "8.3.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "http://localhost:4318/v1/metrics"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "empty"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "telemetry.log_enabled",
+    "version": "9.1.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "ON"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "OFF"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "telemetry.otel_exporter_otlp_logs_endpoint",
+    "version": "9.1.0",
+    "initial": {
+      "all": {
+        "default": {
+          "all": "http://localhost:4318/v1/logs"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "9.5.0",
+        "all": {
+          "default": {
+            "all": "empty"
+          }
+        }
+      }
+    ]
   },
   {
     "name": "performance_schema_consumer_events_transactions_current",
