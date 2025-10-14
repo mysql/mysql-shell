@@ -1763,10 +1763,10 @@ load_with_conflicts({ "excludeSchemas": [ "a" ], "includeTables": [ "a.t" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `a`.`t` which refers to an excluded schema.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "includeTables": [ "a.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `a`.`t` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `a`.`t` which refers to a schema which was not included.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "excludeTables": [ "a.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `a`.`t` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `a`.`t` which refers to a schema which was not included.")
 
 #@<> includeEvents + excludeEvents conflicts
 # no conflicts
@@ -1850,10 +1850,10 @@ load_with_conflicts({ "excludeSchemas": [ "a" ], "includeEvents": [ "a.e" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `a`.`e` which refers to an excluded schema.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "includeEvents": [ "a.e" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `a`.`e` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `a`.`e` which refers to a schema which was not included.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "excludeEvents": [ "a.e" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeEvents option contains an event `a`.`e` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeEvents option contains an event `a`.`e` which refers to a schema which was not included.")
 
 #@<> includeRoutines + excludeRoutines conflicts
 # no conflicts
@@ -1937,10 +1937,10 @@ load_with_conflicts({ "excludeSchemas": [ "a" ], "includeRoutines": [ "a.r" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `a`.`r` which refers to an excluded schema.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "includeRoutines": [ "a.r" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `a`.`r` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `a`.`r` which refers to a schema which was not included.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "excludeRoutines": [ "a.r" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `a`.`r` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `a`.`r` which refers to a schema which was not included.")
 
 #@<> WL16731 - includeLibraries + excludeLibraries conflicts
 # no conflicts
@@ -2024,10 +2024,10 @@ load_with_conflicts({ "excludeSchemas": [ "a" ], "includeLibraries": [ "a.l" ] }
 EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `a`.`l` which refers to an excluded schema.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "includeLibraries": [ "a.l" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `a`.`l` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `a`.`l` which refers to a schema which was not included.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "excludeLibraries": [ "a.l" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `a`.`l` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `a`.`l` which refers to a schema which was not included.")
 
 #@<> includeTriggers + excludeTriggers conflicts
 # no conflicts
@@ -2216,16 +2216,16 @@ load_with_conflicts({ "excludeSchemas": [ "a" ], "includeTriggers": [ "a.t.t" ] 
 EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to an excluded schema.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "includeTriggers": [ "a.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to a schema which was not included.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "includeTriggers": [ "a.t.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to a schema which was not included.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "excludeTriggers": [ "a.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `a`.`t` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `a`.`t` which refers to a schema which was not included.")
 
 load_with_conflicts({ "includeSchemas": [ "b" ], "excludeTriggers": [ "a.t.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `a`.`t`.`t` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `a`.`t`.`t` which refers to a schema which was not included.")
 
 load_with_conflicts({ "excludeTables": [ "a.t" ], "includeTriggers": [ "a.t" ] })
 EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to an excluded table.")
@@ -2234,16 +2234,16 @@ load_with_conflicts({ "excludeTables": [ "a.t" ], "includeTriggers": [ "a.t.t" ]
 EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to an excluded table.")
 
 load_with_conflicts({ "includeTables": [ "b.t" ], "includeTriggers": [ "a.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `a`.`t` which refers to a table which was not included.")
 
 load_with_conflicts({ "includeTables": [ "b.t" ], "includeTriggers": [ "a.t.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `a`.`t`.`t` which refers to a table which was not included.")
 
 load_with_conflicts({ "includeTables": [ "b.t" ], "excludeTriggers": [ "a.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `a`.`t` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `a`.`t` which refers to a table which was not included.")
 
 load_with_conflicts({ "includeTables": [ "b.t" ], "excludeTriggers": [ "a.t.t" ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `a`.`t`.`t` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `a`.`t`.`t` which refers to a table which was not included.")
 
 #@<> includeUsers + excludeUsers conflicts
 # no conflicts

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,6 +26,7 @@
 #include "unittest/modules/util/upgrade_checker/test_utils.h"
 
 #include <iostream>
+#include <mutex>
 
 #include "mysqlshdk/include/scripting/types.h"
 
@@ -52,11 +53,19 @@ Upgrade_info upgrade_info(const std::string &server,
   return upgrade_info(Version(server), Version(target));
 }
 
+std::once_flag default_options_flag;
 Upgrade_check_config create_config(std::optional<Version> server_version,
                                    std::optional<Version> target_version,
                                    const std::string &server_os,
                                    size_t server_bits) {
-  Upgrade_check_config config;
+  static mysqlsh::upgrade_checker::Upgrade_check_options s_default_options;
+
+  std::call_once(default_options_flag, []() {
+    s_default_options.output_format = "TEXT";
+    s_default_options.target_version = mysqlshdk::utils::k_shell_version;
+  });
+
+  Upgrade_check_config config(s_default_options);
 
   if (server_version.has_value())
     config.m_upgrade_info.server_version = std::move(*server_version);

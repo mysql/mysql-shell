@@ -70,7 +70,7 @@ class Feature_life_cycle_check : public Upgrade_check {
                                     const Upgrade_info &server_info);
   ~Feature_life_cycle_check() override = default;
 
-  virtual std::string build_query() = 0;
+  virtual std::string build_query(Checker_cache *cache = nullptr) = 0;
 
   bool enabled() const override;
 
@@ -85,7 +85,7 @@ class Feature_life_cycle_check : public Upgrade_check {
 
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info) override;
+      const Upgrade_info &server_info, Checker_cache *cache) override;
 
   std::vector<const Feature_definition *> get_features(
       bool only_enabled = false) const;
@@ -115,7 +115,7 @@ class Auth_method_usage_check : public Feature_life_cycle_check {
  public:
   Auth_method_usage_check(const Upgrade_info &server_info);
 
-  std::string build_query() override;
+  std::string build_query(Checker_cache *cache = nullptr) override;
 
  private:
   void process_row(const mysqlshdk::db::IRow *row) override;
@@ -125,7 +125,7 @@ class Plugin_usage_check : public Feature_life_cycle_check {
  public:
   Plugin_usage_check(const Upgrade_info &server_info);
 
-  std::string build_query() override;
+  std::string build_query(Checker_cache *cache = nullptr) override;
 
  private:
   void process_row(const mysqlshdk::db::IRow *row) override;

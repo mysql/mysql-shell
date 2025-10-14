@@ -392,7 +392,7 @@ std::unique_ptr<Sql_upgrade_check> get_innodb_rowformat_check() {
       std::vector<Check_query>{
           {"select table_schema, table_name, row_format from "
            "information_schema.tables where engine = 'innodb' "
-           "and row_format != 'Dynamic';",
+           "and row_format != 'Dynamic' and <<schema_and_table_filter>>;",
            Upgrade_issue::Object_type::TABLE}},
       Upgrade_issue::WARNING);
 }
@@ -553,7 +553,7 @@ class Check_table_command : public Upgrade_check {
 
   std::vector<Upgrade_issue> run(
       const std::shared_ptr<mysqlshdk::db::ISession> &session,
-      const Upgrade_info &server_info) override {
+      const Upgrade_info &server_info, Checker_cache *cache) override {
     // Workaround for 5.7 "No database selected/Corrupted" UPGRADE bug present
     // up to 5.7.39
     session->execute("USE mysql;");
@@ -572,16 +572,16 @@ class Check_table_command : public Upgrade_check {
       }
     }
     std::vector<std::pair<std::string, std::string>> tables;
-    auto result =
-        session->query("SELECT TABLE_SCHEMA, TABLE_NAME" +
-                       std::string(DBUG_EVALUATE_IF("dbg_uc_check_table_sleep",
-                                                    ", SLEEP(1)", "")) +
-                       " FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA "
-                       "not in ('information_schema', 'performance_schema', "
-                       "'sys')" +
-                       std::string(DBUG_EVALUATE_IF("dbg_uc_check_table_sleep",
-                                                    " LIMIT 9", "")));
+    const auto &qh = cache->query_helper();
     {
+      auto query_string = "SELECT TABLE_SCHEMA, TABLE_NAME" +
+                          std::string(DBUG_EVALUATE_IF(
+                              "dbg_uc_check_table_sleep", ", SLEEP(9)", "")) +
+                          " FROM INFORMATION_SCHEMA.TABLES WHERE " +
+                          qh.schema_and_table_filter() +
+                          std::string(DBUG_EVALUATE_IF(
+                              "dbg_uc_check_table_sleep", " LIMIT 1", ""));
+      auto result = session->query(query_string);
       const mysqlshdk::db::IRow *pair = nullptr;
       while ((pair = result->fetch_one()) != nullptr) {
         tables.push_back(
@@ -643,7 +643,8 @@ get_partitioned_tables_in_shared_tablespaces_check(const Upgrade_info &info) {
                  "information_schema.PARTITIONS WHERE "
                  "PARTITION_NAME IS NOT NULL AND "
                  "(TABLESPACE_NAME IS NOT NULL AND "
-                 "TABLESPACE_NAME!='innodb_file_per_table');"
+                 "TABLESPACE_NAME!='innodb_file_per_table') AND "
+                 "<<schema_and_table_filter>>;"
                : "select SUBSTRING_INDEX(it.name, '/', 1), "
                  "SUBSTRING_INDEX(SUBSTRING_INDEX(it.name, '/', -1), '#', 1), "
                  "concat('Partition ', "
@@ -1018,7 +1019,8 @@ std::unique_ptr<Sql_upgrade_check> get_old_geometry_types_check() {
                 c.column_name = sc.name and
                 c.data_type in ('point', 'geometry', 'polygon', 'linestring',
                   'multipoint', 'multilinestring', 'multipolygon',
-                  'geometrycollection');)",
+                  'geometrycollection') and
+                <<t.schema_and_table_filter>>;)",
           Upgrade_issue::Object_type::COLUMN}},
       Upgrade_issue::ERROR);
 }
@@ -1673,7 +1675,8 @@ from (select
     fk.REFERENCED_TABLE_NAME,
     fk.table_name
   having
-    SUM(idx.non_unique_count = 0) = 0
+    SUM(idx.non_unique_count = 0) = 0 AND
+    <<fk.schema_and_table_filter:constraint_schema:table_name>>
 )",
                        Upgrade_issue::Object_type::FOREIGN_KEY},
                        {
@@ -1714,7 +1717,8 @@ FROM (
       rc.table_name = kc.table_name AND
       rc.referenced_table_name = kc.referenced_table_name AND
       <<schema_filter:rc.constraint_schema>>
-
+  WHERE
+    <<schema_filter:rc.constraint_schema>>
     GROUP BY
       rc.constraint_name,
       rc.constraint_schema,
@@ -1736,7 +1740,9 @@ WHERE
       table_schema,
       table_name,
       index_name
-    ))"
+    ) AND
+  <<fk.schema_and_table_filter:constraint_schema:table_name>>
+)"
                         ,Upgrade_issue::Object_type::FOREIGN_KEY
                        }},
       Upgrade_issue::WARNING);

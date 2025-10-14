@@ -240,9 +240,72 @@ OPTIONS
             Comma separated list containing the check identifiers to be
             excluded from the operation.
 
+--excludeEvents=<str list>
+            Comma separated list containing event identifiers to be excluded
+            from the operation. Strings are in format schema.event, quoted
+            using backtick characters when required.
+
+--excludeRoutines=<str list>
+            Comma separated list containing routine identifiers to be excluded
+            from the operation. Strings are in format schema.routine, quoted
+            using backtick characters when required.
+
+--excludeSchemas=<str list>
+            Comma separated list containing schema identifiers to be excluded
+            from the operation, quoted using backtick characters when required.
+
+--excludeTables=<str list>
+            Comma separated list containing table identifiers to be excluded
+            from the operation. Strings are in format schema.table, quoted
+            using backtick characters when required.
+
+--excludeTriggers=<str list>
+            Comma separated list containing trigger identifiers to be excluded
+            from the operation. Strings are in format schema.table (all
+            triggers from the specified table) or schema.table.trigger (the
+            individual trigger), quoted using backtick characters when
+            required.
+
+--excludeUsers=<str list>
+            Comma separated list containing user accounts to be excluded from
+            the operation. Each user is in the format of 'user_name'[@'host'].
+            If the host is not specified, all the accounts with the given user
+            name are excluded.
+
 --include=<str list>
             Comma separated list containing the check identifiers to be
             included in the operation.
+
+--includeEvents=<str list>
+            Comma separated list containing event identifiers to be included in
+            the operation. Strings are in format schema.event, quoted using
+            backtick characters when required.
+
+--includeRoutines=<str list>
+            Comma separated list containing routine identifiers to be included
+            in the operation. Strings are in format schema.routine, quoted
+            using backtick characters when required.
+
+--includeSchemas=<str list>
+            Comma separated list containing schema identifiers to be included
+            in the operation, quoted using backtick characters when required.
+
+--includeTables=<str list>
+            Comma separated list containing table identifiers to be included in
+            the operation. Strings are in format schema.table, quoted using
+            backtick characters when required.
+
+--includeTriggers=<str list>
+            Comma separated list containing trigger identifiers to be included
+            in the operation. Strings are in format schema.table (all triggers
+            from the specified table) or schema.table.trigger (the individual
+            trigger), quoted using backtick characters when required.
+
+--includeUsers=<str list>
+            Comma separated list containing user accounts to be included in the
+            operation. Each user is in the format of 'user_name'[@'host']. If
+            the host is not specified, all the accounts with the given user
+            name are included.
 
 --list=<bool>
             Bool value to indicate the operation should only list the checks.

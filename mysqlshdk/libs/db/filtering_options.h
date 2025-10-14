@@ -389,6 +389,11 @@ class Filtering_options final {
   Trigger_filters m_triggers;
 };
 
+namespace utils {
+std::string build_user_where(
+    const Filtering_options::User_filters &user_filters);
+}  // namespace utils
+
 }  // namespace db
 }  // namespace mysqlshdk
 

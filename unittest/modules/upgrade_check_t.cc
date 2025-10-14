@@ -93,7 +93,8 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
  public:
   MySQL_upgrade_check_test()
       : info(upgrade_info(_target_server_version, k_shell_version)),
-        config(create_config(_target_server_version, k_shell_version)) {}
+        config(create_config(_target_server_version, k_shell_version)),
+        cache(*config.db_filters()) {}
 
  protected:
   virtual void SetUp() {
@@ -151,7 +152,8 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
       Upgrade_check *check, const int no = -1,
       std::function<void()> after_run_callback = std::function<void()>()) {
     try {
-      mysqlsh::upgrade_checker::Checker_cache extra_cache;
+      mysqlsh::upgrade_checker::Upgrade_check_options options;
+      mysqlsh::upgrade_checker::Checker_cache extra_cache(options.filters);
       issues = check->run(session, info, &extra_cache);
       if (after_run_callback) after_run_callback();
     } catch (const std::exception &e) {
@@ -198,7 +200,9 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   void EXPECT_ISSUES(Upgrade_check *check, const int no,
                      mysqlshdk::db::Filtering_options *filters) {
     try {
-      mysqlsh::upgrade_checker::Checker_cache filtered_cache(filters);
+      mysqlsh::upgrade_checker::Upgrade_check_options options;
+      mysqlsh::upgrade_checker::Checker_cache filtered_cache(
+          filters == nullptr ? options.filters : *filters);
       issues = check->run(session, info, &filtered_cache);
     } catch (const std::exception &e) {
       puts("Exception runing check:");
@@ -220,7 +224,9 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   void EXPECT_NO_ISSUES(Upgrade_check *check,
                         mysqlshdk::db::Filtering_options *filters) {
     try {
-      mysqlsh::upgrade_checker::Checker_cache filtered_cache(filters);
+      mysqlsh::upgrade_checker::Upgrade_check_options options;
+      mysqlsh::upgrade_checker::Checker_cache filtered_cache(
+          filters == nullptr ? options.filters : *filters);
       issues = check->run(session, info, &filtered_cache);
     } catch (const std::exception &e) {
       puts("Exception runing check:");
@@ -582,17 +588,20 @@ TEST(Upgrade_check_cache, cache_tables) {
     // Verifies the original queries are created by default
     auto msession = std::make_shared<testing::Mock_session>();
     auto server_info = upgrade_info(Version(8, 0, 0), Version(8, 0, 0));
-    Checker_cache cache;
+    mysqlsh::upgrade_checker::Upgrade_check_options options;
+    Checker_cache cache(options.filters);
 
     msession
-        ->expect_query(
-            {"SELECT TABLE_SCHEMA, TABLE_NAME, ENGINE FROM "
-             "information_schema.tables WHERE ENGINE IS NOT NULL AND "
-             "(TABLE_SCHEMA NOT "
-             "IN('mysql','sys','performance_schema','information_schema'))",
-             [](const std::string &query) {
-               return remove_quoted_strings(query, k_sys_schemas);
-             }})
+        ->expect_query({"SELECT TABLE_SCHEMA, TABLE_NAME, ENGINE FROM "
+                        "information_schema.tables WHERE ENGINE IS NOT NULL "
+                        "AND (STRCMP(TABLE_SCHEMA COLLATE "
+                        "utf8_bin,'mysql')&STRCMP(TABLE_SCHEMA COLLATE "
+                        "utf8_bin,'sys')&STRCMP(TABLE_SCHEMA COLLATE "
+                        "utf8_bin,'performance_schema')&STRCMP(TABLE_SCHEMA "
+                        "COLLATE utf8_bin,'information_schema'))<>0",
+                        [](const std::string &query) {
+                          return remove_quoted_strings(query, k_sys_schemas);
+                        }})
         .then({"TABLE_SCHEMA", "TABLE_NAME", "ENGINE"});
 
     cache.cache_tables(msession.get());
@@ -609,7 +618,7 @@ TEST(Upgrade_check_cache, cache_tables) {
     options.tables().include("sakila.actor");
     options.tables().exclude("sakila.address");
 
-    Checker_cache cache(&options);
+    Checker_cache cache(options);
 
     msession
         ->expect_query(
@@ -631,25 +640,30 @@ TEST(Upgrade_check_cache, get_schema_filter) {
 
   {
     // No filter defined at all, default schema filter is used
-    Checker_cache cache;
+    mysqlsh::upgrade_checker::Upgrade_check_options options;
+    Checker_cache cache(options.filters);
     std::string filter = cache.query_helper().schema_filter("TABLE_SCHEMA");
     filter = remove_quoted_strings(filter, k_sys_schemas);
 
-    EXPECT_STREQ("(TABLE_SCHEMA NOT IN(,,,))", filter.c_str());
+    // No filter uses the default filter (as below)
+    EXPECT_STREQ(
+        "(STRCMP(TABLE_SCHEMA COLLATE utf8_bin,)&STRCMP(TABLE_SCHEMA COLLATE "
+        "utf8_bin,)&STRCMP(TABLE_SCHEMA COLLATE utf8_bin,)&STRCMP(TABLE_SCHEMA "
+        "COLLATE utf8_bin,))<>0",
+        filter.c_str());
   }
 
   {
     // Using external filter, with the default excluded schemas
     Filtering_options options;
     options.schemas().exclude(k_sys_schemas);
-    Checker_cache cache(&options);
+    Checker_cache cache(options);
     std::string filter = cache.query_helper().schema_filter("TABLE_SCHEMA");
     filter = remove_quoted_strings(filter, k_sys_schemas);
 
     EXPECT_STREQ(
         "(STRCMP(TABLE_SCHEMA COLLATE utf8_bin,)&STRCMP(TABLE_SCHEMA COLLATE "
-        "utf8_bin,)&STRCMP(TABLE_SCHEMA COLLATE "
-        "utf8_bin,)&STRCMP(TABLE_SCHEMA "
+        "utf8_bin,)&STRCMP(TABLE_SCHEMA COLLATE utf8_bin,)&STRCMP(TABLE_SCHEMA "
         "COLLATE utf8_bin,))<>0",
         filter.c_str());
   }
@@ -659,7 +673,7 @@ TEST(Upgrade_check_cache, get_schema_filter) {
     Filtering_options options;
     options.schemas().exclude("sakila");
     options.schemas().include(schemas1);
-    Checker_cache cache(&options);
+    Checker_cache cache(options);
     std::string filter = cache.query_helper().schema_filter("TABLE_SCHEMA");
     filter = remove_quoted_strings(filter, schemas1);
 
@@ -677,7 +691,7 @@ TEST(Upgrade_check_cache, get_schema_filter) {
     Filtering_options options;
     options.schemas().exclude(schemas1);
     options.schemas().include("sakila");
-    Checker_cache cache(&options);
+    Checker_cache cache(options);
     std::string filter = cache.query_helper().schema_filter("TABLE_SCHEMA");
     filter = remove_quoted_strings(filter, schemas1);
 
@@ -695,7 +709,7 @@ TEST(Upgrade_check_cache, get_schema_filter) {
     Filtering_options options;
     options.schemas().exclude(schemas1);
     options.schemas().include(schemas2);
-    Checker_cache cache(&options);
+    Checker_cache cache(options);
     std::string filter = cache.query_helper().schema_filter("TABLE_SCHEMA");
     filter = remove_quoted_strings(filter, schemas1);
     filter = remove_quoted_strings(filter, schemas2);
@@ -1554,6 +1568,15 @@ TEST_F(MySQL_upgrade_check_test, innodb_rowformat) {
   EXPECT_EQ("compact", issues[0].table);
   EXPECT_EQ(Upgrade_issue::WARNING, issues[0].level);
 
+  ASSERT_NO_THROW(session->execute(
+      "create table deltatable (i integer) row_format=compact engine=innodb;"));
+  EXPECT_ISSUES(check.get(), 2);
+
+  auto all_issues = issues;
+
+  TEST_TABLE_FILTERING(check.get(), "test_innodb_rowformat.compact",
+                       all_issues.size(), {issues[0]}, {issues[1]});
+
   // auto json_issues = execute_check_as_json(ids::k_innodb_rowformat_check);
   // ASSERT_NE(nullptr, json_issues);
 
@@ -1938,7 +1961,24 @@ TEST_F(MySQL_upgrade_check_test, partitioned_tables_in_shared_tablespaces) {
       "{'dbObject':'aaa_test_partitioned_in_shared.part', 'description': "
       "'Partition p1 is in shared tablespace tpists', 'dbObjectType':'Table'}");
 
-  EXPECT_NO_THROW(session->execute("drop table part"));
+  EXPECT_NO_THROW(session->execute(
+      "create table part2(i integer) TABLESPACE tpists partition "
+      "by range(i) (partition p0 values less than (1000), "
+      "partition p1 values less than MAXVALUE);"));
+
+  EXPECT_ISSUES(check.get(), 4);
+
+  auto all_issues = issues;
+  auto part1_issues = std::vector{all_issues[0], all_issues[1]};
+  auto part2_issues = std::vector{all_issues[2], all_issues[3]};
+
+  TEST_TABLE_FILTERING(check.get(), "aaa_test_partitioned_in_shared.part",
+                       all_issues.size(), part1_issues, part2_issues);
+  TEST_TABLE_FILTERING(check.get(), "aaa_test_partitioned_in_shared.part2",
+                       all_issues.size(), part2_issues, part1_issues);
+
+  EXPECT_NO_THROW(session->execute("drop table if exists part"));
+  EXPECT_NO_THROW(session->execute("drop table if exists part2"));
   EXPECT_NO_THROW(session->execute("drop tablespace tpists"));
 }
 
@@ -2231,7 +2271,8 @@ TEST_F(MySQL_upgrade_check_test, removed_sys_vars) {
 
   auto check = get_sys_vars_check(info);
 
-  Checker_cache temp_cache;
+  mysqlsh::upgrade_checker::Upgrade_check_options options;
+  Checker_cache temp_cache(options.filters);
   override_sysvar(&temp_cache, "transaction_write_set_extraction", "OFF");
   override_sysvar(&temp_cache, "master_info_repository", "TABLE");
 
@@ -2419,7 +2460,8 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values) {
   info.server_version = Version(8, 0, 21);
   info.target_version = Version(9, 0, 0);
 
-  Checker_cache temp_cache;
+  mysqlsh::upgrade_checker::Upgrade_check_options options;
+  Checker_cache temp_cache(options.filters);
   override_sysvar(&temp_cache, "explicit_defaults_for_timestamp", "0");
   override_sysvar(&temp_cache, "admin_ssl_cipher", "NULL");
 
@@ -2482,7 +2524,8 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_forbidden_values) {
   info.server_version = Version(8, 1, 0);
   info.target_version = Version(9, 0, 0);
 
-  Checker_cache temp_cache;
+  mysqlsh::upgrade_checker::Upgrade_check_options options;
+  Checker_cache temp_cache(options.filters);
   override_sysvar(&temp_cache, "replica_parallel_workers", "0");
 
   Sysvar_check check(info);
@@ -2502,7 +2545,8 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_deprecated_values) {
   info.server_version = Version(8, 1, 0);
   info.target_version = Version(8, 4, 0);
 
-  Checker_cache temp_cache;
+  mysqlsh::upgrade_checker::Upgrade_check_options options;
+  Checker_cache temp_cache(options.filters);
   override_sysvar(&temp_cache,
                   "group_replication_allow_local_lower_version_join", "VALUE");
 
@@ -3877,6 +3921,7 @@ void drop_user(std::shared_ptr<mysqlshdk::db::ISession> session,
 
 void add_user(std::shared_ptr<mysqlshdk::db::ISession> session,
               const std::string &user, const std::string &plugin) {
+  drop_user(session, user);
   ASSERT_NO_THROW(session->execute("create user '" + user +
                                    "'@'localhost' identified with "
                                    "'" +
@@ -3934,34 +3979,26 @@ TEST_F(MySQL_upgrade_check_test, deprecated_router_auth_method_check) {
 
   EXPECT_ISSUES(check.get(), expected_issues);
 
-  EXPECT_EQ(issues[0].schema, local_usr(first_user));
-  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::ERROR);
-  EXPECT_EQ(issues[0].description,
-            " - router user with deprecated authentication method.");
-
   if (test_native_authentication) {
-    EXPECT_EQ(issues[1].schema, local_usr(k_router_user2));
-    EXPECT_EQ(issues[1].level, Upgrade_issue::Level::ERROR);
-    EXPECT_EQ(issues[1].description,
-              " - router user with deprecated authentication method.");
+    EXPECT_FIND_ISSUE(local_usr(k_router_user2), "", "", Upgrade_issue::ERROR,
+                      " - router user with deprecated authentication method.");
   }
+
+  EXPECT_FIND_ISSUE(local_usr(first_user), "", "", Upgrade_issue::ERROR,
+                    " - router user with deprecated authentication method.");
 
   temp_info.target_version = Version(8, 2, 0);
   check = get_deprecated_router_auth_method_check(temp_info);
 
   EXPECT_ISSUES(check.get(), expected_issues);
 
-  EXPECT_EQ(issues[0].schema, local_usr(first_user));
-  EXPECT_EQ(issues[0].level, Upgrade_issue::Level::WARNING);
-  EXPECT_EQ(issues[0].description,
-            " - router user with deprecated authentication method.");
-
   if (test_native_authentication) {
-    EXPECT_EQ(issues[1].schema, local_usr(k_router_user2));
-    EXPECT_EQ(issues[1].level, Upgrade_issue::Level::WARNING);
-    EXPECT_EQ(issues[1].description,
-              " - router user with deprecated authentication method.");
+    EXPECT_FIND_ISSUE(local_usr(k_router_user2), "", "", Upgrade_issue::WARNING,
+                      " - router user with deprecated authentication method.");
   }
+
+  EXPECT_FIND_ISSUE(local_usr(first_user), "", "", Upgrade_issue::WARNING,
+                    " - router user with deprecated authentication method.");
 
   if (_target_server_version > mysqlshdk::utils::k_shell_version) {
     auto json_issues =
@@ -4353,9 +4390,9 @@ TEST_F(MySQL_upgrade_check_test,
                Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[1], "test", "temporal_date_multi", "joi'ned",
                Upgrade_issue::ERROR);
-  EXPECT_ISSUE(issues[2], "test", "temporal_date_multi", "joi'ned",
+  EXPECT_ISSUE(issues[2], "test", "temporal_date_multi", "left,on",
                Upgrade_issue::ERROR);
-  EXPECT_ISSUE(issues[3], "test", "temporal_date_multi", "left,on",
+  EXPECT_ISSUE(issues[3], "test", "temporal_date_multi", "joi'ned",
                Upgrade_issue::ERROR);
   EXPECT_ISSUE(issues[4], "test", "temporal_datetime_incorrect", "id",
                Upgrade_issue::ERROR);
@@ -4365,9 +4402,9 @@ TEST_F(MySQL_upgrade_check_test,
   EXPECT_EQ(issues[1].description,
             " - partition p0 uses deprecated temporal delimiters");
   EXPECT_EQ(issues[2].description,
-            " - partition p1 uses deprecated temporal delimiters");
-  EXPECT_EQ(issues[3].description,
             " - partition p0 uses deprecated temporal delimiters");
+  EXPECT_EQ(issues[3].description,
+            " - partition p1 uses deprecated temporal delimiters");
   EXPECT_EQ(issues[4].description,
             " - partition px_2024_02 uses deprecated temporal delimiters");
 
@@ -4481,9 +4518,12 @@ TEST_F(MySQL_upgrade_check_test, column_definition_check) {
       ->expect_query(
           {"SELECT table_schema,table_name,column_name,concat('##', "
            "column_type, 'AutoIncrement') as tag FROM "
-           "information_schema.columns WHERE (TABLE_SCHEMA NOT "
-           "IN('sys','mysql','performance_schema','information_schema')) AND "
-           "column_type IN ('float', 'double') and extra = 'auto_increment'",
+           "information_schema.columns WHERE (STRCMP(TABLE_SCHEMA COLLATE "
+           "utf8_bin,'mysql')&STRCMP(TABLE_SCHEMA COLLATE "
+           "utf8_bin,'sys')&STRCMP(TABLE_SCHEMA COLLATE "
+           "utf8_bin,'performance_schema')&STRCMP(TABLE_SCHEMA COLLATE "
+           "utf8_bin,'information_schema'))<>0 AND column_type IN ('float', "
+           "'double') and extra = 'auto_increment'",
            [](const std::string &query) {
              return remove_quoted_strings(query, k_sys_schemas);
            }})
@@ -4635,9 +4675,12 @@ TEST_F(MySQL_upgrade_check_test, partitions_with_prefix_keys) {
            "p.table_schema AND s.table_name = p.table_name WHERE s.sub_part IS "
            "NOT NULL AND p.partition_method='KEY' AND "
            "(INSTR(p.partition_expression,CONCAT('`',s.column_name,'`'))>0 OR "
-           "p.partition_expression IS NULL) AND (s.TABLE_SCHEMA NOT "
-           "IN('sys','mysql','performance_schema','information_schema')) GROUP "
-           "BY s.table_schema, s.table_name",
+           "p.partition_expression IS NULL) AND (STRCMP(s.TABLE_SCHEMA COLLATE "
+           "utf8_bin,'mysql')&STRCMP(s.TABLE_SCHEMA COLLATE "
+           "utf8_bin,'sys')&STRCMP(s.TABLE_SCHEMA COLLATE "
+           "utf8_bin,'performance_schema')&STRCMP(s.TABLE_SCHEMA COLLATE "
+           "utf8_bin,'information_schema'))<>0 GROUP BY s.table_schema, "
+           "s.table_name",
            [](const std::string &query) {
              return remove_quoted_strings(query, k_sys_schemas);
            }})
@@ -5230,38 +5273,61 @@ TEST_F(MySQL_upgrade_check_test, invalid_foreign_key_reference_check) {
 
   EXPECT_ISSUES(check.get(), 3);
 
-  auto issue = find_issue("child_ccc_full_fk_to_non_unique_index_ibfk_1");
+  auto issue_table1 =
+      *find_issue("child_ccc_full_fk_to_non_unique_index_ibfk_1");
 
-  EXPECT_ISSUE(
-      *issue, "fk_invalid_reference", "child_ccc_full_fk_to_non_unique_index",
-      "child_ccc_full_fk_to_non_unique_index_ibfk_1", Upgrade_issue::WARNING);
+  EXPECT_ISSUE(issue_table1, "fk_invalid_reference",
+               "child_ccc_full_fk_to_non_unique_index",
+               "child_ccc_full_fk_to_non_unique_index_ibfk_1",
+               Upgrade_issue::WARNING);
   EXPECT_EQ(
       "invalid foreign key defined as "
       "'child_ccc_full_fk_to_non_unique_index(a,b)' references a non unique "
       "key at table 'parent'.",
-      issue->description);
+      issue_table1.description);
 
-  issue = find_issue("child_bbb_partial_fk_to_unique_index_ibfk_1");
+  auto issue_table2 =
+      *find_issue("child_bbb_partial_fk_to_unique_index_ibfk_1");
 
-  EXPECT_ISSUE(
-      *issue, "fk_invalid_reference", "child_bbb_partial_fk_to_unique_index",
-      "child_bbb_partial_fk_to_unique_index_ibfk_1", Upgrade_issue::WARNING);
-  EXPECT_EQ(
-      "invalid foreign key defined as "
-      "'fk_invalid_reference.child_aaa_partial_fk_to_primary(a)' references a "
-      "partial key at table 'parent'.",
-      issues[1].description);
-
-  issue = find_issue("child_aaa_partial_fk_to_primary_ibfk_1");
-
-  EXPECT_ISSUE(
-      *issue, "fk_invalid_reference", "child_aaa_partial_fk_to_primary",
-      "child_aaa_partial_fk_to_primary_ibfk_1", Upgrade_issue::WARNING);
+  EXPECT_ISSUE(issue_table2, "fk_invalid_reference",
+               "child_bbb_partial_fk_to_unique_index",
+               "child_bbb_partial_fk_to_unique_index_ibfk_1",
+               Upgrade_issue::WARNING);
   EXPECT_EQ(
       "invalid foreign key defined as "
       "'fk_invalid_reference.child_bbb_partial_fk_to_unique_index(a)' "
+      "references a "
+      "partial key at table 'parent'.",
+      issue_table2.description);
+
+  auto issue_table3 = *find_issue("child_aaa_partial_fk_to_primary_ibfk_1");
+
+  EXPECT_ISSUE(
+      issue_table3, "fk_invalid_reference", "child_aaa_partial_fk_to_primary",
+      "child_aaa_partial_fk_to_primary_ibfk_1", Upgrade_issue::WARNING);
+  EXPECT_EQ(
+      "invalid foreign key defined as "
+      "'fk_invalid_reference.child_aaa_partial_fk_to_primary(a)' "
       "references a partial key at table 'parent'.",
-      issues[2].description);
+      issue_table3.description);
+
+  {
+    auto other1 = std::vector{issue_table2, issue_table3};
+    auto other2 = std::vector{issue_table3, issue_table1};
+    auto other3 = std::vector{issue_table1, issue_table2};
+
+    TEST_TABLE_FILTERING(
+        check.get(),
+        "fk_invalid_reference.child_ccc_full_fk_to_non_unique_index", 3,
+        {issue_table1}, other1);
+    TEST_TABLE_FILTERING(
+        check.get(),
+        "fk_invalid_reference.child_bbb_partial_fk_to_unique_index", 3,
+        {issue_table2}, other2);
+    TEST_TABLE_FILTERING(check.get(),
+                         "fk_invalid_reference.child_aaa_partial_fk_to_primary",
+                         3, {issue_table3}, other3);
+  }
 
   // BUG#36975599 false positive if the same table have two foreign key
   // references of the same field, one not unique

@@ -141,8 +141,8 @@ std::vector<const Feature_definition *> Feature_life_cycle_check::get_features(
 
 std::vector<Upgrade_issue> Feature_life_cycle_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
-    const Upgrade_info &server_info) {
-  auto result = session->query(build_query());
+    const Upgrade_info &server_info, Checker_cache *cache) {
+  auto result = session->query(build_query(cache));
   const mysqlshdk::db::IRow *row = nullptr;
 
   while ((row = result->fetch_one()) != nullptr) {
@@ -195,7 +195,7 @@ Auth_method_usage_check::Auth_method_usage_check(
                "caching_sha2_password"});
 }
 
-std::string Auth_method_usage_check::build_query() {
+std::string Auth_method_usage_check::build_query(Checker_cache *cache) {
   const auto features = get_features(true);
 
   std::string raw_query;
@@ -218,6 +218,13 @@ std::string Auth_method_usage_check::build_query() {
   std::vector<std::string> wildcards(features.size(), "?");
   raw_query.append(shcore::str_join(wildcards, ", "));
   raw_query.append(") AND user NOT LIKE 'mysql_router%'");
+
+  if (cache) {
+    if (const auto user_filter = cache->query_helper().user_filter();
+        !user_filter.empty()) {
+      raw_query.append(" AND " + user_filter);
+    }
+  }
 
   // In 8.0.27 with the introduction of multi-factor authentication,
   // information about 2nd and 3rd factor authentication is stored in
@@ -293,7 +300,7 @@ Plugin_usage_check::Plugin_usage_check(const Upgrade_info &server_info)
                "'rpl_semi_sync_replica' plugin"});
 }
 
-std::string Plugin_usage_check::build_query() {
+std::string Plugin_usage_check::build_query(Checker_cache *) {
   const auto features = get_features(true);
   std::vector<std::string> wildcards(features.size(), "?");
   std::string raw_query =

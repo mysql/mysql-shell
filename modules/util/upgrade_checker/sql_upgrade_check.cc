@@ -39,6 +39,36 @@
 namespace mysqlsh {
 namespace upgrade_checker {
 
+namespace {
+
+mysqlshdk::db::Iterate_table parse_schema_table_info(std::string_view text,
+                                                     size_t prefix_pos) {
+  const auto parts = shcore::str_split(text.substr(prefix_pos), ":");
+
+  assert(parts[0] == "schema_and_table_filter");
+
+  auto result = mysqlshdk::db::Query_helper::s_default_schema_and_table_info;
+  auto prefix = text.substr(0, prefix_pos);
+  auto schema = result.schema_column;
+  auto table = result.table_column;
+
+  if (parts.size() > 1) {
+    schema = parts[1];
+  }
+
+  if (parts.size() > 2) {
+    table = parts[2];
+  }
+
+  result.schema_column = prefix;
+  result.schema_column += schema;
+  result.table_column = prefix;
+  result.table_column += table;
+
+  return result;
+}
+}  // namespace
+
 using mysqlshdk::utils::Version;
 
 Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
@@ -71,7 +101,7 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
     auto final_query = shcore::str_subvars(
         query.first,
         [&cache](std::string_view key) {
-          const auto qh = cache->query_helper();
+          const auto &qh = cache->query_helper();
           std::string filter;
           if (key.compare("schema_filter") == 0) {
             filter = qh.schema_filter();
@@ -85,15 +115,12 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
             filter = qh.schema_and_trigger_filter();
           } else if (key.compare("schema_and_event_filter") == 0) {
             filter = qh.schema_and_event_filter();
-          } else if (shcore::str_endswith(key, "schema_and_table_filter")) {
+          } else if (key.compare("user_filter") == 0) {
+            filter = qh.user_filter();
+          } else if (auto prefix_pos = key.find("schema_and_table_filter");
+                     prefix_pos != std::string::npos) {
             filter = qh.schema_and_table_filter(
-                {{shcore::str_replace(key, "schema_and_table_filter",
-                                      "TABLE_SCHEMA"),
-                  {},
-                  "tables",
-                  ""},
-                 shcore::str_replace(key, "schema_and_table_filter",
-                                     "TABLE_NAME")});
+                parse_schema_table_info(key, prefix_pos));
           }
 
           // In both standard UC run as well as in execution from D&L there's

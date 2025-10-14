@@ -2730,10 +2730,10 @@ EXPECT_EQ(["existing_trigger_2"], entries(snapshot, ["schema_1", "tables", "exis
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - includeTriggers
 EXPECT_FAIL("ValueError", "Conflicting filtering options", types_schema, types_schema_tables, test_output_absolute, { "includeTriggers": [ 'non_existing_schema.table', 'not_specified_schema.table.trigger' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included.")
 
 #@<> WL14244 - excludeTriggers - invalid values
 EXPECT_FAIL("ValueError", "Argument #4: The trigger to be excluded must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.", types_schema, types_schema_tables, test_output_absolute, { "excludeTriggers": [ "trigger" ] })
@@ -2755,10 +2755,10 @@ EXPECT_EQ([], entries(snapshot, ["schema_1", "tables", "existing_table_2", "trig
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - excludeTriggers
 EXPECT_FAIL("ValueError", "Conflicting filtering options", types_schema, types_schema_tables, test_output_absolute, { "excludeTriggers": [ 'non_existing_schema.table', 'not_specified_schema.table.trigger' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included.")
 
 #@<> includeX + excludeX conflicts - setup
 wipeout_server(session)

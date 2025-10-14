@@ -101,8 +101,6 @@ class Upgrade_check_config final {
   }
 
  private:
-  Upgrade_check_config();
-
   Upgrade_info m_upgrade_info;
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
   std::string m_output_format;

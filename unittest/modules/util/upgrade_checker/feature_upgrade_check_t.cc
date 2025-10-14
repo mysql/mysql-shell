@@ -306,7 +306,7 @@ void test_feature_check(
 
     set_expectation(msession.get(), feature_check->build_query(), records);
 
-    auto issues = feature_check->run(msession, ui);
+    auto issues = feature_check->run(msession, ui, nullptr);
 
     SCOPED_TRACE(shcore::str_format(
         "Testing  %s with source as %s and target as %s", test_id.c_str(),

@@ -44,50 +44,59 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
   {
     // Verifies the original queries are created
     auto msession = std::make_shared<testing::Mock_session>();
-    Checker_cache cache;
+    mysqlsh::upgrade_checker::Upgrade_check_options options;
+    Checker_cache cache(options.filters);
 
     msession
-        ->expect_query(
-            {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
-             "information_schema.routines WHERE ROUTINE_TYPE = 'PROCEDURE' AND "
-             "(ROUTINE_SCHEMA NOT "
-             "IN('mysql','sys','performance_schema','information_schema'))",
-             [](const std::string &query) {
-               return remove_quoted_strings(query, k_sys_schemas);
-             }})
+        ->expect_query({"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
+                        "information_schema.routines WHERE ROUTINE_TYPE = "
+                        "'PROCEDURE' AND (STRCMP(ROUTINE_SCHEMA COLLATE "
+                        "utf8_bin,'mysql')&STRCMP(ROUTINE_SCHEMA COLLATE "
+                        "utf8_bin,'sys')&STRCMP(ROUTINE_SCHEMA COLLATE "
+                        "utf8_bin,'performance_schema')&STRCMP(ROUTINE_SCHEMA "
+                        "COLLATE utf8_bin,'information_schema'))<>0",
+                        [](const std::string &query) {
+                          return remove_quoted_strings(query, k_sys_schemas);
+                        }})
         .then({"ROUTINE_SCHEMA", "ROUTINE_NAME"});
 
     msession
-        ->expect_query(
-            {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
-             "information_schema.routines WHERE ROUTINE_TYPE = 'FUNCTION' AND "
-             "(ROUTINE_SCHEMA NOT "
-             "IN('mysql','sys','performance_schema','information_schema'))",
-             [](const std::string &query) {
-               return remove_quoted_strings(query, k_sys_schemas);
-             }})
+        ->expect_query({"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, SQL_MODE FROM "
+                        "information_schema.routines WHERE ROUTINE_TYPE = "
+                        "'FUNCTION' AND (STRCMP(ROUTINE_SCHEMA COLLATE "
+                        "utf8_bin,'mysql')&STRCMP(ROUTINE_SCHEMA COLLATE "
+                        "utf8_bin,'sys')&STRCMP(ROUTINE_SCHEMA COLLATE "
+                        "utf8_bin,'performance_schema')&STRCMP(ROUTINE_SCHEMA "
+                        "COLLATE utf8_bin,'information_schema'))<>0",
+                        [](const std::string &query) {
+                          return remove_quoted_strings(query, k_sys_schemas);
+                        }})
 
         .then({"ROUTINE_SCHEMA", "ROUTINE_NAME"});
 
     msession
-        ->expect_query(
-            {"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE, "
-             "EVENT_OBJECT_TABLE FROM information_schema.triggers WHERE "
-             "(TRIGGER_SCHEMA NOT "
-             "IN('mysql','sys','performance_schema','information_schema'))",
-             [](const std::string &query) {
-               return remove_quoted_strings(query, k_sys_schemas);
-             }})
+        ->expect_query({"SELECT TRIGGER_SCHEMA, TRIGGER_NAME, SQL_MODE, "
+                        "EVENT_OBJECT_TABLE FROM information_schema.triggers "
+                        "WHERE (STRCMP(TRIGGER_SCHEMA COLLATE "
+                        "utf8_bin,'mysql')&STRCMP(TRIGGER_SCHEMA COLLATE "
+                        "utf8_bin,'sys')&STRCMP(TRIGGER_SCHEMA COLLATE "
+                        "utf8_bin,'performance_schema')&STRCMP(TRIGGER_SCHEMA "
+                        "COLLATE utf8_bin,'information_schema'))<>0",
+                        [](const std::string &query) {
+                          return remove_quoted_strings(query, k_sys_schemas);
+                        }})
         .then({"TRIGGER_SCHEMA", "TRIGGER_NAME"});
 
     msession
-        ->expect_query(
-            {"SELECT EVENT_SCHEMA, EVENT_NAME, SQL_MODE FROM "
-             "information_schema.events WHERE (EVENT_SCHEMA NOT "
-             "IN('mysql','sys','performance_schema','information_schema'))",
-             [](const std::string &query) {
-               return remove_quoted_strings(query, k_sys_schemas);
-             }})
+        ->expect_query({"SELECT EVENT_SCHEMA, EVENT_NAME, SQL_MODE FROM "
+                        "information_schema.events WHERE (STRCMP(EVENT_SCHEMA "
+                        "COLLATE utf8_bin,'mysql')&STRCMP(EVENT_SCHEMA COLLATE "
+                        "utf8_bin,'sys')&STRCMP(EVENT_SCHEMA COLLATE "
+                        "utf8_bin,'performance_schema')&STRCMP(EVENT_SCHEMA "
+                        "COLLATE utf8_bin,'information_schema'))<>0",
+                        [](const std::string &query) {
+                          return remove_quoted_strings(query, k_sys_schemas);
+                        }})
         .then({"EVENT_SCHEMA", "EVENT_NAME"});
 
     EXPECT_NO_THROW(check->run(msession, server_info, &cache));
@@ -107,7 +116,7 @@ TEST(Upgrade_check_creators, get_syntax_check_test) {
     options.triggers().exclude("sakila.trigger_table.excludedTrigger");
     options.events().include("sakila.includedEvent");
     options.events().exclude("sakila.excludedEvent");
-    Checker_cache cache(&options);
+    Checker_cache cache(options);
 
     msession
         ->expect_query(

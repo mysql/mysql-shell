@@ -46,12 +46,14 @@ struct Upgrade_check_options {
   std::string config_path;
   std::string output_format;
   std::optional<std::string> password;
+  mysqlshdk::db::Filtering_options filters;
   Check_id_set include_list;
   Check_id_set exclude_list;
   bool list_checks = false;
   std::optional<size_t> check_timeout;
   bool skip_target_version_check = false;
 
+  Upgrade_check_options();
   mysqlshdk::utils::Version get_target_version() const;
 
  private:

@@ -223,14 +223,9 @@ std::string Upgrade_issue::get_db_object() const {
   return ss.str();
 }
 
-Checker_cache::Checker_cache(const Filtering_options *db_filters)
-    : m_query_helper(db_filters != nullptr ? *db_filters : m_filters) {
-  m_filters.schemas().exclude("information_schema");
-  m_filters.schemas().exclude("performance_schema");
-  m_filters.schemas().exclude("mysql");
-  m_filters.schemas().exclude("sys");
-
-  m_query_helper.set_schema_filter(db_filters != nullptr);
+Checker_cache::Checker_cache(const Filtering_options &db_filters)
+    : m_query_helper(db_filters) {
+  m_query_helper.set_schema_filter(true);
   m_query_helper.set_table_filter();
 }
 

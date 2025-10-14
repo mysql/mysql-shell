@@ -56,6 +56,8 @@ struct Query_helper {
   using Object_filters = Filtering_options::Object_filters::Filter;
   using Trigger_filters = Filtering_options::Trigger_filters::Filter;
 
+  static const Iterate_table s_default_schema_and_table_info;
+
   explicit Query_helper(const Filtering_options &filters);
 
   static std::string case_sensitive_compare(const std::string &column,
@@ -160,9 +162,8 @@ struct Query_helper {
   std::string table_filter(const std::string &schema_column,
                            const std::string &table_column) const;
 
-  std::string schema_and_table_filter(const Iterate_table &info = {
-                                          {"TABLE_SCHEMA", {}, "tables", ""},
-                                          "TABLE_NAME"}) const;
+  std::string schema_and_table_filter(
+      const Iterate_table &info = s_default_schema_and_table_info) const;
 
   std::string object_filter(const Iterate_schema &info,
                             const Object_filters &included,
@@ -183,6 +184,8 @@ struct Query_helper {
   std::string schema_and_routine_filter() const;
   std::string schema_and_trigger_filter() const;
   std::string schema_and_event_filter() const;
+
+  std::string user_filter() const;
 
   const Filtering_options &filters() const { return m_filters; }
 

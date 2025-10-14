@@ -113,6 +113,46 @@ DESCRIPTION
         included in the operation.
       - exclude - comma separated list containing the check identifiers to be
         excluded from the operation.
+      - includeSchemas - comma separated list containing schema identifiers to
+        be included in the operation, quoted using backtick characters when
+        required.
+      - excludeSchemas - comma separated list containing schema identifiers to
+        be excluded from the operation, quoted using backtick characters when
+        required.
+      - includeTables - comma separated list containing table identifiers to be
+        included in the operation. Strings are in format schema.table, quoted
+        using backtick characters when required.
+      - excludeTables - comma separated list containing table identifiers to be
+        excluded from the operation. Strings are in format schema.table, quoted
+        using backtick characters when required.
+      - includeRoutines - comma separated list containing routine identifiers
+        to be included in the operation. Strings are in format schema.routine,
+        quoted using backtick characters when required.
+      - excludeRoutines - comma separated list containing routine identifiers
+        to be excluded from the operation. Strings are in format
+        schema.routine, quoted using backtick characters when required.
+      - includeTriggers - comma separated list containing trigger identifiers
+        to be included in the operation. Strings are in format schema.table
+        (all triggers from the specified table) or schema.table.trigger (the
+        individual trigger), quoted using backtick characters when required.
+      - excludeTriggers - comma separated list containing trigger identifiers
+        to be excluded from the operation. Strings are in format schema.table
+        (all triggers from the specified table) or schema.table.trigger (the
+        individual trigger), quoted using backtick characters when required.
+      - includeEvents - comma separated list containing event identifiers to be
+        included in the operation. Strings are in format schema.event, quoted
+        using backtick characters when required.
+      - excludeEvents - comma separated list containing event identifiers to be
+        excluded from the operation. Strings are in format schema.event, quoted
+        using backtick characters when required.
+      - includeUsers - comma separated list containing user accounts to be
+        included in the operation. Each user is in the format of
+        'user_name'[@'host']. If the host is not specified, all the accounts
+        with the given user name are included.
+      - excludeUsers - comma separated list containing user accounts to be
+        excluded from the operation. Each user is in the format of
+        'user_name'[@'host']. If the host is not specified, all the accounts
+        with the given user name are excluded.
       - list - bool value to indicate the operation should only list the
         checks.
       - checkTimeout - maximum time in seconds after which each check should be

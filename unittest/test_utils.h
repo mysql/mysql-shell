@@ -316,8 +316,12 @@ class Shell_core_test_wrapper : public tests::Shell_base_test {
     if (!argv) _options->verbose_level = g_test_default_verbosity;
     _options->db_name_cache = false;
 
-    // default to JS mode for scripted tests
+// default to JS mode for scripted tests
+#ifdef HAVE_JS
     _options->initial_mode = shcore::IShell_core::Mode::JavaScript;
+#else
+    _options->initial_mode = shcore::IShell_core::Mode::Python;
+#endif
 
     // If no options are provided, the interactive flag is set to true by
     // default

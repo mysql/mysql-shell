@@ -127,7 +127,45 @@ Tool behaviour can be modified with following options:
 @li <b>include</b> - comma separated list containing the check identifiers to be
 included in the operation.
 @li <b>exclude</b> - comma separated list containing the check identifiers to be
- excluded from the operation.
+excluded from the operation.
+@li <b>includeSchemas</b> - comma separated list containing schema identifiers
+to be included in the operation, quoted using backtick characters when required.
+@li <b>excludeSchemas</b> - comma separated list containing schema identifiers
+to be excluded from the operation, quoted using backtick characters when required.
+@li <b>includeTables</b> - comma separated list containing table identifiers
+to be included in the operation. Strings are in format
+<b>schema</b>.<b>table</b>, quoted using backtick characters when required.
+@li <b>excludeTables</b> - comma separated list containing table identifiers
+to be excluded from the operation. Strings are in format <b>schema</b>.<b>table</b>,
+quoted using backtick characters when required.
+@li <b>includeRoutines</b> - comma separated list containing routine identifiers
+to be included in the operation. Strings are in format
+<b>schema</b>.<b>routine</b>, quoted using backtick characters when required.
+@li <b>excludeRoutines</b> - comma separated list containing routine identifiers
+to be excluded from the operation. Strings are in format <b>schema</b>.<b>routine</b>,
+quoted using backtick characters when required.
+@li <b>includeTriggers</b> - comma separated list containing trigger identifiers
+to be included in the operation. Strings are in format <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or <b>schema</b>.<b>table</b>.<b>trigger</b>
+(the individual trigger), quoted using backtick characters when required.
+@li <b>excludeTriggers</b> - comma separated list containing trigger identifiers
+to be excluded from the operation. Strings are in format <b>schema</b>.<b>table</b>
+(all triggers from the specified table) or <b>schema</b>.<b>table</b>.<b>trigger</b>
+(the individual trigger), quoted using backtick characters when required.
+@li <b>includeEvents</b> - comma separated list containing event identifiers
+to be included in the operation. Strings are in format <b>schema</b>.<b>event</b>,
+quoted using backtick characters when required.
+@li <b>excludeEvents</b> - comma separated list containing event identifiers
+to be excluded from the operation. Strings are in format <b>schema</b>.<b>event</b>,
+quoted using backtick characters when required.
+@li <b>includeUsers</b> - comma separated list containing user accounts
+to be included in the operation. Each user is in the format of
+'user_name'[@'host']. If the host is not specified, all the accounts with the
+given user name are included.
+@li <b>excludeUsers</b> - comma separated list containing user accounts
+to be excluded from the operation. Each user is in the format of
+'user_name'[@'host']. If the host is not specified, all the accounts with the
+given user name are excluded.
 @li <b>list</b> - bool value to indicate the operation should only list the
 checks.
 @li <b>checkTimeout</b> - maximum time in seconds after which each check

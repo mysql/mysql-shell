@@ -1188,12 +1188,12 @@ EXPECT_FAIL("ValueError", "Argument #3: Failed to parse table to be excluded '2.
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - excludeTables
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [test_schema], test_output_absolute, { "excludeTables": [ "`{0}`.`dummy`".format(test_schema), "`@`.dummy", "dummy.`@`", "`@`.`@`", "`1`.dummy", "dummy.`1`", "`2`.`1`" ], "ddlOnly": True, "showProgress": False })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `2`.`1` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `1`.`dummy` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `dummy`.`1` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `dummy`.`@` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `@`.`@` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `@`.`dummy` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `2`.`1` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `1`.`dummy` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `dummy`.`1` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `dummy`.`@` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `@`.`@` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTables option contains a table `@`.`dummy` which refers to a schema which was not included.")
 
 #@<> WL13807-FR4.11.3 - If the `excludeTables` option is not given, a default value of an empty list must be used instead.
 # WL13807-TSFR4_32
@@ -1979,9 +1979,9 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "views"]))
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - includeTables
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "includeTables": [ 'non_existing_schema.view', 'non_existing_schema.table', 'not_specified_schema.table' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `not_specified_schema`.`table` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `non_existing_schema`.`table` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `non_existing_schema`.`view` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `not_specified_schema`.`table` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `non_existing_schema`.`table` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTables option contains a table `non_existing_schema`.`view` which refers to a schema which was not included.")
 
 #@<> WL14244 - includeRoutines - invalid values
 EXPECT_FAIL("ValueError", "Argument #3: The routine to be included must be in the following form: schema.routine, with optional backtick quotes, wrong value: 'routine'.", [incompatible_schema], test_output_absolute, { "includeRoutines": [ "routine" ] })
@@ -2009,8 +2009,8 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "procedures"]))
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - includeRoutines
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "includeRoutines": [ 'non_existing_schema.routine', 'not_specified_schema.routine' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `not_specified_schema`.`routine` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `non_existing_schema`.`routine` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `not_specified_schema`.`routine` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeRoutines option contains a routine `non_existing_schema`.`routine` which refers to a schema which was not included.")
 
 #@<> WL16731-TSFR_1_7_1 - dumping without libraries + includeRoutines, note about routine using an excluded library is printed {instance_supports_libraries}
 snapshot = dump_and_load({ "includeRoutines": ['existing_schema_4.existing_library_routine'], "libraries": False })
@@ -2049,8 +2049,8 @@ EXPECT_EQ(["existing_routine"], entries(snapshot, ["existing_schema_2", "procedu
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - excludeRoutines
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "excludeRoutines": [ 'non_existing_schema.routine', 'not_specified_schema.routine' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `not_specified_schema`.`routine` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `non_existing_schema`.`routine` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `not_specified_schema`.`routine` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeRoutines option contains a routine `non_existing_schema`.`routine` which refers to a schema which was not included.")
 
 #@<> WL16731-TSFR_1_7_1 - dumping without libraries + excludeRoutines, note about routine using an excluded library is printed {instance_supports_libraries}
 snapshot = dump_and_load({ "excludeRoutines": ['existing_schema_4.existing_library_routine'], "libraries": False })
@@ -2108,8 +2108,8 @@ if instance_supports_libraries:
 
 #@<> WL16731 - objects for schemas which are not included in the dump are reported as errors - includeLibraries
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "includeLibraries": [ 'non_existing_schema.library', 'not_specified_schema.library' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `not_specified_schema`.`library` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `non_existing_schema`.`library` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `not_specified_schema`.`library` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeLibraries option contains a library `non_existing_schema`.`library` which refers to a schema which was not included.")
 
 #@<> WL16731-TSFR_1_3_1 - excludeLibraries - invalid values
 TEST_ARRAY_OF_STRINGS_OPTION("excludeLibraries")
@@ -2142,8 +2142,8 @@ if instance_supports_libraries:
 
 #@<> WL16731 - objects for schemas which are not included in the dump are reported as errors - excludeLibraries
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "excludeLibraries": [ 'non_existing_schema.library', 'not_specified_schema.library' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `not_specified_schema`.`library` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `non_existing_schema`.`library` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `not_specified_schema`.`library` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeLibraries option contains a library `non_existing_schema`.`library` which refers to a schema which was not included.")
 
 #@<> WL14244 - includeEvents - invalid values
 EXPECT_FAIL("ValueError", "Argument #3: The event to be included must be in the following form: schema.event, with optional backtick quotes, wrong value: 'event'.", [incompatible_schema], test_output_absolute, { "includeEvents": [ "event" ] })
@@ -2165,8 +2165,8 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "events"]))
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - includeEvents
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "includeEvents": [ 'non_existing_schema.event', 'not_specified_schema.event' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `not_specified_schema`.`event` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `non_existing_schema`.`event` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `not_specified_schema`.`event` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeEvents option contains an event `non_existing_schema`.`event` which refers to a schema which was not included.")
 
 #@<> WL14244 - excludeEvents - invalid values
 EXPECT_FAIL("ValueError", "Argument #3: The event to be excluded must be in the following form: schema.event, with optional backtick quotes, wrong value: 'event'.", [incompatible_schema], test_output_absolute, { "excludeEvents": [ "event" ] })
@@ -2188,8 +2188,8 @@ EXPECT_EQ(["existing_event"], entries(snapshot, ["existing_schema_2", "events"])
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - excludeEvents
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "excludeEvents": [ 'non_existing_schema.event', 'not_specified_schema.event' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeEvents option contains an event `not_specified_schema`.`event` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeEvents option contains an event `non_existing_schema`.`event` which refers to a schema which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeEvents option contains an event `not_specified_schema`.`event` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeEvents option contains an event `non_existing_schema`.`event` which refers to a schema which was not included.")
 
 #@<> WL14244 - includeTriggers - invalid values
 EXPECT_FAIL("ValueError", "Argument #3: The trigger to be included must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.", [incompatible_schema], test_output_absolute, { "includeTriggers": [ "trigger" ] })
@@ -2211,10 +2211,10 @@ EXPECT_EQ(["existing_trigger"], entries(snapshot, ["existing_schema_2", "tables"
 
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - includeTriggers
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "includeTables": [ incompatible_schema + "." + incompatible_table_wrong_engine ], "includeTriggers": [ 'non_existing_schema.table', 'not_specified_schema.table.trigger' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The includeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included.")
 
 #@<> WL14244 - excludeTriggers - invalid values
 EXPECT_FAIL("ValueError", "Argument #3: The trigger to be excluded must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'trigger'.", [incompatible_schema], test_output_absolute, { "excludeTriggers": [ "trigger" ] })
@@ -2237,10 +2237,10 @@ EXPECT_EQ([], entries(snapshot, ["existing_schema_2", "tables", "existing_table"
 #@<> BUG#33402791 - objects for schemas which are not included in the dump are reported as errors - excludeTriggers
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "excludeTriggers": [ 'non_existing_schema.table', 'not_specified_schema.table.trigger' ] })
 EXPECT_FAIL("ValueError", "Conflicting filtering options", [incompatible_schema], test_output_absolute, { "includeTables": [ incompatible_schema + "." + incompatible_table_wrong_engine ], "excludeTriggers": [ 'non_existing_schema.table', 'not_specified_schema.table.trigger' ] })
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included in the dump.")
-EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included in the dump.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a schema which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a filter `non_existing_schema`.`table` which refers to a table which was not included.")
+EXPECT_STDOUT_CONTAINS("ERROR: The excludeTriggers option contains a trigger `not_specified_schema`.`table`.`trigger` which refers to a table which was not included.")
 
 #@<> WL14244 - cleanup
 session.run_sql("DROP SCHEMA IF EXISTS existing_schema_1")

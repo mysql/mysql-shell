@@ -45,6 +45,9 @@ const std::string k_table_template =
     k_template_marker + k_table_var + k_template_marker;
 }  // namespace
 
+const Iterate_table Query_helper::s_default_schema_and_table_info = {
+    {"TABLE_SCHEMA", {}, "tables", ""}, "TABLE_NAME"};
+
 Query_helper::Query_helper(const Filtering_options &filters)
     : m_filters{filters} {}
 
@@ -346,6 +349,10 @@ std::string Query_helper::schema_and_event_filter() const {
   result += filter;
 
   return result;
+}
+
+std::string Query_helper::user_filter() const {
+  return utils::build_user_where(m_filters.users());
 }
 
 }  // namespace db

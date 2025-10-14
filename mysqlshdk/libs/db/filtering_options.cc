@@ -410,7 +410,7 @@ bool Filtering_options::Object_filters::error_on_cross_filters_conflicts()
               "The " + prefix + m_option_suffix + " option contains " +
               m_object_label + " " + shcore::quote_identifier(schema.first) +
               "." + shcore::quote_identifier(object) +
-              " which refers to a schema which was not included in the dump.");
+              " which refers to a schema which was not included.");
         }
       }
     }
@@ -668,12 +668,12 @@ bool Filtering_options::Trigger_filters::error_on_cross_filters_conflicts()
         has_conflicts = true;
 
         for (const auto &table : schema.second) {
-          print_error(table.second,
-                      "The " + prefix + "Triggers option contains a %s " +
-                          shcore::quote_identifier(schema.first) + "." +
-                          shcore::quote_identifier(table.first) +
-                          "%s which refers to a schema which was not included "
-                          "in the dump.");
+          print_error(
+              table.second,
+              "The " + prefix + "Triggers option contains a %s " +
+                  shcore::quote_identifier(schema.first) + "." +
+                  shcore::quote_identifier(table.first) +
+                  "%s which refers to a schema which was not included.");
         }
       }
     }
@@ -695,8 +695,7 @@ bool Filtering_options::Trigger_filters::error_on_cross_filters_conflicts()
                       "The " + prefix + "Triggers option contains a %s " +
                           shcore::quote_identifier(actual.first) + "." +
                           shcore::quote_identifier(table.first) +
-                          "%s which refers to a table which was not included "
-                          "in the dump.");
+                          "%s which refers to a table which was not included.");
         }
       }
     };
@@ -816,6 +815,47 @@ void Filtering_options::update_pointers() {
   m_libraries.m_schemas = &m_schemas;
   m_triggers.m_schemas = &m_schemas;
   m_triggers.m_tables = &m_tables;
+}
+
+std::string utils::build_user_where(
+    const Filtering_options::User_filters &user_filters) {
+  const auto filter = [](const std::vector<shcore::Account> &accounts) {
+    std::vector<std::string> result;
+
+    for (const auto &account : accounts) {
+      if (account.host.empty()) {
+        result.emplace_back(shcore::sqlstring("(user.user=?)", 0)
+                            << account.user);
+      } else {
+        result.emplace_back(
+            shcore::sqlstring("(user.user=? AND user.host=?)", 0)
+            << account.user << account.host);
+      }
+    }
+
+    return result;
+  };
+
+  const auto include = filter(user_filters.included());
+  const auto exclude = filter(user_filters.excluded());
+
+  auto where_filter = std::string();
+  if (!include.empty()) {
+    where_filter += "(" + shcore::str_join(include, "OR") + ")";
+  }
+
+  if (!exclude.empty()) {
+    constexpr auto condition = "AND NOT";
+
+    if (where_filter.empty()) {
+      where_filter += "NOT";
+    } else {
+      where_filter += condition;
+    }
+
+    where_filter += shcore::str_join(exclude, condition);
+  }
+  return where_filter;
 }
 
 }  // namespace db

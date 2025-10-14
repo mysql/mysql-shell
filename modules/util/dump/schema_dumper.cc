@@ -3961,51 +3961,17 @@ std::vector<shcore::Account> Schema_dumper::fetch_users(
     where_filter += " ";
   }
 
-  {
-    const auto filter = [](const std::vector<shcore::Account> &accounts) {
-      std::vector<std::string> result;
-
-      for (const auto &account : accounts) {
-        if (account.host.empty()) {
-          result.emplace_back(shcore::sqlstring("(user.user=?)", 0)
-                              << account.user);
-        } else {
-          result.emplace_back(
-              shcore::sqlstring("(user.user=? AND user.host=?)", 0)
-              << account.user << account.host);
-        }
-      }
-
-      return result;
-    };
-    const auto &filters =
-        m_filters ? m_filters->users() : Filtering_options::User_filters{};
-    const auto include = filter(filters.included());
-    const auto exclude = filter(filters.excluded());
-
-    if (!include.empty()) {
-      if (!where_filter.empty()) {
-        where_filter += "AND";
-      }
-
-      where_filter += "(" + shcore::str_join(include, "OR") + ")";
-    }
-
-    if (!exclude.empty()) {
-      constexpr auto condition = "AND NOT";
-
-      if (where_filter.empty()) {
-        where_filter += "NOT";
-      } else {
-        where_filter += condition;
-      }
-
-      where_filter += shcore::str_join(exclude, condition);
-    }
-
+  if (const auto user_where = mysqlshdk::db::utils::build_user_where(
+          m_filters ? m_filters->users() : Filtering_options::User_filters{});
+      !user_where.empty()) {
     if (!where_filter.empty()) {
-      where_filter = " WHERE " + where_filter;
+      where_filter += "AND ";
     }
+    where_filter += user_where;
+  }
+
+  if (!where_filter.empty()) {
+    where_filter = " WHERE " + where_filter;
   }
 
   auto users_res = log_error ? query_log_and_throw(select + where_filter)

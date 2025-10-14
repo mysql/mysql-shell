@@ -378,7 +378,7 @@ void run_checks(const Upgrade_check_config &config,
     context->wake_up();
   });
 
-  Checker_cache cache{config.db_filters()};
+  Checker_cache cache{*config.db_filters()};
 
   for (const auto &check : *checklist) {
     if (!context->is_executing()) {

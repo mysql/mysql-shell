@@ -48,6 +48,13 @@ void normalize_value(const Upgrade_check_options::Check_id_uset &value,
 }
 }  // namespace
 
+Upgrade_check_options::Upgrade_check_options() {
+  filters.schemas().exclude("information_schema");
+  filters.schemas().exclude("performance_schema");
+  filters.schemas().exclude("mysql");
+  filters.schemas().exclude("sys");
+}
+
 const shcore::Option_pack_def<Upgrade_check_options>
     &Upgrade_check_options::options() {
   static const auto opts =
@@ -62,6 +69,18 @@ const shcore::Option_pack_def<Upgrade_check_options>
           .optional("exclude", &Upgrade_check_options::exclude)
           .optional("list", &Upgrade_check_options::list_checks)
           .optional("checkTimeout", &Upgrade_check_options::check_timeout)
+          .include(&Upgrade_check_options::filters,
+                   &mysqlshdk::db::Filtering_options::schemas)
+          .include(&Upgrade_check_options::filters,
+                   &mysqlshdk::db::Filtering_options::triggers)
+          .include(&Upgrade_check_options::filters,
+                   &mysqlshdk::db::Filtering_options::events)
+          .include(&Upgrade_check_options::filters,
+                   &mysqlshdk::db::Filtering_options::users)
+          .include(&Upgrade_check_options::filters,
+                   &mysqlshdk::db::Filtering_options::tables)
+          .include(&Upgrade_check_options::filters,
+                   &mysqlshdk::db::Filtering_options::routines)
           .on_done(&Upgrade_check_options::verify_options);
   return opts;
 }
@@ -89,10 +108,27 @@ void Upgrade_check_options::exclude(const Check_id_uset &value) {
 }
 
 void Upgrade_check_options::verify_options() {
-  if (mysqlshdk::utils::error_on_conflicts<Check_id_set, std::string>(
-          include_list, exclude_list, "check", "", "")) {
+  bool filter_conflicts = false;
+  filter_conflicts |=
+      mysqlshdk::utils::error_on_conflicts<Check_id_set, std::string>(
+          include_list, exclude_list, "check", "", "");
+
+  filter_conflicts |= filters.schemas().error_on_conflicts();
+  filter_conflicts |= filters.tables().error_on_conflicts();
+  filter_conflicts |= filters.routines().error_on_conflicts();
+  filter_conflicts |= filters.triggers().error_on_conflicts();
+  filter_conflicts |= filters.events().error_on_conflicts();
+  filter_conflicts |= filters.users().error_on_conflicts();
+
+  filter_conflicts |= filters.tables().error_on_cross_filters_conflicts();
+  filter_conflicts |= filters.routines().error_on_cross_filters_conflicts();
+  filter_conflicts |= filters.triggers().error_on_cross_filters_conflicts();
+  filter_conflicts |= filters.events().error_on_cross_filters_conflicts();
+
+  if (filter_conflicts) {
     throw std::invalid_argument("Conflicting filtering options");
   }
+
   if (!config_path.empty() && !shcore::is_file(config_path)) {
     throw std::invalid_argument("Invalid config path: " + config_path);
   }
