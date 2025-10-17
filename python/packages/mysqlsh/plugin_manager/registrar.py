@@ -811,9 +811,9 @@ def get_raw_signature(function):
 
 def plugin_function(fully_qualified_name,
                     plugin_docs=None,
-                    shell=True,
-                    cli=False,
-                    web=False):
+                    shell: bool = True,
+                    cli: bool = False,
+                    web: bool | dict = False):
     """Decorator factory to register Shell plugins functions
 
     Args:
