@@ -1023,6 +1023,13 @@ def get_replication_option_keyword():
     return "SOURCE"
 
 
+def get_binary_log_status_keyword():
+    if __version_num < 80200:
+        return "MASTER"
+
+    return "BINARY LOG"
+
+
 def EXPECT_OUTPUT_CONTAINS_MULTILINE(t):
     out = __split_trim_join(testutil.fetch_captured_stdout(False))
     err = __split_trim_join(testutil.fetch_captured_stderr(False))

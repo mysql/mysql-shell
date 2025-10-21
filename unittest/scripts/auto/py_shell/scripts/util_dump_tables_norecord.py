@@ -1908,11 +1908,18 @@ testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
 
 EXPECT_SUCCESS(tested_schema, [], test_output_absolute, { "all": True, "consistent": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS(f"""
-WARNING: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK.
-    Backup lock is not {reason} and DDL changes cannot be blocked.
-    The gtid_mode system variable is set to OFF or OFF_PERMISSIVE.
-    The log_bin system variable is set to OFF or the current user does not have required privileges to execute SHOW MASTER STATUS.
-The consistency of the dump cannot be guaranteed.
+WARNING: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK and:
+ * Backup lock is not {reason} and DDL changes cannot be blocked.
+ * The gtid_mode system variable is set to OFF or OFF_PERMISSIVE.
+ * The binary logging is disabled.
+WARNING: The consistency of the dump cannot be guaranteed.
+""")
+
+# BUG#38452568 - add an explanation on how to achieve a consistent dump
+EXPECT_STDOUT_CONTAINS(f"""
+NOTE: In order to create a consistent dump, either:{"\n * Use an account which has the BACKUP_ADMIN privilege." if __version_num >= 80000 else ""}
+ * Enable binary logging and set the gtid_mode system variable to ON or ON_PERMISSIVE.
+ * Enable binary logging and use the same account.
 """)
 
 testutil.dbug_set("")
