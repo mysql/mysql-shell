@@ -2507,11 +2507,18 @@ testutil.dbug_set("+d,dumper_binlog_disabled,dumper_gtid_disabled")
 EXPECT_FAIL("Error: Shell Error (52002)", "While 'Initializing': Unable to lock tables: Consistency check has failed.", test_output_absolute, { "includeSchemas": [ tested_schema ], "consistent": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS("WARNING: The current user lacks privileges to acquire a global read lock using 'FLUSH TABLES WITH READ LOCK'. Falling back to LOCK TABLES...")
 EXPECT_STDOUT_CONTAINS(f"""
-ERROR: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK.
-    Backup lock is not {reason} and DDL changes cannot be blocked.
-    The gtid_mode system variable is set to OFF or OFF_PERMISSIVE.
-    The log_bin system variable is set to OFF or the current user does not have required privileges to execute SHOW MASTER STATUS.
-The consistency of the dump cannot be guaranteed.
+WARNING: The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK and:
+ * Backup lock is not {reason} and DDL changes cannot be blocked.
+ * The gtid_mode system variable is set to OFF or OFF_PERMISSIVE.
+ * The binary logging is disabled.
+ERROR: The consistency of the dump cannot be guaranteed.
+""")
+
+# BUG#38452568 - add an explanation on how to achieve a consistent dump
+EXPECT_STDOUT_CONTAINS(f"""
+NOTE: In order to create a consistent dump, either:{"\n * Use an account which has the BACKUP_ADMIN privilege." if __version_num >= 80000 else ""}
+ * Enable binary logging and set the gtid_mode system variable to ON or ON_PERMISSIVE.
+ * Enable binary logging and use the same account.
 """)
 
 testutil.dbug_set("")

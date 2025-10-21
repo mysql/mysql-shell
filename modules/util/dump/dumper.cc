@@ -50,6 +50,7 @@
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/mysql/binlog_utils.h"
 #include "mysqlshdk/libs/mysql/gtid_utils.h"
+#include "mysqlshdk/libs/mysql/replication.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/debug.h"
 
@@ -2824,27 +2825,93 @@ void Dumper::lock_instance() {
         throw;
       }
     }
-  } else if (!m_ftwrl_used && !m_gtid_enabled &&
-             (!m_binlog_enabled ||
-              2 == m_user_privileges->validate({"REPLICATION CLIENT", "SUPER"})
-                       .missing_privileges()
-                       .size())) {
-    const auto msg =
-        "The current user does not have required privileges to execute FLUSH "
-        "TABLES WITH READ LOCK.\n    Backup lock is not " +
-        why_backup_lock_is_missing() +
-        " and DDL changes cannot be blocked.\n    The gtid_mode system "
-        "variable is set to OFF or OFF_PERMISSIVE.\n    The log_bin system "
-        "variable is set to OFF or the current user does not have required "
-        "privileges to execute SHOW MASTER STATUS.\nThe consistency of the "
-        "dump cannot be guaranteed.";
-    const auto console = current_console();
+  } else if (!m_ftwrl_used && !m_gtid_enabled) {
+    const auto execute_show_status =
+        2 != m_user_privileges->validate({"REPLICATION CLIENT", "SUPER"})
+                 .missing_privileges()
+                 .size();
 
-    if (shcore::str_caseeq(name(), "dumpInstance")) {
-      console->print_error(msg);
-      THROW_ERROR(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
-    } else {
+    if (!m_binlog_enabled || !execute_show_status) {
+      const auto console = current_console();
+
+      const auto fatal_error = shcore::str_caseeq(name(), "dumpInstance");
+
+      auto msg = shcore::str_format(
+          R"(The current user does not have required privileges to execute FLUSH TABLES WITH READ LOCK and:
+ * Backup lock is not %s and DDL changes cannot be blocked.
+ * The gtid_mode system variable is set to OFF or OFF_PERMISSIVE.
+ * The binary logging is %s)",
+          why_backup_lock_is_missing().c_str(),
+          m_binlog_enabled ? "enabled" : "disabled");
+
+      if (execute_show_status) {
+        // nothing more to add, finish the sentence
+        msg += '.';
+      } else {
+        if (m_binlog_enabled) {
+          msg += ", but";
+        } else {
+          msg += " and";
+        }
+
+        msg += shcore::str_format(
+            "the current user does not have required privileges to execute "
+            "SHOW %s STATUS.",
+            mysqlshdk::mysql::get_binary_logs_keyword(m_server_version.number,
+                                                      true));
+      }
+
       console->print_warning(msg);
+
+      msg = "The consistency of the dump cannot be guaranteed.";
+
+      if (fatal_error) {
+        console->print_error(msg);
+      } else {
+        console->print_warning(msg);
+      }
+
+      msg = "In order to create a consistent dump, either:";
+
+      if (m_server_version.number >= Version(8, 0, 0)) {
+        msg += "\n * Use an account which has the BACKUP_ADMIN privilege.";
+      }
+
+      msg += "\n * ";
+
+      if (m_binlog_enabled) {
+        msg += "Set the gtid_mode system variable to ON or ON_PERMISSIVE.";
+      } else {
+        msg +=
+            "Enable binary logging and set the gtid_mode system variable to ON "
+            "or ON_PERMISSIVE.";
+      }
+
+      msg += "\n * ";
+
+      if (m_binlog_enabled) {
+        if (execute_show_status) {
+          msg += "Use the same account.";
+        } else {
+          msg +=
+              "Use an account which has the REPLICATION CLIENT or SUPER "
+              "privileges.";
+        }
+      } else {
+        if (execute_show_status) {
+          msg += "Enable binary logging and use the same account.";
+        } else {
+          msg +=
+              "Enable binary logging and use an account which has the "
+              "REPLICATION CLIENT or SUPER privileges.";
+        }
+      }
+
+      console->print_note(msg);
+
+      if (fatal_error) {
+        THROW_ERROR(SHERR_DUMP_CONSISTENCY_CHECK_FAILED);
+      }
     }
   }
 
