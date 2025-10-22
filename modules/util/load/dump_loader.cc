@@ -40,6 +40,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -5163,8 +5164,21 @@ bool Dump_loader::maybe_push_checksum_task(
 }
 
 void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
-  // Remove NO_AUTO_CREATE_USER from sql_mode, which doesn't exist in 8.0 but
-  // does in 5.7
+  // Remove from sql_mode any values which exist in 5.7 but don't exist in 8.0
+
+  static const std::unordered_set<std::string> k_invalid_modes = {
+      "POSTGRESQL",
+      "ORACLE",
+      "MSSQL",
+      "DB2",
+      "MAXDB",
+      "NO_KEY_OPTIONS",
+      "NO_TABLE_OPTIONS",
+      "NO_FIELD_OPTIONS",
+      "MYSQL323",
+      "MYSQL40",
+      "NO_AUTO_CREATE_USER",
+  };
 
   add([](std::string_view sql, std::string *out_new_sql) {
     static std::regex re(
@@ -5180,7 +5194,9 @@ void Dump_loader::Sql_transform::add_strip_removed_sql_modes() {
     auto modes = shcore::str_split(m[3].str(), ",");
     std::string new_modes;
     for (const auto &mode : modes) {
-      if (mode != "NO_AUTO_CREATE_USER") new_modes.append(mode).append(1, ',');
+      if (!k_invalid_modes.contains(mode)) {
+        new_modes.append(mode).append(1, ',');
+      }
     }
     if (!new_modes.empty()) new_modes.pop_back();  // strip last ,
 

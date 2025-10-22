@@ -22,28 +22,28 @@ def setup_copy_tests(arg_no, src_options = {}):
         # WL16731-TSFR_1_1_2 - tests are executed with MLE component disabled
         disable_mle(src_session)
         disable_mle(tgt_session)
-        src_session.run_sql("""
-            CREATE LIBRARY sakila.existing_library LANGUAGE JAVASCRIPT
-            AS $$
-                export function squared(n) {
-                    return n * n;
-                }
-            $$
-            """)
-        src_session.run_sql("""
-            CREATE FUNCTION sakila.existing_library_function(n INTEGER) RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT
-            USING (sakila.existing_library AS mylib)
-            AS $$
-                return mylib.squared(n);
-            $$
-            """)
-        src_session.run_sql("""
-            CREATE PROCEDURE sakila.existing_library_procedure(n INTEGER) LANGUAGE JAVASCRIPT
-            USING (sakila.existing_library)
-            AS $$
-                existing_library.squared(n);
-            $$
-            """)
+        src_session.run_sql("""/*!90200
+CREATE LIBRARY sakila.existing_library LANGUAGE JAVASCRIPT
+AS $$
+    export function squared(n) {
+        return n * n;
+    }
+$$
+*/""")
+        src_session.run_sql("""/*!90200
+CREATE FUNCTION sakila.existing_library_function(n INTEGER) RETURNS INTEGER DETERMINISTIC LANGUAGE JAVASCRIPT
+USING (sakila.existing_library AS mylib)
+AS $$
+    return mylib.squared(n);
+$$
+*/""")
+        src_session.run_sql("""/*!90200
+CREATE PROCEDURE sakila.existing_library_procedure(n INTEGER) LANGUAGE JAVASCRIPT
+USING (sakila.existing_library)
+AS $$
+    existing_library.squared(n);
+$$
+*/""")
 
 def cleanup_copy_tests():
     testutil.destroy_sandbox(__mysql_sandbox_port1)

@@ -1,4 +1,4 @@
-#@ {DEF(MYSQLD57_PATH) and VER(<9.0.0)}
+#@ {DEF(MYSQLD57_PATH)}
 # Tests where dump is generated in one version and loaded in another
 
 
@@ -234,12 +234,39 @@ shell.connect(__sandbox_uri4)
 session.run_sql("SET @saved_restrict_fk_on_non_standard_key = @@GLOBAL.restrict_fk_on_non_standard_key")
 session.run_sql("SET @@GLOBAL.restrict_fk_on_non_standard_key = ON")
 
-EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "load should not fail")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "showProgress": False }), "load should not fail")
 EXPECT_STDOUT_CONTAINS("WARNING: The dump was created with the 'force_non_standard_fks' compatibility option set, the 'restrict_fk_on_non_standard_key' session variable will be set to 'OFF'. Please note that creation of foreign keys with non-standard keys may break the replication.")
 
 session.run_sql("SET @@GLOBAL.restrict_fk_on_non_standard_key = @saved_restrict_fk_on_non_standard_key")
 
 #@<> BUG#36553849 - cleanup
+for uri in [__sandbox_uri1, __sandbox_uri4]:
+    shell.connect(uri)
+    session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
+#@<> BUG#38499424 - automatically remove all SQL modes which were removed in 8.0.0
+# constants
+tested_schema = "test_schema"
+tested_routine = "tested_routine"
+dump_dir = os.path.join(__tmp_dir, "ldtest", "bug_38499424")
+
+# setup
+shell.connect(__sandbox_uri1)
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session.run_sql("CREATE SCHEMA !", [tested_schema])
+
+session.run_sql("SET @@SESSION.sql_mode = 'POSTGRESQL,ORACLE,MSSQL,DB2,MAXDB,NO_KEY_OPTIONS,NO_TABLE_OPTIONS,NO_FIELD_OPTIONS,MYSQL323,MYSQL40,NO_AUTO_CREATE_USER'")
+session.run_sql("CREATE PROCEDURE !.!() BEGIN END", [tested_schema, tested_routine])
+session.run_sql("SET @@SESSION.sql_mode = default")
+
+#@<> BUG#38499424 - test
+EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "showProgress": False }), "dump should not fail")
+
+shell.connect(__sandbox_uri4)
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "ignoreVersion": True, "showProgress": False }), "load should not fail")
+
+#@<> BUG#38499424 - cleanup
 for uri in [__sandbox_uri1, __sandbox_uri4]:
     shell.connect(uri)
     session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
