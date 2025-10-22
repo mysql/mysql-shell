@@ -970,6 +970,16 @@ void Testutils::import_data(const std::string &uri, const std::string &path,
   }
   if (!default_schema.empty()) argv.push_back(default_schema.c_str());
 
+  // in case we're loading using >=9.0.0 mysql into a <9.0.0 server, use our
+  // plugin directory, so that mysql_native_password plugin is available
+  std::string plugin_dir_opt;
+  if (const auto plugin_dir = shcore::get_default_mysql_plugin_dir();
+      !plugin_dir.empty()) {
+    plugin_dir_opt = "--plugin-dir=";
+    plugin_dir_opt += plugin_dir;
+    argv.push_back(plugin_dir_opt.c_str());
+  }
+
   if (g_test_trace_scripts > 0) {
     std::cerr << shcore::str_join(argv, " ") << "\n";
   }
