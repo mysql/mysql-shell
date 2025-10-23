@@ -237,7 +237,9 @@ void Load_dump_options::on_set_session(
 
     shcore::Account account;
 
-    instance.get_current_user(&account.user, &account.host);
+    // BUG#38566439 - exclude the current user by user name only, this avoids
+    // issues if account's hostname is specified using a wildcard or a netmask
+    instance.get_current_user(&account.user, nullptr);
 
     filters().users().exclude(std::move(account));
   }
