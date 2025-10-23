@@ -633,21 +633,14 @@ EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "exclude
 EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ValueError: Argument #2: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
 EXPECT_THROWS(lambda: util.load_dump(users_outdir, { "loadUsers": True, "includeUsers": ["foo@''nope"] }), "ValueError: Argument #2: Malformed hostname. Cannot use \"'\" or '\"' characters on the hostname without quotes")
 
-#@<> don't include or exclude any users, all accounts are loaded (error from duplicates)
-EXPECT_INCLUDE_EXCLUDE({ "includeUsers": [], "excludeUsers": [] }, [], [], "Duplicate objects found in destination database")
-
-EXPECT_STDOUT_CONTAINS("ERROR: Account 'root'@'%' already exists")
-
 #@<> don't include or exclude any users, all accounts are loaded
-EXPECT_INCLUDE_EXCLUDE({ "ignoreExistingObjects":True, "includeUsers": [], "excludeUsers": [] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
-
-EXPECT_STDOUT_CONTAINS("NOTE: Account 'root'@'%' already exists")
+EXPECT_INCLUDE_EXCLUDE({ "includeUsers": [], "excludeUsers": [] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
 
 #@<> include non-existent user, no accounts are loaded
 EXPECT_INCLUDE_EXCLUDE({ "includeUsers": ["third"] }, [], ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"])
 
-#@<> exclude non-existent user (and root@%), all accounts are loaded, mysql.sys is always excluded (and it already exists)
-EXPECT_INCLUDE_EXCLUDE({ "excludeUsers": ["third", "'root'@'%'"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
+#@<> exclude non-existent user, all accounts are loaded, mysql.sys is always excluded (and it already exists)
+EXPECT_INCLUDE_EXCLUDE({ "excludeUsers": ["third"] }, ["'first'@'localhost'", "'first'@'10.11.12.13'", "'firstfirst'@'localhost'", "'second'@'localhost'", "'second'@'10.11.12.14'"], [])
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping CREATE/ALTER USER statements for user 'mysql.sys'@'localhost'")
 EXPECT_STDOUT_CONTAINS("NOTE: Skipping GRANT/REVOKE statements for user 'mysql.sys'@'localhost'")
 
@@ -4106,6 +4099,40 @@ EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Dupl
 
 #@<> BUG#37326937 - cleanup
 session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
+#@<> BUG#38566439 - exclude the account loading the dump using the user name only
+# constants
+tested_schema = "test_schema"
+dump_dir = os.path.join(outdir, "bug_38566439")
+test_user_account_wildcard = test_user_account.replace(__host, __host[0] + "%")
+
+# setup
+# create a schema to have something to dump
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql("CREATE SCHEMA !", [tested_schema])
+
+wipeout_server(session2)
+
+# create accounts in both servers, load will fail if both accounts are not excluded
+for s in [session1, session2]:
+    for a in [test_user_account, test_user_account_wildcard]:
+        s.run_sql(f"DROP USER IF EXISTS {a}")
+        s.run_sql(f"CREATE USER {a} IDENTIFIED BY ?", [test_user_pwd])
+        s.run_sql(f"GRANT ALL ON *.* TO {a} WITH GRANT OPTION")
+
+# create the dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+
+#@<> BUG#38566439 - test
+shell.connect(test_user_uri(__mysql_sandbox_port2))
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "loadUsers": True, "showProgress": False }), "Load should not fail")
+
+#@<> BUG#38566439 - cleanup
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+
+for a in [test_user_account, test_user_account_wildcard]:
+    session1.run_sql(f"DROP USER IF EXISTS {a}")
 
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
