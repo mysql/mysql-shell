@@ -21,11 +21,14 @@
 # along with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
-class Error(Exception):
-    code: int | None = None
-    msg: str | None = None
+from typing import Union
 
-    def __init__(self, code: int, msg: str | None = None):
+
+class Error(Exception):
+    code: Union[int, None] = None
+    msg: Union[str, None] = None
+
+    def __init__(self, code: int, msg: Union[str, None] = None):
         if msg is None:
             self.msg = str(code)
             self.code = None

@@ -82,7 +82,7 @@ def check_dual_password(session, account_data: dict, dual: bool, auth_replace : 
                 "WARNING", f"Could not retrieve dual password status for {account_data['account']}: {e.msg}")
     
     if has_dual:
-        message = f"The account {account_data["account"]} has a retained old (dual) password."
+        message = f"The account {account_data['account']} has a retained old (dual) password."
         if auth_replace:
             message += " It will be lost on auth method replacement."
         type = "warning"

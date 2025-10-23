@@ -26,6 +26,7 @@ import inspect
 import re
 from functools import wraps, partial
 import mysqlsh
+from typing import Union
 
 # Callbacks for additional handling on registered plugin
 # functions should be added here, they should be in the form
@@ -813,7 +814,7 @@ def plugin_function(fully_qualified_name,
                     plugin_docs=None,
                     shell: bool = True,
                     cli: bool = False,
-                    web: bool | dict = False):
+                    web: Union[bool, dict] = False):
     """Decorator factory to register Shell plugins functions
 
     Args:
