@@ -132,6 +132,7 @@ struct Version_info {
 
 const std::unordered_map<std::string, Version_info>
     k_mhs_deprecated_authentication_plugins = {
+        {"authentication_fido", {Version{8, 2, 0}, Version{8, 4, 0}}},
         {"mysql_native_password", {Version{8, 0, 34}, Version{9, 0, 0}}},
         {"sha256_password", {Version{8, 0, 16}, std::nullopt}},
 };
