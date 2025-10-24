@@ -4108,6 +4108,44 @@ EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Dupl
 #@<> BUG#37326937 - cleanup
 session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
+#@<> BUG#38566495 - retrying a load with the 'dropExistingObjects' option enabled attempted to drop accounts created in the previous run {VER(>=8.2.0)}
+# constants
+tested_schema = "test_schema"
+tested_user = "'user'@'localhost'"
+
+dump_dir = os.path.join(outdir, "bug_38566495")
+
+# setup
+session1.run_sql(f"DROP USER IF EXISTS {tested_user}")
+session1.run_sql(f"CREATE USER {tested_user}")
+
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql("CREATE SCHEMA !", [tested_schema])
+session1.run_sql("CREATE TABLE !.t (a INT)", [tested_schema])
+session1.run_sql(f"CREATE DEFINER={tested_user} VIEW !.v AS SELECT * FROM !.t", [tested_schema, tested_schema])
+
+wipeout_server(session2)
+session2.run_sql(f"DROP USER IF EXISTS {test_user_account}")
+session2.run_sql(f"CREATE USER {test_user_account} IDENTIFIED BY ?", [test_user_pwd])
+session2.run_sql(f"GRANT ALL ON *.* TO {test_user_account} WITH GRANT OPTION")
+# without this privilege, if an account which is a definer would be dropped, DROP will error out instead
+session2.run_sql(f"REVOKE ALLOW_NONEXISTENT_DEFINER ON *.* FROM {test_user_account}")
+
+# create the dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump should not fail")
+
+#@<> BUG#38566495 - test {VER(>=8.2.0)}
+shell.connect(test_user_uri(__mysql_sandbox_port2))
+
+# load twice, second load is going to resume the load, 'dropExistingObjects' should not cause accounts to be recreated
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "loadUsers": True, "showProgress": False }), "Load should not fail")
+EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "loadUsers": True, "showProgress": False }), "Load should not fail")
+
+#@<> BUG#38566495 - cleanup {VER(>=8.2.0)}
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql(f"DROP USER IF EXISTS {tested_user}")
+
 #@<> Cleanup
 testutil.destroy_sandbox(__mysql_sandbox_port1)
 testutil.destroy_sandbox(__mysql_sandbox_port2)

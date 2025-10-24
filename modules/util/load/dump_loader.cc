@@ -5740,6 +5740,12 @@ void Dump_loader::drop_existing_accounts() {
     return;
   }
 
+  if (Load_progress_log::Status::DONE ==
+      m_load_log->status(progress::Create_users{})) {
+    log_info("Accounts were created in the previous run, skipping.");
+    return;
+  }
+
   sql::ar::run(m_reconnect_callback, [this]() {
     for (const auto &group : m_users.statements) {
       if (Schema_dumper::User_statements::Type::CREATE_USER == group.type) {
@@ -5754,12 +5760,20 @@ void Dump_loader::create_accounts() {
     return;
   }
 
+  if (Load_progress_log::Status::DONE ==
+      m_load_log->status(progress::Create_users{})) {
+    log_info("Accounts already created, skipping.");
+    return;
+  }
+
   const auto stage = m_progress_thread.start_stage("Creating user accounts");
   shcore::on_leave_scope finish_stage([stage]() { stage->finish(); });
 
   if (m_options.dry_run()) {
     return;
   }
+
+  m_load_log->log(progress::start::Create_users{});
 
   sql::ar::run(m_reconnect_callback, [this]() {
     for (const auto &group : m_users.statements) {
@@ -5793,6 +5807,8 @@ void Dump_loader::create_accounts() {
       }
     }
   });
+
+  m_load_log->log(progress::end::Create_users{});
 }
 
 void Dump_loader::apply_grants() {
