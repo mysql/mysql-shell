@@ -44,6 +44,7 @@ class SHCORE_PUBLIC IRow;
 namespace mysqlsh {
 
 using mysqlshdk::db::Connection_options;
+using shcore::option_tracker::Shell_feature;
 
 Connection_options SHCORE_PUBLIC get_connection_options(const shcore::Value &v);
 
@@ -131,7 +132,8 @@ get_connection_map(const Connection_options &connection_options);
  */
 std::shared_ptr<mysqlshdk::db::ISession> SHCORE_PUBLIC establish_session(
     const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop = false, bool enable_stored_passwords = true);
+    bool prompt_in_loop = false, bool enable_stored_passwords = true,
+    Shell_feature feature_id = Shell_feature::NONE);
 
 /**
  * Forces the session to use MySQL protocol changing the scheme to "mysql",

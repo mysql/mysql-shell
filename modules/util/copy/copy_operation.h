@@ -41,6 +41,7 @@
 #include "modules/mod_utils.h"
 #include "modules/util/dump/ddl_dumper.h"
 #include "modules/util/load/dump_loader.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 
 namespace mysqlsh {
 namespace copy {
@@ -56,11 +57,14 @@ void copy(dump::Ddl_dumper *dumper, Dump_loader *loader,
 template <class Dumper, class Options>
 void copy(const mysqlshdk::db::Connection_options &connection_options,
           Options *copy_options) {
+  using shcore::option_tracker::Shell_feature;
+
   std::shared_ptr<mysqlshdk::db::ISession> load_session;
 
   try {
     load_session = establish_session(connection_options,
-                                     current_shell_options()->get().wizards);
+                                     current_shell_options()->get().wizards,
+                                     false, true, Shell_feature::UTIL_COPY);
   } catch (const mysqlshdk::db::Error &e) {
     throw std::invalid_argument("Could not connect to the target instance: " +
                                 e.format());

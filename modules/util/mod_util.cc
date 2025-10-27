@@ -58,11 +58,14 @@
 #include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/document_parser.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
+using shcore::option_tracker::Shell_feature;
+
 REGISTER_HELP_GLOBAL_OBJECT(util, shellapi);
 REGISTER_HELP(UTIL_GLOBAL_BRIEF,
               "Global object that groups miscellaneous tools like upgrade "
@@ -232,7 +235,8 @@ void Util::check_for_server_upgrade(
       connection.set_interactive(false);
     }
     const auto session =
-        establish_session(connection, current_shell_options()->get().wizards);
+        establish_session(connection, current_shell_options()->get().wizards,
+                          false, true, Shell_feature::UTIL_UPGRADE_CHECK);
 
     session->execute("SET SQL_MODE=DEFAULT");
 
@@ -1472,6 +1476,7 @@ void Util::load_dump(const std::string &url, Load_dump_options &&options) {
   shcore::Log_sql_guard log_sql_context{"util.loadDump()"};
 
   options.set_url(url);
+  session->set_option_tracker_feature_id(Shell_feature::UTIL_LOAD_DUMP);
   options.set_session(session);
   options.validate_and_configure();
 
@@ -2460,9 +2465,10 @@ void Util::copy_instance(
     const mysqlshdk::db::Connection_options &connection_options,
     copy::Copy_instance_options &&options) {
   const auto session = global_session();
+  session->set_option_tracker_feature_id(Shell_feature::UTIL_COPY);
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copyInstance()"};
-
+  options.dump_options()->set_report_dump_option(false);
   options.dump_options()->set_session(session);
 
   copy::copy<mysqlsh::dump::Dump_instance>(connection_options, &options);
@@ -2508,9 +2514,10 @@ void Util::copy_schemas(
     const mysqlshdk::db::Connection_options &connection_options,
     copy::Copy_schemas_options &&options) {
   const auto session = global_session();
+  session->set_option_tracker_feature_id(Shell_feature::UTIL_COPY);
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copySchemas()"};
-
+  options.dump_options()->set_report_dump_option(false);
   options.dump_options()->set_schemas(schemas);
   options.dump_options()->set_session(session);
 
@@ -2559,9 +2566,11 @@ void Util::copy_tables(
     const mysqlshdk::db::Connection_options &connection_options,
     copy::Copy_tables_options &&options) {
   const auto session = global_session();
+  session->set_option_tracker_feature_id(Shell_feature::UTIL_COPY);
   Scoped_log_sql log_sql{log_sql_for_dump_and_load()};
   shcore::Log_sql_guard log_sql_context{"util.copyTables()"};
 
+  options.dump_options()->set_report_dump_option(false);
   options.dump_options()->set_schema(schema);
   options.dump_options()->set_tables(tables);
   options.dump_options()->set_session(session);
@@ -2673,6 +2682,8 @@ void Util::dump_binlogs(const std::string &url,
   shcore::Log_sql_guard log_sql_context{"util.dumpBinlogs()"};
 
   const auto session = global_session();
+
+  session->set_option_tracker_feature_id(Shell_feature::UTIL_DUMP);
 
   options.set_url(url);
   options.set_session(session);

@@ -154,6 +154,10 @@ class Dump_options : public mysqlsh::common::Common_options {
     return m_handle_innodb_vector_store_tables;
   }
 
+  bool report_dump_option() const { return m_report_dump_option; }
+
+  void set_report_dump_option(bool value) { m_report_dump_option = value; }
+
   virtual bool split() const = 0;
 
   virtual uint64_t bytes_per_chunk() const = 0;
@@ -275,6 +279,8 @@ class Dump_options : public mysqlsh::common::Common_options {
   bool m_rename_data_files = true;
 
   bool m_handle_innodb_vector_store_tables = true;
+
+  bool m_report_dump_option = true;
 
   // schema -> table -> condition
   std::unordered_map<std::string, std::unordered_map<std::string, std::string>>

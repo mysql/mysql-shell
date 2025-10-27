@@ -37,6 +37,7 @@ set(utils_SOURCE
     log_sql.cc
     logger.cc
     nullable_options.cc
+    option_tracker.cc
     options.cc
     process_launcher.cc
     profiling.cc

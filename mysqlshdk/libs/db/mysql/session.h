@@ -44,6 +44,7 @@
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/result.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 
 namespace mysqlshdk {
 namespace db {
@@ -233,12 +234,18 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   void check_session_track_system_variables() const;
 
+  void set_option_tracker_feature_id(const std::string &feature_id);
+
+  void set_option_tracker_feature_id(
+      shcore::option_tracker::Shell_feature feature_id);
+
   std::string _uri;
   MYSQL *_mysql = nullptr;
   std::shared_ptr<MYSQL_RES> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
   uint64_t m_thread_id = 0;
   std::unique_ptr<Error> m_last_error;
+  std::string m_option_tracker_feature_id;
 
   struct Session_tracker_info {
     std::optional<std::string> statement_id;
@@ -397,6 +404,15 @@ class SHCORE_PUBLIC Session : public ISession,
   ~Session() override { close(); }
 
   bool is_mysql_native_password() const override;
+
+  void set_option_tracker_feature_id(const std::string &feature_id) override {
+    _impl->set_option_tracker_feature_id(feature_id);
+  }
+
+  void set_option_tracker_feature_id(
+      shcore::option_tracker::Shell_feature feature_id) override {
+    _impl->set_option_tracker_feature_id(feature_id);
+  }
 
  protected:
   Session() { _impl.reset(new Session_impl()); }

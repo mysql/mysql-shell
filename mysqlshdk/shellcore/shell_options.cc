@@ -281,6 +281,8 @@ Shell_options::Shell_options(
         "For more details execute '\\? cmdline' inside of the Shell.")
     (&storage.execute_statement, "", cmdline("-e", "--execute=<cmd>"),
         "Execute command and quit.")
+    (&storage.execution_context, "", cmdline("--execution-context=<id>"),
+        "Defines a custom Shell Execution context for option reporting.")
 #ifdef HAVE_PYTHON
     (cmdline("-c", "--pyc=<cmd>"), "Execute Python command and quit. "
         "Any options specified after this are used as arguments of the "

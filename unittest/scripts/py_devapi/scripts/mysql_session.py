@@ -22,6 +22,7 @@ validate_members(classicSession, [
   'set_client_data',
   'set_query_attributes',
   'track_system_variable',
+  'set_option_tracker_feature_id',
   'connection_id',
   'uri',
   'ssh_uri',
