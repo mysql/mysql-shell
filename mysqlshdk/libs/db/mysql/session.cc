@@ -38,6 +38,7 @@
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/log_sql.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 
@@ -555,6 +556,9 @@ void Session_impl::execute(const char *sql, size_t len) {
 std::shared_ptr<IResult> Session_impl::run_sql(
     const char *sql, size_t len, bool buffered, bool is_udf,
     const std::vector<Query_attribute> &query_attributes) {
+  static uint64_t k_tracking_value = 1;
+  static Classic_query_attribute k_tracking_attribute(k_tracking_value);
+
   if (_mysql == nullptr) throw std::runtime_error("Not connected");
   mysqlshdk::utils::Profile_timer timer;
   timer.stage_begin("run_sql");
@@ -640,9 +644,28 @@ std::shared_ptr<IResult> Session_impl::run_sql(
   const char *attribute_names[K_MAX_QUERY_ATTRIBUTES];
   MYSQL_BIND attribute_values[K_MAX_QUERY_ATTRIBUTES];
 
-  if (!query_attributes.empty()) {
+  if (!query_attributes.empty() || !m_option_tracker_feature_id.empty()) {
     memset(attribute_values, 0, sizeof(attribute_values));
+
     size_t attribute_count = 0;
+
+    // Only the first query attribute can be used to report option usage, so we
+    // need to ensure the report options (if any) is sent first
+    if (!m_option_tracker_feature_id.empty()) {
+      attribute_names[attribute_count] = m_option_tracker_feature_id.data();
+      const auto &value = &k_tracking_attribute;
+      attribute_values[attribute_count].buffer_type = value->type;
+      attribute_values[attribute_count].buffer = value->data_ptr;
+      attribute_values[attribute_count].length = &value->size;
+      attribute_values[attribute_count].is_null = &value->is_null;
+      attribute_values[attribute_count].is_unsigned =
+          (value->flags & UNSIGNED_FLAG) ? true : false;
+      attribute_count++;
+    }
+
+    shcore::on_leave_scope reset_report_option(
+        [this]() { m_option_tracker_feature_id.clear(); });
+
     for (const auto &att : query_attributes) {
       attribute_names[attribute_count] = att.name.data();
       const auto &value =
@@ -799,6 +822,18 @@ void Session_impl::check_session_track_system_variables() const {
       var = variable_by_name(data, length);
     }
   }
+}
+
+void Session_impl::set_option_tracker_feature_id(
+    const std::string &feature_id) {
+  m_option_tracker_feature_id =
+      shcore::option_tracker::get_option_tracker_feature_id(feature_id);
+}
+
+void Session_impl::set_option_tracker_feature_id(
+    shcore::option_tracker::Shell_feature feature_id) {
+  m_option_tracker_feature_id =
+      shcore::option_tracker::get_option_tracker_feature_id(feature_id);
 }
 
 const std::optional<std::string> &Session_impl::get_last_statement_id() const {

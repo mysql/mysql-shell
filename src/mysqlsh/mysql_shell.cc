@@ -50,6 +50,7 @@
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/version.h"
@@ -1034,6 +1035,8 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     bool shell_global_session,
     std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)> extra_init,
     bool enable_stored_passwords) {
+  using shcore::option_tracker::Shell_feature;
+
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -1076,8 +1079,9 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
     shcore::Scoped_callback go_back_print_mode([this] { toggle_print(); });
 
     toggle_print();
-    isession = establish_session(connection_options, options().wizards, false,
-                                 enable_stored_passwords);
+    isession =
+        establish_session(connection_options, options().wizards, false,
+                          enable_stored_passwords, Shell_feature::SHELL_USE);
 
     if (extra_init) {
       extra_init(isession);
@@ -2571,6 +2575,7 @@ void Mysql_shell::add_devapi_completions() {
                                   {"runSql", "ClassicResult", true},
                                   {"startTransaction", "ClassicResult", true},
                                   {"setClientData", "", true},
+                                  {"setOptionTrackerFeatureId", "", true},
                                   {"setQueryAttributes", "", true},
                                   {"trackSystemVariable", "", true},
                                   {"connectionId", "", false},

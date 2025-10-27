@@ -195,6 +195,7 @@ class Shell_options final : public shcore::Options {
     bool disable_user_plugins = false;
     bool disable_builtin_plugins = false;
     Js_options js_options;
+    std::string execution_context;
 
     // TODO(anyone): Expose the option
     enum class Progress_reporting {
@@ -281,6 +282,10 @@ class Shell_options final : public shcore::Options {
   void set_json_output() {
     storage.wrap_json = "json/raw";
     storage.result_format = "json/raw";
+  }
+
+  void set_execution_context(const std::string &context) {
+    storage.execution_context = context;
   }
 
   std::vector<std::string> get_details() { return get_cmdline_help(33, 45); }

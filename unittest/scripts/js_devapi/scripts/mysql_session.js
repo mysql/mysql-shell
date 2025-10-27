@@ -23,6 +23,7 @@ validateMembers(classicSession, [
     'connectionId',
     'sshUri',
     'trackSystemVariable',
+    'setOptionTrackerFeatureId',
     'uri',
     '_getSocketFd'])
 

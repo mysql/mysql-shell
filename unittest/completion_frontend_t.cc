@@ -1212,7 +1212,8 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
       {"_getSocketFd", ""},
       {"setClientData", "('key', 4)"},
       {"getClientData", "('key')"},
-      {"trackSystemVariable", "('sql_mode')"}};
+      {"trackSystemVariable", "('sql_mode')"},
+      {"setOptionTrackerFeatureId", "('something')"}};
   CHECK_OBJECT_MEMBER_COMPLETIONS("session", session_calls);
 }
 #endif

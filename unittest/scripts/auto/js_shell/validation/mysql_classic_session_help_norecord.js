@@ -57,12 +57,19 @@ FUNCTIONS
       setClientData(key, value)
             Associates a value with the session for the given key.
 
+      setOptionTrackerFeatureId(feature_id)
+            Defines the id of an option to be reported as used by the option
+            tracker.
+
       setQueryAttributes()
             Defines query attributes that apply to the next statement sent to
             the server for execution.
 
       startTransaction()
             Starts a transaction context on the server.
+
+      trackSystemVariable(variable)
+            Enables session tracking of the given system variable.
 
 //@<OUT> Help on uri
 NAME

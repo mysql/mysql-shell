@@ -120,6 +120,7 @@ class Testutils : public mysqlsh::Extensible_object {
   Undefined traceSyslog(String file);
   Undefined stopTracingSyslog();
   String yaml(Any value);
+  Undefined serExecutionContext(String context);
 #elif DOXYGEN_PY
   None deploy_sandbox(int port, str pwd, Dictionary options);
   None destroy_sandbox(int port);
@@ -186,6 +187,7 @@ class Testutils : public mysqlsh::Extensible_object {
   None trace_syslog(str file);
   None stop_tracing_syslog();
   str yaml(any value);
+  None set_execution_context(str context);
 #endif
 
   Testutils(const std::string &sandbox_dir, bool dummy_mode,
@@ -407,6 +409,8 @@ class Testutils : public mysqlsh::Extensible_object {
   void stop_tracing_syslog();
 
   std::string yaml(const shcore::Value &v) const;
+
+  void set_execution_context(const std::string &context);
 
   int test_script_timeout() const;
 

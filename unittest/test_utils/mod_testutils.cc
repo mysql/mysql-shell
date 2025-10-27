@@ -394,6 +394,7 @@ Testutils::Testutils(const std::string &sandbox_dir, bool dummy_mode,
   expose("stopTracingSyslog", &Testutils::stop_tracing_syslog);
 
   expose("yaml", &Testutils::yaml, "value");
+  expose("setExecutionContext", &Testutils::set_execution_context, "context");
 
   expose("testScriptTimeout", &Testutils::test_script_timeout);
   expose("setTestScriptTimeout", &Testutils::set_test_script_timeout,
@@ -4822,6 +4823,23 @@ str Testutils::yaml(any value);
 #endif
 ///@}
 std::string Testutils::yaml(const shcore::Value &v) const { return v.yaml(); }
+
+//!<  @name Testing Utilities
+///@{
+/**
+ * Sets the shell execution context.
+ *
+ * @param context The execution context to use in the shell
+ */
+#if DOXYGEN_JS
+Undefined Testutils::setExecutionContext(String context);
+#elif DOXYGEN_PY
+None Testutils::set_execution_context(str context);
+#endif
+///@}
+void Testutils::set_execution_context(const std::string &context) {
+  mysqlsh::current_shell_options()->set_execution_context(context);
+}
 
 //!<  @name Testing Utilities
 ///@{

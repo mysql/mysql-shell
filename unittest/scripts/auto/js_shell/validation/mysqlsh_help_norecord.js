@@ -19,6 +19,8 @@ Usage: mysqlsh [OPTIONS] [URI]
                                    For more details execute '\? cmdline' inside
                                    of the Shell.
   -e, --execute=<cmd>              Execute command and quit.
+  --execution-context=<id>         Defines a custom Shell Execution context for
+                                   option reporting.
   -c, --pyc=<cmd>                  Execute Python command and quit. Any options
                                    specified after this are used as arguments
                                    of the processed command.

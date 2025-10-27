@@ -36,6 +36,7 @@
 #include "modules/mod_common.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 #include "scripting/types.h"
 #include "shellcore/base_session.h"
 #include "shellcore/ishell_core.h"
@@ -91,6 +92,7 @@ class SHCORE_PUBLIC ClassicSession
   Undefined setClientData(String key, Any value);
   Any getClientData(String key);
   String trackSystemVariable(String variable);
+  Undefined setOptionTrackerFeatureId(String feature_id);
 
  private:
 #elif DOXYGEN_PY
@@ -112,6 +114,7 @@ class SHCORE_PUBLIC ClassicSession
   None set_client_data(str key, Any value);
   Any get_client_data(str key);
   str track_system_variable(str variable);
+  None set_option_tracker_feature_id(str feature_id);
 
  private:
 #endif
@@ -167,6 +170,9 @@ class SHCORE_PUBLIC ClassicSession
   bool is_open() const override;
 
   std::string track_system_variable(const std::string &variable) override;
+  void set_option_tracker_feature_id(const std::string &feature_id);
+  void set_option_tracker_feature_id(
+      shcore::option_tracker::Shell_feature feature_id);
 
  private:
   void init();

@@ -58,6 +58,7 @@
 #include "mysqlshdk/libs/oci/oci_par.h"
 #include "mysqlshdk/libs/storage/utils.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 #include "mysqlshdk/libs/utils/profiling.h"
 #include "mysqlshdk/libs/utils/rate_limit.h"
 #include "mysqlshdk/libs/utils/strformat.h"
@@ -96,7 +97,6 @@ using mysqlshdk::storage::Mode;
 using mysqlshdk::storage::backend::Memory_file;
 using mysqlshdk::utils::k_shell_version;
 using mysqlshdk::utils::Version;
-
 using Row = std::vector<std::string>;
 
 namespace {
@@ -2426,10 +2426,18 @@ void Dumper::on_init_thread_session(
 }
 
 void Dumper::open_session() {
+  using shcore::option_tracker::Shell_feature;
+
 #ifndef NDEBUG
   m_main_thread = std::this_thread::get_id();
 #endif  // !NDEBUG
-  m_session = establish_session(m_options.connection_options(), false);
+  Shell_feature feature_id = Shell_feature::NONE;
+  if (m_options.report_dump_option()) {
+    feature_id = Shell_feature::UTIL_DUMP;
+  }
+  // Establish session and configure it.
+  m_session = establish_session(m_options.connection_options(), false, false,
+                                true, feature_id);
   on_init_thread_session(session());
 
   fetch_server_information();

@@ -442,7 +442,8 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
 }
 
 std::shared_ptr<mysqlshdk::db::ISession> create_session(
-    const Connection_options &connection_options) {
+    const Connection_options &connection_options,
+    Shell_feature feature_id = Shell_feature::NONE) {
   // allow SIGINT to interrupt the connect()
   shcore::atomic_flag cancelled;
   shcore::Interrupt_handler intr([&cancelled]() {
@@ -455,6 +456,8 @@ std::shared_ptr<mysqlshdk::db::ISession> create_session(
   auto session = create_and_connect(connection_options);
 
   if (cancelled.test()) throw shcore::cancelled("Cancelled");
+
+  session->set_option_tracker_feature_id(feature_id);
 
   return session;
 }
@@ -511,7 +514,8 @@ void password_prompt(Connection_options *options) {
 
 std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     const Connection_options &options, bool prompt_for_password,
-    bool prompt_in_loop, bool enable_stored_passwords) {
+    bool prompt_in_loop, bool enable_stored_passwords,
+    Shell_feature feature_id) {
   FI_SUPPRESS(mysql);
   FI_SUPPRESS(mysqlx);
 
@@ -530,7 +534,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     if (!copy.has_password() && copy.has_user() && enable_stored_passwords) {
       if (shcore::Credential_manager::get().get_password(&copy)) {
         try {
-          return create_session(copy);
+          return create_session(copy, feature_id);
         } catch (const mysqlshdk::db::Error &e) {
           if (e.code() != ER_ACCESS_DENIED_ERROR) {
             throw;
@@ -573,7 +577,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
         }
 
         try {
-          auto session = create_session(copy);
+          auto session = create_session(copy, feature_id);
 
           if (prompted_for_password &&
               (!mysqlsh::current_shell_options()->get().passwords_from_stdin ||
@@ -595,7 +599,7 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
       } while (prompt_in_loop);
     }
 
-    return create_session(copy);
+    return create_session(copy, feature_id);
   } catch (const mysqlshdk::db::Error &e) {
     throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
                                                              e.sqlstate());

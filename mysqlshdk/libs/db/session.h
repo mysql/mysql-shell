@@ -45,8 +45,8 @@ using socket_t = int;
 #endif /* _WIN32 */
 
 #include "mysqlshdk/libs/db/connection_options.h"
-
 #include "mysqlshdk/libs/utils/error.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -238,6 +238,11 @@ class SHCORE_PUBLIC ISession {
   virtual std::string track_system_variable(const std::string &) = 0;
 
   void refresh_sql_mode();
+  virtual void set_option_tracker_feature_id(
+      [[maybe_unused]] const std::string &feature_id){};
+
+  virtual void set_option_tracker_feature_id(
+      [[maybe_unused]] shcore::option_tracker::Shell_feature feature_id){};
 
   [[nodiscard]] virtual bool is_mysql_native_password() const;
 

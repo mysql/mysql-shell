@@ -35,6 +35,7 @@
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/ssh/ssh_manager.h"
+#include "mysqlshdk/libs/utils/option_tracker.h"
 #include "shellcore/shell_notifications.h"
 #include "shellcore/utils_help.h"
 #include "utils/utils_general.h"
@@ -97,18 +98,25 @@ void ClassicSession::init() {
   expose("getSqlMode", &ClassicSession::get_sql_mode);
   expose("trackSystemVariable", &ClassicSession::track_system_variable,
          "variable");
+  expose<void, const std::string &>(
+      "setOptionTrackerFeatureId",
+      &ClassicSession::set_option_tracker_feature_id, "feature_id");
 
   expose("_getSocketFd", &ClassicSession::_get_socket_fd);
 }
 
 void ClassicSession::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
+  using shcore::option_tracker::Shell_feature;
+
   _connection_options = connection_options;
 
   try {
     _session = mysqlshdk::db::mysql::Session::create();
 
     _session->connect(_connection_options);
+
+    _session->set_option_tracker_feature_id(Shell_feature::SHELL_USE);
   }
   CATCH_AND_TRANSLATE();
 }
@@ -790,4 +798,31 @@ std::string ClassicSession::track_system_variable(const std::string &variable) {
     throw std::invalid_argument("Session is not open");
 
   return ShellBaseSession::track_system_variable(variable);
+}
+
+REGISTER_HELP_FUNCTION(setOptionTrackerFeatureId, ClassicSession);
+REGISTER_HELP_FUNCTION_TEXT(CLASSICSESSION_SETOPTIONTRACKERFEATUREID, R"*(
+Defines the id of an option to be reported as used by the option tracker.
+
+@param feature_id The id of the option to be marked as used.
+)*");
+/**
+ * $(CLASSICSESSION_SETOPTIONTRACKERFEATUREID_BRIEF)
+ *
+ * $(CLASSICSESSION_SETOPTIONTRACKERFEATUREID)
+ */
+#if DOXYGEN_JS
+Undefined ClassicSession::setOptionTrackerFeatureId(String feature_id) {}
+#elif DOXYGEN_PY
+None ClassicSession::set_option_tracker_feature_id(str feature_id) {}
+#endif
+
+void ClassicSession::set_option_tracker_feature_id(
+    const std::string &feature_id) {
+  _session->set_option_tracker_feature_id(feature_id);
+}
+
+void ClassicSession::set_option_tracker_feature_id(
+    shcore::option_tracker::Shell_feature feature_id) {
+  _session->set_option_tracker_feature_id(feature_id);
 }
