@@ -4026,6 +4026,9 @@ session1.run_sql(f"set @@collation_connection = '{supported_collation}'")
 session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 session1.run_sql(f"CREATE SCHEMA ! COLLATE {supported_collation}", [ tested_schema ])
 session1.run_sql(f"CREATE TABLE !.t (c TEXT COLLATE {supported_collation}) COLLATE {supported_collation}", [ tested_schema ])
+# BUG#38560511 - dump failed if column didn't have a collation explicitly specified
+# NOTE: collation of a column will not be present only if it's a default collation for the corresponding character set
+session1.run_sql(f"CREATE TABLE !.t2 (c TEXT) COLLATE utf8mb4_0900_ai_ci", [ tested_schema ])
 session1.run_sql("CREATE VIEW !.v AS SELECT * FROM !.t", [ tested_schema, tested_schema ])
 session1.run_sql("CREATE TRIGGER !.tt BEFORE INSERT ON t FOR EACH ROW BEGIN END", [ tested_schema ])
 session1.run_sql(f"CREATE FUNCTION !.f(a TEXT CHARACTER SET utf8mb4 COLLATE {supported_collation}) RETURNS TEXT CHARACTER SET utf8mb4 COLLATE {supported_collation} DETERMINISTIC RETURN 1", [ tested_schema ])
@@ -4045,6 +4048,9 @@ testutil.dbug_set("")
 
 EXPECT_STDOUT_CONTAINS(f"WARNING: Column `test_schema`.`t`.`c` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 EXPECT_STDOUT_CONTAINS(f"WARNING: Table `test_schema`.`t` had default collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+
+EXPECT_STDOUT_CONTAINS(f"WARNING: Column `test_schema`.`t2`.`c` had collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
+EXPECT_STDOUT_CONTAINS(f"WARNING: Table `test_schema`.`t2` had default collation set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
 EXPECT_STDOUT_CONTAINS(f"WARNING: View `test_schema`.`v` had COLLATION_CONNECTION set to '{unsupported_collation}', it has been replaced with '{supported_collation}'")
 
@@ -4071,6 +4077,13 @@ wipeout_server(session2)
 
 shell.connect(__sandbox_uri2)
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "showProgress": False }), "Load should not fail")
+
+# BUG#38560511 - table t2 is using 'utf8mb4_0900_ai_ci' collation, we artificially 
+# have replaced it with utf8mb4_uca1400_polish_nopad_ai_cs, which got auto-fixed
+# and set to utf8mb4_pl_0900_as_cs, need to update the table in the source
+# and check if loaded table matches
+session1.run_sql(f"DROP TABLE !.t2", [ tested_schema ])
+session1.run_sql(f"CREATE TABLE !.t2 (c TEXT) COLLATE {supported_collation}", [ tested_schema ])
 
 EXPECT_JSON_EQ(snapshot_schema(session1, tested_schema), snapshot_schema(session2, tested_schema), "Verifying schema")
 

@@ -138,10 +138,13 @@ const std::unordered_map<std::string, Version_info>
 };
 
 [[maybe_unused]] void use_unsupported_collation(std::string *statement) {
-  while (compatibility::replace_keyword(*statement, "utf8mb4_pl_0900_as_cs",
-                                        "utf8mb4_uca1400_polish_nopad_ai_cs",
-                                        statement))
-    ;
+  static constexpr std::string_view k_unsupported_collation =
+      "utf8mb4_uca1400_polish_nopad_ai_cs";
+
+  *statement = shcore::str_replace(*statement, "utf8mb4_pl_0900_as_cs",
+                                   k_unsupported_collation);
+  *statement = shcore::str_replace(*statement, "utf8mb4_0900_ai_ci",
+                                   k_unsupported_collation);
 }
 
 /**
@@ -326,7 +329,7 @@ void handle_collation(
     Compatibility_issue::Object_type object_type,
     const std::string &object_name, const char *collation_type,
     std::string_view collation,
-    const std::function<bool(std::string_view, std::string_view)>
+    const std::function<void(std::string_view, std::string_view)>
         &replace_collation,
     std::vector<Compatibility_issue> *issues) {
   if (is_supported_collation(collation)) {
@@ -338,14 +341,7 @@ void handle_collation(
         Compatibility_issue::error::object_unsupported_collation(
             object_type, object_name, collation_type, collation));
   } else {
-    if (!replace_collation(collation, mapped)) {
-      const auto type = to_string(object_type);
-      throw std::runtime_error(shcore::str_format(
-          "Failed to replace %s of %.*s %s from '%.*s' to '%.*s'",
-          collation_type, static_cast<int>(type.size()), type.data(),
-          object_name.c_str(), static_cast<int>(collation.size()),
-          collation.data(), static_cast<int>(mapped.size()), mapped.data()));
-    }
+    replace_collation(collation, mapped);
 
     issues->emplace_back(
         Compatibility_issue::warning::object_collation_replaced(
@@ -363,7 +359,7 @@ void handle_collation_update_statement(
   detail::handle_collation(
       object_type, object_name, collation_type, collation,
       [statement](std::string_view from, std::string_view to) {
-        return compatibility::replace_keyword(*statement, from, to, statement);
+        compatibility::replace_keyword(*statement, from, to, statement);
       },
       issues);
 }
@@ -381,7 +377,6 @@ void handle_collation_update_variable(
       object_type, object_name, collation_type, *collation,
       [&new_collation](std::string_view, std::string_view to) {
         new_collation = to;
-        return true;
       },
       issues);
 

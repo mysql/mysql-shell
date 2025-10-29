@@ -114,7 +114,8 @@ class Profiler final {
 };
 
 [[maybe_unused]] void use_unsupported_collation(std::string *collation) {
-  if ("utf8mb4_pl_0900_as_cs" == *collation) {
+  if ("utf8mb4_pl_0900_as_cs" == *collation ||
+      "utf8mb4_0900_ai_ci" == *collation) {
     *collation = "utf8mb4_uca1400_polish_nopad_ai_cs";
   }
 }
