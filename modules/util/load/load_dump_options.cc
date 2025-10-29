@@ -188,38 +188,25 @@ void Load_dump_options::on_set_session(
   m_is_mds = m_target_server_version.is_mds();
   DBUG_EXECUTE_IF("dump_loader_force_mds", { m_is_mds = true; });
 
-  m_sql_generate_invisible_primary_key =
-      instance.get_sysvar_bool("sql_generate_invisible_primary_key");
+  if (is_gipk_supported()) {
+    m_sql_generate_invisible_primary_key =
+        instance.get_sysvar_bool("sql_generate_invisible_primary_key")
+            .value_or(false);
 
-  if (auto_create_pks_supported()) {
     // server supports sql_generate_invisible_primary_key, now let's see if
     // user can actually set it
-    bool user_can_set_var = false;
 
     try {
       // try to set the session variable to the same value as global variable,
       // to check if user can set it
       session->executef("SET @@SESSION.sql_generate_invisible_primary_key=?",
                         sql_generate_invisible_primary_key());
-      user_can_set_var = true;
+      m_is_sql_generate_invisible_primary_key_settable = true;
     } catch (const std::exception &e) {
       log_warning(
-          "The current user cannot set the sql_generate_invisible_primary_key "
-          "session variable: %s",
+          "The current user cannot set the "
+          "'sql_generate_invisible_primary_key' session variable: %s",
           e.what());
-    }
-
-    if (!user_can_set_var) {
-      // BUG#34408669 - when user doesn't have any of the privileges required to
-      // set the sql_generate_invisible_primary_key session variable, fall back
-      // to inserting the key manually, but only if global value is OFF; if it's
-      // ON, then falling back would mean that PKs are created even if user
-      // does not want this, we override this behaviour with
-      // MYSQLSH_ALLOW_ALWAYS_GIPK environment variable
-      if (!sql_generate_invisible_primary_key() ||
-          getenv("MYSQLSH_ALLOW_ALWAYS_GIPK")) {
-        m_sql_generate_invisible_primary_key = std::nullopt;
-      }
     }
   }
 
@@ -508,9 +495,8 @@ bool Load_dump_options::include_object(
   return (included.empty() || included.count(key) > 0);
 }
 
-bool Load_dump_options::sql_generate_invisible_primary_key() const {
-  assert(auto_create_pks_supported());
-  return *m_sql_generate_invisible_primary_key;
+bool Load_dump_options::is_gipk_supported() const {
+  return compatibility::supports_gipks(m_target_server_version);
 }
 
 void Load_dump_options::set_handle_grant_errors(const std::string &action) {

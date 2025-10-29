@@ -2235,6 +2235,10 @@ bool supports_vector_store_conversion(const mysqlshdk::utils::Version &v) {
   return v.numeric() >= 90401;
 }
 
+bool supports_gipks(const mysqlshdk::utils::Version &v) {
+  return v.numeric() >= 80030;
+}
+
 bool replace_keyword(std::string_view stmt, std::string_view from,
                      std::string_view to, std::string *result) {
   mysqlshdk::utils::SQL_iterator it(stmt);

@@ -2880,54 +2880,95 @@ dump_dir = os.path.join(outdir, "bug_34408669")
 tested_schema = "tested_schema"
 tested_table = "tested_table"
 
-# setup
+def do_load(create_pks):
+    options = { 
+        "dropExistingObjects": True,
+        "showProgress": False,
+        "resetProgress": True
+    }
+    if create_pks is not None:
+        options["createInvisiblePKs"] = create_pks
+    return lambda: util.load_dump(dump_dir, options)
+
+def has_primary_key() -> bool:
+    return "PRIMARY KEY" in session2.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_one()[1]
+
+#@<> BUG#34408669 - setup {VER(>= 8.0.30)}
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
+session1.run_sql("SET @@SESSION.sql_generate_invisible_primary_key = OFF")
+session1.run_sql("CREATE TABLE !.! (data INT)", [ tested_schema, tested_table ])
+
+#@<> BUG#34408669 - dump DDL, we're not interested in data {VER(>= 8.0.30)}
 shell.connect(__sandbox_uri1)
-session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
-session.run_sql("CREATE SCHEMA IF NOT EXISTS !", [tested_schema])
-session.run_sql("SET @@SESSION.sql_generate_invisible_primary_key = OFF")
-session.run_sql("CREATE TABLE !.! (data INT)", [ tested_schema, tested_table ])
-# dump DDL, we're not interested in data
 EXPECT_NO_THROWS(lambda: util.dump_schemas([tested_schema], dump_dir, { "ddlOnly": True, "showProgress": False }), "Dump should not fail")
 
-# connect, create a user which cannot change the sql_generate_invisible_primary_key variable
-shell.connect(__sandbox_uri2)
-wipeout_server(session)
-session.run_sql("SET @@GLOBAL.sql_generate_invisible_primary_key = OFF")
-session.run_sql("CREATE USER IF NOT EXISTS admin@'%' IDENTIFIED BY 'pass'")
-session.run_sql("GRANT ALL ON *.* TO admin@'%'")
-session.run_sql("REVOKE SUPER,SYSTEM_VARIABLES_ADMIN,SESSION_VARIABLES_ADMIN ON *.* FROM admin@'%'")
+#@<> BUG#34408669 - create a user which cannot change the sql_generate_invisible_primary_key variable {VER(>= 8.0.30)}
+wipeout_server(session2)
+session2.run_sql("SET @@GLOBAL.sql_generate_invisible_primary_key = OFF")
+session2.run_sql("CREATE USER IF NOT EXISTS admin@'%' IDENTIFIED BY 'pass'")
+session2.run_sql("GRANT ALL ON *.* TO admin@'%'")
+session2.run_sql("REVOKE SUPER,SYSTEM_VARIABLES_ADMIN,SESSION_VARIABLES_ADMIN ON *.* FROM admin@'%'")
 
-# connect as the created user, ask for PKs to be created
+#@<> BUG#34408669 - connect as the created user {VER(>= 8.0.30)}
+shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
+
+#@<> BUG#34408669 - load the dump, ask for PKs to be created {VER(>= 8.0.30)}
 WIPE_SHELL_LOG()
-shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
-EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": True, "showProgress": True }), "Load should not fail")
-EXPECT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
-EXPECT_SHELL_LOG_CONTAINS("The current user cannot set the sql_generate_invisible_primary_key session variable")
+EXPECT_NO_THROWS(do_load(True), "Load should not fail")
+EXPECT_SHELL_LOG_CONTAINS("The current user cannot set the 'sql_generate_invisible_primary_key' session variable")
 
-# load again, this time PKs should not be created
-session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
-EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": False, "showProgress": True, "resetProgress": True }), "Load should not fail")
-EXPECT_NOT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
+EXPECT_TRUE(has_primary_key())
 
-# try once again, this time global variable is ON
-shell.connect(__sandbox_uri2)
-session.run_sql("SET @@GLOBAL.sql_generate_invisible_primary_key = ON")
-shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
+#@<> BUG#34408669 - load again, this time PKs should not be created {VER(>= 8.0.30)}
+EXPECT_NO_THROWS(do_load(False), "Load should not fail")
+EXPECT_FALSE(has_primary_key())
 
-# user requests PKs to be created, this should work
-session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
-EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": True, "showProgress": True, "resetProgress": True }), "Load should not fail")
-EXPECT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
+#@<> BUG#34408669 - enable the global variable {VER(>= 8.0.30)}
+session2.run_sql("SET @@GLOBAL.sql_generate_invisible_primary_key = ON")
 
-# user requests no primary keys to be created, but since they don't have required privileges it fails
-session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
-EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": False, "showProgress": True, "resetProgress": True }), "Access denied")
+#@<> BUG#34408669 - user requests PKs to be created, this should work {VER(>= 8.0.30)}
+EXPECT_NO_THROWS(do_load(True), "Load should not fail")
+EXPECT_TRUE(has_primary_key())
 
-# user requests no primary keys to be created, env var is set, keys are created anyway
+#@<> BUG#34408669 - dump was created without 'create_invisible_pks', but since user doesn't have required privileges it fails {VER(>= 8.0.30)}
+EXPECT_THROWS(do_load(None), "Error: Shell Error (53037): Insufficient privileges to disable automatic invisible primary key creation.")
+
+# BUG#38560511 - provide a solution if sql_generate_invisible_primary_key is enabled, and user cannot disable it
+EXPECT_STDOUT_CONTAINS("""
+WARNING: The dump was created without the 'create_invisible_pks' compatibility option, while the 'sql_generate_invisible_primary_key' option is enabled on the destination server, and the current account lacks privileges to disable it at the session level.
+
+To load this dump, you can either:
+ * Disable the 'sql_generate_invisible_primary_key' option on the destination server.
+ * Use an account that has the SESSION_VARIABLES_ADMIN, SYSTEM_VARIABLES_ADMIN or SUPER privileges.
+ * Set the 'createInvisiblePKs' load option to true to create primary keys in tables that are missing them.
+ * Set the 'MYSQLSH_ALLOW_ALWAYS_GIPK' environment variable to any value to always allow primary key creation.
+""")
+
+#@<> BUG#34408669 - user requests no primary keys to be created, but since they don't have required privileges it fails {VER(>= 8.0.30)}
+EXPECT_THROWS(do_load(False), "Error: Shell Error (53037): Insufficient privileges to disable automatic invisible primary key creation.")
+
+# BUG#38560511 - provide a solution if sql_generate_invisible_primary_key is enabled, and user cannot disable it
+EXPECT_STDOUT_CONTAINS("""
+WARNING: The 'createInvisiblePKs' load option is set to false, while the 'sql_generate_invisible_primary_key' option is enabled on the destination server, and the current account lacks privileges to disable it at the session level.
+
+To load this dump, you can either:
+ * Disable the 'sql_generate_invisible_primary_key' option on the destination server.
+ * Use an account that has the SESSION_VARIABLES_ADMIN, SYSTEM_VARIABLES_ADMIN or SUPER privileges.
+ * Set the 'createInvisiblePKs' load option to true to create primary keys in tables that are missing them.
+ * Set the 'MYSQLSH_ALLOW_ALWAYS_GIPK' environment variable to any value to always allow primary key creation.
+""")
+
+#@<> BUG#34408669 - user requests no primary keys to be created, env var is set, keys are created anyway {VER(>= 8.0.30)}
 os.environ["MYSQLSH_ALLOW_ALWAYS_GIPK"] = "1"
-session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
-EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "createInvisiblePKs": False, "showProgress": True, "resetProgress": True }), "Load should not fail")
-EXPECT_CONTAINS(["PRIMARY KEY"], session.run_sql("SHOW CREATE TABLE !.!", [ tested_schema, tested_table ]).fetch_all()[0][1])
+
+EXPECT_NO_THROWS(do_load(False), "Load should not fail")
+EXPECT_TRUE(has_primary_key())
+
+#@<> BUG#34408669 - cleanup {VER(>= 8.0.30)}
+del os.environ["MYSQLSH_ALLOW_ALWAYS_GIPK"]
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session2.run_sql("SET @@GLOBAL.sql_generate_invisible_primary_key = OFF")
 
 #@<> BUG#34173126 - loading a dump when global auto-commit is off
 # constants

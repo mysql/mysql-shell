@@ -174,7 +174,12 @@
   "Cannot convert the InnoDB based vector store tables to Lakehouse, " \
   "their data is not stored in OCI's Object Storage."
 
-#define SHERR_LOAD_LAST 53036
+#define SHERR_LOAD_INVISIBLE_PKS_CANNOT_DISABLE_SYS_VAR 53037
+#define SHERR_LOAD_INVISIBLE_PKS_CANNOT_DISABLE_SYS_VAR_MSG             \
+  "Insufficient privileges to disable automatic invisible primary key " \
+  "creation."
+
+#define SHERR_LOAD_LAST 53037
 
 #define SHERR_LOAD_MAX 53999
 

@@ -200,15 +200,38 @@ class Load_dump_options : public common::Common_options {
 
   void set_show_metadata(bool show) { m_show_metadata = show; }
 
-  bool should_create_pks(bool default_value) const {
-    return m_create_invisible_pks.value_or(default_value);
+  inline std::optional<bool> should_create_pks() const noexcept {
+    return m_create_invisible_pks;
   }
 
-  bool auto_create_pks_supported() const {
-    return m_sql_generate_invisible_primary_key.has_value();
+  /**
+   * Whether target server supports Generated Invisible Primary Keys.
+   */
+  bool is_gipk_supported() const;
+
+  /**
+   * Whether target server supports GIPKs and user is able to toggle the
+   * system variable.
+   */
+  bool is_auto_create_pks_supported() const {
+    return is_gipk_supported() &&
+           is_sql_generate_invisible_primary_key_settable();
   }
 
-  bool sql_generate_invisible_primary_key() const;
+  /**
+   * Global value of 'sql_generate_invisible_primary_key' in the target server.
+   */
+  inline bool sql_generate_invisible_primary_key() const noexcept {
+    return m_sql_generate_invisible_primary_key;
+  }
+
+  /**
+   * Is user loading the dump able to toggle
+   * 'sql_generate_invisible_primary_key'.
+   */
+  inline bool is_sql_generate_invisible_primary_key_settable() const noexcept {
+    return m_is_sql_generate_invisible_primary_key_settable;
+  }
 
   std::optional<uint64_t> max_bytes_per_transaction() const {
     return m_max_bytes_per_transaction;
@@ -343,7 +366,8 @@ class Load_dump_options : public common::Common_options {
   bool m_is_lakehouse_enabled = false;
   bool m_show_metadata = false;
   std::optional<bool> m_create_invisible_pks;
-  std::optional<bool> m_sql_generate_invisible_primary_key;
+  bool m_sql_generate_invisible_primary_key = false;
+  bool m_is_sql_generate_invisible_primary_key_settable = false;
 
   std::optional<uint64_t> m_max_bytes_per_transaction;
 

@@ -1182,7 +1182,7 @@ void Dump_loader::Worker::Table_ddl_task::pre_process(Dump_loader *loader) {
     }
 
     if (loader->m_options.load_ddl() && loader->should_create_pks() &&
-        !loader->m_options.auto_create_pks_supported() &&
+        !loader->m_options.is_auto_create_pks_supported() &&
         !loader->m_dump->has_primary_key(m_schema, m_table)) {
       m_transform.add(add_invisible_pk);
     }
@@ -2197,18 +2197,14 @@ Session_ptr Dump_loader::create_session() {
   if (m_dump->tz_utc()) sql::execute(session, "SET TIME_ZONE='+00:00'");
 
   if (m_options.load_ddl()) {
-    if (m_options.auto_create_pks_supported()) {
+    if (m_options.is_auto_create_pks_supported()) {
       // target server supports automatic creation of primary keys, we need to
       // explicitly set the value of session variable, so we won't end up
       // creating primary keys when user doesn't want to do that
       const auto create_pks = should_create_pks();
 
       // we toggle the session variable only if the global value is different
-      // from the value requested by the user, as it requires at least
-      // SESSION_VARIABLES_ADMIN privilege; in case of MDS (where users do no
-      // have this privilege) we expect that user has set the appropriate
-      // compatibility option during the dump and this variable is not going to
-      // be toggled
+      // from the value requested by the user
       if (m_options.sql_generate_invisible_primary_key() != create_pks) {
         sql::executef(session,
                       "SET @@SESSION.sql_generate_invisible_primary_key=?",
@@ -3573,6 +3569,50 @@ void Dump_loader::check_server_version() {
           "use these libraries will fail to execute, unless this component is "
           "installed.");
     }
+  }
+
+  // if:
+  if (m_options.load_ddl() &&
+      // - GIPKs are supported and enabled
+      m_options.sql_generate_invisible_primary_key() &&
+      // - current user cannot toggle the system variable
+      !m_options.is_sql_generate_invisible_primary_key_settable() &&
+      // - PKs should not be created automatically
+      !m_dump->should_create_pks() &&
+      // - the environment variable which allows load to continue if all of the
+      //   above is true is not set
+      !shcore::get_env("MYSQLSH_ALLOW_ALWAYS_GIPK").has_value()) {
+    // then we're unable to disable automatic creation of PKs, offer solutions
+    // and fail the load
+
+    // figure out why we shouldn't create PKs
+    if (const auto create_pks = m_options.should_create_pks();
+        create_pks.has_value()) {
+      // if option was given, it takes precedence, so it has to be set to false
+      assert(!*create_pks);
+      msg = "The 'createInvisiblePKs' load option is set to false";
+    } else {
+      // option was not given, so dump was created without compatibility option
+      msg =
+          "The dump was created without the 'create_invisible_pks' "
+          "compatibility option";
+    }
+
+    msg +=
+        ", while the 'sql_generate_invisible_primary_key' option is enabled on "
+        "the destination server, and the current account lacks privileges to "
+        "disable it at the session level.";
+
+    msg += R"(
+
+To load this dump, you can either:
+ * Disable the 'sql_generate_invisible_primary_key' option on the destination server.
+ * Use an account that has the SESSION_VARIABLES_ADMIN, SYSTEM_VARIABLES_ADMIN or SUPER privileges.
+ * Set the 'createInvisiblePKs' load option to true to create primary keys in tables that are missing them.
+ * Set the 'MYSQLSH_ALLOW_ALWAYS_GIPK' environment variable to any value to always allow primary key creation.)";
+
+    console->print_warning(msg);
+    THROW_ERROR(SHERR_LOAD_INVISIBLE_PKS_CANNOT_DISABLE_SYS_VAR);
   }
 }
 

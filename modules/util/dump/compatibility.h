@@ -283,6 +283,16 @@ bool supports_library_ddl(const mysqlshdk::utils::Version &v);
 bool supports_vector_store_conversion(const mysqlshdk::utils::Version &v);
 
 /**
+ * Checks if server with the given version supports Generated Invisible Primary
+ * Keys.
+ *
+ * @param v Version to be checked.
+ *
+ * @returns true If server supports GIPKs.
+ */
+bool supports_gipks(const mysqlshdk::utils::Version &v);
+
+/**
  * Replaces first occurrence of a keyword (case insensitive comparison) with the
  * given value.
  *

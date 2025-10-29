@@ -1875,7 +1875,8 @@ void Dump_reader::show_metadata() const {
 }
 
 bool Dump_reader::should_create_pks() const {
-  return m_options.should_create_pks(m_contents.create_invisible_pks);
+  return m_options.should_create_pks().value_or(
+      m_contents.create_invisible_pks);
 }
 
 std::unique_ptr<shcore::Thread_pool> Dump_reader::create_thread_pool() const {

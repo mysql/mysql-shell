@@ -432,7 +432,7 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
           EXPECT_CALL(*mock, get_server_version())
               .WillRepeatedly(Return(Version(m_version)));
 
-          if (m_auto_generate_pk_value &&
+          if (m_auto_generate_pk_value.has_value() &&
               *m_auto_generate_pk_value != m_create_invisible_pks) {
             // this query is executed only if the requested value is different
             // from the current value
@@ -532,23 +532,23 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
         .then({"version"})
         .add_row({m_version});
 
-    {
-      auto &r = mock_main_session
-                    ->expect_query(
-                        "show GLOBAL variables where `variable_name` in "
-                        "('sql_generate_invisible_primary_key')")
-                    .then({"Variable_name", "Value"});
+    assert(compatibility::supports_gipks(Version(m_version)) ==
+           m_auto_generate_pk_value.has_value());
 
-      if (m_auto_generate_pk_value) {
-        r.add_row({"sql_generate_invisible_primary_key",
-                   *m_auto_generate_pk_value ? "ON" : "OFF"});
+    if (compatibility::supports_gipks(Version(m_version))) {
+      mock_main_session
+          ->expect_query(
+              "show GLOBAL variables where `variable_name` in "
+              "('sql_generate_invisible_primary_key')")
+          .then({"Variable_name", "Value"})
+          .add_row({"sql_generate_invisible_primary_key",
+                    *m_auto_generate_pk_value ? "ON" : "OFF"});
 
-        const auto query = shcore::sqlformat(
-            "SET @@SESSION.sql_generate_invisible_primary_key=?",
-            *m_auto_generate_pk_value);
-        EXPECT_CALL(*mock_main_session, executes(StrEq(query.c_str()), _))
-            .Times(Exactly(1));
-      }
+      const auto query = shcore::sqlformat(
+          "SET @@SESSION.sql_generate_invisible_primary_key=?",
+          *m_auto_generate_pk_value);
+      EXPECT_CALL(*mock_main_session, executes(StrEq(query.c_str()), _))
+          .Times(Exactly(1));
     }
 
     mock_main_session->expect_query("SELECT @@server_uuid")
@@ -699,12 +699,6 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
       .then({"version"})
       .add_row({"8.0.21-u1-cloud"});
 
-  mock_main_session
-      ->expect_query(
-          "show GLOBAL variables where `variable_name` in "
-          "('sql_generate_invisible_primary_key')")
-      .then({"Variable_name", "Value"});
-
   mock_main_session->expect_query("SELECT @@server_uuid")
       .then({"@@server_uuid"})
       .add_row({"UUID"});
@@ -795,7 +789,7 @@ TEST_F(Load_dump_mocked, filter_user_script_for_mds) {
 
 TEST_F(Load_dump_mocked, sql_generate_invisible_primary_key) {
   // WL14506-TSFR_4.6_1
-  m_version = "8.0.24";
+  m_version = "8.0.30";
   // sql_generate_invisible_primary_key is supported, global value is false
   m_auto_generate_pk_value = false;
   // we want to create PKs, and expect that query which sets
