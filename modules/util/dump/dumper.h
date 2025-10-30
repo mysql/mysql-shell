@@ -482,6 +482,8 @@ class Dumper {
   void validate_dump_consistency(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
+  void validate_compatibility_check_status() const;
+
   void fetch_server_information();
 
   // returns true in case of errors
@@ -523,6 +525,9 @@ class Dumper {
     return m_capability_set.is_set(Capability::INNODB_VECTOR_STORE);
   }
 
+  void maybe_ddl_dump_finished(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 #ifndef NDEBUG
@@ -563,7 +568,11 @@ class Dumper {
   bool m_ftwrl_used = false;
   std::unordered_set<Capability> m_used_capabilities;
   Capability_set m_capability_set;
-  bool m_has_mismatched_view_references = false;
+
+  mutable std::atomic_bool m_has_mismatched_view_references = false;
+
+  mutable issues::Status_set m_compatibility_status;
+  mutable std::mutex m_compatibility_status_mutex;
 
   // counters
   uint64_t m_total_rows = 0;

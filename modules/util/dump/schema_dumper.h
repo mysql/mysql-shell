@@ -36,6 +36,7 @@
 #include <vector>
 
 #include "mysqlshdk/libs/db/filtering_options.h"
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/storage/ifile.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
@@ -236,7 +237,9 @@ class Schema_dumper {
 
   int query_with_binary_charset(
       const std::string &s, std::shared_ptr<mysqlshdk::db::IResult> *out_result,
-      mysqlshdk::db::Error *out_error = nullptr);
+      mysqlshdk::db::Error *out_error = nullptr,
+      std::vector<std::unique_ptr<mysqlshdk::db::Warning>> *out_warnings =
+          nullptr);
 
   void fetch_db_collation(const std::string &db, std::string *out_db_cl_name,
                           bool replace_unknown_collation = true);
@@ -346,6 +349,7 @@ class Schema_dumper {
 
   void check_view_for_table_references(
       const std::string &db, const std::string &name,
+      bool has_invalid_definition,
       std::vector<Compatibility_issue> *issues) const;
 
   void check_routine_for_dependencies(

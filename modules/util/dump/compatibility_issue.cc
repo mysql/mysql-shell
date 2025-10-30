@@ -383,6 +383,20 @@ Compatibility_issue Compatibility_issue::warning::view_mismatched_reference(
   return common::view_mismatched_reference(Status::WARNING, view, reference);
 }
 
+Compatibility_issue Compatibility_issue::error::view_invalid_definition(
+    const std::string &view) {
+  auto issue = common::view(Compatibility_check::VIEW_INVALID_DEFINITION,
+                            Status::ERROR, view);
+
+  // error message taken from server (ER_VIEW_INVALID)
+  issue.description = shcore::str_format(
+      "View %s references invalid table(s) or column(s) or function(s) or "
+      "definer/invoker of view lack rights to use them",
+      view.c_str());
+
+  return issue;
+}
+
 Compatibility_issue Compatibility_issue::common::table_unsupported_engine(
     Status s, const std::string &table) {
   auto issue =
@@ -883,6 +897,9 @@ std::string_view to_string(Compatibility_check check) {
 
     case Compatibility_check::VIEW_MISMATCHED_REFERENCE:
       return "view/mismatched_reference";
+
+    case Compatibility_check::VIEW_INVALID_DEFINITION:
+      return "view/invalid_definition";
 
     case Compatibility_check::TABLE_UNSUPPORTED_ENGINE:
       return "table/unsupported_engine";

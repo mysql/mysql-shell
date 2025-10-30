@@ -37,15 +37,15 @@
 #include <unordered_set>
 #include <vector>
 
-#include "modules/util/common/dump/server_info.h"
 #include "mysqlshdk/libs/db/column.h"
 #include "mysqlshdk/libs/db/filtering_options.h"
 #include "mysqlshdk/libs/db/query_helper.h"
-#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/db/session.h"
 #include "mysqlshdk/libs/parser/mysql_parser_utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/version.h"
+
+#include "modules/util/common/dump/server_info.h"
 
 namespace mysqlshdk::db {
 class SHCORE_PUBLIC IRow;
@@ -264,19 +264,19 @@ class Instance_cache_builder final {
       const std::function<void(const std::string &, Instance_cache::Schema *,
                                const mysqlshdk::db::IRow *)> &callback);
 
-  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> iterate_tables(
+  void iterate_tables(
       const Iterate_table &info,
       const std::function<void(const std::string &, const std::string &,
                                Instance_cache::Table *,
                                const mysqlshdk::db::IRow *)> &callback);
 
-  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> iterate_views(
+  void iterate_views(
       const Iterate_table &info,
       const std::function<void(const std::string &, const std::string &,
                                Instance_cache::View *,
                                const mysqlshdk::db::IRow *)> &callback);
 
-  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> iterate_tables_and_views(
+  void iterate_tables_and_views(
       const Iterate_table &info,
       const std::function<void(const std::string &, const std::string &,
                                Instance_cache::Table *,

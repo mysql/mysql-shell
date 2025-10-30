@@ -467,6 +467,10 @@ def deprecated_and_disabled_authentication_plugin(user):
     warning = f"User {user} is using a deprecated authentication plugin 'mysql_native_password' which is disabled by default"
     return Compatibility_issue(None, None, warning)
 
+def view_has_invalid_definition(schema, view):
+    error = f"View `{schema}`.`{view}` references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them"
+    return Compatibility_issue(error, None)
+
 def view_references_excluded_table(schema, view, ref_schema, ref_table):
     warning = f"View `{schema}`.`{view}` references table/view `{ref_schema}`.`{ref_table}` which is not included in the dump"
     return Compatibility_issue(None, None, warning)
