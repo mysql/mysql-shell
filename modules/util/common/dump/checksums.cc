@@ -36,6 +36,7 @@
 #include <stdexcept>
 #include <string_view>
 
+#include "mysqlshdk/libs/db/result.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_json.h"

@@ -113,21 +113,6 @@ class Profiler final {
   mysqlshdk::utils::Duration m_duration;
 };
 
-std::vector<std::unique_ptr<mysqlshdk::db::Warning>> fetch_warnings(
-    const std::shared_ptr<mysqlshdk::db::IResult> &result) {
-  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> warnings;
-
-  if (const auto count = result->get_warning_count()) {
-    warnings.resize(count);
-
-    for (std::size_t i = 0; i < count; ++i) {
-      warnings[i] = result->fetch_one_warning();
-    }
-  }
-
-  return warnings;
-}
-
 [[maybe_unused]] void use_unsupported_collation(std::string *collation) {
   if ("utf8mb4_pl_0900_as_cs" == *collation) {
     *collation = "utf8mb4_uca1400_polish_nopad_ai_cs";
@@ -686,7 +671,7 @@ void Instance_cache_builder::fetch_columns() {
     return column;
   };
 
-  const auto warnings = iterate_tables_and_views(
+  iterate_tables_and_views(
       info,
       [&table_columns, &create_column](
           const std::string &schema_name, const std::string &table_name,
@@ -747,23 +732,6 @@ void Instance_cache_builder::fetch_columns() {
           v.columns.emplace_back(&v.all_columns.back());
         }
       }
-    }
-  }
-
-  // BUG#35415976 - detect invalid views
-  if (!warnings.empty()) {
-    const auto console = current_console();
-    bool has_invalid_view = false;
-
-    for (const auto &warning : warnings) {
-      if (ER_VIEW_INVALID == warning->code) {
-        has_invalid_view = true;
-        console->print_error(warning->msg);
-      }
-    }
-
-    if (has_invalid_view) {
-      THROW_ERROR(SHERR_DUMP_IC_INVALID_VIEWS);
     }
   }
 }
@@ -1027,8 +995,7 @@ void Instance_cache_builder::iterate_schemas(
   }
 }
 
-std::vector<std::unique_ptr<mysqlshdk::db::Warning>>
-Instance_cache_builder::iterate_tables_and_views(
+void Instance_cache_builder::iterate_tables_and_views(
     const Iterate_table &info,
     const std::function<void(const std::string &, const std::string &,
                              Instance_cache::Table *,
@@ -1101,30 +1068,26 @@ Instance_cache_builder::iterate_tables_and_views(
       view_callback(current_schema, current_object, view, row);
     }
   }
-
-  return fetch_warnings(result);
 }
 
-std::vector<std::unique_ptr<mysqlshdk::db::Warning>>
-Instance_cache_builder::iterate_tables(
+void Instance_cache_builder::iterate_tables(
     const Iterate_table &info,
     const std::function<void(const std::string &, const std::string &,
                              Instance_cache::Table *,
                              const mysqlshdk::db::IRow *)> &callback) {
   Profiler profiler{"iterating tables"};
 
-  return iterate_tables_and_views(info, callback, {});
+  iterate_tables_and_views(info, callback, {});
 }
 
-std::vector<std::unique_ptr<mysqlshdk::db::Warning>>
-Instance_cache_builder::iterate_views(
+void Instance_cache_builder::iterate_views(
     const Iterate_table &info,
     const std::function<void(const std::string &, const std::string &,
                              Instance_cache::View *,
                              const mysqlshdk::db::IRow *)> &callback) {
   Profiler profiler{"iterating views"};
 
-  return iterate_tables_and_views(info, {}, callback);
+  iterate_tables_and_views(info, {}, callback);
 }
 
 uint64_t Instance_cache_builder::count(const std::string &table,

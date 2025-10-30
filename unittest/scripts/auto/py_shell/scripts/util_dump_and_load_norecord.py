@@ -3040,8 +3040,9 @@ invalid_grant = f"""GRANT SELECT ON `{tested_schema}`.`{tested_view}` TO {get_us
 # without MDS compatibility check
 WIPE_OUTPUT()
 wipe_dir(dump_dir)
-EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Dump contains an invalid grant statement. Use the 'strip_invalid_grants' compatibility option to fix this.")
+EXPECT_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "excludeUsers": ["root"], "showProgress": False }), "Fatal error during dump")
 EXPECT_STDOUT_CONTAINS(f"ERROR: User {tested_user} has grant statement on a non-existent table ({invalid_grant})")
+EXPECT_STDOUT_CONTAINS("ERROR: Dump contains an invalid grant statement. Use the 'strip_invalid_grants' compatibility option to fix this.")
 
 # with MDS compatibility check
 WIPE_OUTPUT()

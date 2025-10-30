@@ -1557,7 +1557,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schem
 
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -1571,7 +1571,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [in
 
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -1586,7 +1586,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -1603,7 +1603,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [in
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), [incompatible_schema], test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [incompatible_schema], test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -2958,9 +2958,10 @@ session.run_sql("CREATE VIEW !.v2 AS SELECT * FROM !.v3", [schema_name, schema_n
 session.run_sql("DROP VIEW !.v3", [schema_name])
 
 #@<> BUG#35415976 - test
-EXPECT_FAIL("Error: Shell Error (52039)", "While 'Gathering information': Dump contains one or more invalid views. Fix them manually, or use the 'excludeTables' option to exclude them.", [ schema_name ], test_output_absolute, { "showProgress": False })
-EXPECT_STDOUT_CONTAINS(f"View '{schema_name}.v1' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them")
-EXPECT_STDOUT_CONTAINS(f"View '{schema_name}.v2' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them")
+EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), [ schema_name ], test_output_absolute, { "showProgress": False }, expect_dir_created=True)
+EXPECT_STDOUT_CONTAINS(view_has_invalid_definition(schema_name, "v1").error())
+EXPECT_STDOUT_CONTAINS(view_has_invalid_definition(schema_name, "v2").error())
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 # if view is excluded, dump succeeds
 EXPECT_SUCCESS([ schema_name ], test_output_absolute, { "excludeTables": [f"{schema_name}.v1", f"{schema_name}.v2"], "showProgress": False })

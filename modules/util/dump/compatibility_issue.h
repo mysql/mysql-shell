@@ -50,6 +50,7 @@ enum class Compatibility_check {
 
   VIEW_INVALID_REFERENCE,
   VIEW_MISMATCHED_REFERENCE,
+  VIEW_INVALID_DEFINITION,
 
   TABLE_UNSUPPORTED_ENGINE,
   TABLE_MISSING_PK,
@@ -226,6 +227,8 @@ struct Compatibility_issue {
 
     static Compatibility_issue view_mismatched_reference(
         const std::string &view, const std::string &reference);
+
+    static Compatibility_issue view_invalid_definition(const std::string &view);
 
     static Compatibility_issue table_unsupported_engine(
         const std::string &table, const std::string &engine);

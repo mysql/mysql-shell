@@ -50,10 +50,6 @@
 #define SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND_MSG \
   "Compatibility issues were found"
 
-#define SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED 52005
-#define SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED_MSG \
-  "Could not apply some of the compatibility options"
-
 #define SHERR_DUMP_WORKER_THREAD_FATAL_ERROR 52006
 #define SHERR_DUMP_WORKER_THREAD_FATAL_ERROR_MSG "Fatal error during dump"
 
@@ -175,11 +171,6 @@
 #define SHERR_DUMP_INVALID_GRANT_STATEMENT_MSG                                \
   "Dump contains an invalid grant statement. Use the 'strip_invalid_grants' " \
   "compatibility option to fix this."
-
-#define SHERR_DUMP_IC_INVALID_VIEWS 52039
-#define SHERR_DUMP_IC_INVALID_VIEWS_MSG                                     \
-  "Dump contains one or more invalid views. Fix them manually, or use the " \
-  "'excludeTables' option to exclude them."
 
 #define SHERR_DUMP_SD_LIBRARY_DDL_ERROR 52040
 #define SHERR_DUMP_SD_LIBRARY_DDL_ERROR_MSG \

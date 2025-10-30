@@ -2021,7 +2021,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int;", [incompatible_schem
 
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -2035,7 +2035,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [in
 
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -2050,7 +2050,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN my_row_id int AUTO_INCREMENT UNIQUE;
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -2067,7 +2067,7 @@ session.run_sql("ALTER TABLE !.! ADD COLUMN idx int AUTO_INCREMENT UNIQUE;", [in
 EXPECT_FAIL("Error: Shell Error (52006)", re.compile(r"While '.*': Fatal error during dump"), test_output_relative, { "compatibility": [ "create_invisible_pks" ] }, True)
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_name_conflict(incompatible_schema, table).error())
 EXPECT_STDOUT_CONTAINS(create_invisible_pks_auto_increment_conflict(incompatible_schema, table).error())
-EXPECT_STDOUT_CONTAINS("Could not apply some of the compatibility options")
+EXPECT_STDOUT_CONTAINS("ERROR: Compatibility issues were found")
 
 WIPE_OUTPUT()
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", test_output_relative, { "ocimds": True, "compatibility": [ "create_invisible_pks" ] })
@@ -2437,7 +2437,7 @@ EXPECT_STDOUT_MATCHES(re.compile(r"NOTE: Checking \d+ recent transactions for sc
 EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a lock.")
 EXPECT_STDOUT_CONTAINS(f"ERROR: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only replica with replication stopped, or, if dumping from a primary, then enable super_read_only system variable and ensure that any inbound replication channels are stopped.")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Consistency check has failed"))
+EXPECT_STDOUT_CONTAINS("ERROR: Consistency check has failed")
 
 #@<> BUG#33697289 terminate the process immediately
 constantly_create_tables.stop()
@@ -2470,7 +2470,7 @@ EXPECT_STDOUT_CONTAINS("NOTE: Checking recent transactions for schema changes, u
 EXPECT_STDOUT_CONTAINS("WARNING: DDL changes detected during DDL dump without a lock.")
 EXPECT_STDOUT_CONTAINS(f"ERROR: Backup lock is not {reason} and DDL changes were not blocked. The consistency of the dump cannot be guaranteed.")
 EXPECT_STDOUT_CONTAINS("NOTE: In order to overcome this issue, use a read-only replica with replication stopped, or, if dumping from a primary, then enable super_read_only system variable and ensure that any inbound replication channels are stopped.")
-EXPECT_STDOUT_MATCHES(re.compile(r"ERROR: \[Worker00\d\]: Consistency check has failed"))
+EXPECT_STDOUT_CONTAINS("ERROR: Consistency check has failed")
 
 testutil.dbug_set("")
 

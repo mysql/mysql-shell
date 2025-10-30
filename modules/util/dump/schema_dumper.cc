@@ -608,6 +608,18 @@ std::string quote(const std::string &db, const std::string &table,
   return quote(db, table) + "." + shcore::quote_identifier(object);
 }
 
+void fetch_warnings(
+    const std::shared_ptr<mysqlshdk::db::IResult> &result,
+    std::vector<std::unique_ptr<mysqlshdk::db::Warning>> *out_warnings) {
+  assert(out_warnings);
+
+  if (const auto count = result->get_warning_count()) {
+    for (std::size_t i = 0; i < count; ++i) {
+      out_warnings->emplace_back(result->fetch_one_warning());
+    }
+  }
+}
+
 }  // namespace
 
 void Schema_dumper::write_header(IFile *sql_file) {
@@ -787,10 +799,16 @@ std::shared_ptr<mysqlshdk::db::IResult> Schema_dumper::query_log_error(
 
 int Schema_dumper::query_with_binary_charset(
     const std::string &s, std::shared_ptr<mysqlshdk::db::IResult> *out_result,
-    mysqlshdk::db::Error *out_error) {
+    mysqlshdk::db::Error *out_error,
+    std::vector<std::unique_ptr<mysqlshdk::db::Warning>> *out_warnings) {
   switch_character_set_results("binary");
   if (query_no_throw(s, out_result, out_error)) return 1;
   (*out_result)->buffer();
+
+  if (out_warnings) {
+    fetch_warnings(*out_result, out_warnings);
+  }
+
   switch_character_set_results(opt_character_set_results.c_str());
   return 0;
 }
@@ -2783,14 +2801,15 @@ std::vector<Compatibility_issue> Schema_dumper::get_view_structure(
     IFile *sql_file, const std::string &table, const std::string &db) {
   std::vector<Compatibility_issue> res;
   std::shared_ptr<mysqlshdk::db::IResult> table_res, infoschema_res;
-  std::string result_table;
 
   log_debug("-- Retrieving view structure for table %s...", table.c_str());
 
-  result_table = shcore::quote_identifier(table);
+  const auto result_table = shcore::quote_identifier(table);
+  std::vector<std::unique_ptr<mysqlshdk::db::Warning>> warnings;
+  bool invalid_definition = false;
 
-  if (query_with_binary_charset("SHOW CREATE TABLE " + result_table,
-                                &table_res)) {
+  if (query_with_binary_charset("SHOW CREATE TABLE " + result_table, &table_res,
+                                nullptr, &warnings)) {
     THROW_ERROR(SHERR_DUMP_SD_SHOW_CREATE_VIEW_FAILED, result_table.c_str());
   }
 
@@ -2798,6 +2817,14 @@ std::vector<Compatibility_issue> Schema_dumper::get_view_structure(
   if (table_res->get_metadata()[0].get_column_label() != "View") {
     log_debug("-- It's base table, skipped");
     return res;
+  }
+
+  // BUG#35415976 - detect invalid views
+  for (const auto &warning : warnings) {
+    if (ER_VIEW_INVALID == warning->code) {
+      invalid_definition = true;
+      break;
+    }
   }
 
   std::string text = fix_identifier_with_newline(result_table);
@@ -2856,7 +2883,7 @@ std::vector<Compatibility_issue> Schema_dumper::get_view_structure(
 
     check_object_for_definer(Compatibility_issue::Object_type::VIEW,
                              qualified_name, &ds_view, &res);
-    check_view_for_table_references(db, table, &res);
+    check_view_for_table_references(db, table, invalid_definition, &res);
 
     // BUG#38089433 - handle unsupported collations
     handle_collation_update_variable(Compatibility_issue::Object_type::VIEW,
@@ -4059,7 +4086,7 @@ std::vector<std::string> Schema_dumper::strip_restricted_grants(
 }
 
 void Schema_dumper::check_view_for_table_references(
-    const std::string &db, const std::string &name,
+    const std::string &db, const std::string &name, bool has_invalid_definition,
     std::vector<Compatibility_issue> *issues) const {
   if (!m_cache) {
     return;
@@ -4073,8 +4100,14 @@ void Schema_dumper::check_view_for_table_references(
   const auto qualified_name = quote(db, name);
 
   // NOTE: Invalid views (i.e. referencing non-existing tables/columns) are
-  // detected earlier (when fetching view information by instance cache) and
-  // result in an error.
+  // detected earlier (when fetching CREATE VIEW statement), we report the error
+  // here.
+
+  if (has_invalid_definition) {
+    issues->emplace_back(
+        Compatibility_issue::error::view_invalid_definition(qualified_name));
+    return;
+  }
 
   for (const auto &ref :
        m_cache->schemas.at(db).views.at(name).table_references) {

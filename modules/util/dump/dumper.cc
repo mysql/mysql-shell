@@ -884,8 +884,10 @@ class Dumper::Table_worker final {
     } catch (const mysqlshdk::db::Error &e) {
       handle_exception(context, e.format().c_str());
     } catch (const shcore::Error &e) {
-      // this is a global error and should not include a context
-      if (SHERR_DUMP_CONSISTENCY_CHECK_FAILED == e.code()) {
+      // these are global errors and should not include a context
+      if (SHERR_DUMP_CONSISTENCY_CHECK_FAILED == e.code() ||
+          SHERR_DUMP_INVALID_GRANT_STATEMENT == e.code() ||
+          SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND == e.code()) {
         context.clear();
       }
 
@@ -1221,7 +1223,7 @@ class Dumper::Table_worker final {
 
     ++m_dumper->m_schema_metadata_written;
 
-    m_dumper->validate_dump_consistency(session());
+    m_dumper->maybe_ddl_dump_finished(session());
   }
 
   void write_table_metadata_impl(const Table_task &table) const {
@@ -1229,7 +1231,7 @@ class Dumper::Table_worker final {
 
     ++m_dumper->m_table_metadata_written;
 
-    m_dumper->validate_dump_consistency(session());
+    m_dumper->maybe_ddl_dump_finished(session());
   }
 
   void create_table_data_tasks_impl(const Table_task &table) const {
@@ -1841,7 +1843,7 @@ class Dumper::Table_worker final {
     m_dumper->m_worker_exceptions[m_id] = std::current_exception();
     m_dumper->m_worker_exception_thrown = true;
     current_console()->print_error(
-        m_log_id + (context.empty() ? "" : "Error while " + context + ": ") +
+        (context.empty() ? "" : m_log_id + "Error while " + context + ": ") +
         msg);
 
     if (Exception_strategy::ABORT == m_strategy) {
@@ -1881,7 +1883,7 @@ class Dumper::Table_worker final {
 
     ++m_dumper->m_ddl_written;
 
-    m_dumper->validate_dump_consistency(session());
+    m_dumper->maybe_ddl_dump_finished(session());
   }
 
   void dump_table_ddl_impl(const Schema_info &schema,
@@ -1901,7 +1903,7 @@ class Dumper::Table_worker final {
 
     ++m_dumper->m_ddl_written;
 
-    m_dumper->validate_dump_consistency(session());
+    m_dumper->maybe_ddl_dump_finished(session());
   }
 
   void dump_view_ddl_impl(const Schema_info &schema,
@@ -1920,7 +1922,7 @@ class Dumper::Table_worker final {
 
     ++m_dumper->m_ddl_written;
 
-    m_dumper->validate_dump_consistency(session());
+    m_dumper->maybe_ddl_dump_finished(session());
   }
 
   std::string get_query_comment(const Table_task &table,
@@ -3643,10 +3645,14 @@ void Dumper::write_ddl(const Memory_dumper &in_memory,
 
     handle_mismatched_view_references(status, false);
 
-    if (status.is_set(issues::Status::ERROR_HAS_INVALID_GRANTS)) {
-      THROW_ERROR(SHERR_DUMP_INVALID_GRANT_STATEMENT);
-    } else if (status.is_set(issues::Status::ERROR)) {
-      THROW_ERROR(SHERR_DUMP_COMPATIBILITY_OPTIONS_FAILED);
+    {
+      std::lock_guard lock{m_compatibility_status_mutex};
+      m_compatibility_status.set(status);
+
+      if (m_compatibility_status.is_set(issues::Status::ERROR)) {
+        // fatal error, dump will be aborted
+        return;
+      }
     }
   }
 
@@ -5195,14 +5201,6 @@ void Dumper::validate_dump_consistency(
     return;
   }
 
-  // if there are still metadata or DDL files to be written, skip this check
-  if (!(m_all_table_metadata_tasks_scheduled &&
-        m_table_metadata_to_write == m_table_metadata_written &&
-        m_total_schemas == m_schema_metadata_written &&
-        m_total_objects == m_ddl_written)) {
-    return;
-  }
-
   bool consistent = false;
   const auto instance = mysqlshdk::mysql::Instance(session);
   const auto console = current_console();
@@ -5432,12 +5430,16 @@ bool Dumper::all_tasks_produced() const {
 
 void Dumper::handle_mismatched_view_references(issues::Status_set status,
                                                bool as_error) const {
-  if (!status.is_set(issues::Status::WARNING_HAS_MISMATCHED_VIEW_REFERENCES) ||
-      m_has_mismatched_view_references) {
+  if (!status.is_set(issues::Status::WARNING_HAS_MISMATCHED_VIEW_REFERENCES)) {
     return;
   }
 
-  const_cast<Dumper *>(this)->m_has_mismatched_view_references = true;
+  bool expected = false;
+
+  if (!m_has_mismatched_view_references.compare_exchange_strong(expected,
+                                                                true)) {
+    return;
+  }
 
   const auto console = current_console();
 
@@ -5533,6 +5535,30 @@ std::string Dumper::decode_column(const Instance_cache::Table *table,
   }
 
   throw std::logic_error{"Dumper::decode_column()"};
+}
+
+void Dumper::maybe_ddl_dump_finished(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
+  // check if there are still metadata or DDL files to be written
+  if (!(m_all_table_metadata_tasks_scheduled &&
+        m_table_metadata_to_write == m_table_metadata_written &&
+        m_total_schemas == m_schema_metadata_written &&
+        m_total_objects == m_ddl_written)) {
+    return;
+  }
+
+  validate_compatibility_check_status();
+  validate_dump_consistency(session);
+}
+
+void Dumper::validate_compatibility_check_status() const {
+  std::lock_guard lock{m_compatibility_status_mutex};
+
+  if (m_compatibility_status.is_set(issues::Status::ERROR_HAS_INVALID_GRANTS)) {
+    THROW_ERROR(SHERR_DUMP_INVALID_GRANT_STATEMENT);
+  } else if (m_compatibility_status.is_set(issues::Status::ERROR)) {
+    THROW_ERROR(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
+  }
 }
 
 }  // namespace dump
