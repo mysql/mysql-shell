@@ -527,6 +527,8 @@ class Dump_loader {
 
   std::shared_ptr<mysqlshdk::db::mysql::Session> create_session();
 
+  void rethrow_worker_exception() const;
+
   void show_summary();
 
   void on_dump_begin();

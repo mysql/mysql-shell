@@ -3046,18 +3046,22 @@ void Dump_loader::run() {
     throw shcore::cancelled("Aborted");
   }
 
-  for (std::size_t i = 0, e = m_thread_exceptions.size(); i < e; ++i) {
-    bool failure = false;
+  rethrow_worker_exception();
+}
 
+void Dump_loader::rethrow_worker_exception() const {
+  bool failure = false;
+
+  for (std::size_t i = 0, e = m_thread_exceptions.size(); i < e; ++i) {
     if (m_thread_exceptions[i]) {
       dump::log_exception(shcore::str_format("loadDump() (thread %zu)", i),
                           m_thread_exceptions[i]);
       failure = true;
     }
+  }
 
-    if (failure) {
-      THROW_ERROR(SHERR_LOAD_WORKER_THREAD_FATAL_ERROR);
-    }
+  if (failure) {
+    THROW_ERROR(SHERR_LOAD_WORKER_THREAD_FATAL_ERROR);
   }
 }
 

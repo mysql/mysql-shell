@@ -242,6 +242,8 @@ class Dumper {
 
   class Memory_dumper;
 
+  void initialize_dumper();
+
   virtual const char *name() const = 0;
 
   virtual void summary() const = 0;

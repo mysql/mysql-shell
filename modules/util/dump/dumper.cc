@@ -2066,6 +2066,15 @@ Dumper::Dumper(const Dump_options &options)
     : m_options(options),
       m_basenames(k_max_basename_length),
       m_progress_thread("Dump", options.show_progress()) {
+  try {
+    initialize_dumper();
+  } catch (...) {
+    log_exception("dumper's initialization", std::current_exception());
+    throw;
+  }
+}
+
+void Dumper::initialize_dumper() {
   if (m_options.use_single_file()) {
     m_output_file =
         m_options.make_file(m_options.output_url(), m_options.compression(),
@@ -4780,10 +4789,18 @@ void Dumper::summarize() const {
 }
 
 void Dumper::rethrow() const {
-  for (const auto &exc : m_worker_exceptions) {
-    if (exc) {
-      THROW_ERROR(SHERR_DUMP_WORKER_THREAD_FATAL_ERROR);
+  bool failure = false;
+
+  for (std::size_t i = 0, e = m_worker_exceptions.size(); i < e; ++i) {
+    if (m_worker_exceptions[i]) {
+      dump::log_exception(shcore::str_format("%s() (thread %zu)", name(), i),
+                          m_worker_exceptions[i]);
+      failure = true;
     }
+  }
+
+  if (failure) {
+    THROW_ERROR(SHERR_DUMP_WORKER_THREAD_FATAL_ERROR);
   }
 }
 
