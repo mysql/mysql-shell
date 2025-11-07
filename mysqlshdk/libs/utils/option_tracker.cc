@@ -49,10 +49,13 @@ std::string get_option_tracker_feature_id(Shell_feature feature_id) {
 
 std::string get_option_tracker_feature_id(
     const std::string &custom_feature_id) {
-  auto execution_context =
-      mysqlsh::current_shell_options()->get().execution_context;
+  std::string execution_context;
 
-  if (shcore::str_casecmp(execution_context.c_str(), "disable") == 0) {
+  if (const auto current_options = mysqlsh::current_shell_options(true)) {
+    execution_context = current_options->get().execution_context;
+  }
+
+  if (shcore::str_caseeq(execution_context, "disable")) {
     return "";
   }
 
