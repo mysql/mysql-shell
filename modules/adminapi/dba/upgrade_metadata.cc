@@ -438,15 +438,19 @@ void Upgrade_metadata::upgrade_router_users() {
 
     if (!m_dry_run) {
       std::vector<std::string> queries = {
-          "GRANT SELECT, EXECUTE ON mysql_innodb_cluster_metadata.* TO ",
-          "GRANT SELECT ON performance_schema.replication_group_members TO ",
+          "GRANT SELECT, EXECUTE ON mysql_innodb_cluster_metadata.* TO ?@?",
+          "GRANT SELECT ON performance_schema.replication_group_members TO ?@?",
           "GRANT SELECT ON performance_schema.replication_group_member_stats "
-          "TO ",
-          "GRANT SELECT ON performance_schema.global_variables TO ",
+          "TO ?@?",
+          "GRANT SELECT ON performance_schema.global_variables TO ?@?",
           "GRANT UPDATE, INSERT, DELETE ON "
-          "mysql_innodb_cluster_metadata.v2_routers TO ",
+          "mysql_innodb_cluster_metadata.v2_routers TO ?@?",
           "GRANT UPDATE, INSERT, DELETE ON "
-          "mysql_innodb_cluster_metadata.routers TO "};
+          "mysql_innodb_cluster_metadata.routers TO ?@?",
+          "GRANT CREATE, UPDATE, INSERT ON "
+          "mysql_innodb_cluster_metadata.router_stats TO ?@?"};
+      // Include CREATE on the grants list for 'router_stats' to allow giving
+      // those grants since the table does not exist yet. Revoke right after.
 
       mysqlshdk::utils::Version installed;
       m_metadata->check_version(&installed);
@@ -463,17 +467,23 @@ void Upgrade_metadata::upgrade_router_users() {
       log_debug("Metadata upgrade for version %s, upgraded Router accounts:",
                 mysqlsh::dba::metadata::current_version().get_base().c_str());
       for (const auto &user : users) {
-        shcore::sqlstring user_host("!@!", 0);
-        user_host << std::get<0>(user);
-        user_host << std::get<1>(user);
-
-        std::string str_user = user_host.str();
-
-        log_debug("- %s", str_user.c_str());
+        const auto &user_name = std::get<0>(user);
+        const auto &host_name = std::get<1>(user);
+        log_debug("- '%s'@'%s'", user_name.c_str(), host_name.c_str());
 
         for (const auto &query : queries) {
-          m_target_instance->execute(query + str_user);
+          shcore::sqlstring sql(query.c_str(), 0);
+          sql << user_name << host_name;
+          m_target_instance->execute(sql);
         }
+
+        // Revoke CREATE ON 'router_stats'
+        shcore::sqlstring revoke(
+            "REVOKE CREATE ON mysql_innodb_cluster_metadata.router_stats "
+            " FROM ?@?",
+            0);
+        revoke << user_name << host_name;
+        m_target_instance->execute(revoke);
       }
       console->print_note(shcore::str_format(
           "%zi Router account%s %s been updated.", size, (size == 1) ? "" : "s",

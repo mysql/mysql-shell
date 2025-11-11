@@ -117,7 +117,7 @@ constexpr const char *k_list_routers_1_0_1 =
     " JOIN mysql_innodb_cluster_metadata.hosts h "
     " ON r.host_id = h.host_id";
 
-constexpr const char *k_list_routers =
+constexpr const char *k_list_routers_2_3_0 =
     "SELECT r.router_id, r.router_name, r.address as host_name,"
     " r.attributes->>'$.ROEndpoint' AS ro_port,"
     " r.attributes->>'$.RWEndpoint' AS rw_port,"
@@ -134,11 +134,32 @@ constexpr const char *k_list_routers =
     " r.options->'$.tags' as tags"
     " FROM mysql_innodb_cluster_metadata.v2_routers r";
 
-const char *get_router_query(const Version &md_version) {
-  if (md_version.get_major() == 1)
-    return k_list_routers_1_0_1;
-  else
-    return k_list_routers;
+constexpr const char *k_list_routers =
+    "SELECT r.router_id, r.router_name, r.address AS host_name,"
+    " r.attributes->>'$.ROEndpoint' AS ro_port,"
+    " r.attributes->>'$.RWEndpoint' AS rw_port,"
+    " r.attributes->>'$.ROXEndpoint' AS ro_x_port,"
+    " r.attributes->>'$.RWXEndpoint' AS rw_x_port,"
+    " r.attributes->>'$.RWSplitEndpoint' AS rw_split_port,"
+    " r.attributes->>'$.bootstrapTargetType' AS bootstrap_target_type,"
+    " r.attributes->>'$.LocalCluster' AS local_cluster,"
+    " r.attributes->>'$.CurrentRoutingGuideline' AS current_routing_guideline,"
+    " r.attributes->>'$.SupportedRoutingGuidelinesVersion' AS"
+    " supported_routing_guidelines_version,"
+    " COALESCE(s.last_check_in, r.last_check_in) AS last_check_in,"
+    " r.version,"
+    " r.options->>'$.target_cluster' AS targetCluster,"
+    " r.options->'$.tags' AS tags"
+    " FROM mysql_innodb_cluster_metadata.v2_routers AS r "
+    " LEFT JOIN mysql_innodb_cluster_metadata.router_stats AS s "
+    "  ON s.router_id = r.router_id";
+
+[[nodiscard]] const char *get_router_query(const Version &md_version) noexcept {
+  if (md_version.get_major() == 1) return k_list_routers_1_0_1;
+
+  if (md_version < Version{2, 4, 0}) return k_list_routers_2_3_0;
+
+  return k_list_routers;  // 2.4.0+
 }
 
 static constexpr const char *k_select_cluster_metadata_2_1_0 =

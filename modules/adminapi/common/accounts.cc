@@ -226,15 +226,14 @@ const std::map<std::string, std::map<std::string, std::set<std::string>>>
                             {"replication_group_member_stats", {"SELECT"}},
                             {"global_variables", {"SELECT"}}}},
                           {"mysql_innodb_cluster_metadata",
-                           {
-                               {"routers", {"INSERT", "UPDATE", "DELETE"}},
-                               {"v2_routers", {"INSERT", "UPDATE", "DELETE"}},
-                               {"clusters", {"UPDATE"}},
-                               {"clustersets", {"UPDATE"}},
-                               {"v2_gr_clusters", {"UPDATE"}},
-                               {"v2_ar_clusters", {"UPDATE"}},
-                               {"v2_cs_clustersets", {"UPDATE"}},
-                           }}};
+                           {{"routers", {"INSERT", "UPDATE", "DELETE"}},
+                            {"v2_routers", {"INSERT", "UPDATE", "DELETE"}},
+                            {"clusters", {"UPDATE"}},
+                            {"clustersets", {"UPDATE"}},
+                            {"v2_gr_clusters", {"UPDATE"}},
+                            {"v2_ar_clusters", {"UPDATE"}},
+                            {"v2_cs_clustersets", {"UPDATE"}},
+                            {"router_stats", {"INSERT", "UPDATE"}}}}};
 
 std::string create_grant(const std::string &username,
                          const std::set<std::string> &privileges,
@@ -383,6 +382,11 @@ std::vector<std::string> create_router_grants(
         "v2_cs_clustersets");
     router_table_grants["mysql_innodb_cluster_metadata"].erase("clustersets");
     router_table_grants["mysql_innodb_cluster_metadata"].erase("clusters");
+  }
+
+  // Metadata versions older than 2.4.0 don't have the table 'router_stats'
+  if (metadata_version < mysqlshdk::utils::Version(2, 4, 0)) {
+    router_table_grants["mysql_innodb_cluster_metadata"].erase("router_stats");
   }
 
   // privileges for tables

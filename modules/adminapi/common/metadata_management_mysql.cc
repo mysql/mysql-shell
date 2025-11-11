@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,10 +57,10 @@ namespace dba {
 namespace metadata {
 
 // Must be kept up-to-date with the latest version of the metadata schema
-constexpr const char k_metadata_schema_version[] = "2.3.0";
+constexpr const char k_metadata_schema_version[] = "2.4.0";
 // Must be kept up-to-date with the list of all schema versions ever released
 constexpr const char *k_metadata_schema_version_history[] = {
-    "1.0.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0"};
+    "1.0.1", "2.0.0", "2.1.0", "2.2.0", "2.3.0", "2.4.0"};
 
 namespace {
 constexpr char kMetadataSchemaPreviousName[] =
@@ -410,6 +410,19 @@ void upgrade_220_230(const std::shared_ptr<Instance> &group_server) {
       "While upgrading Metadata schema");
 }
 
+void upgrade_230_240(const std::shared_ptr<Instance> &group_server) {
+  DBUG_EXECUTE_IF("dba_FAIL_metadata_upgrade_at_UPGRADING", {
+    throw std::logic_error(
+        "Debug emulation of failed metadata upgrade "
+        "UPGRADING.");
+  });
+
+  execute_script(
+      group_server,
+      scripts::get_metadata_upgrade_script(mysqlshdk::utils::Version("2.4.0")),
+      "While upgrading Metadata schema");
+}
+
 }  // namespace steps
 
 struct Step {
@@ -423,6 +436,7 @@ const Step k_steps[] = {
     {Version(2, 0, 0), Version(2, 1, 0), &steps::upgrade_200_210},
     {Version(2, 1, 0), Version(2, 2, 0), &steps::upgrade_210_220},
     {Version(2, 2, 0), Version(2, 3, 0), &steps::upgrade_220_230},
+    {Version(2, 3, 0), Version(2, 4, 0), &steps::upgrade_230_240},
     {kNotInstalled, kNotInstalled, nullptr}};
 
 bool get_lock(const std::shared_ptr<Instance> &instance) {

@@ -39,6 +39,8 @@ Invalid user syntax: Invalid user name: foo@bar (ArgumentError)
 | DELETE         | NO           | mysql_innodb_cluster_metadata | routers                        |
 | INSERT         | NO           | mysql_innodb_cluster_metadata | routers                        |
 | UPDATE         | NO           | mysql_innodb_cluster_metadata | routers                        |
+| INSERT         | NO           | mysql_innodb_cluster_metadata | router_stats                   |
+| UPDATE         | NO           | mysql_innodb_cluster_metadata | router_stats                   |
 | UPDATE         | NO           | mysql_innodb_cluster_metadata | v2_ar_clusters                 |
 | UPDATE         | NO           | mysql_innodb_cluster_metadata | v2_cs_clustersets              |
 | UPDATE         | NO           | mysql_innodb_cluster_metadata | v2_gr_clusters                 |

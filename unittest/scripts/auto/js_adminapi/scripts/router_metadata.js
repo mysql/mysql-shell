@@ -567,6 +567,37 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
 }
 `);
 
+//@<> Metadata 2.4.0 - new router_stats table for last_check_in
+
+// Add a Router with a value of last_check_in in the 'routers' table but also insert a value in the new 'router_stats'. The latter should be the one shown in listRouters()
+var rs = session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '9.5.0', '2019-01-01 11:22:33', '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482, \"RWSplitEndpoint\": 6490}', ?, NULL, NULL)", [cluster_id]);
+
+var router_id = rs.getAutoIncrementValue();
+
+session.runSql("INSERT mysql_innodb_cluster_metadata.router_stats VALUES (?, '2018-01-01 11:22:33')", [router_id]);
+
+var list_routers = cluster.listRouters();
+
+EXPECT_EQ("2018-01-01 11:22:33", list_routers["routers"]["routerhost2::system"]["lastCheckIn"]);
+
+// Add a Router without any value of last_check_in in the 'routers' table but with value in the new 'router_stats'.
+var rs = session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost3', '9.5.0', NULL, '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482, \"RWSplitEndpoint\": 6490}', ?, NULL, NULL)", [cluster_id]);
+
+var router_id = rs.getAutoIncrementValue();
+
+session.runSql("INSERT mysql_innodb_cluster_metadata.router_stats VALUES (?, '2025-11-11 17:08:13')", [router_id]);
+
+var list_routers = cluster.listRouters();
+
+EXPECT_EQ("2025-11-11 17:08:13", list_routers["routers"]["routerhost3::system"]["lastCheckIn"]);
+
+// Add a Router with a value of last_check_in in the 'routers' table but without any value in the new 'router_stats'.
+var rs = session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost4', '9.5.0', '2025-01-01 11:22:33', '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482, \"RWSplitEndpoint\": 6490}', ?, NULL, NULL)", [cluster_id]);
+
+var list_routers = cluster.listRouters();
+
+EXPECT_EQ("2025-01-01 11:22:33", list_routers["routers"]["routerhost4::system"]["lastCheckIn"]);
+
 // Tests assuming MD Schema 1.0.1
 // ------------------------------
 

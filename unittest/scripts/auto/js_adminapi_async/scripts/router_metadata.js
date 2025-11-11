@@ -589,6 +589,22 @@ EXPECT_STDOUT_CONTAINS_MULTILINE(`
 
 // BUG#30594844 : remove_router_metadata() gets primary wrong  --- END ---
 
+//@<> Metadata 2.4.0 - new router_stats table for last_check_in
+
+// Add a Router with a value of last_check_in in the 'routers' table but also insert a value in the new 'router_stats'. The latter should be the one shown in listRouters()
+shell.connect(__sandbox_uri1);
+rs = dba.getReplicaSet();
+
+var ret = session.runSql("INSERT mysql_innodb_cluster_metadata.routers VALUES (DEFAULT, 'system', 'mysqlrouter', 'routerhost2', '9.5.0', '2019-01-01 11:22:33', '{\"ROEndpoint\": 6481, \"RWEndpoint\": 6480, \"ROXEndpoint\": 6483, \"RWXEndpoint\": 6482, \"RWSplitEndpoint\": 6490}', ?, NULL, NULL)", [cluster_id]);
+
+var router_id = ret.getAutoIncrementValue();
+
+session.runSql("INSERT mysql_innodb_cluster_metadata.router_stats VALUES (?, '2018-01-01 11:22:33')", [router_id]);
+
+var list_routers = rs.listRouters();
+
+EXPECT_EQ("2018-01-01 11:22:33", list_routers["routers"]["routerhost2::system"]["lastCheckIn"]);
+
 //@<> Cleanup
 testutil.destroySandbox(__mysql_sandbox_port1);
 testutil.destroySandbox(__mysql_sandbox_port2);
