@@ -613,7 +613,13 @@ class Dump_loader::Bulk_load_support {
       : m_loader(loader),
         m_bulk_load_info(loader->m_options.bulk_load_info()) {}
 
-  std::size_t compatible_tables() const noexcept { return m_compatible_tables; }
+  inline std::size_t compatible_tables() const noexcept {
+    return m_compatible_tables;
+  }
+
+  inline std::size_t loaded_tables() const noexcept {
+    return m_loaded_tables.size();
+  }
 
   void on_bulk_load_start(Worker *worker, Worker::Bulk_load_task *task) {
     if (worker->thread_id()) {
@@ -639,7 +645,7 @@ class Dump_loader::Bulk_load_support {
                     { m_loader->hard_interrupt(); });
   }
 
-  void on_bulk_load_end(Worker *worker) {
+  void on_bulk_load_end(Worker *worker, Worker::Bulk_load_task *task) {
     std::size_t data_bytes_update = 0;
     std::size_t file_bytes_update = 0;
 
@@ -661,6 +667,8 @@ class Dump_loader::Bulk_load_support {
     // report the last chunk of loaded data
     m_loader->m_progress_stats.data_bytes += data_bytes_update;
     m_loader->m_progress_stats.file_bytes += file_bytes_update;
+
+    m_loaded_tables.emplace(schema_object_key(task->schema(), task->table()));
   }
 
   static import_table::Import_table_options import_options(
@@ -1024,6 +1032,7 @@ class Dump_loader::Bulk_load_support {
   std::unordered_map<std::string, std::unordered_map<std::string, bool>>
       m_compatibility_status;
   std::size_t m_compatible_tables = 0;
+  std::unordered_set<std::string> m_loaded_tables;
 
   std::mutex m_running_threads_mutex;
   int m_running_threads = 0;
@@ -2745,7 +2754,7 @@ size_t Dump_loader::handle_worker_events(
             static_cast<Worker::Bulk_load_task *>(event.worker->current_task());
 
         assert(m_bulk_load);
-        m_bulk_load->on_bulk_load_end(event.worker);
+        m_bulk_load->on_bulk_load_end(event.worker, task);
 
         on_bulk_load_end(event.worker->id(), task);
         break;
@@ -3218,10 +3227,10 @@ void Dump_loader::show_summary() {
     console->print_info(msg);
   }
 
-  if (m_bulk_load && m_bulk_load->compatible_tables()) {
+  if (m_bulk_load && m_bulk_load->loaded_tables()) {
     console->print_info(shcore::str_format(
-        "%zi table%s loaded using BULK LOAD.", m_bulk_load->compatible_tables(),
-        1 == m_bulk_load->compatible_tables() ? " was" : "s were"));
+        "%zi table%s loaded using BULK LOAD.", m_bulk_load->loaded_tables(),
+        1 == m_bulk_load->loaded_tables() ? " was" : "s were"));
   }
 
   if (m_load_stats.records != m_rows_previously_loaded) {
