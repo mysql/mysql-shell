@@ -1,4 +1,4 @@
-# Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2017, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -65,7 +65,28 @@ MACRO(CHECK_STAN_OPTIONS)
 ENDMACRO()
 
 IF(USE_ASAN)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
+ENDIF()
+
+IF(USE_TSAN)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=thread")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=thread")
+ENDIF()
+
+IF(USE_UBSAN)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=undefined")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined")
+ENDIF()
+
+IF(USE_LSAN)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=leak")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak")
+ENDIF()
+
+IF(USE_MSAN)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=memory -fsanitize-memory-track-origins -fsanitize-recover=memory")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=memory -fsanitize-memory-track-origins -fsanitize-recover=memory")
 ENDIF()
 
 IF(SANITIZE_ALL)
@@ -77,5 +98,6 @@ IF(SANITIZE_ALL)
 ENDIF()
 
 IF(FORCE_CLANG_COLOR)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Xclang -fcolor-diagnostics")
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcolor-diagnostics")
 ENDIF()

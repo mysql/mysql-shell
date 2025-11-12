@@ -320,7 +320,10 @@ EXPECT_STDOUT_NOT_CONTAINS("Analyzing tables")
 #@<> WL15298_TSFR_4_5_11
 EXPECT_SUCCESS(__sandbox_uri2, { "analyzeTables": "histogram" })
 # NOTE: functionality is checked in load tests
-EXPECT_STDOUT_CONTAINS("Analyzing tables")
+if __version_num > 80000:
+    EXPECT_STDOUT_CONTAINS("Analyzing tables")
+else:
+    EXPECT_OUTPUT_CONTAINS(f"Histogram creation enabled but MySQL Server {__version} does not support it.")
 
 #@<> WL15298 - test analyzeTables option
 EXPECT_SUCCESS(__sandbox_uri2, { "analyzeTables": "on" })

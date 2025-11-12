@@ -74,8 +74,8 @@ class Spinner_progress : public Progress_thread::Stage {
     m_spinner.done(k_done);
   }
 
-  void on_stage_started() override {
-    Stage::on_stage_started();
+  void on_stage_starting() override {
+    Stage::on_stage_starting();
 
     if (uses_json_output() && show_progress()) {
       // make sure that the JSON output contains a progress message when this
@@ -294,9 +294,10 @@ Progress_thread::Stage::Stage(Stage_config config, bool json_output)
 
 void Progress_thread::Stage::start() {
   m_duration.start();
-  m_started = true;
 
-  on_stage_started();
+  on_stage_starting();
+
+  m_started = true;
 }
 
 void Progress_thread::Stage::finish(bool wait) {
@@ -341,10 +342,12 @@ void Progress_thread::Stage::display() {
   on_display_started();
 
   while (!m_finished) {
-    on_update();
+    if (is_started()) {
+      on_update();
 
-    if (show_progress()) {
-      draw();
+      if (show_progress()) {
+        draw();
+      }
     }
 
     wait_for_finish();
@@ -366,7 +369,7 @@ void Progress_thread::Stage::display() {
   m_display_done_cv.notify_one();
 }
 
-void Progress_thread::Stage::on_stage_started() {
+void Progress_thread::Stage::on_stage_starting() {
   if (m_config.log_progress) {
     log_debug("%s%s", description().c_str(), k_ellipsis);
   }

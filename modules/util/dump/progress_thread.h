@@ -210,9 +210,9 @@ class Progress_thread final {
     Stage(Stage_config config, bool json_output);
 
     /**
-     * Called when a stage is started.
+     * Called when a stage is about to start.
      */
-    virtual void on_stage_started();
+    virtual void on_stage_starting();
 
     /**
      * Write the progress to the console.
@@ -279,7 +279,7 @@ class Progress_thread final {
     std::atomic_bool m_display_done = false;
 
     std::atomic_bool m_terminated = false;
-    bool m_started = false;
+    std::atomic_bool m_started = false;
 
     bool m_json_output = false;
   };
