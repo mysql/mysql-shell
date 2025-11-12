@@ -2924,12 +2924,11 @@ bool Dump_loader::schedule_next_task() {
     }
 
     if (m_options.load_deferred_indexes()) {
-      setup_create_indexes_progress();
-
       compatibility::Deferred_statements::Index_info *indexes = nullptr;
 
       if (m_dump->next_deferred_index(&schema, &table, &indexes)) {
         assert(indexes != nullptr);
+        setup_create_indexes_progress();
         push_pending_task(recreate_indexes(schema, table, indexes));
         return true;
       }
@@ -2938,8 +2937,6 @@ bool Dump_loader::schedule_next_task() {
     const auto analyze_tables = m_options.analyze_tables();
 
     if (Load_dump_options::Analyze_table_mode::OFF != analyze_tables) {
-      setup_analyze_tables_progress();
-
       std::vector<Dump_reader::Histogram> histograms;
 
       do {
@@ -2948,6 +2945,7 @@ bool Dump_loader::schedule_next_task() {
           // histogram info in the dump
           if (Load_dump_options::Analyze_table_mode::ON == analyze_tables ||
               !histograms.empty()) {
+            setup_analyze_tables_progress();
             ++m_tables_to_analyze;
             push_pending_task(analyze_table(schema, table, histograms));
             return true;
@@ -2963,8 +2961,6 @@ bool Dump_loader::schedule_next_task() {
     }
 
     if (m_options.checksum()) {
-      setup_checksum_tables_progress();
-
       const dump::common::Checksums::Checksum_data *checksum;
 
       do {
@@ -5158,6 +5154,7 @@ bool Dump_loader::maybe_push_checksum_task(
     return false;
   }
 
+  setup_checksum_tables_progress();
   push_pending_task(checksum(data));
 
   return true;
@@ -6135,7 +6132,7 @@ void Dump_loader::setup_secondary_load_progress() {
     return m_all_secondary_load_tasks_scheduled;
   };
 
-  m_secondary_load_stage = m_progress_thread.push_stage(
+  m_secondary_load_stage = m_progress_thread.start_stage(
       "Loading tables into HeatWave", std::move(config));
 }
 

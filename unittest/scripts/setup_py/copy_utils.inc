@@ -14,6 +14,7 @@ def setup_copy_tests(arg_no, src_options = {}):
     setup_session(__sandbox_uri1)
     analyze_tables(session)
     session.run_sql("CREATE EVENT sakila.existing_event ON SCHEDULE EVERY 1 YEAR DO BEGIN END")
+    session.run_sql("/*!80000 ANALYZE TABLE sakila.film UPDATE HISTOGRAM ON film_id, title */")
     testutil.deploy_sandbox(__mysql_sandbox_port2, "root", { "local_infile": 1, "innodb_doublewrite": "OFF" })
     globals()["tgt_session"] = mysql.get_session(__sandbox_uri2)
     tgt_session.run_sql("/*!80021 alter instance disable innodb redo_log */")
