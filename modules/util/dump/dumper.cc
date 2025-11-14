@@ -3317,9 +3317,15 @@ void Dumper::initialize_counters() {
   m_num_threads_checksumming = 0;
   m_num_threads_dumping = 0;
 
+  m_ddl_to_write = m_options.dump_ddl() ? m_total_objects : 0;
   m_ddl_written = 0;
+
+  const auto write_metadata = should_write_metadata();
+
+  m_schema_metadata_to_write = write_metadata ? m_total_schemas : 0;
   m_schema_metadata_written = 0;
-  m_table_metadata_to_write = 0;
+
+  m_table_metadata_to_write = write_metadata ? m_total_tables : 0;
   m_table_metadata_written = 0;
 }
 
@@ -3785,14 +3791,13 @@ std::unique_ptr<Dumper::Memory_dumper> Dumper::dump_users(
 }
 
 void Dumper::create_schema_metadata_tasks() {
-  if (Dry_run::DONT_WRITE_ANY_FILES == m_options.dry_run_mode() ||
-      m_options.is_export_only()) {
+  if (!should_write_metadata()) {
     return;
   }
 
   Progress_thread::Progress_config config;
   config.current = [this]() -> uint64_t { return m_schema_metadata_written; };
-  config.total = [this]() { return m_total_schemas; };
+  config.total = [this]() { return m_schema_metadata_to_write; };
 
   m_progress_thread.start_stage("Writing schema metadata", std::move(config));
 
@@ -3813,7 +3818,7 @@ void Dumper::create_schema_ddl_tasks() {
   Progress_thread::Progress_config config;
 
   config.current = [this]() -> uint64_t { return m_ddl_written; };
-  config.total = [this]() { return m_total_objects; };
+  config.total = [this]() { return m_ddl_to_write; };
 
   m_progress_thread.start_stage("Writing DDL", std::move(config));
 
@@ -3852,20 +3857,13 @@ void Dumper::create_table_tasks() {
 
   m_main_thread_finished_producing_chunking_tasks = false;
 
-  m_all_table_metadata_tasks_scheduled = false;
-
-  const auto write_metadata =
-      Dry_run::DONT_WRITE_ANY_FILES != m_options.dry_run_mode() &&
-      !m_options.is_export_only();
+  const auto write_metadata = should_write_metadata();
 
   if (write_metadata) {
     Progress_thread::Progress_config config;
 
     config.current = [this]() -> uint64_t { return m_table_metadata_written; };
     config.total = [this]() -> uint64_t { return m_table_metadata_to_write; };
-    config.is_total_known = [this]() {
-      return m_all_table_metadata_tasks_scheduled;
-    };
 
     m_progress_thread.start_stage("Writing table metadata", std::move(config));
   }
@@ -3879,8 +3877,6 @@ void Dumper::create_table_tasks() {
       auto task = create_table_task(schema, table);
 
       if (write_metadata) {
-        ++m_table_metadata_to_write;
-
         m_worker_tasks.push({"writing metadata of " + table.quoted_name,
                              [task](Table_worker *worker) {
                                worker->write_table_metadata(task);
@@ -3907,8 +3903,6 @@ void Dumper::create_table_tasks() {
   for (auto &task : pending_tasks) {
     push_table_task(std::move(task));
   }
-
-  m_all_table_metadata_tasks_scheduled = true;
 
   m_main_thread_finished_producing_chunking_tasks = true;
 }
@@ -5557,10 +5551,9 @@ std::string Dumper::decode_column(const Instance_cache::Table *table,
 void Dumper::maybe_ddl_dump_finished(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
   // check if there are still metadata or DDL files to be written
-  if (!(m_all_table_metadata_tasks_scheduled &&
-        m_table_metadata_to_write == m_table_metadata_written &&
-        m_total_schemas == m_schema_metadata_written &&
-        m_total_objects == m_ddl_written)) {
+  if (!(m_table_metadata_to_write == m_table_metadata_written &&
+        m_schema_metadata_to_write == m_schema_metadata_written &&
+        m_ddl_to_write == m_ddl_written)) {
     return;
   }
 
@@ -5576,6 +5569,11 @@ void Dumper::validate_compatibility_check_status() const {
   } else if (m_compatibility_status.is_set(issues::Status::ERROR)) {
     THROW_ERROR(SHERR_DUMP_COMPATIBILITY_ISSUES_FOUND);
   }
+}
+
+bool Dumper::should_write_metadata() const noexcept {
+  return Dry_run::DONT_WRITE_ANY_FILES != m_options.dry_run_mode() &&
+         !m_options.is_export_only();
 }
 
 }  // namespace dump

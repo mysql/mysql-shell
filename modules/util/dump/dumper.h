@@ -530,6 +530,8 @@ class Dumper {
   void maybe_ddl_dump_finished(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) const;
 
+  bool should_write_metadata() const noexcept;
+
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 #ifndef NDEBUG
@@ -591,13 +593,15 @@ class Dumper {
   std::atomic<uint64_t> m_num_threads_chunking;
   std::atomic<uint64_t> m_num_threads_checksumming;
   std::atomic<uint64_t> m_num_threads_dumping;
+
+  uint64_t m_ddl_to_write;
   std::atomic<uint64_t> m_ddl_written;
 
+  uint64_t m_schema_metadata_to_write;
   std::atomic<uint64_t> m_schema_metadata_written;
 
-  std::atomic<uint64_t> m_table_metadata_to_write;
+  uint64_t m_table_metadata_to_write;
   std::atomic<uint64_t> m_table_metadata_written;
-  bool m_all_table_metadata_tasks_scheduled = false;
 
   mutable std::recursive_mutex m_throughput_mutex;
   std::unique_ptr<mysqlshdk::textui::Throughput> m_data_throughput;
