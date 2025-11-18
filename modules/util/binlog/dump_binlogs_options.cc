@@ -27,8 +27,7 @@
 
 #include <mysql/binlog/event/binlog_event.h>
 #include <mysql/binlog/event/control_events.h>
-#include <mysql/gtid/gtid.h>
-#include <mysql/gtid/gtidset.h>
+#include <mysql/gtids/gtids.h>
 
 #include <memory>
 #include <stdexcept>
@@ -514,22 +513,17 @@ void Dump_binlogs_options::validate_start_from() {
     return;
   }
 
-  if (!session()
-           ->queryf("SELECT GTID_SUBSET(?,?)", start_from().gtid_executed,
-                    end_at().gtid_executed)
-           ->fetch_one_or_throw()
-           ->get_uint(0)) {
+  const auto start_gtid_executed = to_gtid_set(start_from().gtid_executed);
+  const auto end_gtid_executed = to_gtid_set(end_at().gtid_executed);
+
+  if (!mysql::sets::is_subset(start_gtid_executed, end_gtid_executed)) {
     // WL15977-FR2.4.3
     throw std::invalid_argument{
         "The base dump contains transactions that are not available in the "
         "source instance."};
   }
 
-  m_gtid_set = session()
-                   ->queryf("SELECT GTID_SUBTRACT(?,?)", end_at().gtid_executed,
-                            start_from().gtid_executed)
-                   ->fetch_one_or_throw()
-                   ->get_string(0);
+  m_gtid_set = subtract(end_gtid_executed, start_gtid_executed);
 
   // there is no gap if:
   //   (end_at() - start_from()) - gtid_purged == (end_at() - start_from())
@@ -640,8 +634,7 @@ void Dump_binlogs_options::find_start_from(
 
   // we need to scan the binlogs and find the first GTID event that does not
   // belong to the gtid_executed from the previous dump
-  mysql::gtid::Gtid_set gtid_set;
-  to_gtid_set(start_from().gtid_executed, &gtid_set);
+  const auto gtid_set = to_gtid_set(start_from().gtid_executed);
 
   using Format_description_event =
       mysql::binlog::event::Format_description_event;
@@ -661,7 +654,7 @@ void Dump_binlogs_options::find_start_from(
   bool contains_gtid = true;
 
   const auto gtid_set_contains = [&gtid_set](const Gtid_event &e) {
-    return gtid_set.contains(mysql::gtid::Gtid{e.get_tsid(), e.get_gno()});
+    return mysql::sets::contains_element(gtid_set, to_gtid(e));
   };
 
   // find a binlog where the first GTID event is in gtid_executed and which is

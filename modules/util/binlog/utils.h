@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,14 +26,35 @@
 #ifndef MODULES_UTIL_BINLOG_UTILS_H_
 #define MODULES_UTIL_BINLOG_UTILS_H_
 
-#include <mysql/gtid/gtidset.h>
+#include <mysql/binlog/event/control_events.h>
+#include <mysql/gtids/gtids.h>
 
 #include <string>
+#include <string_view>
 
 namespace mysqlsh {
 namespace binlog {
 
-void to_gtid_set(const std::string &str, mysql::gtid::Gtid_set *gtid_set);
+mysql::gtids::Gtid to_gtid(const mysql::binlog::event::Gtid_event &gtid_event);
+
+mysql::gtids::Gtid_set to_gtid_set(std::string_view str);
+
+mysql::gtids::Gtid to_gtid(std::string_view str);
+
+std::string to_string(const mysql::gtids::Gtid_set &gtid_set);
+
+std::string to_string(const mysql::gtids::Gtid &gtid);
+
+std::string subtract(std::string_view l, std::string_view r);
+
+std::string subtract(const mysql::gtids::Gtid_set &l,
+                     const mysql::gtids::Gtid_set &r);
+
+/**
+ * Throws std::bad_alloc if status is not OK, to be used with functions which
+ * return error statuses only when memory-related failure happens.
+ */
+void throw_on_failure(mysql::utils::Return_status status);
 
 }  // namespace binlog
 }  // namespace mysqlsh

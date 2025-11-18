@@ -23,9 +23,6 @@
 
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 
-# TODO(pawel): remove this and use WL#16076
-add_compile_definitions(NO_DEPRECATION_WARNING_FOR_HEADER_GTIDSET_H)
-
 INCLUDE_DIRECTORIES(BEFORE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_BINARY_DIR}
@@ -149,7 +146,7 @@ endif()
 
 set(MYSQL_BINLOG_LIBS "${MYSQL_BINLOG_EVENT_LIB}")
 
-foreach(__lib "mysql_serialization" "mysql_gtid")
+foreach(__lib "mysql_serialization")
     static_mysql_lib(NAME "${__lib}" PATH __path)
     list(APPEND MYSQL_BINLOG_LIBS "${__path}")
 endforeach()

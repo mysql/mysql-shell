@@ -29,15 +29,16 @@
 #include <string_view>
 #include <utility>
 
+#include <mysql/gtids/gtids.h>
+
 #include "modules/adminapi/common/instance_pool.h"
-#include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/mysql/version_compatibility.h"
 #include "mysqlshdk/libs/utils/debug.h"
 #include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#include "mysqlshdk/libs/utils/utils_uuid.h"
 
 #include "modules/util/binlog/constants.h"
+#include "modules/util/binlog/utils.h"
 
 namespace mysqlsh {
 namespace binlog {
@@ -51,39 +52,47 @@ std::string validate_gtid(const std::string &gtid, const char *option) {
         "The '%s' option cannot be set to an empty string.", option)};
   }
 
-  const auto k_invalid_gtid = shcore::str_format(
-      "Invalid value of the '%s' option, expected a GTID in format: "
-      "source_id:[tag:]:transaction_id",
-      option);
-
   // WL15977-FR3.2.3.1 - check if this is a single-transaction GTID
 
-  using mysqlshdk::mysql::Gtid_range;
-  using mysqlshdk::mysql::Gtid_set;
+  try {
+    const auto gtid_set = to_gtid_set(gtid);
 
-  Gtid_range range;
-  Gtid_set::from_normalized_string(gtid).enumerate_ranges(
-      [&range, &k_invalid_gtid](Gtid_range r) {
-        if (!r || range) {
-          // WL15977-FR3.2.3.2
-          // invalid GTID or parsing has failed
-          //   or
-          // we already have a range, this means multiple intervals were given
-          throw std::invalid_argument{k_invalid_gtid};
-        }
+    // WL15977-FR3.2.3.1 - check if this is a single-transaction GTID
+    if (gtid_set.empty()) {
+      throw std::invalid_argument{"Expected non-empty GTID set"};
+    }
 
-        range = std::move(r);
-      });
+    const auto &source_ranges = gtid_set.front();
 
-  if (!range || !range.is_single()) {
+    if (source_ranges != gtid_set.back()) {
+      throw std::invalid_argument{"Expected one source ID in GTID set"};
+    }
+
+    const auto &gtid_ranges = source_ranges.second;
+
+    if (gtid_ranges.empty()) {
+      throw std::invalid_argument{"Expected non-empty GTID range"};
+    }
+
+    const auto &gtid_range = gtid_ranges.front();
+
+    if (gtid_range != gtid_ranges.back()) {
+      throw std::invalid_argument{"Expected one element in GTID range"};
+    }
+
+    if (gtid_range.exclusive_end() - gtid_range.start() != 1) {
+      throw std::invalid_argument{"Expected one transaction in GTID range"};
+    }
+
+    return to_string(gtid_set);
+  } catch (const std::exception &e) {
+    log_debug("Failed to validate GTID '%s': %s", gtid.c_str(), e.what());
     // WL15977-FR3.2.3.2
-    // parsing has failed
-    //   or
-    // we don't want an interval, but a single transaction ID
-    throw std::invalid_argument{k_invalid_gtid};
+    throw std::invalid_argument{
+        shcore::str_format("Invalid value of the '%s' option, expected a GTID "
+                           "in format: source_id:[tag:]:transaction_id",
+                           option)};
   }
-
-  return range.str();
 }
 
 }  // namespace
@@ -185,12 +194,8 @@ void Load_binlogs_options::read_dump(
   }
 
   if (const auto missing =
-          session()
-              ->queryf("SELECT GTID_SUBTRACT(?,?)",
-                       m_dump->dumps().front().start_from().gtid_executed,
-                       m_start_from.gtid_executed)
-              ->fetch_one_or_throw()
-              ->get_string(0);
+          subtract(m_dump->dumps().front().start_from().gtid_executed,
+                   m_start_from.gtid_executed);
       !missing.empty()) {
     const auto gtid_gap = shcore::str_format(
         "The target instance is missing some transactions which are not "
@@ -255,20 +260,24 @@ void Load_binlogs_options::gather_binlogs() {
   // WL15977-FR3.1.2
   std::vector<Binlog_file> binlogs;
   std::vector<Binlog_file> candidates;
+
   bool begin_found = false;
   bool end_found = false;
-  const auto &s = session();
-  const auto &stop_at_gtid =
+
+  const auto &final_gtid_str =
       !m_stop_before_gtid.empty() ? m_stop_before_gtid : m_stop_after_gtid;
 
+  const auto start_from_gtid_executed = to_gtid_set(m_start_from.gtid_executed);
+  const auto final_gtid =
+      final_gtid_str.empty() ? mysql::gtids::Gtid{} : to_gtid(final_gtid_str);
+
   for (const auto &dump : m_dump->dumps()) {
+    const auto dump_gtid_set = to_gtid_set(dump.gtid_set());
+
     if (!begin_found) {
       // find the first dump which is not fully in gtid_executed (some or all
       // transactions were not loaded)
-      if (s->queryf("SELECT GTID_SUBSET(?,?)", dump.gtid_set(),
-                    m_start_from.gtid_executed)
-              ->fetch_one_or_throw()
-              ->get_uint(0)) {
+      if (mysql::sets::is_subset(dump_gtid_set, start_from_gtid_executed)) {
         continue;
       }
 
@@ -276,14 +285,10 @@ void Load_binlogs_options::gather_binlogs() {
 
       // find the first binlog file which is not fully in gtid_executed
       for (auto it = files.begin(), end = files.end(); it != end; ++it) {
-        if (!s->queryf("SELECT GTID_SUBSET(?,?)", it->gtid_set,
-                       m_start_from.gtid_executed)
-                 ->fetch_one_or_throw()
-                 ->get_uint(0)) {
-          m_first_gtid_set = s->queryf("SELECT GTID_SUBTRACT(?,?)",
-                                       it->gtid_set, m_start_from.gtid_executed)
-                                 ->fetch_one_or_throw()
-                                 ->get_string(0);
+        const auto gtid_set = to_gtid_set(it->gtid_set);
+
+        if (!mysql::sets::is_subset(gtid_set, start_from_gtid_executed)) {
+          m_first_gtid_set = subtract(gtid_set, start_from_gtid_executed);
 
           candidates.insert(candidates.end(), std::make_move_iterator(it),
                             std::make_move_iterator(end));
@@ -303,17 +308,14 @@ void Load_binlogs_options::gather_binlogs() {
     }
 
     if (!end_found) {
-      if (!stop_at_gtid.empty()) {
+      if (!final_gtid_str.empty()) {
         // check if dump contains the stopping GTID
-        if (s->queryf("SELECT GTID_SUBSET(?,?)", stop_at_gtid, dump.gtid_set())
-                ->fetch_one_or_throw()
-                ->get_uint(0)) {
+        if (mysql::sets::contains_element(dump_gtid_set, final_gtid)) {
           // find the binlog which contains the stopping GTID
           for (auto it = candidates.begin(), end = candidates.end(); it != end;
                ++it) {
-            if (s->queryf("SELECT GTID_SUBSET(?,?)", stop_at_gtid, it->gtid_set)
-                    ->fetch_one_or_throw()
-                    ->get_uint(0)) {
+            if (mysql::sets::contains_element(to_gtid_set(it->gtid_set),
+                                              final_gtid)) {
               candidates.erase(++it, end);
               end_found = true;
               break;
@@ -336,6 +338,8 @@ void Load_binlogs_options::gather_binlogs() {
     if (end_found) {
       break;
     }
+
+    candidates.clear();
   }
 
   if (!begin_found) {
@@ -344,11 +348,11 @@ void Load_binlogs_options::gather_binlogs() {
   }
 
   if (!end_found) {
-    if (!stop_at_gtid.empty()) {
+    if (!final_gtid_str.empty()) {
       throw std::invalid_argument{
           shcore::str_format("Could not find the final binary log file to be "
                              "loaded that contains GTID '%s'.",
-                             stop_at_gtid.c_str())};
+                             final_gtid_str.c_str())};
     }
   }
 

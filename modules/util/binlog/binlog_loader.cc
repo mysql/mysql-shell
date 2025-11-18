@@ -27,8 +27,7 @@
 
 #include <mysql/binlog/event/binlog_event.h>
 #include <mysql/binlog/event/control_events.h>
-#include <mysql/gtid/gtid.h>
-#include <mysql/gtid/gtidset.h>
+#include <mysql/gtids/gtids.h>
 
 #include <algorithm>
 #include <chrono>
@@ -51,7 +50,6 @@
 #include "mysqlshdk/include/shellcore/shell_init.h"
 #include "mysqlshdk/libs/db/mysql/binary_log.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
-#include "mysqlshdk/libs/mysql/gtid_utils.h"
 #include "mysqlshdk/libs/storage/backend/in_memory/allocator.h"
 #include "mysqlshdk/libs/textui/text_progress.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -557,19 +555,18 @@ class Binlog_loader::File_reader final {
   }
 
   void find_beginning(Binlog_event_filter *filter) {
-    mysql::gtid::Gtid_set gtid_set;
-    to_gtid_set(m_options.first_gtid_set(), &gtid_set);
+    const auto gtid_set = to_gtid_set(m_options.first_gtid_set());
 
     filter->filter(
         [](const Binary_log_event &) {
           return Binlog_event_filter::Action::Skip;
         },
-        [&gtid_set](const Gtid_event &gtid) {
-          if (gtid_set.contains(
-                  mysql::gtid::Gtid{gtid.get_tsid(), gtid.get_gno()})) {
+        [&gtid_set](const Gtid_event &gtid_event) {
+          const auto gtid = to_gtid(gtid_event);
+
+          if (mysql::sets::contains_element(gtid_set, gtid)) {
             current_console()->print_status(shcore::str_format(
-                "      Found starting GTID: %s:%" PRId64,
-                gtid.get_tsid().to_string().c_str(), gtid.get_gno()));
+                "      Found starting GTID: %s", to_string(gtid).c_str()));
             return Binlog_event_filter::Action::Stop;
           } else {
             return Binlog_event_filter::Action::Skip;
@@ -588,44 +585,35 @@ class Binlog_loader::File_reader final {
                                   : Binlog_event_filter::Action::Write;
 
     if (!m_options.stop_before_gtid().empty()) {
-      const auto stop_at =
-          mysqlshdk::mysql::Gtid_range::from_gtid(m_options.stop_before_gtid());
+      const auto stop_at = to_gtid(m_options.stop_before_gtid());
 
       filter->filter(
           [&write_action](const Binary_log_event &) { return write_action; },
-          [&write_action, &stop_at](const Gtid_event &gtid) {
-            const auto tsid = gtid.get_tsid().to_string();
-
-            if (stop_at.uuid_tag == tsid &&
-                stop_at.begin == static_cast<uint64_t>(gtid.get_gno())) {
-              current_console()->print_status(
-                  shcore::str_format("      Stopped before GTID: %s:%" PRId64,
-                                     tsid.c_str(), gtid.get_gno()));
+          [&write_action, &stop_at](const Gtid_event &gtid_event) {
+            if (const auto gtid = to_gtid(gtid_event); stop_at == gtid) {
+              current_console()->print_status(shcore::str_format(
+                  "      Stopped before GTID: %s", to_string(gtid).c_str()));
               return Binlog_event_filter::Action::Stop;
             } else {
               return write_action;
             }
           });
     } else if (!m_options.stop_after_gtid().empty()) {
-      const auto stop_at =
-          mysqlshdk::mysql::Gtid_range::from_gtid(m_options.stop_after_gtid());
+      const auto stop_at = to_gtid(m_options.stop_after_gtid());
       bool should_stop = false;
 
       filter->filter(
           [&write_action](const Binary_log_event &) { return write_action; },
-          [&write_action, &stop_at, &should_stop](const Gtid_event &gtid) {
-            const auto tsid = gtid.get_tsid().to_string();
-
+          [&write_action, &stop_at,
+           &should_stop](const Gtid_event &gtid_event) {
             if (should_stop) {
               return Binlog_event_filter::Action::Stop;
-            } else if (stop_at.uuid_tag == tsid &&
-                       stop_at.begin == static_cast<uint64_t>(gtid.get_gno())) {
+            } else if (const auto gtid = to_gtid(gtid_event); stop_at == gtid) {
               // we found the GTID we were looking for, continue for now, stop
               // on a new GTID event (next transaction)
               should_stop = true;
-              current_console()->print_status(
-                  shcore::str_format("      Stopped after GTID: %s:%" PRId64,
-                                     tsid.c_str(), gtid.get_gno()));
+              current_console()->print_status(shcore::str_format(
+                  "      Stopped after GTID: %s", to_string(gtid).c_str()));
               return write_action;
             } else {
               return write_action;

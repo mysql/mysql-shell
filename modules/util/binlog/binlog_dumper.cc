@@ -27,7 +27,7 @@
 
 #include <mysql/binlog/event/binlog_event.h>
 #include <mysql/binlog/event/control_events.h>
-#include <mysql/gtid/gtidset.h>
+#include <mysql/gtids/gtids.h>
 
 #include <algorithm>
 #include <cassert>
@@ -49,6 +49,7 @@
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 #include "modules/util/binlog/constants.h"
+#include "modules/util/binlog/utils.h"
 #include "modules/util/common/dump/dump_version.h"
 #include "modules/util/common/dump/server_info.h"
 #include "modules/util/common/dump/utils.h"
@@ -77,7 +78,7 @@ class Binlog_dumper::Dumper final {
                                                 .version.number.get_base()
                                                 .c_str()) {}
 
-  const mysql::gtid::Gtid_set &dump() {
+  mysql::gtids::Gtid_set dump() {
     log_info("Dumping '%s' - %" PRIu64 " bytes", m_task->name.c_str(),
              (m_task->end ? m_task->end : m_task->total_size) - m_task->begin);
 
@@ -93,11 +94,13 @@ class Binlog_dumper::Dumper final {
             m_task->begin,
             mysqlshdk::db::mysql::Binary_log::k_binlog_magic_size)};
 
+    mysql::gtids::Gtid_set gtid_set;
+
     if (!m_parent->m_dry_run) {
       if (m_task->end) {
-        dump<true>(std::move(binlog));
+        dump<true>(std::move(binlog), &gtid_set);
       } else {
-        dump<false>(std::move(binlog));
+        dump<false>(std::move(binlog), &gtid_set);
       }
     }
 
@@ -105,7 +108,7 @@ class Binlog_dumper::Dumper final {
 
     log_info("Dumping '%s' - done", m_task->name.c_str());
 
-    return m_gtid_set;
+    return gtid_set;
   }
 
  private:
@@ -114,7 +117,10 @@ class Binlog_dumper::Dumper final {
   }
 
   template <bool LAST_FILE>
-  void dump(mysqlshdk::db::mysql::Binary_log binlog) {
+  void dump(mysqlshdk::db::mysql::Binary_log binlog,
+            mysql::gtids::Gtid_set *gtid_set) {
+    assert(gtid_set);
+
     const auto output = output_file();
 
     output->open(mysqlshdk::storage::Mode::WRITE);
@@ -130,7 +136,7 @@ class Binlog_dumper::Dumper final {
         break;
       }
 
-      handle_event(event);
+      handle_event(event, gtid_set);
       write(event.buffer, event.size);
       ++m_task->stats.events;
 
@@ -153,7 +159,7 @@ class Binlog_dumper::Dumper final {
       }
     }
 
-    m_task->stats.gtid_set = m_gtid_set.to_string();
+    m_task->stats.gtid_set = to_string(*gtid_set);
   }
 
   std::unique_ptr<mysqlshdk::storage::IFile> output_file() {
@@ -187,8 +193,8 @@ class Binlog_dumper::Dumper final {
     m_stats->file_bytes_written += file_bytes;
   }
 
-  inline void handle_event(
-      const mysqlshdk::db::mysql::Binary_log_event &event) {
+  inline void handle_event(const mysqlshdk::db::mysql::Binary_log_event &event,
+                           mysql::gtids::Gtid_set *gtid_set) {
     using mysql::binlog::event::Log_event_type;
 
     const auto type = static_cast<Log_event_type>(event.type);
@@ -206,15 +212,12 @@ class Binlog_dumper::Dumper final {
       m_description_event =
           Format_description_event{buffer, &m_description_event};
     } else {
-      mysql::binlog::event::Gtid_event gtid{buffer, &m_description_event};
-      const auto gno = gtid.get_gno();
+      assert(gtid_set);
 
-      if (m_gtid_set.add(gtid.get_tsid(), mysql::gtid::Gno_interval{gno, gno}))
-          [[unlikely]] {
-        throw std::runtime_error{
-            shcore::str_format("Failed to add GTID '%s:%" PRId64 "'",
-                               gtid.get_tsid().to_string().c_str(), gno)};
-      }
+      mysql::binlog::event::Gtid_event gtid_event{buffer, &m_description_event};
+      const auto gtid = to_gtid(gtid_event);
+
+      throw_on_failure(gtid_set->insert(gtid));
     }
   }
 
@@ -226,7 +229,6 @@ class Binlog_dumper::Dumper final {
   mysqlshdk::storage::Compressed_file *m_compressed;
 
   mysql::binlog::event::Format_description_event m_description_event;
-  mysql::gtid::Gtid_set m_gtid_set;
 };
 
 class Binlog_dumper::Dump_progress final {
@@ -534,15 +536,8 @@ void Binlog_dumper::write_end_metadata() const {
   if (m_options.start_from().gtid_executed.empty()) {
     // we have the dumped GTID set, we can compute the starting gtid_executed
     auto start_from = m_options.start_from();
-    const auto session =
-        mysqlshdk::db::mysql::open_session(m_options.connection_options());
-
     start_from.gtid_executed =
-        session
-            ->queryf("SELECT GTID_SUBTRACT(?,?)",
-                     m_options.end_at().gtid_executed, m_dump_stats.gtid_set)
-            ->fetch_one_or_throw()
-            ->get_string(0);
+        subtract(m_options.end_at().gtid_executed, m_dump_stats.gtid_set);
 
     json.append("startFrom");
     dump::common::serialize(start_from, &json);
@@ -592,7 +587,7 @@ void Binlog_dumper::dump() {
       m_dump_stats.binlogs, format_bytes(m_dump_stats.data_bytes).c_str(),
       m_options.threads()));
 
-  mysql::gtid::Gtid_set gtid_set;
+  mysql::gtids::Gtid_set gtid_set;
   std::mutex gtid_set_mutex;
 
   Dump_progress progress{&m_progress_thread, m_dump_stats,
@@ -610,11 +605,11 @@ void Binlog_dumper::dump() {
         [this, task = &task, &gtid_set, &gtid_set_mutex]() {
           {
             Dumper d{this, task, &m_dump_stats};
-            const auto &set = d.dump();
+            auto set = d.dump();
 
             {
               std::lock_guard lock{gtid_set_mutex};
-              gtid_set.add(set);
+              throw_on_failure(gtid_set.inplace_union(std::move(set)));
             }
           }
 
@@ -631,7 +626,7 @@ void Binlog_dumper::dump() {
   pool.tasks_done();
   pool.process();
 
-  m_dump_stats.gtid_set = gtid_set.to_string();
+  m_dump_stats.gtid_set = to_string(gtid_set);
 }
 
 void Binlog_dumper::summarize() const {
