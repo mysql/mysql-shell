@@ -27,6 +27,7 @@
 
 #include <antlr4-runtime.h>
 
+#include <memory>
 #include <stdexcept>
 #include <tuple>
 #include <unordered_set>
@@ -46,7 +47,9 @@ namespace parser {
 namespace {
 
 using antlr4::ANTLRInputStream;
-using antlr4::CommonTokenStream;
+using antlr4::Token;
+using antlr4::dfa::Vocabulary;
+using antlr4::tree::ParseTreeWalker;
 
 using parsers::MySQLLexer;
 using parsers::MySQLParser;
@@ -55,7 +58,7 @@ using parsers::MySQLRecognizerCommon;
 class Parser_error_listener : public antlr4::BaseErrorListener {
  public:
   void syntaxError(antlr4::Recognizer * /* recognizer */,
-                   antlr4::Token *offendingSymbol, size_t line,
+                   Token *offendingSymbol, size_t line,
                    size_t charPositionInLine, const std::string &msg,
                    std::exception_ptr /* e */) override {
     throw Sql_syntax_error(msg,
@@ -86,7 +89,30 @@ class Parser_context {
     m_parser.addErrorListener(&m_error_listener);
   }
 
-  inline MySQLParser::QueryContext *query() { return m_parser.query(); }
+  explicit Parser_context(const Parser_config &config)
+      : Parser_context({}, config) {}
+
+  inline MySQLParser::QueryContext *query() {
+    // improve the performance using the approach described here:
+    // https://tomassetti.me/improving-the-performance-of-an-antlr-parser/#chapter13
+    set_prediction_mode(true);
+
+    try {
+      return m_parser.query();
+    } catch (const antlr4::ParseCancellationException &) {
+      m_parser.reset();
+      m_tokens.reset();
+
+      set_prediction_mode(false);
+
+      return m_parser.query();
+    }
+  }
+
+  inline MySQLParser::QueryContext *query(std::string_view stmt) {
+    reset(stmt);
+    return query();
+  }
 
   void traverse_ast(IParser_listener *listener) {
     const auto q = query();
@@ -116,8 +142,10 @@ class Parser_context {
   }
 
   void traverse_ast(IParser_listener *listener, antlr4::tree::ParseTree *tree) {
+    using antlr4::tree::ParseTreeType;
+
     switch (tree->getTreeType()) {
-      case antlr4::tree::ParseTreeType::TERMINAL: {
+      case ParseTreeType::TERMINAL: {
         const auto term = dynamic_cast<antlr4::tree::TerminalNode *>(tree);
         const auto token = term->getSymbol();
 
@@ -133,7 +161,7 @@ class Parser_context {
         break;
       }
 
-      case antlr4::tree::ParseTreeType::RULE: {
+      case ParseTreeType::RULE: {
         auto rule = dynamic_cast<antlr4::RuleContext *>(tree);
 
         AST_rule_node node;
@@ -151,7 +179,7 @@ class Parser_context {
         break;
       }
 
-      case antlr4::tree::ParseTreeType::ERROR: {
+      case ParseTreeType::ERROR: {
         const auto error = dynamic_cast<antlr4::tree::ErrorNode *>(tree);
         const auto *token = error->getSymbol();
 
@@ -169,14 +197,57 @@ class Parser_context {
     }
   }
 
+  void reset(std::string_view stmt) {
+    m_parser.reset();
+    m_lexer.reset();
+
+    m_input.load(stmt.data(), stmt.length());
+
+    m_lexer.setInputStream(&m_input);
+    m_tokens.setTokenSource(&m_lexer);
+    m_parser.setTokenStream(&m_tokens);
+  }
+
+  void set_prediction_mode(bool fast_prediction) {
+    if (m_fast_prediction_mode == fast_prediction) {
+      return;
+    }
+
+    m_parser.removeErrorListeners();
+
+    if (!fast_prediction) {
+      m_parser.addErrorListener(&m_error_listener);
+    }
+
+    m_parser.setErrorHandler(fast_prediction ? m_bailout_strategy
+                                             : m_default_strategy);
+
+    using antlr4::atn::PredictionMode;
+
+    m_parser.getInterpreter<antlr4::atn::ParserATNSimulator>()
+        ->setPredictionMode(fast_prediction ? PredictionMode::SLL
+                                            : PredictionMode::LL);
+
+    m_fast_prediction_mode = fast_prediction;
+  }
+
   ANTLRInputStream m_input;
   MySQLLexer m_lexer;
-  CommonTokenStream m_tokens;
+  antlr4::CommonTokenStream m_tokens;
   MySQLParser m_parser;
+
   Parser_error_listener m_error_listener;
 
+  using ANTLRErrorStrategy = Ref<antlr4::ANTLRErrorStrategy>;
+  ANTLRErrorStrategy m_bailout_strategy =
+      std::make_shared<antlr4::BailErrorStrategy>();
+  ANTLRErrorStrategy m_default_strategy =
+      std::make_shared<antlr4::DefaultErrorStrategy>();
+
+  bool m_fast_prediction_mode = false;
+
   const std::vector<std::string> &m_rule_names;
-  const antlr4::dfa::Vocabulary &m_vocabulary;
+  const Vocabulary &m_vocabulary;
 };
 
 class Tokenizer_context {
@@ -196,7 +267,7 @@ class Tokenizer_context {
       const std::function<bool(std::string_view, std::string_view)> &visitor) {
     for (;;) {
       auto token = m_lexer.nextToken();
-      if (token->getType() == antlr4::Token::EOF) break;
+      if (token->getType() == Token::EOF) break;
 
       if (!visitor(m_vocabulary.getSymbolicName(token->getType()),
                    token->getText()))
@@ -229,9 +300,10 @@ class Tokenizer_context {
   ANTLRInputStream m_input;
   MySQLLexer m_lexer;
   const std::vector<std::string> &m_rule_names;
-  const antlr4::dfa::Vocabulary &m_vocabulary;
+  const Vocabulary &m_vocabulary;
   Parser_error_listener m_error_listener;
 };
+
 }  // namespace
 
 void traverse_statement_ast(std::string_view stmt, const Parser_config &config,
@@ -378,9 +450,39 @@ std::vector<Table_reference> extract_table_references(
   std::vector<Table_reference> result;
 
   Table_ref_listener listener{&result};
-  antlr4::tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
+  ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
   return result;
+}
+
+class Extract_table_references::Impl {
+ public:
+  explicit Impl(const mysqlshdk::utils::Version &version)
+      : m_context(Parser_config{version}) {}
+
+  std::vector<Table_reference> run(std::string_view stmt) {
+    const auto tree = m_context.query(stmt);
+    std::vector<Table_reference> result;
+
+    Table_ref_listener listener{&result};
+    ParseTreeWalker::DEFAULT.walk(&listener, tree);
+
+    return result;
+  }
+
+ private:
+  Parser_context m_context;
+};
+
+Extract_table_references::Extract_table_references(
+    const mysqlshdk::utils::Version &version)
+    : m_impl(std::make_unique<Impl>(version)) {}
+
+Extract_table_references::~Extract_table_references() = default;
+
+std::vector<Table_reference> Extract_table_references::run(
+    std::string_view stmt) {
+  return m_impl->run(stmt);
 }
 
 }  // namespace parser

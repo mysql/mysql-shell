@@ -563,7 +563,10 @@ void Instance_cache_builder::fetch_view_metadata() {
 
   info.table_name = "views";
 
-  iterate_views(info, [this](const std::string &schema, const std::string &,
+  mysqlshdk::parser::Extract_table_references etr{
+      m_cache.server.version.number};
+
+  iterate_views(info, [&etr](const std::string &schema, const std::string &,
                              Instance_cache::View *view,
                              const mysqlshdk::db::IRow *row) {
     view->character_set_client = row->get_string(2);  // CHARACTER_SET_CLIENT
@@ -574,9 +577,7 @@ void Instance_cache_builder::fetch_view_metadata() {
     });
 
     if (row->num_fields() > 4) {
-      for (auto &ref : mysqlshdk::parser::extract_table_references(
-               row->get_string(4, {}),  // VIEW_DEFINITION
-               m_cache.server.version.number)) {
+      for (auto &ref : etr.run(row->get_string(4, {}))) {  // VIEW_DEFINITION
         if (ref.schema.empty()) {
           ref.schema = schema;
         }

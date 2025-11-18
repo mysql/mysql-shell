@@ -28,6 +28,7 @@
 
 #include <cassert>
 #include <functional>
+#include <memory>
 #include <ostream>
 #include <stack>
 #include <string>
@@ -172,6 +173,23 @@ struct Table_reference {
  */
 std::vector<Table_reference> extract_table_references(
     std::string_view stmt, const mysqlshdk::utils::Version &version);
+
+/**
+ * Same as above, but caches lexer/parser, improving execution times of
+ * subsequent invocations.
+ */
+class Extract_table_references final {
+ public:
+  explicit Extract_table_references(const mysqlshdk::utils::Version &version);
+
+  ~Extract_table_references();
+
+  std::vector<Table_reference> run(std::string_view stmt);
+
+ private:
+  class Impl;
+  std::unique_ptr<Impl> m_impl;
+};
 
 }  // namespace parser
 }  // namespace mysqlshdk
