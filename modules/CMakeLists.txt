@@ -23,6 +23,9 @@
 
 include_directories(SYSTEM "${CMAKE_SOURCE_DIR}/ext/rapidjson/include")
 
+# TODO(pawel): remove this and use WL#16076
+add_compile_definitions(NO_DEPRECATION_WARNING_FOR_HEADER_GTIDSET_H)
+
 INCLUDE_DIRECTORIES(BEFORE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_BINARY_DIR}
