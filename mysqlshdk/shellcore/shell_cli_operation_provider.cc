@@ -25,6 +25,7 @@
 #include "mysqlshdk/shellcore/shell_cli_operation_provider.h"
 
 #include <stdexcept>
+#include <utility>
 
 namespace shcore {
 namespace cli {
@@ -41,7 +42,7 @@ std::shared_ptr<Provider> Provider::register_provider(
 
 std::shared_ptr<Provider> Provider::register_provider(
     const std::string &name, std::shared_ptr<Provider> &&provider) {
-  auto result = m_providers.emplace(name, provider);
+  auto result = m_providers.emplace(name, std::move(provider));
 
   if (!result.second) {
     throw std::invalid_argument(
@@ -52,8 +53,9 @@ std::shared_ptr<Provider> Provider::register_provider(
 }
 
 void Provider::remove_provider(const std::string &name) {
-  auto it = m_providers.find(name);
-  if (it != m_providers.end()) m_providers.erase(it);
+  if (const auto it = m_providers.find(name); it != m_providers.end()) {
+    m_providers.erase(it);
+  }
 }
 
 }  // namespace cli

@@ -6,7 +6,7 @@ var plugin_path =  os.path.join(plugin_folder_path, "init.js")
 testutil.mkdir(plugin_folder_path, true)
 
 function callMysqlsh(command_line_args) {
-    testutil.callMysqlsh(command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+    testutil.callMysqlsh(["--disable-builtin-plugins"].concat(command_line_args), "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
 }
 
 var plugin_code = `

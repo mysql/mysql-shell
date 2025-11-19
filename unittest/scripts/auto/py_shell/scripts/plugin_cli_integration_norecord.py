@@ -8,7 +8,7 @@ plugin_path =  os.path.join(plugin_folder_path, "init.py")
 testutil.mkdir(plugin_folder_path, True)
 
 def call_mysqlsh(command_line_args):
-    testutil.call_mysqlsh(command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
+    testutil.call_mysqlsh(["--disable-builtin-plugins"] + command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
 
 plugin_code = """
 def cli_tester(stritem, strlist, namedstr, options):

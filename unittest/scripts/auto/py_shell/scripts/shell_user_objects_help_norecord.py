@@ -1,6 +1,8 @@
-#@ Original globals in help
+#@<> Original globals in help
 \?
 
+EXPECT_STDOUT_NOT_CONTAINS("myGlobal")
+EXPECT_STDOUT_NOT_CONTAINS("mySecondGlobal")
 
 #@ Registering a new global object
 obj = shell.create_extension_object()

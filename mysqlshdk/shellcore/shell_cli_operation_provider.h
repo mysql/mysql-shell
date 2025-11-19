@@ -70,8 +70,7 @@ class Provider final {
   void remove_provider(const std::string &name);
 
   std::shared_ptr<Provider> get_provider(const std::string &name) {
-    auto it = m_providers.find(name);
-    if (it != m_providers.end()) {
+    if (const auto it = m_providers.find(name); it != m_providers.end()) {
       return it->second;
     }
 

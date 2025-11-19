@@ -223,17 +223,6 @@ class Auto_script_js : public Shell_js_script_tester,
                shcore::path::join_path(g_test_home, "data", "dba"), '\'') +
            ";";
     execute(code);
-
-    // bundled plugins
-    for (const auto plugin : {"gui", "mds", "mrs", "msm"}) {
-      code = std::string("var __has_") + plugin +
-             "_plugin = (function() {try {" + plugin +
-             ";return true;} catch(e) {return false;}})();";
-      execute(code);
-    }
-
-    code = "var __has_util_plugin = 'visual' in util;";
-    execute(code);
   }
 
   void run_and_check() {

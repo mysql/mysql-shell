@@ -10,23 +10,12 @@ testutil.mkdir(plugin_folder_path, True)
 
 
 def call_mysqlsh(command_line_args):
-    testutil.call_mysqlsh(command_line_args, "", [
+    testutil.call_mysqlsh(["--disable-builtin-plugins"] + command_line_args, "", [
                           "MYSQLSH_TERM_COLOR_MODE=nocolor", "MYSQLSH_USER_CONFIG_HOME=" + user_path])
 
 #@<> Empty list of SQL Handlers
 call_mysqlsh([__mysqluripwd, "--", "shell", "list-sql-handlers"])
-
-if __has_mrs_plugin:
-    EXPECT_STDOUT_CONTAINS_MULTILINE("""
-[
-    {
-        "description": "MySQL REST Service SQL Extension",
-        "name": "MRS"
-    }
-]
-""")
-else:
-    EXPECT_OUTPUT_CONTAINS('[]')
+EXPECT_OUTPUT_CONTAINS('[]')
 
 #@<> SQL Handler Registration Errors
 EXPECT_THROWS(lambda: shell.register_sql_handler(5, 5,
@@ -145,24 +134,7 @@ mysqlsh.globals.shell.register_sql_handler("tableShow", "Handler for SHOW TABLES
 testutil.create_file(plugin_path, plugin_code)
 
 call_mysqlsh([__mysqluripwd, "--", "shell", "list-sql-handlers"])
-
-if __has_mrs_plugin:
-    EXPECT_STDOUT_CONTAINS_MULTILINE("""[
-    {
-        "description": "MySQL REST Service SQL Extension",
-        "name": "MRS"
-    },
-    {
-        "description": "Handler for SHOW DATABASE",
-        "name": "databaseShow"
-    },
-    {
-        "description": "Handler for SHOW TABLES",
-        "name": "tableShow"
-    }
-]""")
-else:
-    EXPECT_STDOUT_CONTAINS_MULTILINE("""
+EXPECT_STDOUT_CONTAINS_MULTILINE("""
 [
     {
         "description": "Handler for SHOW DATABASE",

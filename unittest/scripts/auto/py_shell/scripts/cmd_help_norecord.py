@@ -1,4 +1,8 @@
 #@ Generic Help
+# call shell with disabled builtin plugins to prevent them from interfering with the output
+testutil.call_mysqlsh(["--disable-builtin-plugins", "--interactive=full", "--py", "--execute", "\\?"], "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"])
+
+#@ Generic Help - plugins plugin
 \?
 
 #@ Help Contents

@@ -1,6 +1,6 @@
 //@<> Call Shell with No Coloring
 function callMysqlsh(command_line_args) {
-    testutil.callMysqlsh(command_line_args, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
+    testutil.callMysqlsh(["--disable-builtin-plugins"].concat(command_line_args), "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 }
 
 // WL14297-TSFR_9_1_1

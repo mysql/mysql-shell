@@ -10,12 +10,8 @@ DESCRIPTION
 PROPERTIES
       debug
             Debugging and diagnostic utilities.
-?{__has_util_plugin}
 
-      visual
-            Visualization utilities.
-?{}
-
+${*}
 FUNCTIONS
       change_password([options])
             Changes password for an account.

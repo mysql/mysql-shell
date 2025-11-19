@@ -286,119 +286,15 @@ Invalid options at boolean parameter 'sample': values
 
 
 #@<OUT> Registering global, no definition
-The Shell Help is organized in categories and topics. To get help for a
-specific category or topic use: \? <pattern>
-
-The <pattern> argument should be the name of a category or a topic.
-
-The pattern is a filter to identify topics for which help is required, it can
-use the following wildcards:
-
-- ? matches any single character.
-- * matches any character sequence.
-
-The following are the main help categories:
-
- - AdminAPI       The AdminAPI is an API that enables configuring and managing
-                  InnoDB Clusters, ReplicaSets, ClusterSets, among other
-                  things.
- - Shell Commands Provides details about the available built-in shell commands.
- - ShellAPI       Contains information about the shell and util global objects
-                  as well as the mysql module that enables executing SQL on
-                  MySQL Servers.
- - SQL Syntax     Entry point to retrieve syntax help on SQL statements.
- - X DevAPI       Details the mysqlx module as well as the capabilities of the
-                  X DevAPI which enable working with MySQL as a Document Store
-
-The available topics include:
-
-- The dba global object and the classes available at the AdminAPI.
-- The mysqlx module and the classes available at the X DevAPI.
-- The mysql module and the global objects and classes available at the
-  ShellAPI.
-- The functions and properties of the classes exposed by the APIs.
-- The available shell commands.
-- Any word that is part of an SQL statement.
-- Command Line - invoking built-in shell functions without entering interactive
-  mode.
-
-SHELL COMMANDS
-
-The shell commands allow executing specific operations including updating the
-shell configuration.
-
-The following shell commands are available:
-
- - \                   Start multi-line input when in SQL mode.
- - \connect    (\c)    Connects the shell to a MySQL server and assigns the
-                       global session.
- - \disconnect         Disconnects the global session.
- - \edit       (\e)    Launch a system editor to edit a command to be executed.
- - \exit               Exits the MySQL Shell, same as \quit.
- - \help       (\?,\h) Prints help information about a specific topic.
- - \history            View and edit command line history.
- - \js                 Switches to JavaScript processing mode.
- - \nopager            Disables the current pager.
- - \nowarnings (\w)    Don't show warnings after every statement.
- - \option             Allows working with the available shell options.
- - \pager      (\P)    Sets the current pager.
- - \py                 Switches to Python processing mode.
- - \quit       (\q)    Exits the MySQL Shell.
- - \reconnect          Reconnects the global session.
- - \rehash             Refresh the autocompletion cache.
- - \show               Executes the given report with provided options and
-                       arguments.
- - \source     (\.)    Loads and executes a script from a file.
- - \sql                Executes SQL statement or switches to SQL processing
-                       mode when no statement is given.
- - \status     (\s)    Print information about the current global session.
- - \system     (\!)    Execute a system shell command.
- - \use        (\u)    Sets the active schema.
- - \warnings   (\W)    Show warnings after every statement.
- - \watch              Executes the given report with provided options and
-                       arguments in a loop.
-
 GLOBAL OBJECTS
 
 The following modules and objects are ready for use when the shell starts:
 
- - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
+${*}
  - goodName
-?{__has_gui_plugin}
- - gui      MySQL Shell GUI backend plugin.
-?{}
-?{__has_mds_plugin}
- - mds      Plugin to manage the MySQL Database Service on OCI.
-?{}
-?{__has_mrs_plugin}
- - mrs      Plugin to manage the MySQL REST Data Service (MRS).
-?{}
-?{__has_msm_plugin}
- - msm      Plugin to manage database schemas.
-?{}
- - mysql    Support for connecting to MySQL servers using the classic MySQL
-            protocol.
- - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
- - plugins  Plugin to manage MySQL Shell plugins
- - shell    Gives access to general purpose functions and properties.
- - testutil
- - util     Global object that groups miscellaneous tools like upgrade checker
-            and JSON import.
+${*}
 
 For additional information on these global objects use: <object>.help()
-
-EXAMPLES
-\? AdminAPI
-      Displays information about the AdminAPI.
-
-\? \connect
-      Displays usage details for the \connect command.
-
-\? check_instance_configuration
-      Displays usage details for the dba.check_instance_configuration function.
-
-\? sql syntax
-      Displays the main SQL help categories.
 
 #@<OUT> Registering global using existing global names
 A global named 'shell' already exists.

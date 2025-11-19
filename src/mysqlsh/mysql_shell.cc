@@ -781,31 +781,46 @@ void Mysql_shell::finish_init() {
       shell_provider->register_provider("options",
                                         _global_shell->get_shell_options());
 
+      providers->register_provider("util", _global_util);
+
+      // Gets provider corresponding to the given object from the parent
+      // provider. Registers it if there's no such provider.
+      const auto get_provider =
+          [](shcore::cli::Provider *parent,
+             const std::shared_ptr<Extensible_object> &object) {
+            const auto name = object->get_name();
+
+            if (auto provider = parent->get_provider(name)) {
+              return provider;
+            }
+
+            return parent->register_provider(name, object);
+          };
+
       // Callback to recursively register CLI enabled plugin objects
       std::function<void(shcore::cli::Provider * parent,
                          const std::shared_ptr<Extensible_object> &)>
           register_providers;
 
       register_providers =
-          [&register_providers](
+          [&register_providers, &get_provider](
               shcore::cli::Provider *parent,
               const std::shared_ptr<Extensible_object> &object) {
+            if (!object->cli_enabled()) {
+              return;
+            }
+
             // If the object is CLI enabled, registers it as a provider
-            if (object->cli_enabled()) {
-              auto new_provider =
-                  parent->register_provider(object->get_name(), object);
+            const auto sub_provider = get_provider(parent, object);
 
-              // Iterates over the object childrens to register CLI enabled
-              // objects recursively
-              auto child_names = object->get_members();
-              for (const auto &name : child_names) {
-                auto child = object->get_member(name);
-                if (child.get_type() == shcore::Value_type::Object) {
-                  auto child_object = child.as_object<Extensible_object>();
-
-                  if (child_object) {
-                    register_providers(new_provider.get(), child_object);
-                  }
+            // Iterates over the object children to register CLI enabled objects
+            // recursively
+            for (const auto &name : object->get_members()) {
+              if (const auto child = object->get_member(name);
+                  child.get_type() == shcore::Value_type::Object) {
+                if (const auto child_object =
+                        child.as_object<Extensible_object>()) {
+                  register_providers(sub_provider.get(), child_object);
                 }
               }
             }
@@ -813,11 +828,11 @@ void Mysql_shell::finish_init() {
 
       // Iterates over the global extensible objects to register anything that
       // is CLI enabled as a provider
-      auto global_object_names = _shell->get_all_globals();
-      for (const auto &name : global_object_names) {
-        auto extension_object =
-            _shell->get_global(name).as_object<Extensible_object>();
-        if (extension_object) register_providers(providers, extension_object);
+      for (const auto &name : _shell->get_all_globals()) {
+        if (const auto extension_object =
+                _shell->get_global(name).as_object<Extensible_object>()) {
+          register_providers(providers, extension_object);
+        }
       }
     }
   }

@@ -75,30 +75,16 @@ GLOBAL OBJECTS
 
 The following modules and objects are ready for use when the shell starts:
 
- - dba      Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
-?{__has_gui_plugin}
- - gui      MySQL Shell GUI backend plugin.
-?{}
-?{__has_mds_plugin}
- - mds      Plugin to manage the MySQL Database Service on OCI.
-?{}
-?{__has_mrs_plugin}
- - mrs      Plugin to manage the MySQL REST Data Service (MRS).
-?{}
-?{__has_msm_plugin}
- - msm      Plugin to manage database schemas.
-?{}
- - mysql    Support for connecting to MySQL servers using the classic MySQL
-            protocol.
- - mysqlx   Used to work with X Protocol sessions using the MySQL X DevAPI.
- - os       Gives access to functions which allow to interact with the
-            operating system.
- - plugins  Plugin to manage MySQL Shell plugins
- - shell    Gives access to general purpose functions and properties.
- - sys      Gives access to system specific parameters.
- - testutil
- - util     Global object that groups miscellaneous tools like upgrade checker
-            and JSON import.
+ - dba    Used for InnoDB Cluster, ReplicaSet, and ClusterSet administration.
+ - mysql  Support for connecting to MySQL servers using the classic MySQL
+          protocol.
+ - mysqlx Used to work with X Protocol sessions using the MySQL X DevAPI.
+ - os     Gives access to functions which allow to interact with the operating
+          system.
+ - shell  Gives access to general purpose functions and properties.
+ - sys    Gives access to system specific parameters.
+ - util   Global object that groups miscellaneous tools like upgrade checker
+          and JSON import.
 
 For additional information on these global objects use: <object>.help()
 
@@ -114,6 +100,15 @@ EXAMPLES
 
 \? sql syntax
       Displays the main SQL help categories.
+
+//@<OUT> Generic Help - plugins plugin
+The following modules and objects are ready for use when the shell starts:
+
+${*}
+ - plugins [[*]]Plugin to manage MySQL Shell plugins
+${*}
+
+For additional information on these global objects use: <object>.help()
 
 //@<OUT> Help Contents
 The Shell Help is organized in categories and topics. To get help for a

@@ -200,16 +200,6 @@ class Auto_script_py : public Shell_py_script_tester,
 
     code = "__mysqlsh = " + shcore::quote_string(get_path_to_mysqlsh(), '\'');
     exec_and_out_equals(code);
-
-    // bundled plugins
-    for (const auto plugin : {"gui", "mds", "mrs", "msm"}) {
-      code = std::string("__has_") + plugin + "_plugin = '" + plugin +
-             "' in globals()";
-      execute(code);
-    }
-
-    code = "__has_util_plugin = hasattr(util, 'visual')";
-    execute(code);
   }
 
   void run_and_check() {

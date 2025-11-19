@@ -12,26 +12,6 @@ The following objects provide command line operations:
 
    dba
       InnoDB Cluster, ReplicaSet, and ClusterSet management functions.
-?{__has_gui_plugin}
-
-   gui
-      MySQL Shell GUI backend plugin.
-?{}
-?{__has_mds_plugin}
-
-   mds
-      Plugin to manage the MySQL Database Service on OCI.
-?{}
-?{__has_mrs_plugin}
-
-   mrs
-      Plugin to manage the MySQL REST Data Service (MRS).
-?{}
-?{__has_msm_plugin}
-
-   msm
-      Plugin to manage database schemas.
-?{}
 
    rs
       Represents an InnoDB ReplicaSet.
