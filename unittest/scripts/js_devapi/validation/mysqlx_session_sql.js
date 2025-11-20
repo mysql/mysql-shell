@@ -6,6 +6,9 @@
 +------+----------------+---------------------------------------------------------------------+
 1 row in set [[*]]
 
+//@ WL12813 SQL Test With Error (no placeholders)
+||You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '?' at line 1 (MySQL Error 1064)
+
 //@ WL12813 SQL Test With Error (missing placeholder)
 ||Insufficient number of values for placeholders in query (ArgumentError)
 

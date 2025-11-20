@@ -287,7 +287,7 @@ EXPECT_STDOUT_CONTAINS("""
 """)
 WIPE_OUTPUT()
 
-call_mysqlsh([__mysqluripwd, "--py", "-e", "session.run_sql('select ? from dual', [])"])
+call_mysqlsh([__mysqluripwd, "--py", "-e", "session.run_sql('select ?,? from dual', [1])"])
 EXPECT_STDOUT_CONTAINS("""
 ValueError: Insufficient number of values for placeholders in query
 """)

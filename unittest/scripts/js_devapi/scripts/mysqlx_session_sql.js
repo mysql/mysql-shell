@@ -36,11 +36,17 @@ session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = "foo"').
 //@ WL12813 SQL Test 08 [USE:WL12813 SQL Test 01]
 session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').bind('foo').execute()
 
-//@ WL12813 SQL Test With Error (missing placeholder)
+//@ WL12813 SQL Test With Error (no placeholders)
 session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').execute()
 
-//@ WL12766 SQL Test With Error (missing placeholder) [USE:WL12813 SQL Test With Error (missing placeholder)]
+//@ WL12766 SQL Test With Error (no placeholders) [USE:WL12813 SQL Test With Error (no placeholders)]
 session.runSql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?')
+
+//@ WL12813 SQL Test With Error (missing placeholder)
+session.sql('SELECT ! FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').bind('foo').execute()
+
+//@ WL12766 SQL Test With Error (missing placeholder) [USE:WL12813 SQL Test With Error (missing placeholder)]
+session.runSql('SELECT ! FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?', ['foo'])
 
 //@ runSql with various parameter types
 session.runSql('select ?,?,?,?,?', [null, 1234, -0.12345, 3.14159265359, 'hellooooo']).fetchOne();

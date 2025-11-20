@@ -42,3 +42,7 @@
 
 #@<OUT> ClassicSession: run_sql placeholders
 | hello | 1234 |
+
+#@ BUG#38661681 - exceptions
+||Insufficient number of values for placeholders in query
+||Insufficient number of values for placeholders in query

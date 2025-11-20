@@ -362,7 +362,7 @@ void ShellBaseSession::reconnect() {
 
 std::string ShellBaseSession::sub_query_placeholders(
     std::string_view query, const shcore::Array_t &args) {
-  if (!args) return std::string{query};
+  if (!args || args->empty()) return std::string{query};
 
   shcore::sqlstring squery(std::string{query}, 0);
   int i = 0;

@@ -224,7 +224,7 @@ EXPECT_STDOUT_CONTAINS(`
 `);
 WIPE_OUTPUT();
 
-callMysqlsh([__mysqluripwd, "--js", "-e", "session.runSql('select ? from dual', [])"])
+callMysqlsh([__mysqluripwd, "--js", "-e", "session.runSql('select ?,? from dual', [1])"])
 EXPECT_STDOUT_CONTAINS(`
 Insufficient number of values for placeholders in query (ArgumentError)
 `)

@@ -517,8 +517,27 @@ sqlstring::sqlstring() : _format(0) {}
 
 std::string sqlstring::consume_until_next_escape() {
   mysqlshdk::utils::SQL_iterator it(_format_string_left);
-  for (; it.valid(); ++it)
-    if (*it == '?' || *it == '!') break;
+  auto pos = it.position();
+
+  for (; it.valid(); ++it) {
+    if (*it == '?') {
+      break;
+    } else if (*it == '!') {
+      // check if it's a '!=' sequence
+      // save the position
+      pos = it.position();
+      // move to the next token
+      ++it;
+
+      if (!it.valid() || *it != '=') {
+        // we either reached the end or this is not '!=', move back, we have a
+        // placeholder
+        it.set_position(pos);
+        break;
+      }
+      // else this was a '!=' sequence, continue
+    }
+  }
 
   if (it.position() > 0) {
     std::string s = _format_string_left.substr(0, it.position());
@@ -565,7 +584,9 @@ std::size_t sqlstring::size() const {
 
 void sqlstring::done() const {
   if (!_format_string_left.empty() &&
-      (_format_string_left[0] == '!' || _format_string_left[0] == '?')) {
+      ((_format_string_left[0] == '!' &&
+        (1 == _format_string_left.size() || '=' != _format_string_left[1])) ||
+       _format_string_left[0] == '?')) {
     throw std::logic_error("Unbound placeholders left in query");
   }
 

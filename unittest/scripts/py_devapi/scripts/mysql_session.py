@@ -99,6 +99,20 @@ classicSession.run_sql("select ?, ?", ['hello', 1234])
 #@<> ClassicSession: runSql with ! placeholders
 assert __user == classicSession.run_sql('select user from !.! where user=?', ['mysql', 'user', __user]).fetch_one()[0]
 
+#@<> BUG#38661681 - queries with '!=' should work
+assert 1 == classicSession.run_sql('select 1 != 2').fetch_one()[0]
+assert 1 == classicSession.run_sql('select 1 != ?', [2]).fetch_one()[0]
+assert 1 == classicSession.run_sql('select ?!=2', [1]).fetch_one()[0]
+
+assert __user == classicSession.run_sql('select user from mysql.user where ! != ? and user=?', ['host', __user, __user]).fetch_one()[0]
+assert __user == classicSession.run_sql('select user from mysql.user where ? != ! and user=?', [__user, 'host', __user]).fetch_one()[0]
+assert __user == classicSession.run_sql('select user from mysql.user where user=? and ? != !', [__user, __user, 'host']).fetch_one()[0]
+assert __user == classicSession.run_sql('select user from mysql.user where user=? and ! != ?', [__user, 'host', __user]).fetch_one()[0]
+
+#@ BUG#38661681 - exceptions
+classicSession.run_sql('select user from mysql.user where ? != !', [__user]).fetch_one()[0]
+classicSession.run_sql('select user from mysql.user where ! != ?', ['host']).fetch_one()[0]
+
 # Cleanup
 classicSession.run_sql('drop schema if exists classic_session_schema')
 classicSession.close()

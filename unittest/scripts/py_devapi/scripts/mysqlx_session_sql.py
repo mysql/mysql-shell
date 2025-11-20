@@ -33,6 +33,20 @@ session.sql('SELECT * FROM wl12813 WHERE doc->>\'$."notnested.like"\' = ?').bind
 #@<> BUG#34715428: runSql with ! placeholders
 assert __user == session.run_sql('select user from !.! where user=?', ['mysql', 'user', __user]).fetch_one()[0]
 
+#@<> BUG#38661681 - queries with '!=' should work
+assert 1 == session.run_sql('select 1 != 2').fetch_one()[0]
+assert 1 == session.run_sql('select 1 != ?', [2]).fetch_one()[0]
+assert 1 == session.run_sql('select ?!=2', [1]).fetch_one()[0]
+
+assert __user == session.run_sql('select user from mysql.user where ! != ? and user=?', ['host', __user, __user]).fetch_one()[0]
+assert __user == session.run_sql('select user from mysql.user where ? != ! and user=?', [__user, 'host', __user]).fetch_one()[0]
+assert __user == session.run_sql('select user from mysql.user where user=? and ? != !', [__user, __user, 'host']).fetch_one()[0]
+assert __user == session.run_sql('select user from mysql.user where user=? and ! != ?', [__user, 'host', __user]).fetch_one()[0]
+
+#@ BUG#38661681 - exceptions
+session.run_sql('select user from mysql.user where ? != !', [__user]).fetch_one()[0]
+session.run_sql('select user from mysql.user where ! != ?', ['host']).fetch_one()[0]
+
 #@<> Finalizing
 session.drop_schema('session_sql')
 session.close()
