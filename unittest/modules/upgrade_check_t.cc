@@ -1740,56 +1740,78 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
     const auto issues_count = issues.size();
     ASSERT_NO_THROW(session->execute(
         shcore::str_format("SET SESSION sql_mode = '%s';", mode.c_str())));
-    ASSERT_NO_THROW(session->execute(shcore::str_format(
-        "CREATE FUNCTION TEST_%s (s CHAR(20)) RETURNS CHAR(50) "
-        "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');",
-        mode.c_str())));
+
+    const auto function_name = "TEST_" + mode;
     ASSERT_NO_THROW(session->execute(
-        shcore::str_format("create trigger TR_%s AFTER INSERT on Clone FOR "
+        shcore::str_format("CREATE FUNCTION %s (s CHAR(20)) RETURNS CHAR(50) "
+                           "DETERMINISTIC RETURN CONCAT('Hello, ',s,'!');",
+                           function_name.c_str())));
+
+    const auto trigger_name = "TR_" + mode;
+    ASSERT_NO_THROW(session->execute(
+        shcore::str_format("create trigger %s AFTER INSERT on Clone FOR "
                            "EACH ROW delete from Clone where COMPONENT<0;",
-                           mode.c_str())));
+                           trigger_name.c_str())));
+
+    const auto event_name = "EV_" + mode;
     ASSERT_NO_THROW(session->execute(
-        shcore::str_format("CREATE EVENT EV_%s ON SCHEDULE AT "
+        shcore::str_format("CREATE EVENT %s ON SCHEDULE AT "
                            "CURRENT_TIMESTAMP + INTERVAL 1 HOUR "
                            "DO UPDATE Clone SET COMPONENT = COMPONENT + 1;",
-                           mode.c_str())));
+                           event_name.c_str())));
+
     ASSERT_NO_THROW(issues = check->run(session, info, &cache));
     ASSERT_GE(issues.size(), issues_count + 3);
 
     if (!tested_filtering) {
       tested_filtering = true;
 
-      // Backups all the issues for the filtering
-      auto all_issues = issues;
-      auto schema_issues = all_issues;
+      const auto schema_issues = [this]() {
+        std::vector<Upgrade_issue> filtered_issues;
 
-      // The 4th issue is a global variable issue, not associated to the schema
-      schema_issues.erase(schema_issues.begin() + 3);
+        for (const auto &issue : issues) {
+          if ("aaa_test_obsolete_sql_modes" == issue.schema) {
+            filtered_issues.emplace_back(issue);
+          }
+        }
+
+        return filtered_issues;
+      }();
 
       TEST_SCHEMA_FILTERING(check.get(), "aaa_test_obsolete_sql_modes",
-                            all_issues.size(), schema_issues, {});
+                            issues.size(), schema_issues, {});
 
-      std::vector<Upgrade_issue> function_issues = {
-          all_issues[0], all_issues[4], all_issues[7], all_issues[10]};
+      const auto filter_by_object =
+          [&schema_issues](const std::string &object) {
+            std::vector<Upgrade_issue> filtered_issues;
+
+            for (const auto &issue : schema_issues) {
+              if (object == issue.table) {
+                filtered_issues.emplace_back(issue);
+              }
+            }
+
+            return filtered_issues;
+          };
+
+      const auto function_issues = filter_by_object(function_name);
       TEST_ROUTINE_FILTERING(check.get(),
-                             "aaa_test_obsolete_sql_modes.TEST_" + mode,
-                             all_issues.size(), function_issues, {});
+                             "aaa_test_obsolete_sql_modes." + function_name,
+                             issues.size(), function_issues, {});
 
-      std::vector<Upgrade_issue> event_issues = {all_issues[1], all_issues[5],
-                                                 all_issues[8], all_issues[11]};
+      const auto event_issues = filter_by_object(event_name);
       TEST_EVENT_FILTERING(check.get(),
-                           "aaa_test_obsolete_sql_modes.EV_" + mode,
-                           all_issues.size(), event_issues, {});
+                           "aaa_test_obsolete_sql_modes." + event_name,
+                           issues.size(), event_issues, {});
 
-      std::vector<Upgrade_issue> trigger_issues = {
-          all_issues[2], all_issues[6], all_issues[9], all_issues[12]};
-      TEST_TRIGGER_FILTERING(check.get(),
-                             "aaa_test_obsolete_sql_modes.Clone.TR_" + mode,
-                             all_issues.size(), trigger_issues, {});
+      const auto trigger_issues = filter_by_object("Clone");
+      TEST_TRIGGER_FILTERING(
+          check.get(), "aaa_test_obsolete_sql_modes.Clone." + trigger_name,
+          issues.size(), trigger_issues, {});
 
       // Excluding a table, also excludes the associated triggers
       TEST_TABLE_FILTERING(check.get(), "aaa_test_obsolete_sql_modes.Clone",
-                           all_issues.size(), trigger_issues, {});
+                           issues.size(), trigger_issues, {});
 
       auto json_issues =
           execute_check_as_json(ids::k_obsolete_sql_mode_flags_check);
