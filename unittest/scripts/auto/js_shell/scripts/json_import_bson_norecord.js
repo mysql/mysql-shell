@@ -1,11 +1,13 @@
 var schema = "wl12134";
-shell.connect(__uripwd);
+shell.connect("mysqlx://" + __uripwd);
 session.dropSchema(schema);
 session.createSchema(schema);
 var fname = __import_data_path + "/bson_types.json";
 
+const full_uri = "mysqlx://" + __uripwd + "/" + schema;
+
 var import_docs = function(newParams) {
-  var params = [__uripwd + "/" + schema, "--", "util", "importJson", fname, "{", "}"];
+  var params = [full_uri, "--", "util", "importJson", fname, "{", "}"];
   var delta = params.splice.apply(params, [6,0].concat(newParams));
   testutil.callMysqlsh(params, "", ["MYSQLSH_TERM_COLOR_MODE=nocolor"]);
 }
@@ -15,7 +17,7 @@ var import_doc = function(document, customParams) {
     customParams = ["--convertBsonTypes", "--ignoreRegexOptions=false"];
 
   testutil.createFile("single_doc.json", JSON.stringify(document));
-  var params = [__uripwd + "/" + schema, "--", "util", "importJson", "single_doc.json", "{", "}"];
+  var params = [full_uri, "--", "util", "importJson", "single_doc.json", "{", "}"];
 
   var delta = params.splice.apply(params, [6,0].concat(customParams));
 
@@ -24,22 +26,22 @@ var import_doc = function(document, customParams) {
 }
 
 var print_docs = function() {
-  var params = [__uripwd + "/" + schema, "--sql", "-e", "select doc from bson_types"];
+  var params = [full_uri, "--sql", "-e", "select doc from bson_types"];
   testutil.callMysqlsh(params);
 }
 
 var delete_docs = function() {
-  var params = [__uripwd + "/" + schema, "--sql", "-e", "delete from bson_types"];
+  var params = [full_uri, "--sql", "-e", "delete from bson_types"];
   testutil.callMysqlsh(params);
 }
 
 var print_doc = function() {
-  var params = [__uripwd + "/" + schema, "--sql", "-e", "select doc from single_doc"];
+  var params = [full_uri, "--sql", "-e", "select doc from single_doc"];
   testutil.callMysqlsh(params);
 }
 
 var delete_doc = function() {
-  var params = [__uripwd + "/" + schema, "--sql", "-e", "delete from single_doc"];
+  var params = [full_uri, "--sql", "-e", "delete from single_doc"];
   testutil.callMysqlsh(params);
 }
 
