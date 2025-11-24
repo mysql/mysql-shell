@@ -220,7 +220,7 @@ inline std::string sqlformat(std::string s, Args &&...args) {
 
 }  // namespace shcore
 
-inline shcore::sqlstring operator"" _sql(const char *str, std::size_t length) {
+inline shcore::sqlstring operator""_sql(const char *str, std::size_t length) {
   return shcore::sqlstring(std::string(str, length), 0);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -870,7 +870,7 @@ TEST(utils_string, utf8_to_wide) {
 
 namespace {
 
-constexpr char operator"" _c(unsigned long long n) {
+constexpr char operator""_c(unsigned long long n) {
   return static_cast<char>(n);
 }
 

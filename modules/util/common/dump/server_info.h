@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,11 +70,11 @@ struct Server_version {
 };
 
 struct Server_variables {
-  std::string_view hostname;
+  std::string hostname;
   std::optional<int8_t> lower_case_table_names;
   std::optional<bool> partial_revokes;
   uint16_t port = 0;
-  std::string_view server_uuid;
+  std::string server_uuid;
   std::string_view version;
 
   std::map<std::string, std::string> all;
