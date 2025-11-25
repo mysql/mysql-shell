@@ -27,6 +27,7 @@
 #define MODULES_UTIL_DUMP_COMPATIBILITY_H_
 
 #include <functional>
+#include <map>
 #include <set>
 #include <string>
 #include <string_view>
@@ -224,7 +225,8 @@ struct Privilege_level_info {
   Level level = Level::GLOBAL;
   std::string schema;
   std::string object;
-  std::set<std::string> privileges;
+  // privilege -> columns
+  std::map<std::string, std::vector<std::string>> privileges;
   std::string account;
   bool with_grant = false;
 };
@@ -238,7 +240,7 @@ struct Privilege_level_info {
  * @returns true if information was extracted
  * @throws std::runtime_error if statement is malformed
  */
-bool parse_grant_statement(const std::string &statement,
+bool parse_grant_statement(std::string_view statement,
                            Privilege_level_info *info);
 
 /**

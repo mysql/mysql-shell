@@ -705,6 +705,11 @@ class Dump_loader {
 
   bool is_dump_complete() const noexcept;
 
+  void execute_grant_and_drop_account_on_error(std::string_view grant,
+                                               const std::string &account);
+
+  void execute_grant_and_ignore_errors(std::string_view grant);
+
  private:
 #ifdef FRIEND_TEST
   FRIEND_TEST(Load_dump, sql_transforms_strip_sql_mode);

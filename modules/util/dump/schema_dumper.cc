@@ -3701,7 +3701,9 @@ std::vector<Compatibility_issue> Schema_dumper::dump_grants(IFile *file) {
               break;
 
             case Level::ROLE:
-              for (const auto &role : priv.privileges) {
+              for (const auto &privilege : priv.privileges) {
+                const auto &role = privilege.first;
+
                 if (!filters.users().is_included(role)) {
                   // BUG#38264847 - grants on MHS roles which are automatically
                   // excluded are downgraded to notes

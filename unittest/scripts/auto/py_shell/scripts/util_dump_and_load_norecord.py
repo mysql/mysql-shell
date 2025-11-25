@@ -485,8 +485,9 @@ EXPECT_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "invalid",
 
 #@<> BUG#34952027 - same as above, ignore the error
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "ignore", "excludeTables": [ "schema1.table1" ], "loadUsers": True, "excludeUsers": [ "root@%" ], "showProgress": False }), "Load")
+# BUG#38624926 - ERROR has been downgraded to a WARNING
 EXPECT_STDOUT_CONTAINS(f"""
-ERROR: While applying grants to user accounts: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
+WARNING: While applying grants to user accounts: MySQL Error 1146 (42S02): Table 'schema1.table1' doesn't exist: {grant_on_table};
 NOTE: The above error was ignored, the load operation will continue.
 """)
 EXPECT_STDOUT_CONTAINS("1 accounts were loaded, 1 GRANT statement errors were ignored")
@@ -4197,6 +4198,67 @@ EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True,
 EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "dropExistingObjects": True, "loadUsers": True, "showProgress": False }), "Load should not fail")
 
 #@<> BUG#38566495 - cleanup {VER(>=8.2.0)}
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql(f"DROP USER IF EXISTS {tested_user}")
+
+#@<> BUG#38624926 - when loading with 'handleGrantErrors':'ignore' apply as many privileges as possible {VER(>=8.0.0)}
+# constants
+tested_schema = "test_schema"
+tested_user = "'user'@'localhost'"
+
+dump_dir = os.path.join(outdir, "bug_38624926")
+
+privileges = ["BACKUP_ADMIN", "BINLOG_ADMIN", "CONNECTION_ADMIN"]
+privileges_count = len(privileges)
+
+# setup
+session1.run_sql(f"DROP USER IF EXISTS {tested_user}")
+session1.run_sql(f"CREATE USER {tested_user}")
+
+for privilege in privileges:
+    session1.run_sql(f"GRANT {privilege} ON *.* TO {tested_user}")
+
+session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
+session1.run_sql("CREATE SCHEMA !", [tested_schema])
+session1.run_sql("CREATE TABLE !.t (a INT)", [tested_schema])
+
+wipeout_server(session2)
+session2.run_sql(f"DROP USER IF EXISTS {test_user_account}")
+session2.run_sql(f"CREATE USER {test_user_account} IDENTIFIED BY ?", [test_user_pwd])
+
+# create the dump
+shell.connect(__sandbox_uri1)
+EXPECT_NO_THROWS(lambda: util.dump_instance(dump_dir, { "includeSchemas": [tested_schema], "users": True, "includeUsers": [tested_user], "showProgress": False }), "Dump should not fail")
+
+#@<> BUG#38624926 - test {VER(>=8.0.0)}
+shell.connect(test_user_uri(__mysql_sandbox_port2))
+
+# for each privilege: user loading the dump is missing GRANT OPTION for that privilege
+for i in range(privileges_count):
+    session2.run_sql(f"REVOKE ALL ON *.* FROM {test_user_account}")
+    session2.run_sql(f"GRANT ALL ON *.* TO {test_user_account}")
+    session2.run_sql(f"GRANT USAGE ON *.* TO {test_user_account} WITH GRANT OPTION")
+    # user with the UPDATE privilege is able to GRANT privileges without GRANT OPTION
+    session2.run_sql(f"REVOKE UPDATE ON *.* FROM {test_user_account}")
+    for j in range(privileges_count):
+        if i == j:
+            session2.run_sql(f"REVOKE {privileges[j]} ON *.* FROM {test_user_account}")
+        else:
+            session2.run_sql(f"GRANT {privileges[j]} ON *.* TO {test_user_account} WITH GRANT OPTION")
+    WIPE_OUTPUT()
+    WIPE_SHELL_LOG()
+    EXPECT_NO_THROWS(lambda: util.load_dump(dump_dir, { "handleGrantErrors": "ignore", "loadUsers": True, "showProgress": False }), "Load should not fail")
+    EXPECT_STDOUT_CONTAINS(f"WARNING: While applying grants to user accounts: MySQL Error 1227 (42000): Access denied; you need (at least one of) the GRANT OPTION privilege(s) for this operation: GRANT {','.join(privileges)} ON *.* TO ")
+    EXPECT_STDOUT_CONTAINS("NOTE: The above error was ignored, applying privileges one by one.")
+    for j in range(privileges_count):
+        if i == j:
+            EXPECT_STDOUT_CONTAINS(f"NOTE: Failed to apply {privileges[j]} privilege.")
+            EXPECT_SHELL_LOG_CONTAINS(f"MySQL Error 1227 (42000): Access denied; you need (at least one of) the GRANT OPTION privilege(s) for this operation, SQL: GRANT {privileges[j]}  ON *.* TO {get_user_account_for_output(tested_user)}")
+        else:
+            EXPECT_STDOUT_CONTAINS(f"NOTE: Successfully applied {privileges[j]} privilege.")
+    EXPECT_STDOUT_CONTAINS("1 accounts were loaded, 1 GRANT statement errors were ignored")
+
+#@<> BUG#38624926 - cleanup {VER(>=8.0.0)}
 session1.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 session1.run_sql(f"DROP USER IF EXISTS {tested_user}")
 

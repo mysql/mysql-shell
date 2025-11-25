@@ -107,6 +107,9 @@ using dump::Schema_dumper;
 constexpr auto k_temp_table_comment =
     "mysqlsh-tmp-218ffeec-b67b-4886-9a8c-d7812a1f93eb";
 
+constexpr std::string_view k_applying_grants_context =
+    "While applying grants to user accounts";
+
 namespace sql {
 
 inline std::shared_ptr<mysqlshdk::db::IResult> query(const Session_ptr &session,
@@ -212,7 +215,7 @@ bool add_invisible_pk(std::string_view sql, std::string *out_new_sql) {
  * lost connection.
  */
 void execute_statement(const Session_ptr &session, std::string_view stmt,
-                       const std::string &error_prefix, int silent_error = -1) {
+                       std::string_view error_prefix, int silent_error = -1) {
   assert(!error_prefix.empty());
 
   constexpr uint32_t k_max_retry_time = 5 * 60 * 1000;  // 5 minutes
@@ -241,8 +244,10 @@ void execute_statement(const Session_ptr &session, std::string_view stmt,
       log_info("Error executing SQL: %s:\n%s", error.c_str(), query.c_str());
 
       if (ER_LOCK_DEADLOCK == e.code() && total_sleep_time < k_max_retry_time) {
-        current_console()->print_note(error_prefix +
-                                      ", will retry after delay: " + error);
+        current_console()->print_note(
+            shcore::str_format("%.*s, will retry after delay: %s",
+                               static_cast<int>(error_prefix.length()),
+                               error_prefix.data(), error.c_str()));
 
         if (total_sleep_time + sleep_time > k_max_retry_time) {
           sleep_time = k_max_retry_time - total_sleep_time;
@@ -254,9 +259,9 @@ void execute_statement(const Session_ptr &session, std::string_view stmt,
         sleep_time *= 2;
       } else {
         if (silent_error != e.code()) {
-          current_console()->print_error(
-              shcore::str_format("%s: %s: %s", error_prefix.c_str(),
-                                 error.c_str(), query.c_str()));
+          current_console()->print_error(shcore::str_format(
+              "%.*s: %s: %s", static_cast<int>(error_prefix.length()),
+              error_prefix.data(), error.c_str(), query.c_str()));
         }
 
         throw;
@@ -271,7 +276,7 @@ void execute_statement(const Session_ptr &session, std::string_view stmt,
  */
 void execute_script(
     const Reconnect &reconnect, const Session_ptr &session,
-    const std::string &script, const std::string &error_prefix,
+    const std::string &script, std::string_view error_prefix,
     const std::function<bool(std::string_view, std::string *)> &process_stmt) {
   assert(reconnect);
 
@@ -5882,6 +5887,9 @@ void Dump_loader::apply_grants() {
   const auto console = current_console();
 
   sql::ar::run(reconnect, [this]() {
+    using Handle_grant_errors = Load_dump_options::Handle_grant_errors;
+    const auto handle_grant_errors = m_options.on_grant_errors();
+
     for (const auto &group : m_users.statements) {
       if (Schema_dumper::User_statements::Type::CREATE_USER == group.type ||
           m_users.ignored_accounts.count(group.account) > 0) {
@@ -5895,34 +5903,15 @@ void Dump_loader::apply_grants() {
           continue;
         }
 
-        try {
-          execute_statement(m_session, stmt,
-                            "While applying grants to user accounts");
-        } catch (const mysqlshdk::db::Error &e) {
-          if (Schema_dumper::User_statements::Type::GRANT != group.type) {
-            throw;
-          }
-
-          switch (m_options.on_grant_errors()) {
-            case Load_dump_options::Handle_grant_errors::ABORT:
-              throw;
-
-            case Load_dump_options::Handle_grant_errors::DROP_ACCOUNT:
-              current_console()->print_note(
-                  "Due to the above error the account " + group.account +
-                  " was dropped, the load operation will continue.");
-              drop_account(m_session, group.account);
-              m_users.ignored_accounts.emplace(group.account);
-              ++m_users.dropped_accounts;
-              break;
-
-            case Load_dump_options::Handle_grant_errors::IGNORE:
-              current_console()->print_note(
-                  "The above error was ignored, the load operation will "
-                  "continue.");
-              ++m_users.ignored_grant_errors;
-              break;
-          }
+        if (Schema_dumper::User_statements::Type::GRANT != group.type ||
+            Handle_grant_errors::ABORT == handle_grant_errors) {
+          execute_statement(m_session, stmt, k_applying_grants_context);
+        } else if (Handle_grant_errors::DROP_ACCOUNT == handle_grant_errors) {
+          execute_grant_and_drop_account_on_error(stmt, group.account);
+        } else if (Handle_grant_errors::IGNORE == handle_grant_errors) {
+          execute_grant_and_ignore_errors(stmt);
+        } else {
+          assert(false);
         }
       }
     }
@@ -6252,6 +6241,106 @@ bool Dump_loader::is_dump_complete() const noexcept {
   assert(Dump_reader::Status::INVALID != m_dump_status);
 
   return Dump_reader::Status::COMPLETE == m_dump_status;
+}
+
+void Dump_loader::execute_grant_and_drop_account_on_error(
+    std::string_view grant, const std::string &account) {
+  try {
+    execute_statement(m_session, grant, k_applying_grants_context);
+  } catch (const mysqlshdk::db::Error &e) {
+    current_console()->print_note(
+        "Due to the above error the account " + account +
+        " was dropped, the load operation will continue.");
+    drop_account(m_session, account);
+    m_users.ignored_accounts.emplace(account);
+    ++m_users.dropped_accounts;
+  }
+}
+
+void Dump_loader::execute_grant_and_ignore_errors(std::string_view grant) {
+  try {
+    sql::execute(m_session, grant);
+    return;
+  } catch (const mysqlshdk::db::Error &e) {
+    current_console()->print_warning(shcore::str_format(
+        "%.*s: %s: %.*s", static_cast<int>(k_applying_grants_context.length()),
+        k_applying_grants_context.data(), e.format().c_str(),
+        static_cast<int>(grant.length()), grant.data()));
+  }
+
+  compatibility::Privilege_level_info info;
+
+  if (!compatibility::parse_grant_statement(grant, &info) ||
+      1 == info.privileges.size()) {
+    // failed to parse or there's just one privilege, report and exit
+    ++m_users.ignored_grant_errors;
+    current_console()->print_note(
+        "The above error was ignored, the load operation will continue.");
+    return;
+  }
+
+  // BUG#38624926 - execute statement for each privilege, try to apply as many
+  // as possible
+  const auto is_role =
+      compatibility::Privilege_level_info::Level::ROLE == info.level;
+  const auto type = is_role ? "role" : "privilege";
+
+  current_console()->print_note(shcore::str_format(
+      "The above error was ignored, applying %ss one by one.", type));
+
+  // is this GRANT or REVOKE?
+  const auto verb = info.grant ? "GRANT" : "REVOKE";
+  // find the part that immediately follows roles/privileges
+  const auto grant_tail = [&grant, is_role]() {
+    mysqlshdk::utils::SQL_iterator it(grant, 0, false);
+    const std::string_view needle = is_role ? "TO" : "ON";
+
+    while (it.valid()) {
+      if (shcore::str_caseeq(it.next_token(), needle)) {
+        break;
+      }
+    }
+
+    if (!it.valid()) {
+      throw std::logic_error{"Failed to parse GRANT/REVOKE statement"};
+    }
+
+    return grant.substr(it.position() - needle.length());
+  }();
+  // get list of columns or an empty string if there are no columns
+  const auto columns = [](const std::vector<std::string> &list) {
+    if (list.empty()) {
+      return std::string{};
+    }
+
+    return "(" + shcore::str_join(list, ", ") + ")";
+  };
+
+  // execute GRANT/REVOKE statements one by one
+  for (const auto &privilege : info.privileges) {
+    bool success = true;
+
+    try {
+      // GRANT/REVOKE privilege (columns, ...) TO/ON ...
+      sql::execute(
+          m_session,
+          shcore::str_format("%s %s %s %.*s", verb, privilege.first.c_str(),
+                             columns(privilege.second).c_str(),
+                             static_cast<int>(grant_tail.length()),
+                             grant_tail.data()));
+    } catch (const mysqlshdk::db::Error &e) {
+      success = false;
+    }
+
+    if (success) {
+      current_console()->print_note(shcore::str_format(
+          "Successfully applied %s %s.", privilege.first.c_str(), type));
+    } else {
+      ++m_users.ignored_grant_errors;
+      current_console()->print_note(shcore::str_format(
+          "Failed to apply %s %s.", privilege.first.c_str(), type));
+    }
+  }
 }
 
 #if defined(__clang__)

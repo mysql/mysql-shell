@@ -26,6 +26,7 @@
 #include "modules/util/dump/compatibility.h"
 
 #include <cassert>
+#include <ranges>
 #include <regex>
 #include <unordered_map>
 #include <utility>
@@ -2057,7 +2058,7 @@ std::string hide_sensitive_information(
   }
 }
 
-bool parse_grant_statement(const std::string &statement,
+bool parse_grant_statement(std::string_view statement,
                            Privilege_level_info *info) {
   assert(info);
 
@@ -2075,7 +2076,7 @@ bool parse_grant_statement(const std::string &statement,
 
   Privilege_level_info::Level object_level = Privilege_level_info::Level::TABLE;
   bool is_role = false;
-  std::vector<std::string> privileges;
+  std::vector<std::pair<std::string, std::vector<std::string>>> privileges;
 
   {
     bool all_privileges_done = false;
@@ -2083,6 +2084,7 @@ bool parse_grant_statement(const std::string &statement,
 
     do {
       std::string privilege{it.next_token()};
+      std::vector<std::string> columns;
 
       do {
         if (!it.valid()) {
@@ -2111,6 +2113,10 @@ bool parse_grant_statement(const std::string &statement,
             // column-level privilege, move past column_list
             do {
               token = it.next_token();
+
+              if (!shcore::str_caseeq(token, ",", ")")) {
+                columns.emplace_back(token);
+              }
             } while (!shcore::str_caseeq(token, ")"));
 
             // read next token (either , or ON)
@@ -2133,7 +2139,7 @@ bool parse_grant_statement(const std::string &statement,
         }
 
         if (privilege_done || all_privileges_done) {
-          privileges.emplace_back(std::move(privilege));
+          privileges.emplace_back(std::move(privilege), std::move(columns));
         }
       } while (!privilege_done && !all_privileges_done);
     } while (!all_privileges_done);
@@ -2147,11 +2153,11 @@ bool parse_grant_statement(const std::string &statement,
     result.level = Privilege_level_info::Level::ROLE;
   } else {
     for (auto &p : privileges) {
-      if (shcore::str_caseeq(p, "PROXY")) {
+      if (shcore::str_caseeq(p.first, "PROXY")) {
         return false;
       }
 
-      p = shcore::str_upper(p);
+      p.first = shcore::str_upper(p.first);
     }
 
     auto priv_level = it.next_token();
@@ -2194,7 +2200,7 @@ bool parse_grant_statement(const std::string &statement,
   }
 
   for (auto &p : privileges) {
-    result.privileges.emplace(std::move(p));
+    result.privileges.emplace(std::move(p.first), std::move(p.second));
   }
 
   *info = std::move(result);
@@ -2208,7 +2214,7 @@ std::string to_grant_statement(const Privilege_level_info &info) {
   std::string result = info.grant ? "GRANT" : "REVOKE";
 
   result += ' ';
-  result += shcore::str_join(info.privileges, ", ");
+  result += shcore::str_join(std::views::keys(info.privileges), ", ");
   result += " ON ";
   result += shcore::quote_identifier(info.schema);
   result += ".* ";
