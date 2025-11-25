@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -44,8 +44,11 @@ std::pair<const Instance_cache::Index *, bool> select_index(
 
       for (const auto column : index->columns()) {
         // BUG#35180061 - do not use indexes on ENUM columns
-        unsafe |= (mysqlshdk::db::Type::Enum == column->type);
-        break;
+        // BUG#38475999 - check all columns
+        if (mysqlshdk::db::Type::Enum == column->type) {
+          unsafe = true;
+          break;
+        }
       }
 
       if (!unsafe) {
@@ -117,7 +120,7 @@ std::pair<const Instance_cache::Index *, bool> select_index(
                 // both columns are not integers, use the current index
                 break;
               }
-              // else, both column are integers, check next column
+              // else, both columns are integers, check next column
             } else {
               // prefer NOT NULL column
               if (!(*candidate_column)->nullable) {

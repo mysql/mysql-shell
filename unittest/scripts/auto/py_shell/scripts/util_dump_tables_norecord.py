@@ -3494,6 +3494,32 @@ EXPECT_SUCCESS(tested_schema, [ tested_table ], test_output_absolute, { "showPro
 # cleanup
 session.run_sql("DROP SCHEMA !;", [ tested_schema ])
 
+#@<> BUG#38475999 - dumping a table which has a composite unique key with an
+# ENUM column (which is not the first column in a key definition), whose values
+# are not specified in an alphabetic order
+# constants
+tested_schema = "tested_schema"
+tested_table = "tested_table"
+
+# setup
+session.run_sql("DROP SCHEMA IF EXISTS !;", [ tested_schema ])
+session.run_sql("CREATE SCHEMA !", [ tested_schema ])
+session.run_sql("""
+CREATE TABLE !.! (
+  `c1` varchar(10) NOT NULL,
+  `c2` enum('test','live') NOT NULL,
+  UNIQUE KEY `c1` (`c1`,`c2`)
+) ENGINE=InnoDB
+""", [ tested_schema, tested_table ])
+session.run_sql("INSERT INTO !.! VALUES ('xxx', 'test'), ('xxx', 'live')", [ tested_schema, tested_table ])
+
+# test
+TEST_DUMP_AND_LOAD(tested_schema, [ tested_table ], { "showProgress": False })
+EXPECT_STDOUT_CONTAINS("2 chunks (2 rows, 18 bytes) for 1 tables in 1 schemas were loaded")
+
+# cleanup
+session.run_sql("DROP SCHEMA !;", [ tested_schema ])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")
