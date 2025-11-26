@@ -224,7 +224,7 @@ std::string Upgrade_issue::get_db_object() const {
 }
 
 Checker_cache::Checker_cache(const Filtering_options &db_filters)
-    : m_query_helper(db_filters) {
+    : m_db_filters(db_filters), m_query_helper(m_db_filters) {
   m_query_helper.set_schema_filter(true);
   m_query_helper.set_table_filter();
 }

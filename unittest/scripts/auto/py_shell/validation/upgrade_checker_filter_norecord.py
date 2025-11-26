@@ -12,6 +12,11 @@ Included:
 
 Excluded:
 
+- orphanedObjects
+  Check for orphaned routines and events in 5.7
+  Category: schema
+  Condition: When the upgrade reaches any of the following versions: 8.0.0
+
 - oldTemporal
   Usage of old temporal type
   Category: schema
@@ -137,11 +142,6 @@ Excluded:
   Category: schema
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 
-- orphanedObjects
-  Check for orphaned routines and events in 5.7
-  Category: schema
-  Condition: When the upgrade reaches any of the following versions: 8.0.0
-
 - dollarSignName
   Check for deprecated usage of single dollar signs in object names
   Category: schema
@@ -238,6 +238,11 @@ The MySQL Shell will now list checks for possible compatibility issues for
 upgrade of MySQL Server...
 
 Included:
+
+- orphanedObjects
+  Check for orphaned routines and events in 5.7
+  Category: schema
+  Condition: When the upgrade reaches any of the following versions: 8.0.0
 
 - oldTemporal
   Usage of old temporal type
@@ -365,11 +370,6 @@ Included:
 
 - invalid57Names
   Check for invalid table names and schema names used in 5.7
-  Category: schema
-  Condition: When the upgrade reaches any of the following versions: 8.0.0
-
-- orphanedObjects
-  Check for orphaned routines and events in 5.7
   Category: schema
   Condition: When the upgrade reaches any of the following versions: 8.0.0
 

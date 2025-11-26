@@ -237,11 +237,14 @@ class Checker_cache {
   void cache_sysvars(mysqlshdk::db::ISession *session,
                      const Upgrade_info &server_info);
 
+  Filtering_options &db_filters() noexcept { return m_db_filters; }
+
   const mysqlshdk::db::Query_helper &query_helper() const {
     return m_query_helper;
   }
 
  private:
+  Filtering_options m_db_filters;
   mysqlshdk::db::Query_helper m_query_helper;
   std::unordered_map<std::string, Table_info> m_tables;
   std::unordered_map<std::string, Sysvar_info> m_sysvars;

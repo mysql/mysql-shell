@@ -48,6 +48,7 @@ class Sql_upgrade_check : public Upgrade_check {
                     std::vector<Check_query> &&queries,
                     Upgrade_issue::Level level = Upgrade_issue::WARNING,
                     const char *minimal_version = nullptr,
+                    bool filter_out_objects_with_error = false,
                     std::forward_list<std::string> &&set_up =
                         std::forward_list<std::string>(),
                     std::forward_list<std::string> &&clean_up =
@@ -62,9 +63,10 @@ class Sql_upgrade_check : public Upgrade_check {
  protected:
   virtual Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
                                   Upgrade_issue::Object_type object_type);
-  virtual void add_issue(const mysqlshdk::db::IRow *row,
-                         Upgrade_issue::Object_type object_type,
-                         std::vector<Upgrade_issue> *issues);
+  virtual void add_issue(
+      const mysqlshdk::db::IRow *row, Upgrade_issue::Object_type object_type,
+      std::vector<Upgrade_issue> *issues,
+      mysqlshdk::db::Filtering_options *db_filters = nullptr);
   Upgrade_issue::Level get_level() const { return m_level; }
 
   std::vector<Check_query> m_queries;
@@ -73,6 +75,7 @@ class Sql_upgrade_check : public Upgrade_check {
   const Upgrade_issue::Level m_level;
   const char *m_minimal_version;
   const std::vector<std::string> *m_field_names = nullptr;
+  bool m_filter_out_objects_with_error = false;
 };
 
 }  // namespace upgrade_checker

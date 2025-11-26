@@ -76,6 +76,7 @@ Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
                                      std::vector<Check_query> &&queries,
                                      Upgrade_issue::Level level,
                                      const char *minimal_version,
+                                     bool filter_out_objects_with_error,
                                      std::forward_list<std::string> &&set_up,
                                      std::forward_list<std::string> &&clean_up)
     : Upgrade_check(name, category),
@@ -83,7 +84,8 @@ Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
       m_set_up(set_up),
       m_clean_up(clean_up),
       m_level(level),
-      m_minimal_version(minimal_version) {}
+      m_minimal_version(minimal_version),
+      m_filter_out_objects_with_error(filter_out_objects_with_error) {}
 
 std::vector<Upgrade_issue> Sql_upgrade_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
@@ -145,8 +147,9 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
     m_field_names = &field_names;
     const mysqlshdk::db::IRow *row = nullptr;
     while ((row = result->fetch_one()) != nullptr) {
-      add_issue(row, query.second, &issues);
+      add_issue(row, query.second, &issues, &cache->db_filters());
     }
+
     m_field_names = nullptr;
   }
 
@@ -155,10 +158,33 @@ std::vector<Upgrade_issue> Sql_upgrade_check::run(
   return issues;
 }
 
-void Sql_upgrade_check::add_issue(const mysqlshdk::db::IRow *row,
-                                  Upgrade_issue::Object_type object_type,
-                                  std::vector<Upgrade_issue> *issues) {
+void Sql_upgrade_check::add_issue(
+    const mysqlshdk::db::IRow *row, Upgrade_issue::Object_type object_type,
+    std::vector<Upgrade_issue> *issues,
+    mysqlshdk::db::Filtering_options *db_filters) {
   auto issue = parse_row(row, object_type);
+
+  if (db_filters != nullptr && m_filter_out_objects_with_error) {
+    switch (object_type) {
+      case Upgrade_issue::Object_type::SCHEMA:
+        db_filters->schemas().exclude(issue.schema);
+        break;
+      case Upgrade_issue::Object_type::ROUTINE:
+        db_filters->routines().exclude(issue.schema, issue.table);
+        break;
+      case Upgrade_issue::Object_type::TABLE:
+        db_filters->tables().exclude(issue.schema, issue.table);
+        break;
+      case Upgrade_issue::Object_type::EVENT:
+        db_filters->events().exclude(issue.schema, issue.table);
+        break;
+      case Upgrade_issue::Object_type::TRIGGER:
+        db_filters->triggers().exclude(issue.schema, issue.table, issue.column);
+        break;
+      default:
+        break;
+    }
+  }
   if (!issue.empty()) issues->emplace_back(std::move(issue));
 }
 

@@ -2599,7 +2599,7 @@ session.run_sql("CREATE TABLE !.not_so_large (a int primary key, e enum('aaaaaaa
 # dumping the whole schema should fail
 EXPECT_FAIL("Error: Shell Error (52004)", "Compatibility issues were found", [ tested_schema ], test_output_absolute, { "ocimds": True, "showProgress": False })
 EXPECT_STDOUT_CONTAINS(f"""
-7) ENUM/SET column definitions containing elements longer than 255 characters
+8) ENUM/SET column definitions containing elements longer than 255 characters
 (enumSetElementLength)
    Error: The following columns are defined as either ENUM or SET and contain
    at least one element longer that 255 characters. They need to be altered so

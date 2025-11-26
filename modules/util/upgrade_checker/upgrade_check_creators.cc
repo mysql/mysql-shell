@@ -55,7 +55,7 @@ std::unique_ptr<Sql_upgrade_check> get_old_temporal_check() {
            "FROM information_schema.columns WHERE column_type LIKE "
            "'%5.5 binary format%';",
            Upgrade_issue::Object_type::COLUMN}},
-      Upgrade_issue::ERROR, nullptr,
+      Upgrade_issue::ERROR, nullptr, false,
       std::forward_list<std::string>{"SET show_old_temporals = ON;"},
       std::forward_list<std::string>{"SET show_old_temporals = OFF;"});
 }
@@ -1136,7 +1136,7 @@ std::unique_ptr<Sql_upgrade_check> get_orphaned_objects_check() {
            "(SELECT SCHEMA_NAME FROM information_schema.schemata "
            "WHERE EVENT_SCHEMA=SCHEMA_NAME);",
            Upgrade_issue::Object_type::EVENT}},
-      Upgrade_issue::ERROR);
+      Upgrade_issue::ERROR, nullptr, true);
 }
 
 std::unique_ptr<Sql_upgrade_check> get_dollar_sign_name_check() {
@@ -1375,7 +1375,9 @@ class Deprecated_default_auth_check : public Sql_upgrade_check {
  protected:
   void add_issue(const mysqlshdk::db::IRow *row,
                  Upgrade_issue::Object_type object_type,
-                 std::vector<Upgrade_issue> *issues) override {
+                 std::vector<Upgrade_issue> *issues,
+                 [[maybe_unused]] mysqlshdk::db::Filtering_options *db_filters =
+                     nullptr) override {
     auto item = row->get_as_string(0);
     auto auth = row->get_as_string(1);
 

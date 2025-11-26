@@ -68,6 +68,10 @@ const Target_flags Upgrade_check_registry::k_target_flags_default =
     Target_flags::all().unset(Target::MDS_SPECIFIC);
 
 namespace {
+[[maybe_unused]] bool register_get_orphaned_objects_check =
+    Upgrade_check_registry::register_check(
+        std::bind(&get_orphaned_objects_check), Target::OBJECT_DEFINITIONS,
+        "8.0.0");
 
 [[maybe_unused]] bool register_old_temporal =
     Upgrade_check_registry::register_check(std::bind(&get_old_temporal_check),
@@ -203,11 +207,6 @@ bool register_manual_checks() {
 [[maybe_unused]] bool register_get_invalid_57_names_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_invalid_57_names_check), Target::OBJECT_DEFINITIONS,
-        "8.0.0");
-
-[[maybe_unused]] bool register_get_orphaned_objects_check =
-    Upgrade_check_registry::register_check(
-        std::bind(&get_orphaned_objects_check), Target::OBJECT_DEFINITIONS,
         "8.0.0");
 
 [[maybe_unused]] bool register_get_dollar_sign_name_check =
