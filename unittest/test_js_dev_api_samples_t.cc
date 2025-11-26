@@ -52,6 +52,11 @@ class Shell_js_dev_api_sample_tester : public Shell_js_script_tester {
     Shell_js_script_tester::TearDown();
   }
 
+  static void TearDownTestSuite() {
+    // Ensure any leftover session is closed
+    create_mysql_session()->execute("DROP SCHEMA IF EXISTS test");
+  }
+
   void pre_process_line(const std::string & /* path */,
                         std::string *line) override {
     // Unit tests work using default ports, if that is not the case

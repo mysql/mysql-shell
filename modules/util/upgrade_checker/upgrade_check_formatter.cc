@@ -400,6 +400,12 @@ class JSON_upgrade_checker_output : public Upgrade_check_output_formatter {
     rapidjson::Value tvr;
     tvr.SetString(target_version.c_str(), target_version.length(), m_allocator);
     m_json_document.AddMember("targetVersion", std::move(tvr), m_allocator);
+
+    if (warning.size() > 0) {
+      rapidjson::Value warn;
+      warn.SetString(warning.c_str(), warning.length(), m_allocator);
+      m_json_document.AddMember("warning", std::move(warn), m_allocator);
+    }
   }
 
   void check_title(const Upgrade_check &) override {}

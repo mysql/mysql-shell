@@ -1,4 +1,4 @@
-/* Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2014, 2025, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -71,6 +71,11 @@ class Shell_py_dev_api_sample_tester : public Shell_py_script_tester {
     create_mysql_session()->execute("DROP USER IF EXISTS mike@'%'");
 
     Shell_py_script_tester::TearDown();
+  }
+
+  static void TearDownTestSuite() {
+    // Ensure any leftover session is closed
+    create_mysql_session()->execute("DROP SCHEMA IF EXISTS test");
   }
 
   void pre_process_line(const std::string & /* path */,

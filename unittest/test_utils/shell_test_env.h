@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -232,7 +232,7 @@ class Shell_test_env : public ::testing::Test {
   void SetUp() override;
   void TearDown() override;
 
-  std::shared_ptr<mysqlshdk::db::mysql::Session> create_mysql_session(
+  static std::shared_ptr<mysqlshdk::db::mysql::Session> create_mysql_session(
       const std::string &uri = "");
   std::shared_ptr<mysqlshdk::db::mysqlx::Session> create_mysqlx_session(
       const std::string &uri = "");

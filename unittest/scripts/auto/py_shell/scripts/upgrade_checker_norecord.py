@@ -166,6 +166,7 @@ EXPECT_STDOUT_CONTAINS_MULTILINE("""
     "serverAddress": "localhost:[[*]]",
     "serverVersion": "[[*]]",
     "targetVersion": "[[*]]",
+    "warning": "Upgrading MySQL Server from version [[*]] is not supported. Please consider running the check using the following option: targetVersion=8.0",
     "errorCount": 0,
     "warningCount": 3,
     "noticeCount": 0,
