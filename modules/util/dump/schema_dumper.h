@@ -49,11 +49,10 @@
 namespace mysqlsh {
 namespace dump {
 
-using mysqlshdk::storage::IFile;
-
 class Schema_dumper {
  public:
   using Filtering_options = mysqlshdk::db::Filtering_options;
+  using IFile = mysqlshdk::storage::IFile;
 
   struct User_statements {
     enum class Type {
@@ -130,6 +129,9 @@ class Schema_dumper {
 
   void use_cache(const Instance_cache *cache) { m_cache = cache; }
   void use_filters(const Filtering_options *filters) { m_filters = filters; }
+  void use_shared_session(mysqlshdk::db::Shared_session shared_session) {
+    m_shared_session = std::move(shared_session);
+  }
 
   bool partial_revokes() const;
 
@@ -191,6 +193,7 @@ class Schema_dumper {
   };
 
   std::shared_ptr<mysqlshdk::db::ISession> m_mysql;
+  mysqlshdk::db::Shared_session m_shared_session;
 
   bool stats_tables_included = false;
 
@@ -359,6 +362,9 @@ class Schema_dumper {
 
   bool is_library_included(const std::string &schema,
                            const std::string &library) const;
+
+  std::size_t column_count(const std::string &schema,
+                           const std::string &table) const;
 
 #ifdef FRIEND_TEST
   FRIEND_TEST(Schema_dumper_test, check_object_for_definer);

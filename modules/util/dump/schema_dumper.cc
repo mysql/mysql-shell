@@ -107,7 +107,10 @@ namespace dump {
 
 namespace {
 
-const std::size_t k_max_innodb_columns = 1017;
+using IFile = Schema_dumper::IFile;
+
+constexpr std::size_t k_max_innodb_columns = 1017;
+constexpr std::string_view k_innodb_engine = "InnoDB";
 
 using mysqlshdk::utils::Version;
 
@@ -612,6 +615,48 @@ void fetch_warnings(
     for (std::size_t i = 0; i < count; ++i) {
       out_warnings->emplace_back(result->fetch_one_warning());
     }
+  }
+}
+
+std::string test_if_able_to_force_innodb(
+    const std::shared_ptr<mysqlshdk::db::ISession> &session,
+    const std::string &schema, const std::string &table,
+    const std::string &create_table) {
+  // statement should already be modified to use the InnoDB engine
+  assert(std::string::npos != create_table.find(k_innodb_engine));
+
+  // NOTE: prior to 8.0.13, it was not possible to CREATE/DROP temporary table
+  // inside a transaction, so provided session cannot have an active transaction
+
+  // NOTE: we cannot use CREATE TEMPORARY TABLE ... LIKE + ALTER TABLE here,
+  // because there's no active transaction, which means a table created in this
+  // way would not be consistent
+
+  session->executef("USE !", schema);
+
+  try {
+    // len("CREATE ") == 7
+    const auto stmt = "CREATE TEMPORARY " + create_table.substr(7);
+    session->execute(stmt);
+  } catch (const mysqlshdk::db::Error &e) {
+    return e.what();
+  }
+
+  session->executef("DROP TEMPORARY TABLE !", table.c_str());
+
+  return {};
+}
+
+std::string engine_from_create_table(const std::string &create_table) {
+  auto engine = compatibility::check_create_table_for_engine_option(
+      create_table, nullptr);
+
+  // if engine is empty, table is already using InnoDB, otherwise `engine`
+  // holds the current engine
+  if (engine.empty()) {
+    return std::string{k_innodb_engine};
+  } else {
+    return engine;
   }
 }
 
@@ -1383,42 +1428,91 @@ std::vector<Compatibility_issue> Schema_dumper::check_ct_for_mysqlaas(
   std::vector<Compatibility_issue> res;
   const auto quoted_table = quote(db, table);
 
-  if (opt_mysqlaas) {
+  if (opt_mysqlaas || opt_force_innodb) {
     if (compatibility::check_create_table_for_data_index_dir_option(
-            *create_table, create_table))
+            *create_table, create_table)) {
       res.emplace_back(
           Compatibility_issue::fixed::table_data_or_index_dir(quoted_table));
+    }
+  }
 
+  if (opt_mysqlaas) {
     if (compatibility::check_create_table_for_encryption_option(*create_table,
-                                                                create_table))
+                                                                create_table)) {
       res.emplace_back(
           Compatibility_issue::fixed::table_encryption(quoted_table));
+    }
   }
 
   if (opt_mysqlaas || opt_force_innodb) {
-    const auto engine = compatibility::check_create_table_for_engine_option(
-        *create_table, opt_force_innodb ? create_table : nullptr);
-    if (!engine.empty()) {
-      res.emplace_back(
-          opt_force_innodb
-              ? Compatibility_issue::fixed::table_unsupported_engine(
-                    quoted_table, engine)
-              : Compatibility_issue::error::table_unsupported_engine(
-                    quoted_table, engine));
+    const auto &engine = m_cache
+                             ? m_cache->schemas.at(db).tables.at(table).engine
+                             : engine_from_create_table(*create_table);
+    const auto is_innodb = shcore::str_caseeq(engine, k_innodb_engine);
+
+    // NOTE: we're updating `create_table` regardless of the configuration
+    // options used, because if any of the checks below fails, an error is going
+    // to be reported and DDL will not be used anyway, and we need a fixed DDL
+    // statement to verify if table can be converted to InnoDB
+
+    if (!is_innodb) {
+      // replace the engine
+      compatibility::check_create_table_for_engine_option(*create_table,
+                                                          create_table);
     }
 
-    // if engine is empty, table is already using InnoDB, we want to remove
-    // FIXED row format right away
-    const auto remove_fixed_row_format = opt_force_innodb || engine.empty();
+    if (compatibility::check_create_table_for_fixed_row_format(*create_table,
+                                                               create_table)) {
+      // prior to 5.7.7, MySQL allowed to create InnoDB tables with FIXED row
+      // format: internally a different format was used instead, but output of
+      // SHOW CREATE TABLE still contained ROW_FORMAT=FIXED
+      const auto remove_fixed_row_format = opt_force_innodb || is_innodb;
 
-    if (compatibility::check_create_table_for_fixed_row_format(
-            *create_table, remove_fixed_row_format ? create_table : nullptr)) {
       res.emplace_back(
           remove_fixed_row_format
               ? Compatibility_issue::fixed::table_unsupported_row_format(
                     quoted_table)
               : Compatibility_issue::error::table_unsupported_row_format(
                     quoted_table));
+
+      // we don't report this table as incompatible with InnoDB, as this can be
+      // fixed with 'force_innodb' compatibility option
+    }
+
+    if (!is_innodb) {
+      std::string invalid_as_innodb;
+
+      if (const auto count = column_count(db, table);
+          count > k_max_innodb_columns) {
+        res.emplace_back(Compatibility_issue::error::table_too_many_columns(
+            quoted_table, count, k_max_innodb_columns));
+
+        // fatal error, requires manual intervention
+        invalid_as_innodb = "Table has too many columns";
+      }
+
+      if (invalid_as_innodb.empty()) {
+        // check if table can be converted to InnoDB only if no other errors
+        // were reported, we want to have a consistent error message
+        const auto session = m_shared_session
+                                 ? m_shared_session->acquire()
+                                 : mysqlshdk::db::Exclusive_session{};
+        invalid_as_innodb = test_if_able_to_force_innodb(
+            session ? session : m_mysql, db, table, *create_table);
+      }
+
+      if (invalid_as_innodb.empty()) {
+        res.emplace_back(
+            opt_force_innodb
+                ? Compatibility_issue::fixed::table_unsupported_engine(
+                      quoted_table, engine)
+                : Compatibility_issue::error::table_unsupported_engine(
+                      quoted_table, engine));
+      } else {
+        res.emplace_back(
+            Compatibility_issue::error::table_cannot_replace_engine(
+                quoted_table, engine, invalid_as_innodb));
+      }
     }
   }
 
@@ -1429,30 +1523,6 @@ std::vector<Compatibility_issue> Schema_dumper::check_ct_for_mysqlaas(
           opt_strip_tablespaces
               ? Compatibility_issue::fixed::table_tablespace(quoted_table)
               : Compatibility_issue::error::table_tablespace(quoted_table));
-    }
-  }
-
-  if (opt_mysqlaas) {
-    std::size_t count = 0;
-
-    if (m_cache) {
-      count = m_cache->schemas.at(db).tables.at(table).all_columns.size();
-    } else {
-      const auto result = query_log_error(
-          "SELECT COUNT(column_name) FROM information_schema.columns WHERE "
-          "table_schema=? AND table_name=?",
-          db, table);
-
-      if (const auto row = result->fetch_one()) {
-        count = row->get_uint(0);
-      } else {
-        THROW_ERROR(SHERR_DUMP_SD_MISSING_TABLE, quoted_table.c_str());
-      }
-    }
-
-    if (count > k_max_innodb_columns) {
-      res.emplace_back(Compatibility_issue::error::table_too_many_columns(
-          quoted_table, count, k_max_innodb_columns));
     }
   }
 
@@ -4180,6 +4250,24 @@ bool Schema_dumper::is_library_included(const std::string &schema,
   }
 
   return true;
+}
+
+std::size_t Schema_dumper::column_count(const std::string &schema,
+                                        const std::string &table) const {
+  if (m_cache) {
+    return m_cache->schemas.at(schema).tables.at(table).all_columns.size();
+  } else {
+    const auto result = query_log_error(
+        "SELECT COUNT(column_name) FROM information_schema.columns WHERE "
+        "table_schema=? AND table_name=?",
+        schema, table);
+
+    if (const auto row = result->fetch_one()) {
+      return row->get_uint(0);
+    } else {
+      THROW_ERROR(SHERR_DUMP_SD_MISSING_TABLE, quote(schema, table).c_str());
+    }
+  }
 }
 
 }  // namespace dump

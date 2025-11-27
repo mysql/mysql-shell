@@ -96,7 +96,7 @@ bool check_create_table_for_encryption_option(const std::string &create_table,
 
 std::string check_create_table_for_engine_option(
     const std::string &create_table, std::string *rewritten = nullptr,
-    const std::string &target = "InnoDB");
+    std::string_view target = "InnoDB");
 
 bool check_create_table_for_tablespace_option(
     const std::string &create_table, std::string *rewritten = nullptr,

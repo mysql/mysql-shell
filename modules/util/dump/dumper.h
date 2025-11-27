@@ -534,6 +534,7 @@ class Dumper {
 
   // session
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
+  mysqlshdk::db::Shared_session m_shared_session;
 #ifndef NDEBUG
   std::thread::id m_main_thread;
 #endif  // !NDEBUG

@@ -53,6 +53,7 @@ enum class Compatibility_check {
   VIEW_INVALID_DEFINITION,
 
   TABLE_UNSUPPORTED_ENGINE,
+  TABLE_CANNOT_REPLACE_ENGINE,
   TABLE_MISSING_PK,
   TABLE_DATA_OR_INDEX_DIR,
   TABLE_ENCRYPTION,
@@ -232,6 +233,10 @@ struct Compatibility_issue {
 
     static Compatibility_issue table_unsupported_engine(
         const std::string &table, const std::string &engine);
+
+    static Compatibility_issue table_cannot_replace_engine(
+        const std::string &table, const std::string &engine,
+        const std::string &error);
 
     static Compatibility_issue table_missing_pk(const std::string &table);
 

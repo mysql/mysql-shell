@@ -37,6 +37,8 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
+
 #ifdef _WIN32
 #include <winsock2.h>
 using socket_t = SOCKET;
@@ -47,6 +49,7 @@ using socket_t = int;
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/utils/error.h"
 #include "mysqlshdk/libs/utils/option_tracker.h"
+#include "mysqlshdk/libs/utils/shared_resource.h"
 #include "mysqlshdk/libs/utils/utils_sqlstring.h"
 #include "mysqlshdk/libs/utils/version.h"
 
@@ -239,10 +242,10 @@ class SHCORE_PUBLIC ISession {
 
   void refresh_sql_mode();
   virtual void set_option_tracker_feature_id(
-      [[maybe_unused]] const std::string &feature_id){};
+      [[maybe_unused]] const std::string &feature_id) {}
 
   virtual void set_option_tracker_feature_id(
-      [[maybe_unused]] shcore::option_tracker::Shell_feature feature_id){};
+      [[maybe_unused]] shcore::option_tracker::Shell_feature feature_id) {}
 
   [[nodiscard]] virtual bool is_mysql_native_password() const;
 
@@ -258,6 +261,14 @@ class SHCORE_PUBLIC ISession {
   bool m_no_backslash_escapes_enabled = false;
   std::optional<bool> m_dollar_quoted_strings;
 };
+
+using Shared_session_t = shcore::Shared_resource<mysqlshdk::db::ISession>;
+using Shared_session = std::shared_ptr<Shared_session_t>;
+using Exclusive_session = Shared_session_t::Exclusive_resource;
+
+inline Shared_session make_shared_session(std::shared_ptr<ISession> &&session) {
+  return std::make_shared<Shared_session_t>(std::move(session));
+}
 
 }  // namespace db
 }  // namespace mysqlshdk

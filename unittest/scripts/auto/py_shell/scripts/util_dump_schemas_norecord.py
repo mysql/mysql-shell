@@ -3243,6 +3243,26 @@ shell.options["logSql"] = old_log_sql
 
 session.run_sql("DROP SCHEMA IF EXISTS !;", [schema_name])
 
+#@<> BUG#38650807 - detect if table cannot be converted to InnoDB engine
+schema_name = "test_38650807"
+table_name = "t"
+error_msg = "Incorrect table definition; there can be only one auto column and it must be defined as a key"
+
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+session.run_sql("CREATE SCHEMA !", [schema_name])
+session.run_sql("CREATE TABLE !.! (a INT, b INT AUTO_INCREMENT, PRIMARY KEY (a, b)) ENGINE=MyISAM", [schema_name, table_name])
+
+#@<> BUG#38650807 - test with ocimds:true - table is reported as invalid, as AUTO_INCREMENT has to be the first in PK definition
+EXPECT_FAIL("Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_absolute, { "ocimds": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(force_innodb_cannot_replace_engine(schema_name, table_name, error_msg).error())
+
+#@<> BUG#38650807 - test with ocimds:true - same error with force_innodb
+EXPECT_FAIL("Shell Error (52004)", "Compatibility issues were found", [ schema_name ], test_output_absolute, { "compatibility": ["force_innodb"], "ocimds": True, "showProgress": False })
+EXPECT_STDOUT_CONTAINS(force_innodb_cannot_replace_engine(schema_name, table_name, error_msg).error())
+
+#@<> BUG#38650807 - cleanup
+session.run_sql("DROP SCHEMA IF EXISTS !", [schema_name])
+
 #@<> Cleanup
 drop_all_schemas()
 session.run_sql("SET GLOBAL local_infile = false;")

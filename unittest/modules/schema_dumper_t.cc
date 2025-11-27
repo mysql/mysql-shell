@@ -183,7 +183,7 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
 
   std::shared_ptr<mysqlshdk::db::ISession> session;
   std::string file_path;
-  std::unique_ptr<IFile> file;
+  std::unique_ptr<Schema_dumper::IFile> file;
   static bool run_directory_tests;
   static bool initialized;
   static constexpr auto db_name = "mysqldump_test_db";

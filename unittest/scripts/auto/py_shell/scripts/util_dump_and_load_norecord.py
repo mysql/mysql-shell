@@ -2806,20 +2806,20 @@ EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpInstance\(\): tid=\d+: MySQ
 
 # dump schemas
 wipe_dir(dump_dir)
-session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 80")
+session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 90")
 WIPE_SHELL_LOG()
 EXPECT_THROWS(lambda: util.dump_schemas(["world"], dump_dir), "Fatal error during dump")
-EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpSchemas\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 80\), SQL: "))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpSchemas\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 90\), SQL: "))
 
 # dump tables
 wipe_dir(dump_dir)
-session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 70")
+session1.run_sql("ALTER USER admin@'%' WITH MAX_QUERIES_PER_HOUR 80")
 WIPE_SHELL_LOG()
 tables = ["City", "Country"]
 if __os_type == "windows":
     tables = [ t.lower() for t in tables ]
 EXPECT_THROWS(lambda: util.dump_tables("world", tables, dump_dir), "Fatal error during dump")
-EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpTables\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 70\), SQL: "))
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.dumpTables\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 80\), SQL: "))
 
 session1.run_sql("DROP USER admin@'%'")
 

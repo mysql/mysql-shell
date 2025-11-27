@@ -2041,7 +2041,7 @@ class Dumper::Memory_dumper final {
 
   template <typename... Args>
   void dump(std::vector<Compatibility_issue> (Schema_dumper::*func)(
-                IFile *, const std::remove_cvref_t<Args> &...),
+                Schema_dumper::IFile *, const std::remove_cvref_t<Args> &...),
             Args &&...args) {
     auto issues = (m_dumper->*func)(&m_file, std::forward<Args>(args)...);
 
@@ -2050,7 +2050,7 @@ class Dumper::Memory_dumper final {
   }
 
   template <typename... Args>
-  void dump(void (Schema_dumper::*func)(IFile *,
+  void dump(void (Schema_dumper::*func)(Schema_dumper::IFile *,
                                         const std::remove_cvref_t<Args> &...),
             Args &&...args) {
     (m_dumper->*func)(&m_file, std::forward<Args>(args)...);
@@ -2393,6 +2393,7 @@ std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
 
   dumper->use_cache(&m_cache);
   dumper->use_filters(&m_options.filters());
+  dumper->use_shared_session(m_shared_session);
 
   dumper->opt_comments = true;
   dumper->opt_drop_database = false;
@@ -2458,6 +2459,11 @@ void Dumper::open_session() {
   if (m_checksum) {
     m_checksum->configure(session());
   }
+
+  // shared session used by the Schema_dumper
+  m_shared_session = mysqlshdk::db::make_shared_session(
+      establish_session(m_options.connection_options(), false));
+  on_init_thread_session(m_shared_session->acquire());
 }
 
 void Dumper::close_session() {

@@ -46,7 +46,9 @@ Average compressed throughput: [[*]]
 {"status":"Writing users DDL\n"}
 ${*}
 {"note":"Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.\n"}
+${*}
 {"note":"Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.\n"}
+${*}
 {"note":"Table statistics not available for `schema_c`.`table_[[*]]`, chunking operation may be not optimal. Please consider running 'ANALYZE TABLE `schema_c`.`table_[[*]]`;' first.\n"}
 ${*}
 {"status":"Dump duration: [[*]]\n"}

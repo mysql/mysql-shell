@@ -429,6 +429,20 @@ Compatibility_issue Compatibility_issue::fixed::table_unsupported_engine(
   return issue;
 }
 
+Compatibility_issue Compatibility_issue::error::table_cannot_replace_engine(
+    const std::string &table, const std::string &engine,
+    const std::string &error) {
+  auto issue = common::table(Compatibility_check::TABLE_CANNOT_REPLACE_ENGINE,
+                             Status::ERROR, table);
+
+  issue.description = shcore::str_format(
+      "Table %s uses unsupported storage engine %s which cannot be changed to "
+      "InnoDB due to the following error: %s",
+      table.c_str(), engine.c_str(), error.c_str());
+
+  return issue;
+}
+
 Compatibility_issue Compatibility_issue::common::table_missing_pk(
     Status s, const std::string &table, const char *context) {
   auto issue = common::table(Compatibility_check::TABLE_MISSING_PK, s, table);
@@ -903,6 +917,9 @@ std::string_view to_string(Compatibility_check check) {
 
     case Compatibility_check::TABLE_UNSUPPORTED_ENGINE:
       return "table/unsupported_engine";
+
+    case Compatibility_check::TABLE_CANNOT_REPLACE_ENGINE:
+      return "table/cannot_replace_engine";
 
     case Compatibility_check::TABLE_MISSING_PK:
       return "table/missing_pk";

@@ -355,6 +355,10 @@ def force_innodb_unsupported_storage(schema, table, engine = "MyISAM"):
     fixed = f"Table `{schema}`.`{table}` had unsupported engine {engine} changed to InnoDB"
     return Compatibility_issue(error, fixed)
 
+def force_innodb_cannot_replace_engine(schema, table, error, engine = "MyISAM"):
+    error = f"Table `{schema}`.`{table}` uses unsupported storage engine {engine} which cannot be changed to InnoDB due to the following error: {error} (this issue needs to be fixed manually)"
+    return Compatibility_issue(error, None)
+
 def force_innodb_row_format_fixed(schema, table):
     error = f"Table `{schema}`.`{table}` uses unsupported ROW_FORMAT=FIXED option (fix this with 'force_innodb' compatibility option)"
     fixed = f"Table `{schema}`.`{table}` had unsupported ROW_FORMAT=FIXED option removed"
