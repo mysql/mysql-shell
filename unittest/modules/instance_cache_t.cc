@@ -4850,6 +4850,246 @@ TEST_F(Instance_cache_test, stats) {
   }
 }
 
+TEST_F(Instance_cache_test, users) {
+  {
+    // setup
+    m_session->execute(
+        "CREATE USER IF NOT EXISTS 'first'@'localhost' IDENTIFIED BY 'pwd'");
+    m_session->execute(
+        "CREATE USER IF NOT EXISTS 'first'@'10.11.12.13' IDENTIFIED BY 'pwd'");
+    m_session->execute(
+        "CREATE USER IF NOT EXISTS 'firstfirst'@'localhost' IDENTIFIED BY 'p'");
+    m_session->execute(
+        "CREATE USER IF NOT EXISTS 'second'@'localhost' IDENTIFIED BY 'pwd'");
+    m_session->execute(
+        "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd'");
+  }
+
+  shcore::on_leave_scope cleanup{[this]() {
+    m_session->execute("DROP USER 'first'@'localhost';");
+    m_session->execute("DROP USER 'first'@'10.11.12.13';");
+    m_session->execute("DROP USER 'firstfirst'@'localhost';");
+    m_session->execute("DROP USER 'second'@'localhost';");
+    m_session->execute("DROP USER 'second'@'10.11.12.14';");
+  }};
+
+  const auto contains = [](const Instance_cache &cache,
+                           const std::string &account) {
+    const auto &users = cache.users;
+    const auto it =
+        std::find_if(users.begin(), users.end(), [&account](const auto &e) {
+          return shcore::make_account(e) == account;
+        });
+
+    std::set<std::string> accounts;
+
+    for (const auto &e : users) {
+      accounts.emplace(shcore::make_account(e));
+    }
+
+    if (users.end() != it) {
+      return ::testing::AssertionSuccess()
+             << "account found: " << account
+             << ", contents: " << shcore::str_join(accounts, ", ");
+    } else {
+      return ::testing::AssertionFailure()
+             << "account not found: " << account
+             << ", contents: " << shcore::str_join(accounts, ", ");
+    }
+  };
+
+  {
+    // no filtering
+    const auto cache = Instance_cache_builder(m_session, {}).users().build();
+
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(cache, "'firstfirst'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'second'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'second'@'10.11.12.14'"));
+  }
+
+  {
+    // include non-existent user
+    Filtering_options filters;
+    filters.users().include(std::array{"third"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(0, cache.users.size());
+  }
+
+  {
+    // exclude non-existent user
+    Filtering_options filters;
+    filters.users().exclude(std::array{"third"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(cache, "'firstfirst'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'second'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'second'@'10.11.12.14'"));
+  }
+
+  {
+    // include all accounts for the user first
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(2, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+  }
+
+  {
+    // include only 'first'@'localhost'
+    Filtering_options filters;
+    filters.users().include(std::array{"'first'@'localhost'"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(1, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+  }
+
+  {
+    // include all accounts for the user first, exclude second
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+    filters.users().exclude(std::array{"second"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(2, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+  }
+
+  {
+    // include all accounts for the user first, exclude 'first'@'10.11.12.13'
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+    filters.users().exclude(std::array{"'first'@'10.11.12.13'"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(1, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+  }
+
+  {
+    // include all accounts for the user first, exclude first -> cancels out
+    Filtering_options filters;
+    filters.users().include(std::array{"first"});
+    filters.users().exclude(std::array{"first"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(0, cache.users.size());
+  }
+
+  {
+    // include all accounts for the user first and second
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "second"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(4, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(cache, "'second'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'second'@'10.11.12.14'"));
+  }
+
+  {
+    // include all accounts for the user first and second, exclude second
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "second"});
+    filters.users().exclude(std::array{"second"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(2, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+  }
+
+  {
+    // include all accounts for the user first and second, exclude
+    // 'second'@'10.11.12.14'
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "second"});
+    filters.users().exclude(std::array{"'second'@'10.11.12.14'"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(3, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+    EXPECT_TRUE(contains(cache, "'second'@'localhost'"));
+  }
+
+  {
+    // include all accounts for the user first, include and exclude
+    // 'second'@'10.11.12.14'
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "'second'@'10.11.12.14'"});
+    filters.users().exclude(std::array{"'second'@'10.11.12.14'"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(2, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+  }
+
+  {
+    // include all accounts for the user first and 'second'@'10.11.12.14',
+    // exclude all accounts for second
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "'second'@'10.11.12.14'"});
+    filters.users().exclude(std::array{"second"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(2, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+  }
+
+  {
+    // include all accounts for the user first and non-existent third, exclude
+    // non-existent fourth
+    Filtering_options filters;
+    filters.users().include(std::array{"first", "third"});
+    filters.users().exclude(std::array{"fourth"});
+
+    const auto cache =
+        Instance_cache_builder(m_session, filters).users().build();
+
+    EXPECT_EQ(2, cache.users.size());
+    EXPECT_TRUE(contains(cache, "'first'@'localhost'"));
+    EXPECT_TRUE(contains(cache, "'first'@'10.11.12.13'"));
+  }
+}
+
 }  // namespace tests
 }  // namespace dump
 }  // namespace mysqlsh

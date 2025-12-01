@@ -337,6 +337,13 @@ class Instance_cache_builder final {
 
   void initialize_lowercase_names();
 
+  std::vector<shcore::Account> fetch_users() const;
+
+  std::vector<shcore::Account> fetch_roles() const;
+
+  std::vector<shcore::Account> fetch_users(const std::string &select,
+                                           const std::string &where) const;
+
   std::shared_ptr<mysqlshdk::db::ISession> m_session;
 
   Instance_cache m_cache;

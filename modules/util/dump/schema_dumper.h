@@ -32,6 +32,7 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -67,7 +68,8 @@ class Schema_dumper {
     std::vector<std::string> statements;
   };
 
-  explicit Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql);
+  Schema_dumper(const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
+                const Instance_cache &cache);
 
   static std::vector<User_statements> preprocess_users_script(
       const std::string &script,
@@ -94,30 +96,28 @@ class Schema_dumper {
   int count_triggers_for_table(const std::string &db, const std::string &table);
   std::vector<Compatibility_issue> dump_triggers_for_table_ddl(
       IFile *file, const std::string &db, const std::string &table);
-  std::vector<std::string> get_triggers(const std::string &db,
-                                        const std::string &table);
+  const std::vector<std::string> &get_triggers(const std::string &db,
+                                               const std::string &table);
 
   std::vector<Compatibility_issue> dump_events_ddl(IFile *file,
                                                    const std::string &db);
-  std::vector<std::string> get_events(const std::string &db);
+  const std::unordered_set<std::string> &get_events(const std::string &db);
 
   std::vector<Compatibility_issue> dump_routines_ddl(IFile *file,
                                                      const std::string &db);
   std::vector<std::string> get_routines(const std::string &db,
                                         const std::string &type);
-  std::vector<Instance_cache::Routine::Library_reference>
+  const std::vector<Instance_cache::Routine::Library_reference> &
   get_routine_dependencies(const std::string &db, const std::string &routine,
                            const std::string_view type);
 
   std::vector<Compatibility_issue> dump_libraries_ddl(IFile *file,
                                                       const std::string &db);
-  std::vector<std::string> get_libraries(const std::string &db);
+  const std::unordered_set<std::string> &get_libraries(const std::string &db);
 
   std::vector<Compatibility_issue> dump_grants(IFile *file);
-  std::vector<shcore::Account> get_users();
-  std::vector<shcore::Account> get_roles();
 
-  std::vector<Instance_cache::Histogram> get_histograms(
+  const std::vector<Instance_cache::Histogram> &get_histograms(
       const std::string &db_name, const std::string &table_name);
 
   // Must be called for each file
@@ -127,7 +127,6 @@ class Schema_dumper {
   void write_comment(IFile *sql_file, const std::string &db_name = "",
                      const std::string &table_name = "");
 
-  void use_cache(const Instance_cache *cache) { m_cache = cache; }
   void use_filters(const Filtering_options *filters) { m_filters = filters; }
   void use_shared_session(mysqlshdk::db::Shared_session shared_session) {
     m_shared_session = std::move(shared_session);
@@ -213,10 +212,8 @@ class Schema_dumper {
   /* have we seen any VIEWs during table scanning? */
   bool seen_views = false;
 
-  const Instance_cache *m_cache = nullptr;
+  const Instance_cache &m_cache;
   const Filtering_options *m_filters = nullptr;
-
-  mutable std::optional<bool> m_partial_revokes;
 
   bool m_non_existing_definer_reported = false;
 
@@ -307,8 +304,6 @@ class Schema_dumper {
                                   const std::vector<std::string> &table_names);
 
   int dump_tablespaces(IFile *sql_file, const std::string &ts_where);
-  int checked_ndbinfo = 0;
-  int have_ndbinfo = 0;
 
   int is_ndbinfo(const std::string &dbname);
 
@@ -339,10 +334,6 @@ class Schema_dumper {
   std::string expand_all_privileges(const std::string &stmt,
                                     const std::string &grantee,
                                     std::string *out_schema);
-
-  std::vector<shcore::Account> fetch_users(const std::string &select,
-                                           const std::string &where,
-                                           bool log_error = true);
 
   Version_dependent_check set_any_definer_check() const;
 

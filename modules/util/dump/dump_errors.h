@@ -85,10 +85,6 @@
 #define SHERR_DUMP_SD_QUERY_FAILED 52016
 #define SHERR_DUMP_SD_QUERY_FAILED_MSG "Could not execute '%s': %s"
 
-#define SHERR_DUMP_SD_COLLATION_DATABASE_ERROR 52017
-#define SHERR_DUMP_SD_COLLATION_DATABASE_ERROR_MSG \
-  "Error processing select @@collation_database; results"
-
 #define SHERR_DUMP_SD_CHARACTER_SET_RESULTS_ERROR 52018
 #define SHERR_DUMP_SD_CHARACTER_SET_RESULTS_ERROR_MSG \
   "Unable to set character_set_results to: %s"
@@ -123,9 +119,6 @@
 #define SHERR_DUMP_SD_SHOW_CREATE_VIEW_FAILED 52026
 #define SHERR_DUMP_SD_SHOW_CREATE_VIEW_FAILED_MSG "Failed: SHOW CREATE TABLE %s"
 
-#define SHERR_DUMP_SD_SHOW_CREATE_VIEW_EMPTY 52027
-#define SHERR_DUMP_SD_SHOW_CREATE_VIEW_EMPTY_MSG "No information about view: %s"
-
 #define SHERR_DUMP_SD_SCHEMA_DDL_ERROR 52028
 #define SHERR_DUMP_SD_SCHEMA_DDL_ERROR_MSG \
   "Error while dumping DDL for schema '%s': %s"
@@ -141,10 +134,6 @@
 #define SHERR_DUMP_SD_VIEW_DDL_ERROR 52031
 #define SHERR_DUMP_SD_VIEW_DDL_ERROR_MSG \
   "Error while dumping DDL for view '%s'.'%s': %s"
-
-#define SHERR_DUMP_SD_TRIGGER_COUNT_ERROR 52032
-#define SHERR_DUMP_SD_TRIGGER_COUNT_ERROR_MSG \
-  "Unable to check trigger count for table: '%s'.'%s'"
 
 #define SHERR_DUMP_SD_TRIGGER_DDL_ERROR 52033
 #define SHERR_DUMP_SD_TRIGGER_DDL_ERROR_MSG \

@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <functional>
 #include <map>
 #include <optional>
@@ -647,19 +648,6 @@ std::string test_if_able_to_force_innodb(
   return {};
 }
 
-std::string engine_from_create_table(const std::string &create_table) {
-  auto engine = compatibility::check_create_table_for_engine_option(
-      create_table, nullptr);
-
-  // if engine is empty, table is already using InnoDB, otherwise `engine`
-  // holds the current engine
-  if (engine.empty()) {
-    return std::string{k_innodb_engine};
-  } else {
-    return engine;
-  }
-}
-
 }  // namespace
 
 void Schema_dumper::write_header(IFile *sql_file) {
@@ -856,33 +844,7 @@ int Schema_dumper::query_with_binary_charset(
 void Schema_dumper::fetch_db_collation(const std::string &db,
                                        std::string *out_db_cl_name,
                                        bool replace_unknown_collation) {
-  if (m_cache) {
-    *out_db_cl_name = m_cache->schemas.at(db).default_collation;
-  } else {
-    bool err_status = false;
-
-    use(db);
-    auto db_cl_res = query_log_and_throw("select @@collation_database");
-
-    do {
-      auto row = db_cl_res->fetch_one();
-      if (!row) {
-        err_status = true;
-        break;
-      }
-
-      *out_db_cl_name = row->get_string(0);
-
-      if (db_cl_res->fetch_one() != nullptr) {
-        err_status = true;
-        break;
-      }
-    } while (false);
-
-    if (err_status) {
-      THROW_ERROR(SHERR_DUMP_SD_COLLATION_DATABASE_ERROR);
-    }
-  }
+  *out_db_cl_name = m_cache.schemas.at(db).default_collation;
 
   // BUG#38089433 - if database is using an unknown collation we need to replace
   // it with the mapped one in order to keep collations in sync
@@ -1044,10 +1006,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
                 "\n--\n-- Dumping events for database '%s'\n--\n",
                 text.c_str());
 
-  const auto events = get_events(db);
-
-  strcpy(delimiter, ";");
-  if (!events.empty()) {
+  if (const auto &events = get_events(db); !events.empty()) {
     fputs("/*!50106 SET @save_time_zone= @@TIME_ZONE */ ;\n\n", sql_file);
 
     /* Get database collation. */
@@ -1070,15 +1029,17 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
           if the user has EXECUTE privilege he can see event names, but not
           the event body!
         */
-        std::string field3 = row->get_string(3);
-        if (!field3.empty()) {
+        if (const auto event_ddl = row->get_string(3); !event_ddl.empty()) {
           Object_guard_msg guard(sql_file, "event", db, event_name);
+
+          strcpy(delimiter, ";");
+
           if (opt_drop_event)
             fprintf(sql_file, "/*!50106 DROP EVENT IF EXISTS %s */%s\n",
                     event_name.c_str(), delimiter);
 
-          if (create_delimiter(field3.c_str(), delimiter, sizeof(delimiter)) ==
-              nullptr) {
+          if (create_delimiter(event_ddl.c_str(), delimiter,
+                               sizeof(delimiter)) == nullptr) {
             fprintf(stderr, "Warning: Can't create delimiter for event %s\n",
                     qualified_name.c_str());
             THROW_ERROR(SHERR_DUMP_SD_CANNOT_CREATE_DELIMITER,
@@ -1133,8 +1094,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
 
           switch_time_zone(sql_file, delimiter, row->get_string(2).c_str());
 
-          auto ces = opt_reexecutable ? fixup_event_ddl(row->get_string(3))
-                                      : row->get_string(3);
+          auto ces = opt_reexecutable ? fixup_event_ddl(event_ddl) : event_ddl;
 
           check_object_for_definer(Compatibility_issue::Object_type::EVENT,
                                    qualified_name, &ces, &res);
@@ -1152,14 +1112,14 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_for_db(
               restore_db_collation(sql_file, db_name.c_str(), delimiter,
                                    db_cl_name.c_str());
           }
+
+          fputs("DELIMITER ;\n", sql_file);
         }
       } /* end of event printing */
     }
+
     /* end of list of events */
-    {
-      fputs("DELIMITER ;\n", sql_file);
-      fputs("/*!50106 SET TIME_ZONE= @save_time_zone */ ;\n", sql_file);
-    }
+    fputs("/*!50106 SET TIME_ZONE= @save_time_zone */ ;\n", sql_file);
 
     switch_character_set_results(opt_character_set_results.c_str());
   }
@@ -1296,9 +1256,9 @@ std::vector<Compatibility_issue> Schema_dumper::dump_routines_for_db(
           check_routine_for_dependencies(db, routine, routine_type.second,
                                          &res);
 
-          if (m_cache) {
+          {
             // BUG#38089433 - handle unsupported collations
-            const auto &s = m_cache->schemas.at(db);
+            const auto &s = m_cache.schemas.at(db);
             const auto &r = (Compatibility_issue::Object_type::FUNCTION ==
                                      routine_type.second
                                  ? s.functions
@@ -1352,7 +1312,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_libraries_for_db(
                 "\n--\n-- Dumping libraries for database '%s'\n--\n\n",
                 fix_identifier_with_newline(db).c_str());
 
-  const auto libraries = get_libraries(db);
+  const auto &libraries = get_libraries(db);
 
   if (libraries.empty()) {
     return {};
@@ -1445,9 +1405,7 @@ std::vector<Compatibility_issue> Schema_dumper::check_ct_for_mysqlaas(
   }
 
   if (opt_mysqlaas || opt_force_innodb) {
-    const auto &engine = m_cache
-                             ? m_cache->schemas.at(db).tables.at(table).engine
-                             : engine_from_create_table(*create_table);
+    const auto &engine = m_cache.schemas.at(db).tables.at(table).engine;
     const auto is_innodb = shcore::str_caseeq(engine, k_innodb_engine);
 
     // NOTE: we're updating `create_table` regardless of the configuration
@@ -1552,11 +1510,6 @@ void Schema_dumper::check_object_for_definer(
           object, qualified_name));
     } else {
       if (set_any_definer.supported) {
-        if (!m_cache) {
-          throw std::logic_error(
-              "check_object_for_definer() requires cache to be set");
-        }
-
         const auto account = shcore::split_account(user);
 
         if (compatibility::k_mds_users_with_system_user_priv.count(
@@ -1566,16 +1519,15 @@ void Schema_dumper::check_object_for_definer(
                   object, qualified_name, user));
         }
 
-        if (m_cache->users.empty()) {
+        if (m_cache.users.empty()) {
           if (!m_non_existing_definer_reported) {
             issues->emplace_back(Compatibility_issue::warning::
                                      object_invalid_definer_users_not_dumped());
             m_non_existing_definer_reported = true;
           }
         } else {
-          if (m_cache->users.end() == std::find(m_cache->users.begin(),
-                                                m_cache->users.end(),
-                                                account)) {
+          if (m_cache.users.end() ==
+              std::find(m_cache.users.begin(), m_cache.users.end(), account)) {
             issues->emplace_back(Compatibility_issue::warning::
                                      object_invalid_definer_missing_user(
                                          object, qualified_name, user));
@@ -1730,37 +1682,8 @@ std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
           This will not be necessary once we can determine dependencies
           between views and can simply dump them in the appropriate order.
         */
-        std::vector<Instance_cache::Column> columns;
-
-        if (!m_cache) {
-          mysqlshdk::db::Error err;
-
-          if (query_with_binary_charset("SHOW FIELDS FROM " + result_table,
-                                        &result, &err)) {
-            /*
-              View references invalid or privileged table/col/fun (err 1356),
-              so we cannot create a stand-in table.  Be defensive and dump
-              a comment with the view's 'show create' statement. (Bug #17371)
-            */
-
-            if (err.code() == ER_VIEW_INVALID)
-              fprintf(sql_file, "\n-- failed on view %s: %s\n\n",
-                      result_table.c_str(), create_table.c_str());
-
-            THROW_ERROR(SHERR_DUMP_SD_SHOW_FIELDS_FAILED, result_table.c_str());
-          }
-
-          while ((row = result->fetch_one())) {
-            Instance_cache::Column column;
-            column.name = row->get_string(0);
-            column.quoted_name = shcore::quote_identifier(column.name);
-            columns.emplace_back(std::move(column));
-          }
-        }
-
         const auto &all_columns =
-            m_cache ? m_cache->schemas.at(db).views.at(table).all_columns
-                    : columns;
+            m_cache.schemas.at(db).views.at(table).all_columns;
 
         if (!all_columns.empty()) {
           if (opt_drop_view) {
@@ -1828,9 +1751,9 @@ std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
 
       res = check_ct_for_mysqlaas(db, table, &create_table);
 
-      if (m_cache) {
+      {
         // BUG#38089433 - handle unsupported collations
-        const auto &t = m_cache->schemas.at(db).tables.at(table);
+        const auto &t = m_cache.schemas.at(db).tables.at(table);
         const auto quoted = quote(db, table);
 
         DBUG_EXECUTE_IF("dumper_unsupported_collation",
@@ -1863,28 +1786,8 @@ std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
     }
 
     if (opt_create_invisible_pks) {
-      std::vector<Instance_cache::Column> columns;
-
-      if (!m_cache) {
-        result = query_log_and_throw("show fields from " + result_table);
-
-        while (auto row = result->fetch_one()) {
-          Instance_cache::Column column;
-          column.name = row->get_string(SHOW_FIELDNAME);
-
-          if (!row->is_null(SHOW_EXTRA)) {
-            column.auto_increment =
-                row->get_string(SHOW_EXTRA).find(auto_increment) !=
-                std::string::npos;
-          }
-
-          columns.emplace_back(std::move(column));
-        }
-      }
-
       const auto &all_columns =
-          m_cache ? m_cache->schemas.at(db).tables.at(table).all_columns
-                  : columns;
+          m_cache.schemas.at(db).tables.at(table).all_columns;
 
       for (const auto &column : all_columns) {
         has_auto_increment |= column.auto_increment;
@@ -1893,15 +1796,7 @@ std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
     }
 
     if (opt_mysqlaas || opt_create_invisible_pks || opt_ignore_missing_pks) {
-      if (m_cache) {
-        has_pk = m_cache->schemas.at(db).tables.at(table).primary_key;
-      } else {
-        result = query_log_and_throw(shcore::sqlformat(
-            "SELECT COUNT(*) FROM information_schema.statistics WHERE "
-            "INDEX_NAME='PRIMARY' AND TABLE_SCHEMA=? AND TABLE_NAME=?",
-            db, table));
-        has_pk = result->fetch_one()->get_int(0) > 0;
-      }
+      has_pk = m_cache.schemas.at(db).tables.at(table).primary_key;
     }
   } else {
     // the SQL_QUOTE_SHOW_CREATE system variable was added in 3.23.26, we should
@@ -2042,28 +1937,9 @@ std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
           check_io(sql_file);
         };
 
-        if (m_cache) {
-          const auto &t = m_cache->schemas.at(db).tables.at(table);
+        {
+          const auto &t = m_cache.schemas.at(db).tables.at(table);
           write_options(t.engine, t.create_options, t.comment);
-        } else {
-          mysqlshdk::db::Row_ref_by_name row;
-          if (query_no_throw("show table status like " + quote_for_like(table),
-                             &result, &err)) {
-            if (err.code() != ER_PARSE_ERROR) { /* If old MySQL version */
-              log_debug(
-                  "-- Warning: Couldn't get status information for "
-                  "table %s (%s)",
-                  result_table.c_str(), err.format().c_str());
-            }
-          } else if (!(row = result->fetch_one_named())) {
-            fprintf(stderr,
-                    "Error: Couldn't read status information for table %s\n",
-                    result_table.c_str());
-          } else {
-            write_options(row.get_string("Engine"),
-                          row.get_string("Create_options"),
-                          row.get_string("Comment"));
-          }
         }
       }
     continue_xml:
@@ -2073,16 +1949,8 @@ std::vector<Compatibility_issue> Schema_dumper::get_table_structure(
   }
 
   if (opt_create_invisible_pks) {
-    if (m_cache) {
-      has_partitions =
-          !m_cache->schemas.at(db).tables.at(table).partitions.empty();
-    } else {
-      result = query_log_and_throw(shcore::sqlformat(
-          "SELECT COUNT(*) FROM information_schema.partitions WHERE "
-          "TABLE_SCHEMA=? AND TABLE_NAME=? AND PARTITION_NAME IS NOT NULL",
-          db, table));
-      has_partitions = result->fetch_one_or_throw()->get_uint(0);
-    }
+    has_partitions =
+        !m_cache.schemas.at(db).tables.at(table).partitions.empty();
   }
 
   if (!has_pk) {
@@ -2218,8 +2086,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_triggers_for_table(
   fetch_db_collation(db, &db_cl_name);
 
   /* Get list of triggers. */
-
-  const auto triggers = get_triggers(db, table);
+  const auto &triggers = get_triggers(db, table);
 
   /* Dump triggers. */
   if (!triggers.empty())
@@ -2251,50 +2118,9 @@ std::vector<Compatibility_issue> Schema_dumper::dump_triggers_for_table(
   return res;
 }
 
-std::vector<Instance_cache::Histogram> Schema_dumper::get_histograms(
+const std::vector<Instance_cache::Histogram> &Schema_dumper::get_histograms(
     const std::string &db_name, const std::string &table_name) {
-  std::vector<Instance_cache::Histogram> histograms;
-
-  if (m_cache) {
-    histograms = m_cache->schemas.at(db_name).tables.at(table_name).histograms;
-  } else if (m_mysql->get_server_version() >=
-             mysqlshdk::utils::Version(8, 0, 0)) {
-    char query_buff[QUERY_LENGTH * 3 / 2];
-    const auto old_ansi_quotes_mode = ansi_quotes_mode;
-    const auto escaped_db = m_mysql->escape_string(db_name);
-    const auto escaped_table = m_mysql->escape_string(table_name);
-
-    switch_character_set_results("binary");
-
-    /* Get list of columns with statistics. */
-    snprintf(query_buff, sizeof(query_buff),
-             "SELECT COLUMN_NAME, "
-             "JSON_EXTRACT(HISTOGRAM, '$.\"number-of-buckets-specified\"') "
-             "FROM information_schema.COLUMN_STATISTICS "
-             "WHERE SCHEMA_NAME = '%s' AND TABLE_NAME = '%s';",
-             escaped_db.c_str(), escaped_table.c_str());
-
-    const auto column_statistics_rs = query_log_and_throw(query_buff);
-
-    while (auto row = column_statistics_rs->fetch_one()) {
-      Instance_cache::Histogram histogram;
-
-      histogram.column = row->get_string(0);
-      histogram.buckets = shcore::lexical_cast<std::size_t>(row->get_string(1));
-
-      histograms.emplace_back(std::move(histogram));
-    }
-
-    switch_character_set_results(opt_character_set_results.c_str());
-
-    /*
-      make sure to set back ansi_quotes_mode mode to
-      original value
-    */
-    ansi_quotes_mode = old_ansi_quotes_mode;
-  }
-
-  return histograms;
+  return m_cache.schemas.at(db_name).tables.at(table_name).histograms;
 }
 
 void Schema_dumper::dump_column_statistics_for_table(
@@ -2541,24 +2367,7 @@ int Schema_dumper::dump_tablespaces(IFile *file, const std::string &ts_where) {
 }
 
 int Schema_dumper::is_ndbinfo(const std::string &dbname) {
-  if (!checked_ndbinfo) {
-    checked_ndbinfo = 1;
-
-    if (m_cache) {
-      have_ndbinfo = m_cache->has_ndbinfo;
-    } else {
-      std::shared_ptr<mysqlshdk::db::IResult> res;
-      if (query_no_throw(
-              "SHOW VARIABLES LIKE " + quote_for_like("ndbinfo_version"), &res))
-        return 0;
-
-      if (!res->fetch_one()) return 0;
-
-      have_ndbinfo = 1;
-    }
-  }
-
-  if (!have_ndbinfo) return 0;
+  if (!m_cache.has_ndbinfo) return 0;
 
   if (dbname == "ndbinfo") return 1;
 
@@ -2673,41 +2482,13 @@ char Schema_dumper::check_if_ignore_table(const std::string &db,
                                           std::string *out_table_type) {
   char result = IGNORE_NONE;
 
-  std::shared_ptr<mysqlshdk::db::IResult> res;
+  {
+    const auto &tables = m_cache.schemas.at(db).tables;
 
-  if (m_cache) {
-    const auto &schema = m_cache->schemas.at(db);
-    const auto it = schema.tables.find(table_name);
-
-    if (it == schema.tables.end()) {
+    if (const auto it = tables.find(table_name); it == tables.end()) {
       *out_table_type = "VIEW";
     } else {
       *out_table_type = it->second.engine;
-    }
-  } else {
-    try {
-      res = m_mysql->query("show table status like " +
-                           quote_for_like(table_name));
-    } catch (const mysqlshdk::db::Error &e) {
-      if (e.code() != ER_PARSE_ERROR) { /* If old MySQL version */
-        log_debug(
-            "-- Warning: Couldn't get status information for "
-            "table %s (%s)",
-            table_name.c_str(), e.format().c_str());
-        return result; /* assume table is ok */
-      }
-      throw;
-    }
-    auto row = res->fetch_one();
-    if (!row) {
-      log_error("Error: Couldn't read status information for table %s\n",
-                table_name.c_str());
-      return result; /* assume table is ok */
-    }
-    if (row->is_null(1)) {
-      *out_table_type = "VIEW";
-    } else {
-      *out_table_type = row->get_string(1);
     }
   }
 
@@ -2906,85 +2687,51 @@ std::vector<Compatibility_issue> Schema_dumper::get_view_structure(
   fprintf(sql_file, "/*!50001 DROP VIEW IF EXISTS %s*/;\n",
           result_table.c_str());
 
-  if (!m_cache &&
-      query_with_binary_charset(
-          shcore::sqlformat("SELECT CHECK_OPTION, DEFINER, SECURITY_TYPE, "
-                            "CHARACTER_SET_CLIENT, COLLATION_CONNECTION "
-                            "FROM information_schema.views "
-                            "WHERE table_name=? AND table_schema=?",
-                            table, db),
-          &infoschema_res)) {
-    /*
-      Use the raw output from SHOW CREATE TABLE if
-       information_schema query fails.
-     */
-    auto row = table_res->fetch_one();
-    fprintf(sql_file, "/*!50001 %s */;\n", row->get_string(1).c_str());
-    check_io(sql_file);
-  } else {
-    std::string ds_view;
+  /* Save the result of SHOW CREATE TABLE in ds_view */
+  auto ds_view = table_res->fetch_one()->get_string(1);
 
-    {
-      /* Save the result of SHOW CREATE TABLE in ds_view */
-      const auto row = table_res->fetch_one();
-      ds_view = row->get_string(1);
-    }
+  const auto &view = m_cache.schemas.at(db).views.at(table);
+  const auto &client_cs = view.character_set_client;
+  auto connection_col = view.collation_connection;
 
-    std::string client_cs;
-    std::string connection_col;
+  const auto qualified_name = quote(db, table);
 
-    if (m_cache) {
-      const auto &view = m_cache->schemas.at(db).views.at(table);
-      client_cs = view.character_set_client;
-      connection_col = view.collation_connection;
-    } else {
-      const auto row = infoschema_res->fetch_one();
+  check_object_for_definer(Compatibility_issue::Object_type::VIEW,
+                           qualified_name, &ds_view, &res);
+  check_view_for_table_references(db, table, invalid_definition, &res);
 
-      /* Get the result from "select ... information_schema" */
-      if (!row) {
-        THROW_ERROR(SHERR_DUMP_SD_SHOW_CREATE_VIEW_EMPTY, result_table.c_str());
-      }
+  // BUG#38089433 - handle unsupported collations
+  handle_collation_update_variable(Compatibility_issue::Object_type::VIEW,
+                                   qualified_name, "COLLATION_CONNECTION",
+                                   &connection_col, &res);
 
-      client_cs = row->get_string(3);
-      connection_col = row->get_string(4);
-    }
+  /* Dump view structure to file */
+  fprintf(
+      sql_file,
+      "/*!50001 SET @saved_cs_client          = @@character_set_client */;\n"
+      "/*!50001 SET @saved_cs_results         = @@character_set_results */;\n"
+      "/*!50001 SET @saved_col_connection     = @@collation_connection */;\n"
+      "/*!50001 SET character_set_client      = %s */;\n"
+      "/*!50001 SET character_set_results     = %s */;\n"
+      "/*!50001 SET collation_connection      = %s */;\n"
+      "/*!50001 %s */;\n"
+      "/*!50001 SET character_set_client      = @saved_cs_client */;\n"
+      "/*!50001 SET character_set_results     = @saved_cs_results */;\n"
+      "/*!50001 SET collation_connection      = @saved_col_connection */;\n",
+      client_cs.c_str(), client_cs.c_str(), connection_col.c_str(),
+      ds_view.c_str());
 
-    const auto qualified_name = quote(db, table);
-
-    check_object_for_definer(Compatibility_issue::Object_type::VIEW,
-                             qualified_name, &ds_view, &res);
-    check_view_for_table_references(db, table, invalid_definition, &res);
-
-    // BUG#38089433 - handle unsupported collations
-    handle_collation_update_variable(Compatibility_issue::Object_type::VIEW,
-                                     qualified_name, "COLLATION_CONNECTION",
-                                     &connection_col, &res);
-
-    /* Dump view structure to file */
-    fprintf(
-        sql_file,
-        "/*!50001 SET @saved_cs_client          = @@character_set_client */;\n"
-        "/*!50001 SET @saved_cs_results         = @@character_set_results */;\n"
-        "/*!50001 SET @saved_col_connection     = @@collation_connection */;\n"
-        "/*!50001 SET character_set_client      = %s */;\n"
-        "/*!50001 SET character_set_results     = %s */;\n"
-        "/*!50001 SET collation_connection      = %s */;\n"
-        "/*!50001 %s */;\n"
-        "/*!50001 SET character_set_client      = @saved_cs_client */;\n"
-        "/*!50001 SET character_set_results     = @saved_cs_results */;\n"
-        "/*!50001 SET collation_connection      = @saved_col_connection */;\n",
-        client_cs.c_str(), client_cs.c_str(), connection_col.c_str(),
-        ds_view.c_str());
-
-    check_io(sql_file);
-  }
+  check_io(sql_file);
 
   return res;
 }
 
 Schema_dumper::Schema_dumper(
-    const std::shared_ptr<mysqlshdk::db::ISession> &mysql)
-    : m_mysql(mysql), default_charset(MYSQL_UNIVERSAL_CLIENT_CHARSET) {}
+    const std::shared_ptr<mysqlshdk::db::ISession> &mysql,
+    const Instance_cache &cache)
+    : m_mysql(mysql),
+      default_charset(MYSQL_UNIVERSAL_CLIENT_CHARSET),
+      m_cache(cache) {}
 
 void Schema_dumper::dump_all_tablespaces_ddl(IFile *file) {
   dump_all_tablespaces(file);
@@ -3101,18 +2848,9 @@ std::vector<Compatibility_issue> Schema_dumper::dump_view_ddl(
   }
 }
 
-int Schema_dumper::count_triggers_for_table(const std::string &db,
+int Schema_dumper::count_triggers_for_table(const std::string &schema,
                                             const std::string &table) {
-  if (m_cache) {
-    return m_cache->schemas.at(db).tables.at(table).triggers.size();
-  } else {
-    const auto res = query_log_error(
-        "select count(TRIGGER_NAME) from information_schema.triggers where "
-        "TRIGGER_SCHEMA = ? and EVENT_OBJECT_TABLE = ?;",
-        db.c_str(), table.c_str());
-    if (auto row = res->fetch_one()) return row->get_int(0);
-    THROW_ERROR(SHERR_DUMP_SD_TRIGGER_COUNT_ERROR, db.c_str(), table.c_str());
-  }
+  return m_cache.schemas.at(schema).tables.at(table).triggers.size();
 }
 
 std::vector<Compatibility_issue> Schema_dumper::dump_triggers_for_table_ddl(
@@ -3128,25 +2866,9 @@ std::vector<Compatibility_issue> Schema_dumper::dump_triggers_for_table_ddl(
   }
 }
 
-std::vector<std::string> Schema_dumper::get_triggers(const std::string &db,
-                                                     const std::string &table) {
-  std::vector<std::string> triggers;
-
-  if (m_cache) {
-    for (const auto &trigger :
-         m_cache->schemas.at(db).tables.at(table).triggers) {
-      triggers.emplace_back(trigger);
-    }
-  } else {
-    use(db);
-    auto show_triggers_rs =
-        query_log_and_throw("SHOW TRIGGERS LIKE " + quote_for_like(table));
-
-    while (auto row = show_triggers_rs->fetch_one()) {
-      triggers.emplace_back(row->get_string(0));
-    }
-  }
-  return triggers;
+const std::vector<std::string> &Schema_dumper::get_triggers(
+    const std::string &db, const std::string &table) {
+  return m_cache.schemas.at(db).tables.at(table).triggers;
 }
 
 std::vector<Compatibility_issue> Schema_dumper::dump_events_ddl(
@@ -3160,22 +2882,9 @@ std::vector<Compatibility_issue> Schema_dumper::dump_events_ddl(
   }
 }
 
-std::vector<std::string> Schema_dumper::get_events(const std::string &db) {
-  std::vector<std::string> events;
-
-  if (m_cache) {
-    for (const auto &event : m_cache->schemas.at(db).events) {
-      events.emplace_back(event);
-    }
-  } else {
-    use(db);
-    auto event_res = query_log_and_throw("show events");
-
-    while (auto row = event_res->fetch_one()) {
-      events.emplace_back(row->get_string(1));
-    }
-  }
-  return events;
+const std::unordered_set<std::string> &Schema_dumper::get_events(
+    const std::string &db) {
+  return m_cache.schemas.at(db).events;
 }
 
 std::vector<Compatibility_issue> Schema_dumper::dump_routines_ddl(
@@ -3193,66 +2902,26 @@ std::vector<std::string> Schema_dumper::get_routines(const std::string &db,
                                                      const std::string &type) {
   std::vector<std::string> routine_list;
 
-  if (m_cache) {
-    const auto &schema = m_cache->schemas.at(db);
-    const auto &routines =
-        "PROCEDURE" == type ? schema.procedures : schema.functions;
+  const auto &schema = m_cache.schemas.at(db);
+  const auto &routines =
+      "PROCEDURE" == type ? schema.procedures : schema.functions;
 
-    for (const auto &routine : routines) {
-      routine_list.emplace_back(routine.first);
-    }
-  } else {
-    use(db);
-
-    shcore::sqlstring query(
-        shcore::str_format("SHOW %s STATUS WHERE Db = ?", type.c_str()), 0);
-    query << db;
-
-    auto routine_list_res = query_log_and_throw(query.str());
-
-    while (auto routine_list_row = routine_list_res->fetch_one()) {
-      routine_list.emplace_back(routine_list_row->get_string(1));
-    }
+  for (const auto &routine : routines) {
+    routine_list.emplace_back(routine.first);
   }
 
   return routine_list;
 }
 
-std::vector<Instance_cache::Routine::Library_reference>
-Schema_dumper::get_routine_dependencies(const std::string &db,
-                                        const std::string &routine,
-                                        const std::string_view type) {
-  std::vector<Instance_cache::Routine::Library_reference> dependency_list;
+const std::vector<Instance_cache::Routine::Library_reference>
+    &Schema_dumper::get_routine_dependencies(const std::string &db,
+                                             const std::string &routine,
+                                             const std::string_view type) {
+  const auto &schema = m_cache.schemas.at(db);
+  const auto &routines =
+      "PROCEDURE" == type ? schema.procedures : schema.functions;
 
-  if (m_cache) {
-    const auto &schema = m_cache->schemas.at(db);
-    const auto &routines =
-        "PROCEDURE" == type ? schema.procedures : schema.functions;
-
-    dependency_list = routines.at(routine).library_references;
-  } else if (compatibility::supports_library_ddl(
-                 m_mysql->get_server_version())) {
-    const auto dependency_list_res = query_log_and_throw(shcore::sqlformat(
-        "SELECT"
-        " IFNULL(l.library_schema, rl.library_schema),"
-        " IFNULL(l.library_name, rl.library_name),"
-        " l.library_schema IS NOT NULL "
-        "FROM information_schema.routine_libraries AS rl"
-        " LEFT JOIN information_schema.libraries AS l"
-        " ON rl.library_schema=l.library_schema"
-        " AND rl.library_name=l.library_name "
-        "WHERE ROUTINE_SCHEMA=? AND ROUTINE_NAME=? AND ROUTINE_TYPE=?",
-        db, routine, type));
-
-    while (const auto dependency_list_row = dependency_list_res->fetch_one()) {
-      dependency_list.emplace_back(Instance_cache::Routine::Library_reference{
-          dependency_list_row->get_string(0),
-          dependency_list_row->get_string(1),
-          1 == dependency_list_row->get_int(2)});
-    }
-  }
-
-  return dependency_list;
+  return routines.at(routine).library_references;
 }
 
 std::vector<Compatibility_issue> Schema_dumper::dump_libraries_ddl(
@@ -3266,28 +2935,9 @@ std::vector<Compatibility_issue> Schema_dumper::dump_libraries_ddl(
   }
 }
 
-std::vector<std::string> Schema_dumper::get_libraries(const std::string &db) {
-  std::vector<std::string> library_list;
-
-  if (m_cache) {
-    const auto &schema = m_cache->schemas.at(db);
-
-    for (const auto &library : schema.libraries) {
-      library_list.emplace_back(library);
-    }
-  } else if (compatibility::supports_library_ddl(
-                 m_mysql->get_server_version())) {
-    const auto library_list_res = query_log_and_throw(shcore::sqlformat(
-        "SELECT LIBRARY_NAME FROM INFORMATION_SCHEMA.LIBRARIES WHERE "
-        "LIBRARY_SCHEMA=? ORDER BY LIBRARY_NAME",
-        db));
-
-    while (const auto library_list_row = library_list_res->fetch_one()) {
-      library_list.emplace_back(library_list_row->get_string(0));
-    }
-  }
-
-  return library_list;
+const std::unordered_set<std::string> &Schema_dumper::get_libraries(
+    const std::string &db) {
+  return m_cache.schemas.at(db).libraries;
 }
 
 namespace {
@@ -3366,7 +3016,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_grants(IFile *file) {
 
   fputs("--\n-- Dumping user accounts\n--\n\n", file);
 
-  const auto roles = get_roles();
+  const auto &roles = m_cache.roles;
   const auto is_role = [&roles](const shcore::Account &a) {
     return roles.end() != std::find(roles.begin(), roles.end(), a);
   };
@@ -3391,9 +3041,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_grants(IFile *file) {
     return all_grants_5_6.at(u);
   };
 
-  const auto is_5_6 = m_cache
-                          ? m_cache->server.version.is_5_6
-                          : m_mysql->get_server_version() < Version(5, 7, 0);
+  const auto is_5_6 = m_cache.server.version.is_5_6;
   const auto &get_grants = is_5_6 ? get_grants_5_6 : get_grants_all;
 
   using get_create_user_t = std::function<std::string(const std::string &)>;
@@ -3442,7 +3090,7 @@ std::vector<Compatibility_issue> Schema_dumper::dump_grants(IFile *file) {
 
   std::vector<std::string> users;
 
-  for (const auto &u : get_users()) {
+  for (const auto &u : m_cache.users) {
     const auto user = shcore::make_account(u);
 
     if (u.user.find('\'') != std::string::npos) {
@@ -3836,66 +3484,6 @@ std::vector<Compatibility_issue> Schema_dumper::dump_grants(IFile *file) {
   return problems;
 }
 
-std::vector<shcore::Account> Schema_dumper::get_users() {
-  if (m_cache) {
-    return m_cache->users;
-  }
-
-  try {
-    // mysql.user holds the account information data, but some users do not have
-    // access to this table, in such case fall back to
-    // information_schema.user_privileges, though on servers < 8.0.17, the
-    // grantee column is too short and the host name can be truncated
-    return fetch_users("SELECT DISTINCT user, host from mysql.user", "", false);
-  } catch (const mysqlshdk::db::Error &e) {
-    if (m_mysql->get_server_version() < Version(8, 0, 17)) {
-      log_warning(
-          "Failed to get account information from the mysql.user table: %s. "
-          "Falling back to information_schema.user_privileges, data might be "
-          "inaccurate if the host name is too long.",
-          e.format().c_str());
-    }
-
-    constexpr auto users_query =
-        "SELECT * FROM (SELECT DISTINCT "
-        "SUBSTR(grantee, 2, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))-2)"
-        " AS user, "
-        "SUBSTR(grantee, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))+3,"
-        " LOCATE('@', REVERSE(grantee))-3) AS host "
-        "FROM information_schema.user_privileges) AS user";
-
-    return fetch_users(users_query, "");
-  }
-}
-
-std::vector<shcore::Account> Schema_dumper::get_roles() {
-  if (m_cache) {
-    return m_cache->roles;
-  }
-
-  if (m_mysql->get_server_version() < Version(8, 0, 0)) {
-    return {};
-  }
-
-  try {
-    // check if server supports roles
-    m_mysql->query("SELECT @@GLOBAL.activate_all_roles_on_login");
-  } catch (const mysqlshdk::db::Error &e) {
-    if (ER_UNKNOWN_SYSTEM_VARIABLE == e.code()) {
-      // roles are not supported
-      current_console()->print_warning("Failed to fetch role information.");
-      return {};
-    } else {
-      // report any other error
-      throw;
-    }
-  }
-
-  return fetch_users("SELECT DISTINCT user, host FROM mysql.user",
-                     "authentication_string='' AND account_locked='Y' AND "
-                     "password_expired='Y'");
-}
-
 std::vector<Schema_dumper::User_statements>
 Schema_dumper::preprocess_users_script(
     const std::string &script,
@@ -4030,55 +3618,8 @@ Schema_dumper::preprocess_users_script(
   return result;
 }
 
-std::vector<shcore::Account> Schema_dumper::fetch_users(
-    const std::string &select, const std::string &where, bool log_error) {
-  std::string where_filter = where;
-
-  if (!where_filter.empty()) {
-    where_filter += " ";
-  }
-
-  if (const auto user_where = mysqlshdk::db::utils::build_user_where(
-          m_filters ? m_filters->users() : Filtering_options::User_filters{});
-      !user_where.empty()) {
-    if (!where_filter.empty()) {
-      where_filter += "AND ";
-    }
-    where_filter += user_where;
-  }
-
-  if (!where_filter.empty()) {
-    where_filter = " WHERE " + where_filter;
-  }
-
-  auto users_res = log_error ? query_log_and_throw(select + where_filter)
-                             : m_mysql->query(select + where_filter);
-
-  std::set<shcore::Account> users;
-
-  while (const auto u = users_res->fetch_one()) {
-    shcore::Account account;
-    account.user = u->get_string(0);
-    account.host = u->get_string(1);
-    users.emplace(std::move(account));
-  }
-
-  return {std::make_move_iterator(users.begin()),
-          std::make_move_iterator(users.end())};
-}
-
 bool Schema_dumper::partial_revokes() const {
-  if (m_cache) {
-    return m_cache->server.sysvars.partial_revokes.value_or(false);
-  }
-
-  if (!m_partial_revokes.has_value()) {
-    m_partial_revokes = mysqlshdk::mysql::Instance(m_mysql)
-                            .get_sysvar_bool("partial_revokes")
-                            .value_or(false);
-  }
-
-  return *m_partial_revokes;
+  return m_cache.server.sysvars.partial_revokes.value_or(false);
 }
 
 Schema_dumper::Version_dependent_check Schema_dumper::set_any_definer_check()
@@ -4126,15 +3667,11 @@ std::vector<std::string> Schema_dumper::strip_restricted_grants(
 void Schema_dumper::check_view_for_table_references(
     const std::string &db, const std::string &name, bool has_invalid_definition,
     std::vector<Compatibility_issue> *issues) const {
-  if (!m_cache) {
-    return;
-  }
-
-  assert(m_cache->server.sysvars.lower_case_table_names >= 0 &&
-         m_cache->server.sysvars.lower_case_table_names <= 2);
+  assert(m_cache.server.sysvars.lower_case_table_names >= 0 &&
+         m_cache.server.sysvars.lower_case_table_names <= 2);
 
   const auto case_insensitive_search =
-      2 == m_cache->server.sysvars.lower_case_table_names;
+      2 == m_cache.server.sysvars.lower_case_table_names;
   const auto qualified_name = quote(db, name);
 
   // NOTE: Invalid views (i.e. referencing non-existing tables/columns) are
@@ -4148,11 +3685,11 @@ void Schema_dumper::check_view_for_table_references(
   }
 
   for (const auto &ref :
-       m_cache->schemas.at(db).views.at(name).table_references) {
+       m_cache.schemas.at(db).views.at(name).table_references) {
     bool included = false;
 
-    if (const auto schema = m_cache->schemas.find(ref.schema);
-        m_cache->schemas.end() != schema) {
+    if (const auto schema = m_cache.schemas.find(ref.schema);
+        m_cache.schemas.end() != schema) {
       if (schema->second.tables.contains(ref.table) ||
           schema->second.views.contains(ref.table)) {
         included = true;
@@ -4163,8 +3700,8 @@ void Schema_dumper::check_view_for_table_references(
       bool found = false;
 
       if (const auto schema =
-              m_cache->schemas_lowercase.find(shcore::utf8_lower(ref.schema));
-          m_cache->schemas_lowercase.end() != schema) {
+              m_cache.schemas_lowercase.find(shcore::utf8_lower(ref.schema));
+          m_cache.schemas_lowercase.end() != schema) {
         const auto table_lowercase = shcore::utf8_lower(ref.table);
 
         if (schema->second->tables_lowercase.contains(table_lowercase) ||
@@ -4196,12 +3733,12 @@ void Schema_dumper::check_routine_for_dependencies(
     const std::string &db, const std::string &name,
     Compatibility_issue::Object_type type,
     std::vector<Compatibility_issue> *issues) const {
-  if (!m_cache || !m_filters) {
+  if (!m_filters) {
     return;
   }
 
   const auto qualified_name = quote(db, name);
-  const auto &schema = m_cache->schemas.at(db);
+  const auto &schema = m_cache.schemas.at(db);
   const auto &routine =
       (Compatibility_issue::Object_type::PROCEDURE == type ? schema.procedures
                                                            : schema.functions)
@@ -4231,27 +3768,23 @@ bool Schema_dumper::is_library_included(const std::string &schema,
     return false;
   }
 
-  // if there's no cache, we assume that library is being dumped
-  if (m_cache) {
-    if (const auto s = m_cache->schemas.find(schema);
-        m_cache->schemas.end() != s) {
-      const auto &libraries = s->second.libraries;
+  if (const auto s = m_cache.schemas.find(schema); m_cache.schemas.end() != s) {
+    const auto &libraries = s->second.libraries;
 
-      if (!libraries.contains(library)) {
-        // case-sensitive match failed, try case-insensitive one
-        if (libraries.end() ==
-            std::find_if(libraries.begin(), libraries.end(),
-                         [library_ci = shcore::utf8_lower(library)](
-                             const std::string &l) {
-                           return library_ci == shcore::utf8_lower(l);
-                         })) {
-          return false;
-        }
+    if (!libraries.contains(library)) {
+      // case-sensitive match failed, try case-insensitive one
+      if (libraries.end() ==
+          std::find_if(
+              libraries.begin(), libraries.end(),
+              [library_ci = shcore::utf8_lower(library)](const std::string &l) {
+                return library_ci == shcore::utf8_lower(l);
+              })) {
+        return false;
       }
-    } else {
-      // schema is not included
-      return false;
     }
+  } else {
+    // schema is not included
+    return false;
   }
 
   return true;
@@ -4259,20 +3792,7 @@ bool Schema_dumper::is_library_included(const std::string &schema,
 
 std::size_t Schema_dumper::column_count(const std::string &schema,
                                         const std::string &table) const {
-  if (m_cache) {
-    return m_cache->schemas.at(schema).tables.at(table).all_columns.size();
-  } else {
-    const auto result = query_log_error(
-        "SELECT COUNT(column_name) FROM information_schema.columns WHERE "
-        "table_schema=? AND table_name=?",
-        schema, table);
-
-    if (const auto row = result->fetch_one()) {
-      return row->get_uint(0);
-    } else {
-      THROW_ERROR(SHERR_DUMP_SD_MISSING_TABLE, quote(schema, table).c_str());
-    }
-  }
+  return m_cache.schemas.at(schema).tables.at(table).all_columns.size();
 }
 
 }  // namespace dump

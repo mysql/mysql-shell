@@ -2389,9 +2389,8 @@ const std::shared_ptr<mysqlshdk::db::ISession> &Dumper::session()
 
 std::unique_ptr<Schema_dumper> Dumper::schema_dumper(
     const std::shared_ptr<mysqlshdk::db::ISession> &session) const {
-  auto dumper = std::make_unique<Schema_dumper>(session);
+  auto dumper = std::make_unique<Schema_dumper>(session, m_cache);
 
-  dumper->use_cache(&m_cache);
   dumper->use_filters(&m_options.filters());
   dumper->use_shared_session(m_shared_session);
 
@@ -4239,13 +4238,11 @@ void Dumper::write_dump_started_metadata() const {
   }
 
   if (dump_users()) {
-    const auto dumper = schema_dumper(session());
-
     // list of users
     json.append("users");
     json.start_array();
 
-    for (const auto &user : dumper->get_users()) {
+    for (const auto &user : m_cache.users) {
       json.append(shcore::make_account(user));
     }
 
@@ -4595,9 +4592,9 @@ void Dumper::write_table_metadata(
     doc.AddMember(StringRef("triggers"), std::move(triggers), a);
   }
 
-  const auto all_histograms = dumper->get_histograms(table.schema, table.name);
-
-  if (!all_histograms.empty()) {
+  if (const auto &all_histograms =
+          dumper->get_histograms(table.schema, table.name);
+      !all_histograms.empty()) {
     // list of histograms
     Value histograms{Type::kArrayType};
 

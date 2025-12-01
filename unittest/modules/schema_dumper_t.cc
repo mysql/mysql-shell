@@ -31,6 +31,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -38,6 +39,7 @@
 #include "unittest/gprod_clean.h"
 
 #include "modules/util/dump/compatibility_issue.h"
+#include "modules/util/dump/instance_cache.h"
 #include "modules/util/dump/schema_dumper.h"
 
 #include "mysqlshdk/libs/db/mysql/session.h"
@@ -63,6 +65,23 @@ namespace {
 
 std::string quote(const std::string &db, const std::string &object) {
   return shcore::quote_identifier(db) + "." + shcore::quote_identifier(object);
+}
+
+void EXPECT_ISSUES(std::unordered_set<std::string> &&expected,
+                   const std::vector<Compatibility_issue> &actual,
+                   bool report_unexpected = true) {
+  for (const auto &issue : actual) {
+    if (const auto it = expected.find(issue.description);
+        it != expected.end()) {
+      expected.erase(it);
+    } else if (report_unexpected) {
+      EXPECT_TRUE(false) << "Unexpected issue: " << issue.description;
+    }
+  }
+
+  for (const auto &issue : expected) {
+    EXPECT_TRUE(false) << "Missing issue: " << issue;
+  }
 }
 
 }  // namespace
@@ -111,11 +130,11 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
     session = connect_session();
     if (!initialized) {
       testutil->call_mysqlsh_c(
-          {_uri, "--force", "-f",
+          {_mysql_uri, "--force", "-f",
            shcore::path::join_path(g_test_home, "data", "sql",
                                    "mysqldump_t.sql")});
       testutil->call_mysqlsh_c(
-          {_uri, "--force", "-f",
+          {_mysql_uri, "--force", "-f",
            shcore::path::join_path(g_test_home, "data", "sql",
                                    "crazy_names.sql")});
 
@@ -133,7 +152,7 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
         shcore::copy_file(shcore::path::join_path(g_test_home, "data", "sql",
                                                   "mysqlaas_compat8.sql"),
                           out_path);
-      testutil->call_mysqlsh_c({_uri, "--force", "-f", out_path});
+      testutil->call_mysqlsh_c({_mysql_uri, "--force", "-f", out_path});
       puts(output_handler.std_out.c_str());
     }
     initialized = true;
@@ -181,7 +200,29 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
         session.get(), std::move(deleter));
   }
 
+  Schema_dumper schema_dumper() {
+    Filtering_options filters;
+    filters.users().exclude(std::array{
+        "mysql.infoschema",
+        "mysql.session",
+        "mysql.sys",
+        "root",
+    });
+
+    m_cache = Instance_cache_builder(session, filters)
+                  .metadata({})
+                  .events()
+                  .libraries()
+                  .routines()
+                  .triggers()
+                  .users()
+                  .build();
+
+    return Schema_dumper{session, m_cache};
+  }
+
   std::shared_ptr<mysqlshdk::db::ISession> session;
+  Instance_cache m_cache;
   std::string file_path;
   std::unique_ptr<Schema_dumper::IFile> file;
   static bool run_directory_tests;
@@ -195,7 +236,7 @@ bool Schema_dumper_test::run_directory_tests = false;
 bool Schema_dumper_test::initialized = false;
 
 TEST_F(Schema_dumper_test, dump_table) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   sd.opt_drop_table = true;
   EXPECT_NO_THROW(sd.dump_table_ddl(file.get(), db_name, "at1"));
   EXPECT_TRUE(output_handler.std_err.empty());
@@ -224,7 +265,7 @@ CREATE TABLE IF NOT EXISTS `at1` (
 }
 
 TEST_F(Schema_dumper_test, dump_table_with_trigger) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   sd.opt_drop_table = true;
   sd.opt_drop_trigger = true;
   EXPECT_NO_THROW(sd.dump_table_ddl(file.get(), db_name, "t1"));
@@ -372,7 +413,7 @@ DELIMITER ;
 }
 
 TEST_F(Schema_dumper_test, dump_schema) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   sd.opt_mysqlaas = true;
   EXPECT_NO_THROW(sd.write_header(file.get()));
   EXPECT_GE(1, sd.dump_schema_ddl(file.get(), db_name).size());
@@ -415,7 +456,7 @@ CREATE DATABASE /*!32312 IF NOT EXISTS*/ `mysqldump_test_db` /*!40100 DEFAULT CH
 }
 
 TEST_F(Schema_dumper_test, dump_view) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   sd.opt_drop_view = true;
   EXPECT_NO_THROW(sd.dump_temporary_view_ddl(file.get(), db_name, "v1"));
   EXPECT_NO_THROW(sd.dump_temporary_view_ddl(file.get(), db_name, "v2"));
@@ -519,18 +560,20 @@ SET character_set_client = @saved_cs_client;
 }
 
 TEST_F(Schema_dumper_test, dump_events) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   EXPECT_NO_THROW(sd.dump_events_ddl(file.get(), db_name));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   if (_target_server_version < mysqlshdk::utils::Version(8, 0, 20)) return;
 
-  const char *res = R"(
+  expect_output_contains({
+      R"(
 --
 -- Dumping events for database 'mysqldump_test_db'
 --
 /*!50106 SET @save_time_zone= @@TIME_ZONE */ ;
-
+)",
+      R"(
 -- begin event `mysqldump_test_db`.`ee1`
 /*!50106 DROP EVENT IF EXISTS `ee1` */;
 DELIMITER ;;
@@ -550,10 +593,12 @@ DELIMITER ;;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;;
 /*!50003 SET character_set_results = @saved_cs_results */ ;;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;;
+DELIMITER ;
 -- end event `mysqldump_test_db`.`ee1`
-
+)",
+      R"(
 -- begin event `mysqldump_test_db`.`ee2`
-/*!50106 DROP EVENT IF EXISTS `ee2` */;;
+/*!50106 DROP EVENT IF EXISTS `ee2` */;
 DELIMITER ;;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;;
@@ -571,27 +616,30 @@ DELIMITER ;;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;;
 /*!50003 SET character_set_results = @saved_cs_results */ ;;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;;
--- end event `mysqldump_test_db`.`ee2`
-
 DELIMITER ;
+-- end event `mysqldump_test_db`.`ee2`
+)",
+      R"(
 /*!50106 SET TIME_ZONE= @save_time_zone */ ;
-)";
-  expect_output_eq(res);
+)",
+  });
   wipe_all();
 }
 
 TEST_F(Schema_dumper_test, dump_routines) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   EXPECT_NO_THROW(sd.dump_routines_ddl(file.get(), db_name));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
   if (_target_server_version < mysqlshdk::utils::Version(8, 0, 20)) return;
 
-  const char *res = R"(
+  expect_output_contains({
+      R"(
 --
 -- Dumping routines for database 'mysqldump_test_db'
 --
-
+)",
+      R"(
 -- begin function `mysqldump_test_db`.`bug9056_func1`
 /*!50003 DROP FUNCTION IF EXISTS `bug9056_func1` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -611,7 +659,8 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 -- end function `mysqldump_test_db`.`bug9056_func1`
-
+)",
+      R"(
 -- begin function `mysqldump_test_db`.`bug9056_func2`
 /*!50003 DROP FUNCTION IF EXISTS `bug9056_func2` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -634,7 +683,8 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 -- end function `mysqldump_test_db`.`bug9056_func2`
-
+)",
+      R"(
 -- begin procedure `mysqldump_test_db`.`a'b`
 /*!50003 DROP PROCEDURE IF EXISTS `a'b` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -654,7 +704,8 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 -- end procedure `mysqldump_test_db`.`a'b`
-
+)",
+      R"(
 -- begin procedure `mysqldump_test_db`.`bug9056_proc1`
 /*!50003 DROP PROCEDURE IF EXISTS `bug9056_proc1` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -674,7 +725,8 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 -- end procedure `mysqldump_test_db`.`bug9056_proc1`
-
+)",
+      R"(
 -- begin procedure `mysqldump_test_db`.`bug9056_proc2`
 /*!50003 DROP PROCEDURE IF EXISTS `bug9056_proc2` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
@@ -696,14 +748,13 @@ DELIMITER ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 -- end procedure `mysqldump_test_db`.`bug9056_proc2`
-
-)";
-  expect_output_eq(res);
+)",
+  });
   wipe_all();
 }
 
 TEST_F(Schema_dumper_test, dump_libraries) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   EXPECT_NO_THROW(sd.dump_libraries_ddl(file.get(), db_name));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -712,11 +763,13 @@ TEST_F(Schema_dumper_test, dump_libraries) {
     return;
   }
 
-  expect_output_eq(R"(
+  expect_output_contains({
+      R"(
 --
 -- Dumping libraries for database 'mysqldump_test_db'
 --
-
+)",
+      R"(
 -- begin library `mysqldump_test_db`.`a'b`
 DROP LIBRARY IF EXISTS `a'b`;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
@@ -732,7 +785,8 @@ AS $$
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
 -- end library `mysqldump_test_db`.`a'b`
-
+)",
+      R"(
 -- begin library `mysqldump_test_db`.`lib1`
 DROP LIBRARY IF EXISTS `lib1`;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
@@ -744,13 +798,13 @@ AS $$ $$ ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
 -- end library `mysqldump_test_db`.`lib1`
-
-)");
+)",
+  });
   wipe_all();
 }
 
 TEST_F(Schema_dumper_test, dump_tablespaces) {
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   EXPECT_NO_THROW(sd.dump_tablespaces_ddl_for_dbs(file.get(), {db_name}));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -779,7 +833,7 @@ TEST_F(Schema_dumper_test, dump_grants) {
   session->execute(
       "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';");
 
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   EXPECT_NO_THROW(sd.dump_grants(file.get()));
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -846,13 +900,10 @@ TEST_F(Schema_dumper_test, dump_filtered_grants) {
     session->execute("GRANT 'da_dumper' TO 'dumptestuser'@'localhost';");
   }
 
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   sd.opt_mysqlaas = true;
   sd.opt_strip_restricted_grants = true;
-  Filtering_options filters;
-  filters.users().exclude(
-      std::array{"mysql.infoschema", "mysql.session", "mysql.sys", "root"});
-  sd.use_filters(&filters);
+
   EXPECT_GE(sd.dump_grants(file.get()).size(), 3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -970,13 +1021,10 @@ TEST_F(Schema_dumper_test, dump_filtered_grants_super_priv) {
       "GRANT INSERT,SUPER,FILE,LOCK TABLES , reload, "
       "SELECT ON * . * TO 'abr@dab'@'localhost';");
 
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
   sd.opt_mysqlaas = true;
   sd.opt_strip_restricted_grants = true;
-  Filtering_options filters;
-  filters.users().exclude(
-      std::array{"mysql.infoschema", "mysql.session", "mysql.sys", "root"});
-  sd.use_filters(&filters);
+
   EXPECT_GE(sd.dump_grants(file.get()).size(), 3);
   EXPECT_TRUE(output_handler.std_err.empty());
   wipe_all();
@@ -1012,11 +1060,12 @@ GRANT SELECT, INSERT, LOCK TABLES ON *.* TO 'abr@dab'@'localhost';
 }
 
 TEST_F(Schema_dumper_test, opt_mysqlaas) {
-  Schema_dumper sd(session);
-  sd.opt_mysqlaas = true;
-
   session->execute(std::string("use ") + compat_db_name);
-  auto mstg = create_table_in_mysql_schema_for_grant("testusr6@localhost");
+  const auto mstg =
+      create_table_in_mysql_schema_for_grant("testusr6@localhost");
+
+  auto sd = schema_dumper();
+  sd.opt_mysqlaas = true;
 
   const auto EXPECT_TABLE = [&](const std::string &table,
                                 std::vector<std::string> msg) {
@@ -1058,153 +1107,166 @@ TEST_F(Schema_dumper_test, opt_mysqlaas) {
   EXPECT_TABLE("ts1_tbl1", {"Table `mysqlaas_compat`.`ts1_tbl1` uses "
                             "unsupported tablespace option"});
 
-  // DEFINERS
-  std::vector<Compatibility_issue> iss;
-  EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
-                      file.get(), compat_db_name, "myisam_tbl1"));
-  ASSERT_EQ(1, iss.size());
-  EXPECT_EQ(
-      "Trigger `mysqlaas_compat`.`myisam_tbl1`.`ins_sum` - definition uses "
-      "DEFINER clause set to user `root`@`localhost` which can only be "
-      "executed by this user or a user with SET_ANY_DEFINER, SET_USER_ID or "
-      "SUPER privileges",
-      iss.front().description);
+  {
+    SCOPED_TRACE("DEFINER - triggers");
 
-  EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
-  ASSERT_EQ(1, iss.size());
-  EXPECT_EQ(
-      "Event `mysqlaas_compat`.`event2` - definition uses DEFINER clause set "
-      "to user `root`@`localhost` which can only be executed by this user or a "
-      "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss.front().description);
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
+                        file.get(), compat_db_name, "myisam_tbl1"));
+
+    EXPECT_ISSUES(
+        {
+            "Trigger `mysqlaas_compat`.`myisam_tbl1`.`ins_sum` - definition "
+            "uses DEFINER clause set to user `root`@`localhost` which can only "
+            "be executed by this user or a user with SET_ANY_DEFINER, "
+            "SET_USER_ID or SUPER privileges",
+        },
+        iss);
+  }
+
+  {
+    SCOPED_TRACE("DEFINER - events");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
+
+    EXPECT_ISSUES(
+        {
+            "Event `mysqlaas_compat`.`event2` - definition uses DEFINER clause "
+            "set to user `root`@`localhost` which can only be executed by this "
+            "user or a user with SET_ANY_DEFINER, SET_USER_ID or SUPER "
+            "privileges",
+        },
+        iss);
+  }
 
   const auto user = "`" + _user + "`@`" + _host + "`";
-  EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
-  ASSERT_EQ(8, iss.size());
-  EXPECT_EQ(
-      "Function `mysqlaas_compat`.`func1` - definition uses DEFINER clause set "
-      "to user " +
-          user +
-          " which can only be executed by this user or a "
-          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss[0].description);
-  EXPECT_EQ(
-      "Function `mysqlaas_compat`.`func1` - definition does not use SQL "
-      "SECURITY INVOKER characteristic, which is mandatory when the DEFINER "
-      "clause is omitted or removed",
-      iss[1].description);
-  EXPECT_EQ(
-      "Function `mysqlaas_compat`.`func2` - definition uses DEFINER clause set "
-      "to user " +
-          user +
-          " which can only be executed by this user or a "
-          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss[2].description);
-  EXPECT_EQ(
-      "Procedure `mysqlaas_compat`.`labeled` - definition uses DEFINER clause "
-      "set to user " +
-          user +
-          " which can only be executed by this user or a "
-          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss[3].description);
-  EXPECT_EQ(
-      "Procedure `mysqlaas_compat`.`labeled` - definition does not use SQL "
-      "SECURITY INVOKER characteristic, which is mandatory when the DEFINER "
-      "clause is omitted or removed",
-      iss[4].description);
-  EXPECT_EQ(
-      "Procedure `mysqlaas_compat`.`proc1` - definition uses DEFINER clause "
-      "set to user " +
-          user +
-          " which can only be executed by this user or a "
-          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss[5].description);
-  EXPECT_EQ(
-      "Procedure `mysqlaas_compat`.`proc1` - definition does not use SQL "
-      "SECURITY INVOKER characteristic, which is mandatory when the DEFINER "
-      "clause is omitted or removed",
-      iss[6].description);
-  EXPECT_EQ(
-      "Procedure `mysqlaas_compat`.`proc2` - definition uses DEFINER clause "
-      "set to user " +
-          user +
-          " which can only be executed by this user or a "
-          "user with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss[7].description);
 
-  EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
-  ASSERT_EQ(2, iss.size());
-  EXPECT_EQ(
-      "View `mysqlaas_compat`.`view1` - definition uses DEFINER clause set to "
-      "user " +
-          user +
-          " which can only be executed by this user or a user "
-          "with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss[0].description);
-  EXPECT_EQ(
-      "View `mysqlaas_compat`.`view1` - definition does not use SQL SECURITY "
-      "INVOKER characteristic, which is mandatory when the DEFINER clause is "
-      "omitted or removed",
-      iss[1].description);
+  {
+    SCOPED_TRACE("DEFINER - routines");
 
-  EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
-  ASSERT_EQ(1, iss.size());
-  EXPECT_EQ(
-      "View `mysqlaas_compat`.`view3` - definition uses DEFINER clause set to "
-      "user " +
-          user +
-          " which can only be executed by this user or a user "
-          "with SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
-      iss[0].description);
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
 
-  // Users
-  Filtering_options filters;
-  filters.users().exclude(std::array{"mysql", "root"});
-  sd.use_filters(&filters);
-  EXPECT_NO_THROW(iss = sd.dump_grants(file.get()));
-
-  auto expected_issues = run_directory_tests ?
-      std::set<std::string>{
-      "User 'testusr1'@'localhost' is granted restricted privileges: FILE, "
-      "RELOAD, SUPER",
-      "User 'testusr2'@'localhost' is granted restricted privilege: SUPER",
-      "User 'testusr3'@'localhost' is granted restricted privileges: FILE, "
-      "RELOAD",
-      "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
-      "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
-      "User 'testusr6'@'localhost' is granted restricted privilege: FILE",
-      "User 'testusr6'@'localhost' has explicit grants on mysql schema object:"
-      " `mysql`.`abradabra`"} :
-      std::set<std::string>{
-        "User 'testusr1'@'localhost' is granted restricted privileges: "
-        "BINLOG_ADMIN, FILE, RELOAD",
-        "User 'testusr3'@'localhost' is granted restricted privileges: "
-        "BINLOG_ADMIN, FILE, RELOAD",
-        "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
-        "User 'testusr6'@'localhost' is granted restricted privilege: FILE",
-        "User 'testusr6'@'localhost' has explicit grants on mysql "
-        "schema object: `mysql`.`abradabra`"};
-  for (const auto &i : iss) {
-    const auto it = expected_issues.find(i.description);
-    if (it != expected_issues.end()) expected_issues.erase(it);
+    EXPECT_ISSUES(
+        {
+            "Function `mysqlaas_compat`.`func1` - definition uses DEFINER "
+            "clause set to user " +
+                user +
+                " which can only be executed by this user or a user with "
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+            "Function `mysqlaas_compat`.`func1` - definition does not use SQL "
+            "SECURITY INVOKER characteristic, which is mandatory when the "
+            "DEFINER clause is omitted or removed",
+            "Function `mysqlaas_compat`.`func2` - definition uses DEFINER "
+            "clause set to user " +
+                user +
+                " which can only be executed by this user or a user with "
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+            "Procedure `mysqlaas_compat`.`labeled` - definition uses DEFINER "
+            "clause set to user " +
+                user +
+                " which can only be executed by this user or a user with "
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+            "Procedure `mysqlaas_compat`.`labeled` - definition does not use "
+            "SQL SECURITY INVOKER characteristic, which is mandatory when the "
+            "DEFINER clause is omitted or removed",
+            "Procedure `mysqlaas_compat`.`proc1` - definition uses DEFINER "
+            "clause set to user " +
+                user +
+                " which can only be executed by this user or a user with "
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+            "Procedure `mysqlaas_compat`.`proc1` - definition does not use SQL "
+            "SECURITY INVOKER characteristic, which is mandatory when the "
+            "DEFINER clause is omitted or removed",
+            "Procedure `mysqlaas_compat`.`proc2` - definition uses DEFINER "
+            "clause set to user " +
+                user +
+                " which can only be executed by this user or a user with "
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+        },
+        iss);
   }
-  if (!expected_issues.empty()) {
-    puts("Missing issues: ");
-    for (const auto &i : expected_issues) puts(i.c_str());
-    EXPECT_TRUE(false);
+
+  {
+    SCOPED_TRACE("DEFINER - view1");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss =
+                        sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
+
+    EXPECT_ISSUES(
+        {
+            "View `mysqlaas_compat`.`view1` - definition uses DEFINER clause "
+            "set to user " +
+                user +
+                " which can only be executed by this user or a user with "
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+            "View `mysqlaas_compat`.`view1` - definition does not use SQL "
+            "SECURITY INVOKER characteristic, which is mandatory when the "
+            "DEFINER clause is omitted or removed",
+        },
+        iss);
+  }
+
+  {
+    SCOPED_TRACE("DEFINER - view3");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss =
+                        sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
+
+    EXPECT_ISSUES(
+        {
+            "View `mysqlaas_compat`.`view3` - definition uses DEFINER clause "
+            "set to user " +
+                user +
+                " which can only be executed by this user or a user with "
+                "SET_ANY_DEFINER, SET_USER_ID or SUPER privileges",
+        },
+        iss);
+  }
+
+  {
+    SCOPED_TRACE("users");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_grants(file.get()));
+
+    EXPECT_ISSUES(
+        run_directory_tests
+            ? std::unordered_set<std::string>{
+              "User 'testusr1'@'localhost' is granted restricted privileges: FILE, RELOAD, SUPER",
+              "User 'testusr2'@'localhost' is granted restricted privilege: SUPER",
+              "User 'testusr3'@'localhost' is granted restricted privileges: FILE, RELOAD",
+              "User 'testusr4'@'localhost' is granted restricted privilege: SUPER",
+              "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
+              "User 'testusr6'@'localhost' is granted restricted privilege: FILE",
+              "User 'testusr6'@'localhost' has explicit grants on mysql schema object: `mysql`.`abradabra`",
+              "User 'testusr6'@'localhost' has a wildcard grant statement at the database level (GRANT SELECT, INSERT, UPDATE, DELETE ON `mysqlaas_compat`.* TO 'testusr6'@'localhost')",
+            }
+            : std::unordered_set<std::string>{
+              "User 'testusr1'@'localhost' is granted restricted privileges: BINLOG_ADMIN, FILE, RELOAD",
+              "User 'testusr3'@'localhost' is granted restricted privileges: BINLOG_ADMIN, FILE, RELOAD",
+              "User 'testusr5'@'localhost' is granted restricted privilege: FILE",
+              "User 'testusr6'@'localhost' is granted restricted privilege: FILE",
+              "User 'testusr6'@'localhost' has explicit grants on mysql schema object: `mysql`.`abradabra`",
+              "User 'testusr6'@'localhost' has a wildcard grant statement at the database level (GRANT SELECT, INSERT, UPDATE, DELETE ON `mysqlaas_compat`.* TO `testusr6`@`localhost`)",
+            }, iss, false); // don't report unexpected issues here, there could be some other users
   }
 }
 
 TEST_F(Schema_dumper_test, compat_ddl) {
-  Schema_dumper sd(session);
+  session->execute(std::string("use ") + compat_db_name);
+  const auto mstg =
+      create_table_in_mysql_schema_for_grant("testusr6@localhost");
+
+  auto sd = schema_dumper();
   sd.opt_mysqlaas = true;
   sd.opt_force_innodb = true;
   sd.opt_strip_restricted_grants = true;
   sd.opt_strip_tablespaces = true;
   sd.opt_strip_definer = true;
-
-  session->execute(std::string("use ") + compat_db_name);
-  auto mstg = create_table_in_mysql_schema_for_grant("testusr6@localhost");
 
   const auto EXPECT_TABLE = [&](const std::string &table,
                                 std::vector<std::string> msg,
@@ -1406,387 +1468,270 @@ TEST_F(Schema_dumper_test, compat_ddl) {
 
   file.reset(new mysqlshdk::storage::backend::File(file_path));
   file->open(mysqlshdk::storage::Mode::WRITE);
-  std::vector<Compatibility_issue> iss;
-  EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
-                      file.get(), compat_db_name, "myisam_tbl1"));
-  ASSERT_EQ(1, iss.size());
-  EXPECT_EQ(
-      "Trigger `mysqlaas_compat`.`myisam_tbl1`.`ins_sum` had definer clause "
-      "removed",
-      iss.front().description);
-  EXPECT_DUMP_CONTAINS(
-      {"/*!50003 CREATE TRIGGER ins_sum BEFORE INSERT ON myisam_tbl1"});
 
-  EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
-  ASSERT_EQ(1, iss.size());
-  EXPECT_EQ("Event `mysqlaas_compat`.`event2` had definer clause removed",
-            iss.front().description);
-  EXPECT_DUMP_CONTAINS({"/*!50106 CREATE EVENT IF NOT EXISTS `event2`"});
+  {
+    SCOPED_TRACE("DEFINER - triggers");
 
-  EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
-  ASSERT_EQ(8, iss.size());
-  EXPECT_EQ("Function `mysqlaas_compat`.`func1` had definer clause removed",
-            iss[0].description);
-  EXPECT_EQ(
-      "Function `mysqlaas_compat`.`func1` had SQL SECURITY characteristic set "
-      "to INVOKER",
-      iss[1].description);
-  EXPECT_EQ("Function `mysqlaas_compat`.`func2` had definer clause removed",
-            iss[2].description);
-  EXPECT_EQ("Procedure `mysqlaas_compat`.`labeled` had definer clause removed",
-            iss[3].description);
-  EXPECT_EQ(
-      "Procedure `mysqlaas_compat`.`labeled` had SQL SECURITY characteristic "
-      "set to INVOKER",
-      iss[4].description);
-  EXPECT_EQ("Procedure `mysqlaas_compat`.`proc1` had definer clause removed",
-            iss[5].description);
-  EXPECT_EQ(
-      "Procedure `mysqlaas_compat`.`proc1` had SQL SECURITY characteristic set "
-      "to INVOKER",
-      iss[6].description);
-  EXPECT_EQ("Procedure `mysqlaas_compat`.`proc2` had definer clause removed",
-            iss[7].description);
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_triggers_for_table_ddl(
+                        file.get(), compat_db_name, "myisam_tbl1"));
 
-  EXPECT_DUMP_CONTAINS(
-      {"CREATE FUNCTION `func1`() RETURNS int\n"
-       "    NO SQL\n"
-       "SQL SECURITY INVOKER\n"
-       "RETURN 0",
-       "CREATE FUNCTION `func2`() RETURNS int\n"
-       "    NO SQL\n"
-       "    SQL SECURITY INVOKER\n"
-       "RETURN 0 ;",
-       "CREATE PROCEDURE labeled()\n"
-       "SQL SECURITY INVOKER\n"
-       "wholeblock:BEGIN\n"
-       "  DECLARE x INT;\n"
-       "  DECLARE str VARCHAR(255);\n"
-       "  SET x = -5;\n"
-       "  SET str = '';\n"
-       "\n"
-       "  loop_label: LOOP\n"
-       "    IF x > 0 THEN\n"
-       "      LEAVE loop_label;\n"
-       "    END IF;\n"
-       "    SET str = CONCAT(str,x,',');\n"
-       "    SET x = x + 1;\n"
-       "    ITERATE loop_label;\n"
-       "  END LOOP;\n"
-       "\n"
-       "  SELECT str;\n"
-       "\n"
-       "END ;;",
-       "CREATE PROCEDURE `proc1`()\n    NO SQL\nSQL SECURITY "
-       "INVOKER\nBEGIN\nEND",
-       "CREATE PROCEDURE `proc2`()\n    NO SQL\n    SQL SECURITY "
-       "INVOKER\nBEGIN\nEND"});
+    EXPECT_ISSUES(
+        {
+            "Trigger `mysqlaas_compat`.`myisam_tbl1`.`ins_sum` had definer "
+            "clause removed",
+        },
+        iss);
 
-  EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
-  ASSERT_EQ(2, iss.size());
-  EXPECT_EQ("View `mysqlaas_compat`.`view1` had definer clause removed",
-            iss[0].description);
-  EXPECT_EQ(
-      "View `mysqlaas_compat`.`view1` had SQL SECURITY characteristic set to "
-      "INVOKER",
-      iss[1].description);
-  EXPECT_DUMP_CONTAINS(
-      {"/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view1 AS "
-       "select 1 AS 1 */;"});
+    EXPECT_DUMP_CONTAINS({
+        "/*!50003 CREATE TRIGGER ins_sum BEFORE INSERT ON myisam_tbl1",
+    });
+  }
 
-  EXPECT_NO_THROW(iss = sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
-  ASSERT_EQ(1, iss.size());
-  EXPECT_EQ("View `mysqlaas_compat`.`view3` had definer clause removed",
-            iss[0].description);
-  EXPECT_DUMP_CONTAINS(
-      {"/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view3 AS "
-       "select 1 AS 1 */"});
+  {
+    SCOPED_TRACE("DEFINER - events");
 
-  // Users
-  Filtering_options filters;
-  filters.users().exclude(std::array{"mysql", "root"});
-  sd.use_filters(&filters);
-  EXPECT_NO_THROW(iss = sd.dump_grants(file.get()));
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_events_ddl(file.get(), compat_db_name));
 
-  EXPECT_NE(iss.end(),
-            std::find_if(iss.begin(), iss.end(), [](const auto &issue) {
-              return issue.description ==
-                     "User 'testusr6'@'localhost' had explicit grants on mysql "
-                     "schema object `mysql`.`abradabra` removed";
-            }));
+    EXPECT_ISSUES(
+        {
+            "Event `mysqlaas_compat`.`event2` had definer clause removed",
+        },
+        iss);
+
+    EXPECT_DUMP_CONTAINS({
+        "/*!50106 CREATE EVENT IF NOT EXISTS `event2`",
+    });
+  }
+
+  {
+    SCOPED_TRACE("DEFINER - routines");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_routines_ddl(file.get(), compat_db_name));
+
+    EXPECT_ISSUES(
+        {
+            "Function `mysqlaas_compat`.`func1` had definer clause removed",
+            "Function `mysqlaas_compat`.`func1` had SQL SECURITY "
+            "characteristic set to INVOKER",
+            "Function `mysqlaas_compat`.`func2` had definer clause removed",
+            "Procedure `mysqlaas_compat`.`labeled` had definer clause removed",
+            "Procedure `mysqlaas_compat`.`labeled` had SQL SECURITY "
+            "characteristic set to INVOKER",
+            "Procedure `mysqlaas_compat`.`proc1` had definer clause removed",
+            "Procedure `mysqlaas_compat`.`proc1` had SQL SECURITY "
+            "characteristic set to INVOKER",
+            "Procedure `mysqlaas_compat`.`proc2` had definer clause removed",
+        },
+        iss);
+
+    EXPECT_DUMP_CONTAINS({
+        R"(
+CREATE FUNCTION `func1`() RETURNS int
+    NO SQL
+SQL SECURITY INVOKER
+RETURN 0 ;;
+)",
+        R"(
+CREATE FUNCTION `func2`() RETURNS int
+    NO SQL
+    SQL SECURITY INVOKER
+RETURN 0 ;;
+)",
+        R"(
+CREATE PROCEDURE labeled()
+SQL SECURITY INVOKER
+wholeblock:BEGIN
+  DECLARE x INT;
+  DECLARE str VARCHAR(255);
+  SET x = -5;
+  SET str = '';
+
+  loop_label: LOOP
+    IF x > 0 THEN
+      LEAVE loop_label;
+    END IF;
+    SET str = CONCAT(str,x,',');
+    SET x = x + 1;
+    ITERATE loop_label;
+  END LOOP;
+
+  SELECT str;
+
+END ;;
+)",
+        R"(
+CREATE PROCEDURE `proc1`()
+    NO SQL
+SQL SECURITY INVOKER
+BEGIN
+END ;;
+)",
+        R"(
+CREATE PROCEDURE `proc2`()
+    NO SQL
+    SQL SECURITY INVOKER
+BEGIN
+END ;;
+)",
+    });
+  }
+
+  {
+    SCOPED_TRACE("DEFINER - view1");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss =
+                        sd.dump_view_ddl(file.get(), compat_db_name, "view1"));
+
+    EXPECT_ISSUES(
+        {
+            "View `mysqlaas_compat`.`view1` had definer clause removed",
+            "View `mysqlaas_compat`.`view1` had SQL SECURITY characteristic "
+            "set to INVOKER",
+        },
+        iss);
+
+    EXPECT_DUMP_CONTAINS({
+        "/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view1 "
+        "AS select 1 AS 1 */;",
+    });
+  }
+
+  {
+    SCOPED_TRACE("DEFINER - view3");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss =
+                        sd.dump_view_ddl(file.get(), compat_db_name, "view3"));
+
+    EXPECT_ISSUES(
+        {
+            "View `mysqlaas_compat`.`view3` had definer clause removed",
+        },
+        iss);
+
+    EXPECT_DUMP_CONTAINS({
+        "/*!50001 CREATE ALGORITHM=UNDEFINED SQL SECURITY INVOKER VIEW view3 "
+        "AS select 1 AS 1 */",
+    });
+  }
+
+  {
+    SCOPED_TRACE("users");
+
+    std::vector<Compatibility_issue> iss;
+    EXPECT_NO_THROW(iss = sd.dump_grants(file.get()));
+
+    EXPECT_ISSUES(
+        {
+            "User 'testusr6'@'localhost' had explicit grants on mysql schema "
+            "object `mysql`.`abradabra` removed",
+        },
+        iss, false);
+  }
 }
 
 TEST_F(Schema_dumper_test, dump_and_load) {
+  static constexpr auto k_target_schema = "verification";
+  using mysqlshdk::storage::fprintf;
+
   for (const char *db : {compat_db_name, db_name, crazy_names_db}) {
     if (!file->is_open()) file->open(mysqlshdk::storage::Mode::WRITE);
-    Schema_dumper sd(session);
+
+    fprintf(file.get(), "DROP SCHEMA IF EXISTS `%s`;\n", k_target_schema);
+    fprintf(file.get(), "CREATE SCHEMA `%s`;\n", k_target_schema);
+    fprintf(file.get(), "USE `%s`;\n", k_target_schema);
+
+    auto sd = schema_dumper();
     sd.opt_drop_trigger = true;
     sd.opt_mysqlaas = true;
     sd.opt_force_innodb = true;
     sd.opt_strip_restricted_grants = true;
     sd.opt_strip_tablespaces = true;
     sd.opt_strip_definer = true;
+
     EXPECT_NO_THROW(sd.write_header(file.get()));
     EXPECT_NO_THROW(sd.write_comment(file.get(), db));
     EXPECT_NO_THROW(sd.dump_schema_ddl(file.get(), db));
-    session->execute(std::string("use ") + db);
-    auto res = session->query("show tables", true);
+
+    session->executef("USE !", db);
+
     std::vector<std::string> tables;
-    while (auto row = res->fetch_one()) tables.emplace_back(row->get_string(0));
+
+    if (const auto res = session->query("show tables")) {
+      while (const auto row = res->fetch_one()) {
+        tables.emplace_back(row->get_string(0));
+      }
+    }
+
+    std::vector<std::string> views;
+
+    if (const auto res =
+            session->queryf("select TABLE_NAME FROM information_schema.views "
+                            "where TABLE_SCHEMA = ?",
+                            db)) {
+      while (const auto row = res->fetch_one()) {
+        views.emplace_back(row->get_string(0));
+      }
+    }
+
     for (const auto &table : tables) {
+      SCOPED_TRACE(std::string{"`"} + db + "`.`" + table + "`");
+
       EXPECT_NO_THROW(sd.dump_table_ddl(file.get(), db, table));
-      if (sd.count_triggers_for_table(db, table)) {
+
+      if (views.end() != std::find(views.begin(), views.end(), table)) {
+        continue;
+      }
+
+      bool has_triggers = false;
+      EXPECT_NO_THROW(has_triggers = sd.count_triggers_for_table(db, table));
+
+      if (has_triggers) {
         EXPECT_NO_THROW(sd.dump_triggers_for_table_ddl(file.get(), db, table));
       }
     }
+
     EXPECT_NO_THROW(sd.dump_events_ddl(file.get(), db));
     EXPECT_NO_THROW(sd.dump_routines_ddl(file.get(), db));
-    res = session->query(
-        std::string("select TABLE_NAME FROM information_schema.views where "
-                    "TABLE_SCHEMA = '") +
-            db + "'",
-        true);
-    std::vector<std::string> views;
-    while (auto row = res->fetch_one()) views.emplace_back(row->get_string(0));
+
     for (const auto &view : views) {
+      SCOPED_TRACE(std::string{"`"} + db + "`.`" + view + "`");
       EXPECT_NO_THROW(sd.dump_view_ddl(file.get(), db, view));
     }
 
     EXPECT_NO_THROW(sd.write_footer(file.get()));
     EXPECT_TRUE(output_handler.std_err.empty());
-    wipe_all();
+
     file->flush();
     file->close();
     session->close();
+
+    wipe_all();
     testutil->call_mysqlsh_c({_mysql_uri, "--sql", "-f", file_path});
     EXPECT_TRUE(output_handler.std_err.empty());
+
     session = connect_session();
-    session->execute(std::string("use ") + db);
-    res = session->query("show tables", true);
-    while (auto row = res->fetch_one())
-      tables.erase(
-          std::remove(tables.begin(), tables.end(), row->get_string(0)),
-          tables.end());
+    session->executef("USE !", k_target_schema);
+
+    if (const auto res = session->query("show tables")) {
+      while (const auto row = res->fetch_one()) {
+        std::erase(tables, row->get_string(0));
+      }
+    }
+
     EXPECT_TRUE(tables.empty());
   }
-}
 
-TEST_F(Schema_dumper_test, get_users) {
-  // setup
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'first'@'localhost' IDENTIFIED BY 'pwd';");
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'first'@'10.11.12.13' IDENTIFIED BY 'pwd';");
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'firstfirst'@'localhost' IDENTIFIED BY "
-      "'pwd';");
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'second'@'localhost' IDENTIFIED BY 'pwd';");
-  session->execute(
-      "CREATE USER IF NOT EXISTS 'second'@'10.11.12.14' IDENTIFIED BY 'pwd';");
-
-  const auto contains = [](const std::vector<shcore::Account> &result,
-                           const std::string &account) {
-    const auto it =
-        std::find_if(result.begin(), result.end(), [&account](const auto &e) {
-          return shcore::make_account(e) == account;
-        });
-
-    std::set<std::string> accounts;
-
-    for (const auto &e : result) {
-      accounts.emplace(shcore::make_account(e));
-    }
-
-    if (result.end() != it) {
-      return ::testing::AssertionSuccess()
-             << "account found: " << account
-             << ", contents: " << shcore::str_join(accounts, ", ");
-    } else {
-      return ::testing::AssertionFailure()
-             << "account not found: " << account
-             << ", contents: " << shcore::str_join(accounts, ", ");
-    }
-  };
-
-  Schema_dumper sd(session);
-
-  {
-    // no filtering
-    const auto result = sd.get_users();
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-    EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
-  }
-
-  {
-    // include non-existent user
-    Filtering_options filters;
-    filters.users().include(std::array{"third"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(0, result.size());
-  }
-
-  {
-    // exclude non-existent user
-    Filtering_options filters;
-    filters.users().exclude(std::array{"third"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-    EXPECT_TRUE(contains(result, "'firstfirst'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
-  }
-
-  {
-    // include all accounts for the user first
-    Filtering_options filters;
-    filters.users().include(std::array{"first"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(2, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  }
-
-  {
-    // include only 'first'@'localhost'
-    Filtering_options filters;
-    filters.users().include(std::array{"'first'@'localhost'"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(1, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  }
-
-  {
-    // include all accounts for the user first, exclude second
-    Filtering_options filters;
-    filters.users().include(std::array{"first"});
-    filters.users().exclude(std::array{"second"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(2, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  }
-
-  {
-    // include all accounts for the user first, exclude 'first'@'10.11.12.13'
-    Filtering_options filters;
-    filters.users().include(std::array{"first"});
-    filters.users().exclude(std::array{"'first'@'10.11.12.13'"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(1, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-  }
-
-  {
-    // include all accounts for the user first, exclude first -> cancels out
-    Filtering_options filters;
-    filters.users().include(std::array{"first"});
-    filters.users().exclude(std::array{"first"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(0, result.size());
-  }
-
-  {
-    // include all accounts for the user first and second
-    Filtering_options filters;
-    filters.users().include(std::array{"first", "second"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(4, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'second'@'10.11.12.14'"));
-  }
-
-  {
-    // include all accounts for the user first and second, exclude second
-    Filtering_options filters;
-    filters.users().include(std::array{"first", "second"});
-    filters.users().exclude(std::array{"second"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(2, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  }
-
-  {
-    // include all accounts for the user first and second, exclude
-    // 'second'@'10.11.12.14'
-    Filtering_options filters;
-    filters.users().include(std::array{"first", "second"});
-    filters.users().exclude(std::array{"'second'@'10.11.12.14'"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(3, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-    EXPECT_TRUE(contains(result, "'second'@'localhost'"));
-  }
-
-  {
-    // include all accounts for the user first, include and exclude
-    // 'second'@'10.11.12.14'
-    Filtering_options filters;
-    filters.users().include(std::array{"first", "'second'@'10.11.12.14'"});
-    filters.users().exclude(std::array{"'second'@'10.11.12.14'"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(2, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  }
-
-  {
-    // include all accounts for the user first and 'second'@'10.11.12.14',
-    // exclude all accounts for second
-    Filtering_options filters;
-    filters.users().include(std::array{"first", "'second'@'10.11.12.14'"});
-    filters.users().exclude(std::array{"second"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-    EXPECT_EQ(2, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  }
-
-  {
-    // include all accounts for the user first and non-existent third, exclude
-    // non-existent fourth
-    Filtering_options filters;
-    filters.users().include(std::array{"first", "third"});
-    filters.users().exclude(std::array{"fourth"});
-    sd.use_filters(&filters);
-    const auto result = sd.get_users();
-
-    EXPECT_EQ(2, result.size());
-    EXPECT_TRUE(contains(result, "'first'@'localhost'"));
-    EXPECT_TRUE(contains(result, "'first'@'10.11.12.13'"));
-  }
-
-  // cleanup
-  session->execute("DROP USER 'first'@'localhost';");
-  session->execute("DROP USER 'first'@'10.11.12.13';");
-  session->execute("DROP USER 'firstfirst'@'localhost';");
-  session->execute("DROP USER 'second'@'localhost';");
-  session->execute("DROP USER 'second'@'10.11.12.14';");
+  session->executef("DROP SCHEMA IF EXISTS !", k_target_schema);
 }
 
 TEST_F(Schema_dumper_test, check_object_for_definer) {
   // BUG#33087120
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
 
   sd.opt_strip_definer = true;
 
@@ -1841,15 +1786,13 @@ TEST_F(Schema_dumper_test, check_object_for_definer) {
 
 TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer) {
   // WL#15887 - test if SET_ANY_DEFINER handling works with all combinations
-  Schema_dumper sd(session);
-
-  sd.opt_mysqlaas = true;
-  sd.opt_target_version = mysqlshdk::utils::Version(8, 2, 0);
 
   Instance_cache cache;
   cache.users = {{"root", "host"}};
 
-  sd.use_cache(&cache);
+  auto sd = Schema_dumper{session, cache};
+  sd.opt_mysqlaas = true;
+  sd.opt_target_version = mysqlshdk::utils::Version(8, 2, 0);
 
   std::vector<std::pair<std::string, Compatibility_issue::Object_type>>
       statements = {
@@ -1903,7 +1846,8 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
   using Object_type = Compatibility_issue::Object_type;
   using Version = mysqlshdk::utils::Version;
 
-  Schema_dumper sd(session);
+  Instance_cache cache;
+  auto sd = Schema_dumper{session, cache};
 
   sd.opt_mysqlaas = true;
   sd.opt_target_version = Version(8, 2, 0);
@@ -1991,13 +1935,6 @@ TEST_F(Schema_dumper_test, check_object_for_definer_set_any_definer_issues) {
                                     quote(schema, object), &ddl, &issues);
         EXPECT_EQ(expected_issues, issues);
       };
-
-  // missing cache
-  EXPECT_THROW(EXPECT("DEFINER=root@host"), std::logic_error);
-
-  // set cache
-  Instance_cache cache;
-  sd.use_cache(&cache);
 
   // no users in cache, warning that it's not possible to verify if user exits,
   // but only once
@@ -2150,7 +2087,7 @@ TEST_F(Schema_dumper_test, strip_restricted_grants_set_any_definer) {
   using Object_type = Compatibility_issue::Object_type;
   using Version = mysqlshdk::utils::Version;
 
-  Schema_dumper sd(session);
+  auto sd = schema_dumper();
 
   sd.opt_mysqlaas = true;
 
@@ -2235,18 +2172,14 @@ TEST_F(Schema_dumper_test, unknown_collations) {
                                      static_cast<int>(collation.size()),
                                      collation.data())});
 
-    EXPECT_CALL(*s, executes(::testing::StrEq("USE `s`"), ::testing::_))
-        .Times(::testing::Exactly(1));
-
-    s->expect_query("select @@collation_database")
-        .then({"@@collation_database"})
-        .add_row({std::string{collation}});
-
     const auto f =
         std::make_unique<mysqlshdk::storage::backend::Memory_file>("f");
 
     f->open(mysqlshdk::storage::Mode::WRITE);
-    auto issues = Schema_dumper{s}.dump_schema_ddl(f.get(), "s");
+    Instance_cache cache;
+    cache.schemas.emplace("s", Instance_cache::Schema{})
+        .first->second.default_collation = collation;
+    auto issues = Schema_dumper{s, cache}.dump_schema_ddl(f.get(), "s");
     f->close();
 
     return std::make_pair(f->content(), std::move(issues));

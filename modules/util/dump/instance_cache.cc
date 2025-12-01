@@ -173,11 +173,8 @@ Instance_cache_builder &Instance_cache_builder::metadata(
 Instance_cache_builder &Instance_cache_builder::users() {
   Profiler profiler{"fetching users"};
 
-  Schema_dumper sd{m_session};
-  sd.use_filters(&m_filters);
-
-  m_cache.users = sd.get_users();
-  m_cache.roles = sd.get_roles();
+  m_cache.users = fetch_users();
+  m_cache.roles = fetch_roles();
 
   m_cache.filtered.users = m_cache.users.size();
   m_cache.total.users = count("user_privileges", {}, "DISTINCT grantee");
@@ -1189,6 +1186,95 @@ void Instance_cache_builder::fetch_routine_parameters() {
       routine.parameters[position - 1] = std::move(parameter);
     }
   });
+}
+
+std::vector<shcore::Account> Instance_cache_builder::fetch_users(
+    const std::string &select, const std::string &where) const {
+  std::string where_filter = where;
+
+  if (!where_filter.empty()) {
+    where_filter += " ";
+  }
+
+  if (const auto user_where =
+          mysqlshdk::db::utils::build_user_where(m_filters.users());
+      !user_where.empty()) {
+    if (!where_filter.empty()) {
+      where_filter += "AND ";
+    }
+
+    where_filter += user_where;
+  }
+
+  if (!where_filter.empty()) {
+    where_filter = " WHERE " + where_filter;
+  }
+
+  const auto result = query(select + where_filter);
+
+  std::set<shcore::Account> users;
+
+  while (const auto u = result->fetch_one()) {
+    shcore::Account account;
+    account.user = u->get_string(0);
+    account.host = u->get_string(1);
+    users.emplace(std::move(account));
+  }
+
+  return {std::make_move_iterator(users.begin()),
+          std::make_move_iterator(users.end())};
+}
+
+std::vector<shcore::Account> Instance_cache_builder::fetch_users() const {
+  try {
+    // mysql.user holds the account information data, but some users do not have
+    // access to this table, in such case fall back to
+    // information_schema.user_privileges, though on servers < 8.0.17, the
+    // grantee column is too short and the host name may be truncated
+    return fetch_users("SELECT DISTINCT user, host from mysql.user", "");
+  } catch (const mysqlshdk::db::Error &e) {
+    if (m_cache.server.version.number < mysqlshdk::utils::Version(8, 0, 17)) {
+      log_warning(
+          "Failed to get account information from the mysql.user table: %s. "
+          "Falling back to information_schema.user_privileges, data might be "
+          "inaccurate if the host name is too long.",
+          e.format().c_str());
+    }
+
+    constexpr auto users_query =
+        "SELECT * FROM (SELECT DISTINCT "
+        "SUBSTR(grantee, 2, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))-2)"
+        " AS user, "
+        "SUBSTR(grantee, LENGTH(grantee)-LOCATE('@', REVERSE(grantee))+3,"
+        " LOCATE('@', REVERSE(grantee))-3) AS host "
+        "FROM information_schema.user_privileges) AS user";
+
+    return fetch_users(users_query, "");
+  }
+}
+
+std::vector<shcore::Account> Instance_cache_builder::fetch_roles() const {
+  if (!m_cache.server.version.is_8_0) {
+    return {};
+  }
+
+  try {
+    // check if server supports roles
+    query("SELECT @@GLOBAL.activate_all_roles_on_login");
+  } catch (const mysqlshdk::db::Error &e) {
+    if (ER_UNKNOWN_SYSTEM_VARIABLE == e.code()) {
+      // roles are not supported
+      current_console()->print_warning("Failed to fetch role information.");
+      return {};
+    } else {
+      // report any other error
+      throw;
+    }
+  }
+
+  return fetch_users("SELECT DISTINCT user, host FROM mysql.user",
+                     "authentication_string='' AND account_locked='Y' AND "
+                     "password_expired='Y'");
 }
 
 }  // namespace dump
