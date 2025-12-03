@@ -1494,9 +1494,14 @@ std::vector<Compatibility_issue> Schema_dumper::check_ct_for_mysqlaas(
       if (invalid_as_innodb.empty()) {
         // check if table can be converted to InnoDB only if no other errors
         // were reported, we want to have a consistent error message
-        const auto session = m_shared_session
-                                 ? m_shared_session->acquire()
-                                 : mysqlshdk::db::Exclusive_session{};
+        const auto session = [this]() {
+          // workaround for MSVC bug: https://stackoverflow.com/q/78595880
+          if (m_shared_session) {
+            return m_shared_session->acquire();
+          } else {
+            return mysqlshdk::db::Exclusive_session{};
+          }
+        }();
         invalid_as_innodb = test_if_able_to_force_innodb(
             session ? session : m_mysql, db, table, *create_table);
       }
