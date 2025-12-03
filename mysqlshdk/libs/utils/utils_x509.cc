@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,8 @@
 #include <string>
 #include <utility>
 
+#include "mysqlshdk/libs/utils/utils_ssl.h"
+
 namespace shcore {
 namespace ssl {
 
@@ -43,8 +45,7 @@ namespace {
 using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 
 void throw_last_error(const std::string &context) {
-  const auto rc = ERR_get_error();
-  ERR_clear_error();
+  const auto rc = openssl_error();
 
   std::string error_str = "Unexpected error";
 

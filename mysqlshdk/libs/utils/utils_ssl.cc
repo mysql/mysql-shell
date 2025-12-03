@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,7 @@
 
 #include "mysqlshdk/libs/utils/utils_ssl.h"
 
+#include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <openssl/ssl.h>
@@ -33,6 +34,7 @@
 #include <memory>
 #include <mutex>
 
+#include "mysqlshdk/libs/utils/logger.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace shcore {
@@ -262,6 +264,35 @@ std::string to_fingerprint(const std::vector<unsigned char> &hash) {
 
   return encoded;
 }
+
+std::vector<unsigned long> openssl_error_stack() {
+  std::vector<unsigned long> stack;
+
+  const char *file;
+  const char *data;
+  int line;
+  int flags;
+  char error_string[256];
+
+  while (const auto error_code =
+             ERR_get_error_line_data(&file, &line, &data, &flags)) {
+    ERR_error_string_n(error_code, error_string, sizeof(error_string));
+
+    log_debug2("%s %s:%s:%d:%s", stack.empty() ? "OpenSSL" : "       ",
+               error_string, file, line, (flags & ERR_TXT_STRING) ? data : "");
+
+    stack.emplace_back(error_code);
+  }
+
+  if (stack.empty()) {
+    // no errors
+    stack.emplace_back(0);
+  }
+
+  return stack;
+}
+
+unsigned long openssl_error() { return openssl_error_stack().front(); }
 
 }  // namespace ssl
 }  // namespace shcore

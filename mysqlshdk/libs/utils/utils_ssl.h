@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,18 @@ namespace ssl {
  * Converts the given hash to the fingerprint format.
  */
 std::string to_fingerprint(const std::vector<unsigned char> &hash);
+
+/**
+ * Fetches the whole OpenSSL error stack, top of the stack is the first element.
+ * Clears all errors.
+ */
+std::vector<unsigned long> openssl_error_stack();
+
+/**
+ * Fetches top of the OpenSSL error stack.
+ * Clears all errors.
+ */
+unsigned long openssl_error();
 
 enum class Hash {
   SHA256,

@@ -29,6 +29,7 @@
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
+#include <openssl/pkcs12.h>
 
 #include <algorithm>
 #include <cassert>
@@ -53,18 +54,29 @@ namespace {
 using BIO_ptr = std::unique_ptr<BIO, decltype(&::BIO_free)>;
 
 void throw_last_error(const std::string &context) {
-  const auto rc = ERR_get_error();
-  const auto reason = ERR_GET_REASON(rc);
-  ERR_clear_error();
+  const auto stack = openssl_error_stack();
+  bool is_decrypt_error = false;
 
-  if (reason == EVP_R_BAD_DECRYPT) {
+  for (const auto error : stack) {
+    // EVP_R_BAD_DECRYPT is reported when decrypting the key fails, sometimes
+    // decryption does not return an error even though password is wrong or
+    // missing, then PKCS12_R_DECODE_ERROR is reported when decrypted data
+    // cannot be converted into a key
+    if (const auto reason = ERR_GET_REASON(error);
+        EVP_R_BAD_DECRYPT == reason || PKCS12_R_DECODE_ERROR == reason) {
+      is_decrypt_error = true;
+      break;
+    }
+  }
+
+  if (is_decrypt_error) {
     throw Decrypt_error(context);
   } else {
     std::string error_str = "Unexpected error";
 
     if (!context.empty()) error_str.append(1, ' ').append(context);
 
-    error_str.append(": ").append(ERR_reason_error_string(rc));
+    error_str.append(": ").append(ERR_reason_error_string(stack.front()));
 
     throw std::runtime_error(error_str);
   }

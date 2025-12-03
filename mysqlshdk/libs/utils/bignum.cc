@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,8 @@
 
 #include <openssl/bn.h>
 #include <openssl/err.h>
+
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 
 namespace shcore {
 
@@ -242,7 +244,8 @@ class Bignum::Impl {
   }
 
   static void throw_exception(const std::string &context) {
-    std::string msg = context + ": " + ERR_reason_error_string(ERR_get_error());
+    const auto msg =
+        context + ": " + ERR_reason_error_string(ssl::openssl_error());
     throw std::runtime_error(msg);
   }
 
