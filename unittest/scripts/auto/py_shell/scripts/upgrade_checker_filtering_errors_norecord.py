@@ -5,22 +5,22 @@ samples = {"Schemas": "`schema`", "Users": "'sample'@'%'"}
 
 shell.connect(__mysql_uri)
 
-for filter in filters:
-    sample = samples.get(filter, "`schema`.`item`")
-    item = "filter" if filter == "Triggers"  else filter.lower()[0:-1]
-    article = "an" if filter in ["Events"] else "a"
+for f in filters:
+    sample = samples.get(f, "`schema`.`item`")
+    item = "filter" if f == "Triggers"  else f.lower()[0:-1]
+    article = "an" if f in ["Events"] else "a"
     #@<> include filter - accepts only array
-    EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"include{filter}": sample}), f"Argument #2: Option 'include{filter}' is expected to be of type Array, but is String")
+    EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"include{f}": sample}), f"Argument #2: Option 'include{f}' is expected to be of type Array, but is String")
     #@<> include filter - accepts only array
-    if filter not in ["Schemas", "Users", "Triggers"]:
-        EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"include{filter}": ["sample"]}), f"Argument #2: The {item} to be included must be in the following form: schema.{item}, with optional backtick quotes, wrong value: 'sample'.")
-    elif filter == "Triggers":
-        EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"include{filter}": ["sample"]}), f"Argument #2: The trigger to be included must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'sample'.")
+    if f not in ["Schemas", "Users", "Triggers"]:
+        EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"include{f}": ["sample"]}), f"Argument #2: The {item} to be included must be in the following form: schema.{item}, with optional backtick quotes, wrong value: 'sample'.")
+    elif f == "Triggers":
+        EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"include{f}": ["sample"]}), f"Argument #2: The trigger to be included must be in the following form: schema.table or schema.table.trigger, with optional backtick quotes, wrong value: 'sample'.")
     #@<> exclude filter - accepts only array
-    EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"exclude{filter}": sample}), f"Argument #2: Option 'exclude{filter}' is expected to be of type Array, but is String")
+    EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {f"exclude{f}": sample}), f"Argument #2: Option 'exclude{f}' is expected to be of type Array, but is String")
     #@<> include and exclude contain a common entry
-    EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {"include": ["reservedKeywords"], f"include{filter}": [sample], f"exclude{filter}": [sample]}), "Conflicting filtering options")
-    EXPECT_OUTPUT_CONTAINS(f"ERROR: Both include{filter} and exclude{filter} options contain {article} {item} {sample}.")
+    EXPECT_THROWS(lambda: util.check_for_server_upgrade(None, {"include": ["reservedKeywords"], f"include{f}": [sample], f"exclude{f}": [sample]}), "Conflicting filtering options")
+    EXPECT_OUTPUT_CONTAINS(f"ERROR: Both include{f} and exclude{f} options contain {article} {item} {sample}.")
     WIPE_OUTPUT()
 
 shell.disconnect()
