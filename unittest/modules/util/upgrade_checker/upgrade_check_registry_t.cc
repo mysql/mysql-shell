@@ -90,6 +90,9 @@ TEST(Upgrade_check_registry, messages) {
        "docLink.keyring_file", "docLink.keyring_encrypted_file",
        "docLink.keyring_oci"}};
 
+  additional_checks[ids::k_obsolete_sql_mode_flags_check] = {
+      true, {"description.Notice", "description.Warning", "description.Error"}};
+
   additional_checks[ids::k_column_definition] = {
       false, {"floatAutoIncrement", "doubleAutoIncrement"}};
   additional_checks[ids::k_invalid_privileges_check] = {false, {}};

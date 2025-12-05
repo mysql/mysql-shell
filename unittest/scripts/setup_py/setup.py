@@ -545,6 +545,19 @@ def EXPECT_OUTPUT_CONTAINS(text, note=None):
                   "\n<yellow>Actual stderr:</yellow> " + err
         testutil.fail(context)
 
+
+def EXPECT_OUTPUT_CONTAINS_IGNORE_CASE(text, note=None):
+    out = testutil.fetch_captured_stdout(False)
+    err = testutil.fetch_captured_stderr(False)
+    if out.lower().find(text.lower()) == -1 and err.lower().find(text.lower()) == -1:
+        if not note:
+            note = __caller_context()
+        context = "<b>Context:</b> " + __test_context + "\n<red>Missing output:</red> " + text + \
+                  "\n<yellow>Actual stdout:</yellow> " + out + \
+                  "\n<yellow>Actual stderr:</yellow> " + err
+        testutil.fail(context)
+
+
 def WIPE_STDOUT():
     line = testutil.fetch_captured_stdout(True)
     while line != "":

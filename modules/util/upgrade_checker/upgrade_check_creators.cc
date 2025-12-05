@@ -450,6 +450,75 @@ std::unique_ptr<Sql_upgrade_check> get_maxdb_sql_mode_flags_check() {
       Upgrade_issue::WARNING);
 }
 
+class Obsolete_sql_mode_flags_check : public Sql_upgrade_check {
+ public:
+  Obsolete_sql_mode_flags_check(std::vector<Check_query> &&queries)
+      : Sql_upgrade_check(ids::k_obsolete_sql_mode_flags_check,
+                          Category::SCHEMA, std::move(queries),
+                          Upgrade_issue::NOTICE) {}
+
+ protected:
+  std::vector<Upgrade_issue> run(
+      const std::shared_ptr<mysqlshdk::db::ISession> &session,
+      const Upgrade_info &server_info, Checker_cache *cache) override {
+    m_upgrade_info = &server_info;
+    m_cache = cache;
+    m_session = session;
+
+    set_groups({Upgrade_issue::level_to_string(Upgrade_issue::NOTICE),
+                Upgrade_issue::level_to_string(Upgrade_issue::WARNING),
+                Upgrade_issue::level_to_string(Upgrade_issue::ERROR)});
+
+    return Sql_upgrade_check::run(session, server_info, cache);
+  }
+
+  void add_issue(
+      const mysqlshdk::db::IRow *row, Upgrade_issue::Object_type object_type,
+      std::vector<Upgrade_issue> *issues,
+      mysqlshdk::db::Filtering_options *db_filters = nullptr) override {
+    Sql_upgrade_check::add_issue(row, object_type, issues, db_filters);
+
+    issues->back().group =
+        Upgrade_issue::level_to_string(Upgrade_issue::NOTICE);
+
+    assert(m_upgrade_info);
+
+    // Verify if the issue level should be upgraded to ERROR
+    if (object_type == Upgrade_issue::Object_type::SYSVAR) {
+      if (!m_sysvar_level.has_value()) {
+        determine_sysvar_level();
+      }
+
+      issues->back().level = *m_sysvar_level;
+      issues->back().group = Upgrade_issue::level_to_string(*m_sysvar_level);
+    }
+  }
+
+ private:
+  void determine_sysvar_level() {
+    if (!m_upgrade_info->config_path.empty() && m_cache) {
+      m_cache->cache_sysvars(m_session.get(), *m_upgrade_info);
+
+      auto sql_mode = m_cache->get_sysvar("sql_mode");
+
+      // If source is SERVER indicates a value coming from a configuration
+      // file which will not be automatically fixed during the upgrade.
+      if (sql_mode && sql_mode->source == "SERVER") {
+        m_sysvar_level = Upgrade_issue::ERROR;
+      } else {
+        m_sysvar_level = Upgrade_issue::NOTICE;
+      }
+    } else {
+      m_sysvar_level = Upgrade_issue::WARNING;
+    }
+  }
+
+  const Upgrade_info *m_upgrade_info = nullptr;
+  Checker_cache *m_cache = nullptr;
+  std::shared_ptr<mysqlshdk::db::ISession> m_session;
+  std::optional<Upgrade_issue::Level> m_sysvar_level;
+};
+
 std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
   const std::array<const char *, 10> modes = {
       {"DB2", "MSSQL", "MYSQL323", "MYSQL40", "NO_AUTO_CREATE_USER",
@@ -492,9 +561,7 @@ std::unique_ptr<Sql_upgrade_check> get_obsolete_sql_mode_flags_check() {
         Upgrade_issue::Object_type::SYSVAR);
   }
 
-  return std::make_unique<Sql_upgrade_check>(
-      ids::k_obsolete_sql_mode_flags_check, Category::SCHEMA,
-      std::move(queries), Upgrade_issue::NOTICE);
+  return std::make_unique<Obsolete_sql_mode_flags_check>(std::move(queries));
 }
 
 class Enum_set_element_length_check : public Sql_upgrade_check {

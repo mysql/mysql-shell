@@ -1,4 +1,4 @@
-# Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2025, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -137,8 +137,18 @@ https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-remov
 Usage of obsolete sql_mode flags
 
 * obsoleteSqlModeFlags.description
-Notice: The following DB objects have obsolete options persisted for sql_mode, which will be
-cleared during the upgrade.
+The following DB objects have obsolete options persisted for sql_mode.
+
+* obsoleteSqlModeFlags.description.Notice
+The following flags will be cleared during the upgrade.
+
+* obsoleteSqlModeFlags.description.Warning
+Ensure the following flags are not persisted in the configuration file as they will prevent the
+target server from loading.
+
+* obsoleteSqlModeFlags.description.Error
+The following flags are persisted in the configuration file which will prevent the
+target server from loading, they must be removed.
 
 * obsoleteSqlModeFlags.docLink
 https://dev.mysql.com/doc/refman/8.0/en/mysql-nutshell.html#mysql-nutshell-removals

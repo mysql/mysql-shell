@@ -1835,27 +1835,6 @@ TEST_F(MySQL_upgrade_check_test, obsolete_sqlmodes) {
       // Excluding a table, also excludes the associated triggers
       TEST_TABLE_FILTERING(check.get(), "aaa_test_obsolete_sql_modes.Clone",
                            issues.size(), trigger_issues, {});
-
-      auto json_issues =
-          execute_check_as_json(ids::k_obsolete_sql_mode_flags_check);
-      ASSERT_NE(nullptr, json_issues);
-
-      EXPECT_JSON_CONTAINS(json_issues,
-                           "{'dbObject':'aaa_test_obsolete_sql_modes.TEST_DB2',"
-                           " 'dbObjectType':'Routine'}");
-
-      EXPECT_JSON_CONTAINS(json_issues,
-                           "{'dbObject':'aaa_test_obsolete_sql_modes.EV_DB2', "
-                           "'dbObjectType':'Event'}");
-
-      EXPECT_JSON_CONTAINS(
-          json_issues,
-          "{'dbObject':'aaa_test_obsolete_sql_modes.Clone.TR_DB2', "
-          "'dbObjectType':'Trigger'}");
-
-      EXPECT_JSON_CONTAINS(
-          json_issues,
-          "{'dbObject':'@@global.sql_mode', 'dbObjectType':'SystemVariable'}");
     }
   }
 }
