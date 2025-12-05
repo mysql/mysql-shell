@@ -491,6 +491,8 @@ Compatibility_issue Compatibility_issue::error::table_missing_pk_manual_fix(
   issue.description += reason;
   issue.compatibility_options.clear();
 
+  issue.check = Compatibility_check::TABLE_MISSING_PK_MANUAL_FIX;
+
   return issue;
 }
 
@@ -923,6 +925,9 @@ std::string_view to_string(Compatibility_check check) {
 
     case Compatibility_check::TABLE_MISSING_PK:
       return "table/missing_pk";
+
+    case Compatibility_check::TABLE_MISSING_PK_MANUAL_FIX:
+      return "table/missing_pk_manual_fix";
 
     case Compatibility_check::TABLE_DATA_OR_INDEX_DIR:
       return "table/data_or_index_directory";
