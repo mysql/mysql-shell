@@ -268,14 +268,14 @@ std::string to_fingerprint(const std::vector<unsigned char> &hash) {
 std::vector<unsigned long> openssl_error_stack() {
   std::vector<unsigned long> stack;
 
-  const char *file = NULL;
+  const char *file = nullptr;
   int line = 0;
-  const char *data = NULL;
+  const char *data = nullptr;
   int flags = 0;
 
 #if OPENSSL_VERSION_NUMBER >= 0x30000000L /* 3.0.x */
   while (const auto error_code =
-             ERR_get_error_all(&file, &line, NULL, &data, &flags) != 0) {
+             ERR_get_error_all(&file, &line, nullptr, &data, &flags)) {
 #else
   while (const auto error_code =
              ERR_get_error_line_data(&file, &line, &data, &flags)) {
