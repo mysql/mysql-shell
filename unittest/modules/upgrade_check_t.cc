@@ -2617,6 +2617,10 @@ TEST_F(MySQL_upgrade_check_test, schema_inconsitencies) {
   // Gets the query from the check, and tweaks is to use a test schema and adds
   // order by clause for test consistency
   std::string query = check->get_queries().at(0).first;
+
+  // Remove the schema/table query filter placeholder
+  query = shcore::str_replace(query, "<<I.schema_and_table_filter>> and", "");
+
   query = shcore::str_replace(query, "information_schema",
                               "orphan_table_query_test");
   query.pop_back();
@@ -3518,7 +3522,7 @@ TEST_F(MySQL_upgrade_check_test, dollar_sign_name_check) {
 }
 
 TEST_F(MySQL_upgrade_check_test, too_large_index_check) {
-  SKIP_IF_NOT_5_7_UP_TO(Version(5, 7, 34));
+  SKIP_IF_NOT_5_7_UP_TO(Version(5, 7, 35));
 
   PrepareTestDatabase("index_test");
 
@@ -3552,7 +3556,8 @@ TEST_F(MySQL_upgrade_check_test, too_large_index_check) {
       session->execute("create index idx123 on test123 (`comment`);"));
 
   EXPECT_ISSUES(check.get(), 1);
-  EXPECT_ISSUE(issues[0], "index_test", "test123", "idx123");
+  EXPECT_ISSUE(issues[0], "index_test", "test123", "idx123",
+               Upgrade_issue::Level::ERROR);
 
   // Backups all issues for the filtering testing
   auto all_issues = issues;

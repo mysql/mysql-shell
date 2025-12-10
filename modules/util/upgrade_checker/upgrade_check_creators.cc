@@ -1028,7 +1028,8 @@ get_schema_inconsistency_check() {
        " as table_name from "
        "information_schema.innodb_sys_tables where NAME like '%/%') A left "
        "join information_schema.tables I on A.table_name = I.table_name and "
-       "A.schema_name = I.table_schema where A.table_name not like 'FTS_0%' "
+       "A.schema_name = I.table_schema where <<I.schema_and_table_filter>> and "
+       "A.table_name not like 'FTS_0%' "
        "and (I.table_name IS NULL or I.table_schema IS NULL) and A.table_name "
        "not REGEXP '@[0-9a-f]{4}' and A.schema_name not REGEXP '@[0-9a-f]{4}';",
            Upgrade_issue::Object_type::TABLE}},
@@ -1191,17 +1192,19 @@ std::unique_ptr<Sql_upgrade_check> get_orphaned_objects_check() {
   return std::make_unique<Sql_upgrade_check>(
       ids::k_orphaned_objects_check, Category::SCHEMA,
       std::vector<Check_query>{
-          {"SELECT ROUTINE_SCHEMA, ROUTINE_NAME, '##routine' AS WARNING "
-           "FROM information_schema.routines WHERE "
-           "<<schema_and_routine_filter>> AND NOT EXISTS "
-           "(SELECT SCHEMA_NAME FROM information_schema.schemata "
-           "WHERE ROUTINE_SCHEMA=SCHEMA_NAME);",
+          {"SELECT r.ROUTINE_SCHEMA, r.ROUTINE_NAME, '##routine' AS WARNING "
+           "FROM information_schema.routines r "
+           "LEFT JOIN information_schema.schemata s ON r.ROUTINE_SCHEMA = "
+           "s.SCHEMA_NAME "
+           "WHERE <<schema_and_routine_filter>> AND "
+           "s.SCHEMA_NAME IS NULL;",
            Upgrade_issue::Object_type::ROUTINE},
-          {"SELECT EVENT_SCHEMA, EVENT_NAME, '##event' AS WARNING FROM "
-           "information_schema.events WHERE "
-           "<<schema_and_event_filter>> AND NOT EXISTS "
-           "(SELECT SCHEMA_NAME FROM information_schema.schemata "
-           "WHERE EVENT_SCHEMA=SCHEMA_NAME);",
+          {"SELECT e.EVENT_SCHEMA, e.EVENT_NAME, '##event' AS WARNING "
+           "FROM information_schema.events e "
+           "LEFT JOIN information_schema.schemata s ON e.EVENT_SCHEMA = "
+           "s.SCHEMA_NAME "
+           "WHERE <<schema_and_event_filter>> "
+           "AND s.SCHEMA_NAME IS NULL;",
            Upgrade_issue::Object_type::EVENT}},
       Upgrade_issue::ERROR, nullptr, true);
 }
@@ -1252,12 +1255,12 @@ std::unique_ptr<Sql_upgrade_check> get_index_too_large_check() {
       std::vector<Check_query>{
           {"select s.table_schema, s.table_name, s.index_name, 'index too "
            "large.' as warning from information_schema.statistics s, "
-           "information_schema.columns c, information_schema.innodb_sys_tables "
-           "i where <<s.schema_and_table_filter>> and "
-           "s.table_name=c.table_name "
-           "and s.table_schema=c.table_schema "
-           "and c.column_name=s.column_name and concat(s.table_schema, '/', "
-           "s.table_name) = i.name and i.row_format in ('Redundant', "
+           "information_schema.columns c, information_schema.tables t "
+           "where <<s.schema_and_table_filter>> "
+           "and s.table_schema=c.table_schema and s.table_name=c.table_name "
+           "and c.column_name=s.column_name "
+           "and s.table_schema=t.table_schema and s.table_name=t.table_name "
+           "and t.engine = 'InnoDB' and t.row_format in ('Redundant', "
            "'Compact') "
            "and (s.sub_part is null or s.sub_part > 255) and "
            "c.character_octet_length > 767;",
@@ -1539,44 +1542,31 @@ class Deprecated_partition_temporal_delimiter_check : public Sql_upgrade_check {
   Deprecated_partition_temporal_delimiter_check()
       : Sql_upgrade_check(
             ids::k_deprecated_temporal_delimiter_check, Category::SCHEMA,
-            std::vector<Check_query>{
-                {
-                    R"(select 
-  p.table_schema, 
-  p.table_name, 
-  column_name, 
-  CONCAT(' - partition ', 
-    p.partition_name, ' uses deprecated temporal delimiters') AS message, 
-  p.partition_expression, 
-  p.partition_description 
+            std::vector<Check_query>{{
+                R"(select 
+p.table_schema, 
+p.table_name, 
+column_name, 
+CONCAT(' - partition ', 
+p.partition_name, ' uses deprecated temporal delimiters') AS message, 
+p.partition_expression, 
+p.partition_description 
 from 
-  information_schema.partitions p left join information_schema.columns c on 
-    (p.partition_expression LIKE concat('%`', c.column_name, '`%') and 
-  p.table_name = c.table_name and p.table_schema = c.table_schema) 
+information_schema.partitions p
+left join information_schema.columns c
+on p.table_schema = c.table_schema and
+p.table_name = c.table_name and 
+p.partition_expression LIKE concat('%`', c.column_name, '`%')
 where 
-  <<p.schema_and_table_filter>> and
-  (not partition_description REGEXP ')" +
-                        deprecated_delimiter_funcs::k_date_regex_multi_str +
-                        R"(') and c.column_type = 'date';)",
-                    Upgrade_issue::Object_type::COLUMN},
-                {R"(select 
-  p.table_schema, 
-  p.table_name, 
-  column_name, 
-  CONCAT(' - partition ', 
-    p.partition_name, ' uses deprecated temporal delimiters') AS message, 
-  p.partition_expression, 
-  p.partition_description 
-from 
-  information_schema.partitions p left join information_schema.columns c on 
-    (partition_expression LIKE concat('%`', c.column_name, '`%') and 
-    p.table_name = c.table_name and p.table_schema = c.table_schema) 
-where 
-  <<p.schema_and_table_filter>> and
-  (not p.partition_description REGEXP ')" +
-                     deprecated_delimiter_funcs::k_time_regex_multi_str + R"(') 
-  and (c.column_type = 'datetime' or c.column_type = 'timestamp');)",
-                 Upgrade_issue::Object_type::COLUMN}},
+<<p.schema_and_table_filter>> and (
+(not partition_description REGEXP ')" +
+                    deprecated_delimiter_funcs::k_date_regex_multi_str +
+                    R"(' and c.column_type = 'date')
+or
+(not p.partition_description REGEXP ')" +
+                    deprecated_delimiter_funcs::k_time_regex_multi_str +
+                    R"(' and (c.column_type = 'datetime' or c.column_type = 'timestamp'))))",
+                Upgrade_issue::Object_type::COLUMN}},
             Upgrade_issue::ERROR) {}
 
   Upgrade_issue parse_row(const mysqlshdk::db::IRow *row,
