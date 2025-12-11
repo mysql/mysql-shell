@@ -118,6 +118,9 @@ TEST(Upgrade_check_registry, messages) {
   additional_tokens[ids::k_syntax_check] = {
       {"description", {{"selected_version", "8.0.36"}}},
   };
+  additional_tokens[ids::k_spatial_index] = {
+      {"description", {{"target_version", MYSH_VERSION}}},
+  };
 
   for (const auto &check : checklist) {
     std::string name = check->get_name();

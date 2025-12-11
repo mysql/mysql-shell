@@ -94,6 +94,9 @@ class Upgrade_check {
 
   virtual bool is_custom_session_required() const { return false; }
 
+ protected:
+  virtual Token_definitions base_tokens() const { return {}; }
+
  private:
   const std::string &to_string(Category category) const;
 

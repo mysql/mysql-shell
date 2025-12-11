@@ -68,7 +68,7 @@ class Sql_upgrade_check : public Upgrade_check {
       std::vector<Upgrade_issue> *issues,
       mysqlshdk::db::Filtering_options *db_filters = nullptr);
   Upgrade_issue::Level get_level() const { return m_level; }
-
+  Token_definitions base_tokens() const override { return m_base_tokens; }
   std::vector<Check_query> m_queries;
   std::forward_list<std::string> m_set_up;
   std::forward_list<std::string> m_clean_up;
@@ -76,6 +76,8 @@ class Sql_upgrade_check : public Upgrade_check {
   const char *m_minimal_version;
   const std::vector<std::string> *m_field_names = nullptr;
   bool m_filter_out_objects_with_error = false;
+  // By default, the target_version is the shell version
+  Token_definitions m_base_tokens = {{"target_version", MYSH_VERSION}};
 };
 
 }  // namespace upgrade_checker

@@ -90,6 +90,9 @@ Sql_upgrade_check::Sql_upgrade_check(const std::string_view name,
 std::vector<Upgrade_issue> Sql_upgrade_check::run(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
     const Upgrade_info &server_info, Checker_cache *cache) {
+  // Update the target_version with the one used when running the check
+  m_base_tokens["target_version"] = server_info.target_version.get_base();
+
   if (m_minimal_version != nullptr &&
       Version(server_info.server_version) < Version(m_minimal_version))
     throw std::runtime_error(shcore::str_format(
@@ -196,7 +199,7 @@ Upgrade_issue Sql_upgrade_check::parse_row(
   std::string issue_details;
 
   // Expose all the query fields to be usable in the message resolution
-  Token_definitions tokens;
+  Token_definitions tokens = base_tokens();
   if (m_field_names) {
     for (size_t index = 0; index < fields_count; index++) {
       tokens[m_field_names->at(index)] = row->get_as_string(index);

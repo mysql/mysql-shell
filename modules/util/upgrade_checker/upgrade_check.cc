@@ -53,13 +53,19 @@ std::string Upgrade_check::get_description(
     const std::string &group, const Token_definitions &tokens) const {
   std::string description;
 
+  std::string tag{"description"};
   if (!group.empty()) {
-    std::string tag{"description."};
-    tag += group;
-    return resolve_tokens(get_text(tag.c_str()), tokens);
+    tag.append(".").append(group);
   }
 
-  return resolve_tokens(get_text("description"), tokens);
+  try {
+    return resolve_tokens(get_text(tag.c_str()), tokens);
+  } catch (const std::logic_error &) {
+    Token_definitions all_tokens = base_tokens();
+    Token_definitions tokens_copy = tokens;
+    all_tokens.merge(std::move(tokens_copy));
+    return resolve_tokens(get_text(tag.c_str()), all_tokens);
+  }
 }
 
 std::vector<std::string> Upgrade_check::get_solutions(
