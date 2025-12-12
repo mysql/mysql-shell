@@ -318,9 +318,39 @@
     ]
   },
   {
+    "name": "audit_log_buffer_size",
+    "version": "5.5.28",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_disable",
+    "version": "5.7.37",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_compression",
+    "version": "5.7.21",
+    "deprecation": "9.6.0"
+  },
+  {
     "name": "audit_log_connection_policy",
     "version": "5.6.20",
     "deprecation": "8.0.34"
+  },
+  {
+    "name": "audit_log_current_session",
+    "version": "5.6.20",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_database",
+    "version": "8.0.33",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_encryption",
+    "version": "5.7.21",
+    "deprecation": "9.6.0"
   },
   {
     "name": "audit_log_exclude_accounts",
@@ -328,8 +358,29 @@
     "deprecation": "8.0.34"
   },
   {
+    "name": "audit_log_file",
+    "version": "5.5.28",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_filter_id",
+    "version": "5.7.13",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_flush",
+    "version": "5.5.28",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_flush_interval_seconds",
+    "version": "8.0.34",
+    "deprecation": "9.6.0"
+  },
+  {
     "name": "audit_log_format",
     "version": "5.5.34",
+    "deprecation": "9.6.0",
     "changes": [
       {
         "version": "5.6.14",
@@ -350,9 +401,24 @@
     ]
   },
   {
+    "name": "audit_log_format_unix_timestamp",
+    "version": "5.7.35",
+    "deprecation": "9.6.0"
+  },
+  {
     "name": "audit_log_include_accounts",
     "version": "5.6.20",
     "deprecation": "8.0.34"
+  },
+  {
+    "name": "audit_log_max_size",
+    "version": "8.0.26",
+    "deprecation": "9.6.0"
+  },
+  {
+    "name": "audit_log_password_history_keep_days",
+    "version": "8.0.17",
+    "deprecation": "9.6.0"
   },
   {
     "name": "audit_log_policy",
@@ -360,8 +426,14 @@
     "deprecation": "8.0.34"
   },
   {
+    "name": "audit_log_prune_seconds",
+    "version": "8.0.24",
+    "deprecation": "9.6.0"
+  },
+  {
     "name": "audit_log_read_buffer_size",
     "version": "5.7.21",
+    "deprecation": "9.6.0",
     "initial": {
       "all": {
         "default": {
@@ -397,9 +469,19 @@
     ]
   },
   {
+    "name": "audit_log_rotate_on_size",
+    "version": "5.5.28",
+    "deprecation": "9.6.0"
+  },
+  {
     "name": "audit_log_statement_policy",
     "version": "5.6.20",
     "deprecation": "8.0.34"
+  },
+  {
+    "name": "audit_log_strategy",
+    "version": "5.5.28",
+    "deprecation": "9.6.0"
   },
   {
     "name": "authentication_ldap_sasl_auth_method_name",
@@ -636,7 +718,7 @@
         "version": "9.5.0",
         "all": {
           "default": {
-            "all": "1000000"
+            "all": "10000000"
           }
         }
       }
