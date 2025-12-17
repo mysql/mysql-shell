@@ -2630,7 +2630,6 @@ Paramiko
 # You should have received a copy of the GNU Lesser General Public License
 # along with Paramiko; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.
-from paramiko.common import max_byte, zero_byte, byte_ord, byte_chr
 
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999
@@ -2677,7 +2676,7 @@ A copy of the Apache License v2.0, January 2004 license can be found
 in the 'Standard Licenses' section
 
 ------------------------------------------------------------------------------
-crytography
+cryptography
 -----------
 This software is made available under the terms of *either* of the licenses
 found in LICENSE.APACHE or LICENSE.BSD. Contributions to cryptography are made
@@ -2719,12 +2718,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
 A copy of the Apache License v2.0, January 2004 license can be found
-in the 'Standard Licenses' section
+in the 'Standard Licenses' section.
 
 ------------------------------------------------------------------------------
 PyNaCl
 ------
-== random source file (*\src\nacl\__init__.py
+
 # Copyright 2013 Donald Stufft and individual contributors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -2799,7 +2798,7 @@ Some files include the following copyrights
 No additional LICENSE files found in download package
 
 ------------------------------------------------------------------------------
-pycparcer
+pycparser
 ---------
 pycparser -- A C parser in Python
 
