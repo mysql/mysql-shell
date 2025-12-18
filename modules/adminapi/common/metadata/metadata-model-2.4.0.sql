@@ -470,9 +470,11 @@ CREATE TABLE IF NOT EXISTS routers (
 */
 CREATE TABLE IF NOT EXISTS router_stats (
   /*
-    Foreign key to the router instance.
-    One stats row per router_id (enforced by PRIMARY KEY).
-    If a router is removed, its stats are deleted automatically.
+    Router instance identifier (same value as routers.router_id).
+
+    At most one stats row per router_id (enforced by PRIMARY KEY).
+    This is not declared as a foreign key to keep the schema compatible with
+    Group Replication when running in multi-primary mode and to avoid implicit cascading deletes.
   */
   `router_id` INT UNSIGNED NOT NULL,
 
@@ -480,12 +482,10 @@ CREATE TABLE IF NOT EXISTS router_stats (
     A timestamp updated by the router every hour with the current time. This
     timestamp is used to detect routers that are no longer used or stalled.
     Managed by Router.
-   */
+  */
   `last_check_in` TIMESTAMP NULL DEFAULT NULL,
-  PRIMARY KEY (router_id),
-  FOREIGN KEY (router_id)
-    REFERENCES routers (router_id)
-    ON DELETE CASCADE
+
+  PRIMARY KEY (router_id)
 ) CHARSET = utf8mb4, ROW_FORMAT = DYNAMIC;
 
 /*
