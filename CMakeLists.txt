@@ -1,4 +1,4 @@
-# Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+# Copyright (c) 2014, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -465,7 +465,7 @@ set(CMAKE_MODULE_PATH
 
 ### Configuring package year
 IF(NOT PACKAGE_YEAR)
-  SET(PACKAGE_YEAR "2025")
+  SET(PACKAGE_YEAR "2026")
 ENDIF()
 add_definitions(-DPACKAGE_YEAR="${PACKAGE_YEAR}")
 
