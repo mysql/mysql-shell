@@ -214,14 +214,35 @@ std::vector<Upgrade_issue> Sys_var_allowed_values_check::run(
 
   std::vector<Upgrade_issue> issues;
 
+  const std::unordered_set<std::string> cipher_params = {
+      "ssl_cipher", "admin_ssl_cipher", "tls_ciphersuites",
+      "admin_tls_ciphersuites"};
+
   for (const auto &variable : m_sys_vars) {
     // Tests for the definition to be enabled
 
     const auto *cached_var = cache->get_sysvar(variable.first);
 
     if (cached_var && cached_var->source != "COMPILED") {
-      if (std::find(variable.second.begin(), variable.second.end(),
-                    cached_var->value) == std::end(variable.second)) {
+      std::vector<std::string> configured_values;
+
+      if (cipher_params.count(variable.first)) {
+        // Cipher params are colon-separated lists; validate each cipher
+        configured_values = shcore::str_split(cached_var->value, ":");
+      } else {
+        configured_values = {cached_var->value};
+      }
+
+      bool invalid_value = false;
+      for (const auto &value : configured_values) {
+        if (std::find(variable.second.begin(), variable.second.end(),
+                      value) == variable.second.end()) {
+          invalid_value = true;
+          break;
+        }
+      }
+
+      if (invalid_value) {
         auto allowed = shcore::str_join(variable.second, ", ");
 
         auto description =
