@@ -752,7 +752,6 @@ void Instance_cache_builder::fetch_table_indexes() {
   };
   info.table_name = "statistics";
   info.where = "NON_UNIQUE=0";
-
   constexpr std::string_view k_primary_index = "PRIMARY";
   struct Index_info {
     std::vector<Instance_cache::Column *> columns;
