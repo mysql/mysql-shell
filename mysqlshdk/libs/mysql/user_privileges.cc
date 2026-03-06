@@ -203,9 +203,9 @@ bool User_privileges::check_if_user_exists(
     const mysqlshdk::mysql::IInstance &instance) const {
   // all users have at least one privilege: USAGE
   const auto result = instance.queryf(
-      "SELECT PRIVILEGE_TYPE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE "
-      "GRANTEE=? LIMIT 1",
-      m_account);
+    "SELECT PRIVILEGE_TYPE FROM INFORMATION_SCHEMA.USER_PRIVILEGES WHERE "
+    "GRANTEE=CONCAT(QUOTE(?),'@',QUOTE(?)) LIMIT 1",
+    m_user, m_host);
   return nullptr != result->fetch_one();
 }
 
