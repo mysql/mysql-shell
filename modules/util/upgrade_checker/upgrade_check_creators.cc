@@ -1756,7 +1756,7 @@ R"(select
   fk.table_name,
   fk.constraint_name,
   fk.parent_fk_definition as fk_definition,
-  fk.REFERENCED_TABLE_NAME as target_table,
+  fk.target_table,
   '##fkToNonUniqueKey'
 from (select 
       rc.constraint_schema, 
@@ -1764,6 +1764,7 @@ from (select
       CONCAT(rc.table_name, '(', GROUP_CONCAT(kc.column_name order by kc.ORDINAL_POSITION),')') as parent_fk_definition,
       CONCAT(kc.REFERENCED_TABLE_SCHEMA,'.',kc.REFERENCED_TABLE_NAME, '(', GROUP_CONCAT(kc.REFERENCED_COLUMN_NAME order by kc.POSITION_IN_UNIQUE_CONSTRAINT),')') as target_fk_definition,
       rc.REFERENCED_TABLE_NAME,
+      CONCAT(kc.REFERENCED_TABLE_SCHEMA,'.',rc.REFERENCED_TABLE_NAME) as target_table,
       rc.table_name
     from 
       information_schema.REFERENTIAL_CONSTRAINTS rc
@@ -1772,7 +1773,7 @@ from (select
         on 
           rc.constraint_schema = kc.constraint_schema AND
           rc.constraint_name = kc.constraint_name AND
-          rc.constraint_schema = kc.REFERENCED_TABLE_SCHEMA AND
+          rc.UNIQUE_CONSTRAINT_SCHEMA = kc.REFERENCED_TABLE_SCHEMA AND
           rc.REFERENCED_TABLE_NAME = kc.REFERENCED_TABLE_NAME AND
           kc.REFERENCED_TABLE_NAME is not NULL AND
           kc.REFERENCED_COLUMN_NAME is not NULL
@@ -1782,7 +1783,8 @@ from (select
       rc.constraint_schema,
       rc.constraint_name,
       rc.table_name,
-      rc.REFERENCED_TABLE_NAME) fk
+      rc.REFERENCED_TABLE_NAME,
+      kc.referenced_table_schema) fk
   join (SELECT 
       CONCAT(table_schema,'.',table_name,'(',GROUP_CONCAT(column_name order by seq_in_index),')') as fk_definition,
       SUM(non_unique) as non_unique_count
@@ -1800,7 +1802,8 @@ from (select
     fk.constraint_name,
     fk.parent_fk_definition,
     fk.REFERENCED_TABLE_NAME,
-    fk.table_name
+    fk.table_name,
+    fk.target_table
   having
     SUM(idx.non_unique_count = 0) = 0 AND
     <<fk.schema_and_table_filter:constraint_schema:table_name>>
