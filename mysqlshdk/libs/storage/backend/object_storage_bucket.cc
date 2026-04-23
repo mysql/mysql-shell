@@ -32,6 +32,8 @@
 
 #include "mysqlshdk/libs/utils/fault_injection.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/utils_encoding.h"
+#include "mysqlshdk/libs/utils/utils_ssl.h"
 
 namespace mysqlshdk {
 namespace storage {
@@ -156,6 +158,11 @@ void Container::rename_object(const std::string &src_name,
 void Container::put_object(const std::string &object_name, const char *data,
                            size_t size) {
   Headers headers{{"content-type", "application/octet-stream"}};
+
+  auto &md5 = headers["Content-MD5"];
+  std::string_view data_view(data, size);
+  const auto hash = shcore::ssl::restricted::md5(data_view);
+  shcore::encode_base64(hash.data(), hash.size(), &md5);
 
   auto request = put_object_request(object_name, std::move(headers));
   request.body = data;
