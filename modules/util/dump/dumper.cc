@@ -2060,15 +2060,28 @@ class Dumper::Table_worker final {
 
       last_chunk_in_dump = last_chunk_on_this_level && info.index_column == 0;
 
-      // If the current chunk was processed by deep chunking, we have nothing to
-      // dump. Just go to the next chunk on this level.
+      // If the current chunk was processed by nested chunking, we have
+      // nothing to dump. Just go to the next chunk on this level.
       // In other case, we need to glue.
       auto current_chunk_begin_for_glue = current_chunk_begin;
 
       current_chunk_begin = current_chunk_end;
       ++current_chunk_begin;
-      if (processed_by_deep_chunking && !last_chunk_in_dump) {
-        continue;
+      if (processed_by_deep_chunking) {
+        if (!last_chunk_in_dump) continue;
+
+        // This is the last chunk in the dump and it was processed by nested
+        // chunking. Nothing else to dump. We need to create an empty chunk
+        // to mark the end of dump.
+        DBG(log_debug("Nest level: %ld, this is the last chunk in the dump. It "
+                      "was processed by nested chunking. Creating an empty "
+                      "chunk to mark the end of dump.",
+                      info.index_column);)
+        // The following condition will evaluate to 'false' always, causing
+        // the empty chunk to be created.
+        const_cast<Chunking_info &>(info).boundary = "1=0";
+        chunk_id = std::to_string(info.ranges_counter);
+        rows_cnt = 0;
       }
 
       // Put the chunk through gluer logic
@@ -2083,22 +2096,24 @@ class Dumper::Table_worker final {
                   "flushed "
                   "during last glue.",
                   info.index_column);
-            } if (last_chunk_on_this_level && !last_chunk_in_dump &&
+            }
+            if (last_chunk_on_this_level && !last_chunk_in_dump &&
                   glue_res.flushed) {
               log_debug(
                   "Nest level: %ld, this is the last chunk on this nested "
                   "level. Was "
                   "flushed during last glue.",
                   info.index_column);
-            } log_info("Nest level: %ld) creating dump task for chunk: %s, "
-                       "rows_cnt: "
-                       "%ld (r: %2f, rpc: %ld, acc: %ld), new_step: %s, last?: "
-                       "%d, idx_column: %ld, cond: %s",
-                       info.index_column, chunk_id.c_str(), glue_res.rows_cnt,
-                       (double)glue_res.rows_cnt / (double)info.rows_per_chunk,
-                       info.rows_per_chunk, info.accuracy, V2S(new_step + 1),
-                       last_chunk_in_dump, info.index_column,
-                       between(info, glue_res.begin, glue_res.end).c_str());)
+            }
+            log_info("Nest level: %ld) creating dump task for chunk: %s, "
+                  "rows_cnt: "
+                  "%ld (r: %2f, rpc: %ld, acc: %ld), new_step: %s, last?: "
+                  "%d, idx_column: %ld, cond: %s",
+                  info.index_column, chunk_id.c_str(), glue_res.rows_cnt,
+                  (double)glue_res.rows_cnt / (double)info.rows_per_chunk,
+                  info.rows_per_chunk, info.accuracy, V2S(new_step + 1),
+                  last_chunk_in_dump, info.index_column,
+                  between(info, glue_res.begin, glue_res.end).c_str());)
         create_and_push_table_data_chunk_task(
             *info.table, between(info, glue_res.begin, glue_res.end), chunk_id,
             info.ranges_counter++, (last_chunk_in_dump && glue_res.flushed));
