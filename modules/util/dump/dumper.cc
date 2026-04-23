@@ -1653,7 +1653,8 @@ class Dumper::Table_worker final {
           rows_cnt_ += rows_cnt;
         }
 
-        if (rows_cnt_ > 3 * max_rows_cnt_ || last) {
+        static constexpr uint64_t flush_threshold_multiplier = 3;
+        if (rows_cnt_ > flush_threshold_multiplier * max_rows_cnt_ || last) {
           // flush gluer if we accumulated a lot of chunks or this is the last
           // one
           DBG_GLUE(log_debug("Gluer::glue() - Gluer full. rows: %ld, last?: %d",

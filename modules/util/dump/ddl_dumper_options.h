@@ -115,8 +115,6 @@ class Ddl_dumper_options : public Dump_options {
   void set_max_key_prefix_len(const size_t &value);
   void set_adaptive_step_strategy(const std::string &value);
 
-  AdaptiveStepStrategy to_adaptive_step_strategy(const std::string option);
-
   bool m_split = true;
   uint64_t m_bytes_per_chunk;
 

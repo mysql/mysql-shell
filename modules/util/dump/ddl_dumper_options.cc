@@ -211,17 +211,6 @@ void Ddl_dumper_options::set_threads(uint64_t threads) {
   m_worker_threads = threads;
 }
 
-AdaptiveStepStrategy Ddl_dumper_options::to_adaptive_step_strategy(
-    const std::string option) {
-  if (option == "enhanced") {
-    return AdaptiveStepStrategy::ENHANCED;
-  } else if (option == "original") {
-    return AdaptiveStepStrategy::ORIGINAL;
-  }
-  throw std::invalid_argument(
-      "Invalid value for 'adaptiveStepStrategy' option: " + option);
-}
-
 void Ddl_dumper_options::set_max_key_prefix_len(const size_t &value) {
   if (!split()) {
     throw std::invalid_argument(
@@ -230,6 +219,17 @@ void Ddl_dumper_options::set_max_key_prefix_len(const size_t &value) {
   }
 
   m_max_key_prefix_len = value;
+}
+
+static AdaptiveStepStrategy to_adaptive_step_strategy(
+    const std::string &option) {
+  if (option == "enhanced") {
+    return AdaptiveStepStrategy::ENHANCED;
+  } else if (option == "original") {
+    return AdaptiveStepStrategy::ORIGINAL;
+  }
+  throw std::invalid_argument(
+      "Invalid value for 'adaptiveStepStrategy' option: " + option);
 }
 
 void Ddl_dumper_options::set_adaptive_step_strategy(const std::string &value) {
