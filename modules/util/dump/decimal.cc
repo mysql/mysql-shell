@@ -48,6 +48,8 @@ Decimal::Decimal(const std::string &d) {
   }
 }
 
+Decimal::Decimal(std::int64_t value) : m_decimal(value) {}
+
 std::string Decimal::to_string() const {
   auto str = m_decimal.to_string();
 

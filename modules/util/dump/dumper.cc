@@ -1401,7 +1401,7 @@ class Dumper::Table_worker final {
 
   template <typename T>
   static T mul(uint64_t value1, const T &value2) {
-    if (value1 == 0 || value2 == 0) return T{0};
+    if (value1 == 0 || value2 == 0) return T(0);
 
     using R = std::common_type_t<uint64_t, T>;
 

@@ -51,6 +51,9 @@ class Decimal final {
  public:
   explicit Decimal(const std::string &d);
 
+  /** Integer value with no fractional digits (e.g. generic chunking code). */
+  explicit Decimal(std::int64_t value);
+
   Decimal(const Decimal &other) = default;
   Decimal(Decimal &&other) = default;
 
