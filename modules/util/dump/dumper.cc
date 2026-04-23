@@ -2520,11 +2520,30 @@ class Dumper::Table_worker final {
           "Failed to parse JSON output of an EXPLAIN statement: %s", e.what()));
     }
 
+    // This function is fragile, as originally it expects info about rows
+    // count to be in a specific place in the JSON output of EXPLAIN statement.
+    // Moreover it expects it to be a number. However, in some cases
+    // (e.g. when there are no rows to process) the output may differ between
+    // MySQL versions.
+    // That's why I think it should return 0 when it is not able to find the row
+    // count in the expected place.
     if (auto *v = rapidjson::Pointer("/query_block/message").Get(json)) {
       if (v->IsString()) {
         std::string msg = v->GetString();
         if (msg.find("no matching row") != std::string::npos ||
             msg.find("no rows") != std::string::npos) {
+          log_info(
+              "EXPLAIN statement returned message indicating that there are no "
+              "rows to process: %s",
+              msg.c_str());
+          return 0;
+        }
+      }
+    }
+    if (auto *v = rapidjson::Pointer("/query_plan/access_type").Get(json)) {
+      if (v->IsString()) {
+        std::string msg = v->GetString();
+        if (msg.find("zero_rows_aggregated") != std::string::npos) {
           log_info(
               "EXPLAIN statement returned message indicating that there are no "
               "rows to process: %s",
