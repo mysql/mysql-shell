@@ -90,6 +90,10 @@ const shcore::Option_pack_def<Ddl_dumper_options>
           .optional("checksum", &Ddl_dumper_options::m_checksum)
           .optional("lakehouseTarget",
                     &Ddl_dumper_options::set_lakehouse_target)
+          .optional("maxKeyPrefixLength",
+                    &Ddl_dumper_options::set_max_key_prefix_len)
+          .optional("adaptiveStepStrategy",
+                    &Ddl_dumper_options::set_adaptive_step_strategy)
           .on_done(&Ddl_dumper_options::on_unpacked_options);
 
   return opts;
@@ -205,6 +209,42 @@ void Ddl_dumper_options::set_threads(uint64_t threads) {
 
   // By default, m_worker_threads is equal to m_threads
   m_worker_threads = threads;
+}
+
+AdaptiveStepStrategy Ddl_dumper_options::to_adaptive_step_strategy(
+    const std::string option) {
+  if (option == "enhanced") {
+    return AdaptiveStepStrategy::ENHANCED;
+  } else if (option == "original") {
+    return AdaptiveStepStrategy::ORIGINAL;
+  }
+  throw std::invalid_argument(
+      "Invalid value for 'adaptiveStepStrategy' option: " + option);
+}
+
+void Ddl_dumper_options::set_max_key_prefix_len(const size_t &value) {
+  if (!split()) {
+    throw std::invalid_argument(
+        "The option 'maxKeyPrefixLength' cannot be used if the 'chunking' "
+        "option is set to false.");
+  }
+
+  m_max_key_prefix_len = value;
+}
+
+void Ddl_dumper_options::set_adaptive_step_strategy(const std::string &value) {
+  if (value.empty()) {
+    throw std::invalid_argument(
+        "The option 'adaptiveStepStrategy' cannot be set to an empty string.");
+  }
+
+  if (!split()) {
+    throw std::invalid_argument(
+        "The option 'adaptiveStepStrategy' cannot be used if the 'chunking' "
+        "option is set to false.");
+  }
+
+  m_adaptive_step_strategy = to_adaptive_step_strategy(value);
 }
 
 void Ddl_dumper_options::on_set_url(

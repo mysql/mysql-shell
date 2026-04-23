@@ -163,11 +163,9 @@ class Dump_options : public mysqlsh::common::Common_options {
 
   void set_report_dump_option(bool value) { m_report_dump_option = value; }
 
-  AdaptiveStepStrategy adaptive_step_strategy() const {
-    return m_adaptive_step_strategy;
-  }
+  virtual AdaptiveStepStrategy adaptive_step_strategy() const = 0;
 
-  size_t max_key_prefix_length() const { return m_max_key_prefix_len; }
+  virtual size_t max_key_prefix_length() const = 0;
 
   virtual bool split() const = 0;
 
@@ -270,8 +268,6 @@ class Dump_options : public mysqlsh::common::Common_options {
 
   void validate_partitions() const;
 
-  AdaptiveStepStrategy to_adaptive_step_strategy(const std::string option);
-
   // input arguments
   shcore::Dictionary_t m_options;
 
@@ -317,12 +313,6 @@ class Dump_options : public mysqlsh::common::Common_options {
   Compatibility_options m_compatibility_options;
   std::optional<mysqlshdk::utils::Version> m_target_version;
   std::optional<Lakehouse_target_option> m_lakehouse_target;
-
-  // max nesting depth for composite keys
-  size_t m_max_key_prefix_len = 1;
-
-  AdaptiveStepStrategy m_adaptive_step_strategy =
-      AdaptiveStepStrategy::ORIGINAL;
 };
 
 }  // namespace dump

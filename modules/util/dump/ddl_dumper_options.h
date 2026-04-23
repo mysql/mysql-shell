@@ -81,6 +81,12 @@ class Ddl_dumper_options : public Dump_options {
 
   bool checksum() const override { return m_checksum; }
 
+  AdaptiveStepStrategy adaptive_step_strategy() const override {
+    return m_adaptive_step_strategy;
+  }
+
+  size_t max_key_prefix_length() const override { return m_max_key_prefix_len; }
+
   void enable_mds_compatibility_checks();
 
   using Dump_options::set_compatibility_option;
@@ -106,6 +112,10 @@ class Ddl_dumper_options : public Dump_options {
   void set_target_version_str(const std::string &value);
   void set_dry_run(bool dry_run);
   void set_threads(uint64_t threads);
+  void set_max_key_prefix_len(const size_t &value);
+  void set_adaptive_step_strategy(const std::string &value);
+
+  AdaptiveStepStrategy to_adaptive_step_strategy(const std::string option);
 
   bool m_split = true;
   uint64_t m_bytes_per_chunk;
@@ -126,6 +136,12 @@ class Ddl_dumper_options : public Dump_options {
   bool m_skip_consistency_checks = false;
   bool m_skip_upgrade_checks = false;
   bool m_checksum = false;
+
+  // max nesting depth for composite keys
+  size_t m_max_key_prefix_len = 1;
+
+  AdaptiveStepStrategy m_adaptive_step_strategy =
+      AdaptiveStepStrategy::ORIGINAL;
 };
 
 }  // namespace dump

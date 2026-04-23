@@ -2906,17 +2906,20 @@ void Dumper::do_run() {
         current_console()->print_status(msg);
       }
 
-      std::string strategy = (m_options.adaptive_step_strategy() ==
-                              mysqlsh::dump::AdaptiveStepStrategy::ENHANCED)
-                                 ? "enhanced"
-                                 : "original";
-      msg = "Using " + strategy + " adaptive step strategy.";
-      current_console()->print_status(msg);
-      msg = "Maximum chunking nesting depth: " +
-            (m_options.max_key_prefix_length() == 0
-                 ? "unlimited"
-                 : std::to_string(m_options.max_key_prefix_length()));
-      current_console()->print_status(msg);
+      // print chunking strategy information only if chunking is enabled
+      if (m_options.split()) {
+        std::string strategy = (m_options.adaptive_step_strategy() ==
+                                mysqlsh::dump::AdaptiveStepStrategy::ENHANCED)
+                                   ? "enhanced"
+                                   : "original";
+        msg = "Using " + strategy + " adaptive step strategy.";
+        current_console()->print_status(msg);
+        msg = "Maximum chunking nesting depth: " +
+              (m_options.max_key_prefix_length() == 0
+                   ? "unlimited"
+                   : std::to_string(m_options.max_key_prefix_length()));
+        current_console()->print_status(msg);
+      }
 
       if (!m_options.is_dry_run() && m_options.show_progress() &&
           m_options.dump_data()) {

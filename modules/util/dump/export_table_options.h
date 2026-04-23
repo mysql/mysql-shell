@@ -93,6 +93,12 @@ class Export_table_options : public Dump_options {
 
   bool checksum() const override { return false; }
 
+  AdaptiveStepStrategy adaptive_step_strategy() const override {
+    return AdaptiveStepStrategy::ORIGINAL;
+  }
+
+  size_t max_key_prefix_length() const override { return 1; }
+
  private:
   void on_set_session(
       const std::shared_ptr<mysqlshdk::db::ISession> &session) override;
