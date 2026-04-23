@@ -44,6 +44,7 @@
 #include <rapidjson/prettywriter.h>
 #include <rapidjson/stringbuffer.h>
 
+#include "dump_options.h"
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
@@ -782,6 +783,14 @@ void Dumper::Output_config::create_directory() {
 
 void Dumper::Output_config::fini() { dir.reset(); }
 
+template <typename T>
+std::string to_string(const T &value) {
+  return std::to_string(value);
+}
+std::string to_string(const Decimal &value) { return value.to_string(); }
+
+#define V2S(x) to_string(x).c_str()
+
 class Dumper::Table_worker final {
  public:
   enum class Exception_strategy { ABORT, CONTINUE };
@@ -1236,6 +1245,9 @@ class Dumper::Table_worker final {
     std::string order_by;
     std::string order_by_desc;
     std::size_t index_column;
+    std::size_t &ranges_counter;
+
+    Chunking_info(std::size_t &counter) : ranges_counter(counter) {}
   };
 
   static std::string compare(const Chunking_info &info, const Row &value,
@@ -1388,14 +1400,24 @@ class Dumper::Table_worker final {
   }
 
   template <typename T>
-  static T constant_step(const T & /* from */, const T &step) {
-    return step;
+  static T mul(uint64_t value1, const T &value2) {
+    if (value1 == 0 || value2 == 0) return T{0};
+
+    using R = std::common_type_t<uint64_t, T>;
+
+    R v1 = static_cast<R>(value1);
+    R v2 = static_cast<R>(value2);
+    R max = static_cast<R>(std::numeric_limits<T>::max());
+
+    if (v1 > max / v2) return std::numeric_limits<T>::max();
+
+    return static_cast<T>(v1 * v2);
   }
 
   template <typename T>
   T adaptive_step(const T &from, const T &step, const T &max,
-                  const Chunking_info &info,
-                  const std::string &chunk_id) const {
+                  const Chunking_info &info, const std::string &chunk_id,
+                  uint64_t *rows_cnt, bool *use_returned_cnt) const {
     static constexpr int k_chunker_retries = 10;
     static constexpr int k_chunker_iterations = 20;
 
@@ -1407,6 +1429,8 @@ class Dumper::Table_worker final {
 
     int retry = 0;
     uint64_t delta = info.accuracy + 1;
+
+    *use_returned_cnt = false;
 
     const auto row_count = [&info, &comment, this](const auto begin,
                                                    const auto end) {
@@ -1424,6 +1448,7 @@ class Dumper::Table_worker final {
       if (max - retry * double_step <= from) {
         // if left boundary is greater than max, stop here
         middle = max;
+        *use_returned_cnt = true;
         break;
       }
 
@@ -1465,6 +1490,7 @@ class Dumper::Table_worker final {
 
         if (delta <= info.accuracy) {
           // we're close enough
+          *use_returned_cnt = true;
           break;
         }
       }
@@ -1486,13 +1512,329 @@ class Dumper::Table_worker final {
       }
     }
 
+    *rows_cnt = rows;
     return ensure_not_zero(middle - from);
+  }
+
+  template <typename T>
+  static T constant_step(const T &, const T &step_hint, const T & /*max*/,
+                         const Chunking_info &info, const std::string &,
+                         uint64_t *rows_cnt, bool *) {
+    *rows_cnt = info.rows_per_chunk;
+    return step_hint;
+  }
+
+#define DBG_STEP(x)  // x
+#define DBG(x)       // x
+#define DBG_GLUE(x)  // x
+
+  template <class T>
+  class IGluer {
+   public:
+    struct GlueResult {
+      T begin;
+      T end;
+      uint64_t rows_cnt;
+      bool empty;
+      bool flushed;
+
+      GlueResult(T b, T e, uint64_t r, bool em, bool f)
+          : begin(b), end(e), rows_cnt(r), empty(em), flushed(f) {}
+      GlueResult()
+          : begin(0), end(0), rows_cnt(0), empty(true), flushed(false) {}
+    };
+
+    virtual ~IGluer() {}
+    virtual GlueResult flush() = 0;
+    virtual GlueResult glue(T begin, T end, uint64_t rows_cnt, bool last) = 0;
+  };
+
+  template <class T>
+  class DummyGluer : public IGluer<T> {
+   public:
+    DummyGluer() {}
+
+    virtual IGluer<T>::GlueResult flush() override {
+      typename IGluer<T>::GlueResult res;
+      return res;
+    }
+
+    virtual IGluer<T>::GlueResult glue(T begin, T end, uint64_t rows_cnt,
+                                       bool) override {
+      typename IGluer<T>::GlueResult res(begin, end, rows_cnt, false, true);
+      return res;
+    }
+  };
+
+  template <class T>
+  class Gluer : public IGluer<T> {
+   public:
+    Gluer(uint64_t max_rows_cnt)
+        : begin_(0),
+          end_(0),
+          rows_cnt_(0),
+          max_rows_cnt_(max_rows_cnt),
+          zero_result_(),
+          empty_(true) {}
+
+    virtual ~Gluer() {
+      DBG_GLUE(if (!empty_ || rows_cnt_ > 0 || begin_ > 0 || end_ > 0) {
+        log_debug(
+            "~Gluer() destroying nonepty Gluer! (%s - %s) rows: %ld, "
+            "empty?: %d",
+            V2S(begin_), V2S(end_), rows_cnt_, empty_);
+      })
+
+      // Before Gluer deletion, it has to be empty (and flushed).
+      assert(empty_ && rows_cnt_ == 0 && begin_ == 0 && end_ == 0);
+    }
+
+    virtual typename IGluer<T>::GlueResult flush() override {
+      DBG_GLUE(log_debug("Gluer::flush() (%s - %s) rows: %ld, empty?: %d",
+                         V2S(begin_), V2S(end_), rows_cnt_, empty_);)
+      typename IGluer<T>::GlueResult res(begin_, end_, rows_cnt_, empty_, true);
+      begin_ = end_ = 0;
+      rows_cnt_ = 0;
+      empty_ = true;
+      return res;
+    }
+
+    virtual typename IGluer<T>::GlueResult glue(T begin, T end,
+                                                uint64_t rows_cnt,
+                                                bool last) override {
+      DBG_GLUE(
+          log_debug("Gluer::glue() %s - %s, rows: %ld, last?: %d (current: "
+                    "%s - %s, %ld)",
+                    V2S(begin), V2S(end), rows_cnt, last, V2S(begin_),
+                    V2S(end_), rows_cnt_);)
+      if (empty_) {
+        // Whatever is the chunk, wait for the next one to decide
+        DBG_GLUE(log_debug("Gluer::glue() - Gluer empty, starting new glue");)
+        begin_ = begin;
+        end_ = end;
+        rows_cnt_ += rows_cnt;
+        empty_ = false;
+      } else {
+        // We have some rows accumulated
+
+        // If we decided to glue, the next chunk needs to follow what we already
+        // accumulated
+        assert(begin == end_ + 1);
+        DBG_GLUE(if (begin != end_ + 1) {
+          log_debug("Gluer::glue() inconsistency detected! end_: %s, begin: %s",
+                    V2S(end_), V2S(begin));
+        })
+
+        if (rows_cnt_ > max_rows_cnt_) {
+          // we are ready to flush, just wait for good conditions
+          if (rows_cnt > max_rows_cnt_ / 2) {
+            // if the upcoming chunk is a good candidate to start new glue,
+            // return the current glue and remember this chunk
+            DBG_GLUE(log_debug("Gluer::glue() - return current, start new");)
+            typename IGluer<T>::GlueResult res(begin_, end_, rows_cnt_, empty_,
+                                               false);
+            begin_ = begin;
+            end_ = end;
+            rows_cnt_ = rows_cnt;
+            return res;
+          } else {
+            // glue it
+            DBG_GLUE(log_debug("Gluer::glue() - ready to flush but decided to "
+                               "glue. rows: %ld",
+                               rows_cnt_);)
+            end_ = end;
+            rows_cnt_ += rows_cnt;
+          }
+        } else {
+          // we didn't accumulate enough rows yet
+          // glue it
+          DBG_GLUE(log_debug("Gluer::glue() - gluing");)
+          end_ = end;
+          rows_cnt_ += rows_cnt;
+        }
+
+        if (rows_cnt_ > 3 * max_rows_cnt_ || last) {
+          // flush gluer if we accumulated a lot of chunks or this is the last
+          // one
+          DBG_GLUE(log_debug("Gluer::glue() - Gluer full. rows: %ld, last?: %d",
+                             rows_cnt_, last);)
+          return flush();
+        }
+      }
+
+      if (last) {
+        // flush last chunk
+        DBG_GLUE(
+            log_debug(
+                "Gluer::glue() - Last chunk. Flushing. rows: %ld, last?: %d",
+                rows_cnt_, last);)
+        return flush();
+      }
+
+      // The chunk was accumulated
+      DBG_GLUE(log_debug("Gluer::glue() - accumulated %s - %s, rows: %ld",
+                         V2S(begin_), V2S(end_), rows_cnt_);)
+      return zero_result_;
+    }
+
+   private:
+    T begin_;
+    T end_;
+    uint64_t rows_cnt_;
+    uint64_t max_rows_cnt_;
+    IGluer<T>::GlueResult zero_result_;
+    bool empty_;
+  };
+
+  template <typename T>
+  T adaptive_step_v2(const T &from, const T &step_hint, const T &max,
+                     const Chunking_info &info, const std::string &chunk_id,
+                     uint64_t *rows_cnt, bool *use_returned_cnt) const {
+    auto rows = info.rows_per_chunk;
+    const auto comment = this->get_query_comment(*info.table, chunk_id);
+
+    uint64_t retry = 0;
+    uint64_t delta = info.accuracy + 1;
+
+    const auto row_count = [&info, &comment, this](const auto begin,
+                                                   const auto end) {
+      return row_count_from_explain(
+          query("EXPLAIN FORMAT=JSON SELECT " +
+                m_dumper->optimizer_hints(info.table->info) + "COUNT(*) FROM " +
+                info.table->quoted_name + info.partition +
+                where(*info.table, between(info, begin, end)) + info.order_by +
+                comment)
+              ->fetch_one_or_throw()
+              ->get_as_string(0));
+    };
+
+    auto right = from;
+
+    *use_returned_cnt = false;
+
+    /* Phase 1: Linear expansion.
+       Expand the range until we have enough rows or we reach the maximum range.
+      */
+    while (true) {
+      // Calculate the current search range
+      right = sum(from, mul((retry + 1), step_hint));
+      right = std::min(right, max);
+
+      DBG_STEP(log_debug(
+                   "Nest level: %ld, retry: %ld searching range: %s - %s (%s), "
+                   "step_hint: %s",
+                   info.index_column, retry, V2S(from), V2S(right),
+                   V2S(right - from), V2S(step_hint));)
+
+      // check if there is enough rows in currently checked range
+      rows = row_count(from, right);
+      DBG_STEP(log_debug("Nest level: %ld, rows: %ld in range: %s - %s",
+                         info.index_column, rows, V2S(from), V2S(right));)
+      if (rows >= info.rows_per_chunk) {
+        // We have enough rows, no need to expand the range, move to the next
+        // phase
+        break;
+      }
+      if (right >= max) {
+        // We have reached the maximum range, stop here.
+        break;
+      }
+      // We didn't find enough rows in this range, move farther to the right
+      retry++;
+    }
+
+    // Phase 2: Binary chop - shrinking (if needed)
+    if (rows > info.rows_per_chunk + info.accuracy) {
+      /* We have too much rows.
+         The previous step produced the range that contains too much rows.
+         Here we will try to shrink it by doing a binary search in therange.
+         We may eventually end up with the range of 1 and still too much rows.
+         We will return this range and the caller will try to chunk by the next
+         keypart if possible. */
+
+      DBG_STEP(log_debug("Nest level: %ld, rows: %ld Trying to chop the last "
+                         "range: %s - %s",
+                         info.index_column, rows, V2S(from), V2S(right));)
+
+      auto left = from;
+      right = from + (right - left) / 2;
+      while (1) {
+        DBG_STEP(
+            log_debug("Nest level: %ld, checking range: %s - %s (left: %s)",
+                      info.index_column, V2S(from), V2S(right), V2S(left));)
+        rows = row_count(from, right);
+
+        delta = rows > info.rows_per_chunk ? rows - info.rows_per_chunk
+                                           : info.rows_per_chunk - rows;
+        if (delta <= info.accuracy) {
+          DBG_STEP(log_debug("Nest level: %ld, close enough: rows: %ld, "
+                             "rows_per_chunk: %ld, delta: %ld, range: %s - %s",
+                             info.index_column, rows, info.rows_per_chunk,
+                             delta, V2S(from), V2S(right));)
+          *use_returned_cnt = true;
+          break;
+        }
+
+        if (right == from) {
+          // We shrinked the range to 1. No possibility to shrink more.
+          // It means that for this keypart there are more rows than requested.
+          // Return the current result, the caller will try to chunk by the next
+          // keypart if possible.
+          log_debug(
+              "        Nest level: %ld, reached range 1, rows: %ld, range: %s "
+              "- %s",
+              info.index_column, rows, V2S(from), V2S(right));
+          break;
+        }
+
+        if (left >= right) {
+          // No way to chop it more. Use the current estimate.
+          DBG_STEP(log_debug("Nest level: %ld, No way to chop it more. Will "
+                             "use the current estimate. rows: %ld, "
+                             "rows_per_chunk: %ld, delta: %ld, range: %s - %s",
+                             info.index_column, rows, info.rows_per_chunk,
+                             delta, V2S(from), V2S(right));)
+          *use_returned_cnt = true;
+          break;
+        }
+
+        if (rows > info.rows_per_chunk) {
+          // Shrink the range
+          DBG_STEP(log_debug("Nest level: %ld, (shrink) > rows: %ld, "
+                             "rows_per_chunk: %ld, range: %s - %s",
+                             info.index_column, rows, info.rows_per_chunk,
+                             V2S(from), V2S(right));)
+          right = right - ensure_not_zero((right - left) / 2);
+        } else {
+          // Expand the range
+          DBG_STEP(log_debug("Nest level: %ld, (expand) <= rows: %ld, "
+                             "rows_per_chunk: %ld, range: %s - %s",
+                             info.index_column, rows, info.rows_per_chunk,
+                             V2S(from), V2S(right));)
+          auto left_tmp = right;
+          right = right + (right - left) / 2;
+          left = left_tmp;
+        }
+      }
+    }
+
+    *rows_cnt = rows;
+    DBG_STEP(log_debug("Nest level: %ld, adaptive_step() returning %ld rows "
+                       "(left: %s, right: %s, ret: %s)",
+                       info.index_column, rows, V2S(from), V2S(right),
+                       V2S(ensure_not_zero(right - from)));)
+    return ensure_not_zero(right - from);
+  }
+
+  bool optimized_chunking_possible(mysqlshdk::db::Type type) const {
+    return (type == mysqlshdk::db::Type::Integer ||
+            type == mysqlshdk::db::Type::UInteger ||
+            type == mysqlshdk::db::Type::Decimal);
   }
 
   template <typename T>
   std::size_t chunk_integer_column(const Chunking_info &info, const T &min,
                                    const T &max) const {
-    std::size_t ranges_count = 0;
 
     // if rows_per_chunk <= 1 it may mean that the rows are bigger than chunk
     // size, which means we # chunks ~= # rows
@@ -1514,52 +1856,308 @@ class Dumper::Table_worker final {
              ? index_range - info.row_count
              : info.row_count - index_range) <= row_count_accuracy;
 
+    DBG(log_debug(
+            "Nest level: %ld, chunk_integer_column(). min: %s, max: %s, "
+            "row_count: "
+            "%ld, estimated_chunks: %ld, estimated_step: %s, constant?: %d",
+            info.index_column, V2S(min), V2S(max), info.row_count,
+            estimated_chunks, V2S(estimated_step), use_constant_step);)
+
     std::string chunk_id;
-    const auto next_step =
-        use_constant_step
-            ? std::function<step_t(const step_t &, const step_t &)>(
-                  constant_step<T>)
-            // using the default capture [&] below results in problems with
-            // GCC 5.4.0 (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80543)
-            : [&info, &max, &chunk_id, this](const auto &from,
-                                             const auto &step) {
-                return this->adaptive_step(from, step, max, info, chunk_id);
-              };
+    using Fn = std::function<T(const T &, const T &, uint64_t *, bool *)>;
 
-    auto current = min;
-    const auto step = estimated_step;
+    const Fn adaptive_step_fn =
+        (m_dumper->m_options.adaptive_step_strategy() ==
+         mysqlsh::dump::AdaptiveStepStrategy::ORIGINAL)
+            ? Fn{[&info, &max, &chunk_id, this](
+                     const auto &from, const auto &step, uint64_t *rows_cnt,
+                     bool *use_returned_cnt) {
+                return this->adaptive_step(from, step, max, info, chunk_id,
+                                           rows_cnt, use_returned_cnt);
+              }}
+            : Fn{[&info, &max, &chunk_id, this](
+                     const auto &from, const auto &step, uint64_t *rows_cnt,
+                     bool *use_returned_cnt) {
+                return this->adaptive_step_v2(from, step, max, info, chunk_id,
+                                              rows_cnt, use_returned_cnt);
+              }};
 
-    log_info("%sChunking %s using integer algorithm with %s step",
-             m_log_id.c_str(), info.table->task_name.c_str(),
-             use_constant_step ? "constant" : "adaptive");
+    const Fn next_step =
+        use_constant_step ? Fn{[&info, &max, &chunk_id, this](
+                                   const auto &from, const auto &step,
+                                   uint64_t *rows_cnt, bool *use_returned_cnt) {
+          return this->constant_step(from, step, max, info, chunk_id, rows_cnt,
+                                     use_returned_cnt);
+        }}
+                          : adaptive_step_fn;
 
-    bool last_chunk = false;
+    auto current_chunk_begin = min;
 
-    while (!last_chunk) {
+    log_debug(
+        "%sChunking %s using integer algorithm with %s step. step: "
+        "%s, alg: %s, depth: %ld",
+        m_log_id.c_str(), info.table->task_name.c_str(),
+        use_constant_step ? "constant" : "adaptive", V2S(estimated_step),
+        (m_dumper->m_options.adaptive_step_strategy() ==
+                 mysqlsh::dump::AdaptiveStepStrategy::ORIGINAL
+             ? "original"
+             : "enhanced"),
+        m_dumper->m_options.max_key_prefix_length());
+
+    DBG(log_debug(
+            "Nest level: %ld, trying to chunk by %ld, rows to chunk: %ld, rows "
+            "per chunk: %ld, index columns cnt: %ld",
+            info.index_column, info.index_column, info.row_count,
+            info.rows_per_chunk, info.table->index.info->columns().size());)
+
+    bool last_chunk_in_dump = false;
+    bool last_chunk_on_this_level = false;
+    bool gluing_to_next_chunk = false;
+
+    std::shared_ptr<IGluer<T>> gluer;
+    if (m_dumper->m_options.adaptive_step_strategy() ==
+        mysqlsh::dump::AdaptiveStepStrategy::ORIGINAL) {
+      gluer = std::make_shared<DummyGluer<T>>();
+    } else {
+      gluer = std::make_shared<Gluer<T>>(info.rows_per_chunk);
+    }
+
+    while (!last_chunk_in_dump && !last_chunk_on_this_level) {
       if (m_dumper->m_worker_interrupt.test()) {
-        return ranges_count;
+        return info.ranges_counter;
       }
 
-      chunk_id = std::to_string(ranges_count);
-      const auto begin = current;
-      auto new_step = next_step(current, step);
+      chunk_id = std::to_string(info.ranges_counter);
+      uint64_t rows_cnt = 0;
+      bool use_returned_cnt = false;
+      bool processed_by_deep_chunking = false;
+
+      auto new_step = next_step(current_chunk_begin, estimated_step, &rows_cnt,
+                                &use_returned_cnt);
+
+      size_t idx_columns_cnt = info.table->index.info->columns().size();
+      bool possible_to_chunk_next_column =
+          info.index_column < idx_columns_cnt - 1 &&
+          (info.index_column <
+               m_dumper->m_options.max_key_prefix_length() - 1 ||
+           m_dumper->m_options.max_key_prefix_length() == 0);
+
+      if (new_step == 1 && !possible_to_chunk_next_column) {
+        DBG(log_debug("Nest level: %ld, Not possible to chunk deeper. Use the "
+                      "current result",
+                      info.index_column);)
+        use_returned_cnt = true;
+      }
+
+      if (!use_returned_cnt && new_step == 1 && possible_to_chunk_next_column) {
+        /* We reached the range of 1. It is possible that:
+           1. There is still too much rows
+           2. Rows count is OK, or too small */
+        if (rows_cnt > info.rows_per_chunk + info.accuracy) {
+          /* For this keypart, there is too much rows.
+             We will try to use the next keypart for chunking */
+          const auto type =
+              info.table->index.info->columns()[info.index_column + 1]->type;
+          if (!optimized_chunking_possible(type)) {
+            /* The next column is not INT-like type, so it is not possible to
+               use optimized chunking when using it.
+               TODO: Maybe we could mix chunk_integer_column and
+               chunk_non_integer_column approaches in the future? In sucha case
+               it would be possible to deep chunk all kind PKs. On some levels
+               (non-INT) it would do the full range scan (not necessarily
+               the full table scan) and on other level (INT) it would use the
+               optimized approach */
+            DBG(log_debug("Nest level: %ld, range: %s, but rows_cnt: %ld. Next "
+                          "PK column "
+                          "not compatible with deep chunking. Dumping as is.",
+                          info.index_column, V2S(new_step), rows_cnt);)
+            use_returned_cnt = true;
+            gluing_to_next_chunk = false;
+          } else {
+            /* The next column is compatible with deep chunking. */
+            Chunking_info new_info = info;
+            if (!new_info.boundary.empty()) {
+              new_info.boundary += " AND ";
+            }
+            new_info.boundary +=
+                info.table->index.info->columns()[info.index_column]
+                    ->quoted_name +
+                "=" + to_string(current_chunk_begin);
+            new_info.index_column++;
+            new_info.row_count = rows_cnt;
+            DBG(log_debug(
+                    "Nest level: %ld, too much rows (tried chunk by %ld), "
+                    "trying to "
+                    "chunk by %ld, rows to chunk: %ld, rows per chunk: %ld, "
+                    "rows_cnt (from previous): %ld, new_step: %s",
+                    info.index_column, new_info.index_column - 1,
+                    new_info.index_column, new_info.row_count,
+                    new_info.rows_per_chunk, rows_cnt, V2S(new_step));)
+
+            // If we have anything in gluer accumulated before going to the next
+            // level - flush it
+            typename Gluer<T>::GlueResult glue_res = gluer->flush();
+            if (!glue_res.empty) {
+              DBG(log_debug(
+                      "Nest level: %ld, will chunk deeper. creating dump task "
+                      "for chunk: "
+                      "%s, rows_cnt: %ld (r: %2f, rpc: %ld, acc: %ld), "
+                      "new_step: "
+                      "%s, last?: %d, idx_column: %ld, cond: %s",
+                      info.index_column, chunk_id.c_str(), glue_res.rows_cnt,
+                      (double)glue_res.rows_cnt / (double)info.rows_per_chunk,
+                      info.rows_per_chunk, info.accuracy, V2S((new_step + 1)),
+                      last_chunk_in_dump, info.index_column,
+                      between(info, glue_res.begin, glue_res.end).c_str());)
+              create_and_push_table_data_chunk_task(
+                  *info.table, between(info, glue_res.begin, glue_res.end),
+                  chunk_id, info.ranges_counter++, last_chunk_in_dump);
+            }
+
+            chunk_column(new_info);
+            processed_by_deep_chunking = true;
+          }  // optimized chunking possible
+        } else {
+          // We have some rows. For sure not too much.
+          if (gluing_to_next_chunk) {
+            /* We already tried to glue the previous chunk to this one,
+               but still not enough rows. It might happen that the chunker logic
+               produced the same chunk again. This is the case when small chunk
+               precedes a huge one. Most probably in the next iteration we will
+               go into the nested chunking. Just use this chunk. */
+            DBG(log_debug("Nest level: %ld, range: %s, but rows_cnt: %ld. No "
+                          "possibility to "
+                          "glue. Using it.",
+                          info.index_column, V2S(new_step), rows_cnt);)
+            use_returned_cnt = true;
+            gluing_to_next_chunk = false;
+          } else {
+            /* Try to glue this chunk to the next one */
+            DBG(log_debug("Nest level: %ld, range: %s, but rows_cnt: %ld. "
+                          "Trying to glue.",
+                          info.index_column, V2S(new_step), rows_cnt);)
+            gluing_to_next_chunk = true;
+          }
+        }
+      }  // nested chunking
 
       // ensure that there's no integer overflow
       --new_step;
-      current = (current > max - new_step ? max : current + new_step);
+      auto current_chunk_end = (current_chunk_begin > max - new_step
+                                    ? max
+                                    : current_chunk_begin + new_step);
 
-      const auto end = current;
+      if (current_chunk_end >= max) {
+        DBG(log_debug("Nest level: %ld, End of range. rows (%ld). No more rows "
+                      "in range.",
+                      info.index_column, rows_cnt);)
+        DBG(log_debug("Nest level: %ld, This was the last chunk on this level. "
+                      "Need to "
+                      "dump it as it is",
+                      info.index_column);)
+        last_chunk_on_this_level = true;
+      }
 
-      last_chunk = (current >= max);
+      last_chunk_in_dump = last_chunk_on_this_level && info.index_column == 0;
 
-      create_and_push_table_data_chunk_task(*info.table,
-                                            between(info, begin, end), chunk_id,
-                                            ranges_count++, last_chunk);
+      // If the current chunk was processed by deep chunking, we have nothing to
+      // dump. Just go to the next chunk on this level.
+      // In other case, we need to glue.
+      auto current_chunk_begin_for_glue = current_chunk_begin;
 
-      ++current;
+      current_chunk_begin = current_chunk_end;
+      ++current_chunk_begin;
+      if (processed_by_deep_chunking && !last_chunk_in_dump) {
+        continue;
+      }
+
+      // Put the chunk through gluer logic
+      typename Gluer<T>::GlueResult glue_res =
+          gluer->glue(current_chunk_begin_for_glue, current_chunk_end, rows_cnt,
+                      last_chunk_on_this_level || last_chunk_in_dump);
+      if (!glue_res.empty) {
+        DBG(
+            if (last_chunk_in_dump && glue_res.flushed) {
+              log_debug(
+                  "Nest level: %ld, this is the last chunk in the dump. Was "
+                  "flushed "
+                  "during last glue.",
+                  info.index_column);
+            } if (last_chunk_on_this_level && !last_chunk_in_dump &&
+                  glue_res.flushed) {
+              log_debug(
+                  "Nest level: %ld, this is the last chunk on this nested "
+                  "level. Was "
+                  "flushed during last glue.",
+                  info.index_column);
+            } log_info("Nest level: %ld) creating dump task for chunk: %s, "
+                       "rows_cnt: "
+                       "%ld (r: %2f, rpc: %ld, acc: %ld), new_step: %s, last?: "
+                       "%d, idx_column: %ld, cond: %s",
+                       info.index_column, chunk_id.c_str(), glue_res.rows_cnt,
+                       (double)glue_res.rows_cnt / (double)info.rows_per_chunk,
+                       info.rows_per_chunk, info.accuracy, V2S(new_step + 1),
+                       last_chunk_in_dump, info.index_column,
+                       between(info, glue_res.begin, glue_res.end).c_str());)
+        create_and_push_table_data_chunk_task(
+            *info.table, between(info, glue_res.begin, glue_res.end), chunk_id,
+            info.ranges_counter++, (last_chunk_in_dump && glue_res.flushed));
+      }
+
+      if (!glue_res.flushed &&
+          (last_chunk_on_this_level || last_chunk_in_dump)) {
+        // Gluer was not flushed during last glue, and this is the last chunk on
+        // this level or on top level
+        chunk_id = std::to_string(info.ranges_counter);
+        glue_res = gluer->flush();
+
+        if (last_chunk_in_dump) {
+          // top level. Create even an empty last chunk
+          DBG(log_debug(
+                  "Nest level: %ld, this is the last chunk in the dump. Needed "
+                  "additional flush after last glue.",
+                  info.index_column);
+              log_debug(
+                  "Nest level: %ld, creating dump task for chunk: %s, "
+                  "rows_cnt: "
+                  "%ld (r: %2f, rpc: %ld, acc: %ld), new_step: %s, last?: "
+                  "%d, idx_column: %ld, cond: %s",
+                  info.index_column, chunk_id.c_str(), glue_res.rows_cnt,
+                  (double)glue_res.rows_cnt / (double)info.rows_per_chunk,
+                  info.rows_per_chunk, info.accuracy, V2S(new_step + 1),
+                  last_chunk_in_dump, info.index_column,
+                  between(info, glue_res.begin, glue_res.end).c_str());)
+          create_and_push_table_data_chunk_task(
+              *info.table, between(info, glue_res.begin, glue_res.end),
+              chunk_id, info.ranges_counter++, true);
+        } else {
+          // Nested level. If there is something to dump, do it.
+          if (!glue_res.empty) {
+            DBG(log_debug("Nest level: %ld, this is the last chunk on this "
+                          "nested level. "
+                          "Needed "
+                          "additional flush after last glue.",
+                          info.index_column);
+                log_debug(
+                    "Nest level: %ld, creating dump task for chunk: %s, "
+                    "rows_cnt: "
+                    "%ld (r: "
+                    "%2f, rpc: %ld, acc: %ld), new_step: %s, last?: %d, "
+                    "idx_column: %ld, cond: %s",
+                    info.index_column, chunk_id.c_str(), glue_res.rows_cnt,
+                    (double)glue_res.rows_cnt / (double)info.rows_per_chunk,
+                    info.rows_per_chunk, info.accuracy, V2S(new_step + 1),
+                    last_chunk_in_dump, info.index_column,
+                    between(info, glue_res.begin, glue_res.end).c_str());)
+            create_and_push_table_data_chunk_task(
+                *info.table, between(info, glue_res.begin, glue_res.end),
+                chunk_id, info.ranges_counter++, false);
+          }
+        }
+      }
     }
 
-    return ranges_count;
+    return info.ranges_counter;
   }
 
   std::size_t chunk_integer_column(const Chunking_info &info, const Row &begin,
@@ -1662,8 +2260,11 @@ class Dumper::Table_worker final {
     auto row = result->fetch_one();
 
     const auto handle_empty_table = [&info, this]() {
-      create_and_push_table_data_chunk_task(*info.table, info.boundary, "0", 0,
-                                            true);
+      // If this is PK top level, it means the table is empty
+      if (info.index_column == 0) {
+        create_and_push_table_data_chunk_task(*info.table, info.boundary, "0",
+                                              0, true);
+      }
       return 1;
     };
 
@@ -1750,9 +2351,10 @@ class Dumper::Table_worker final {
         current_console()->print_note(msg);
       }
     }
+    size_t ranges_counter = 0;
+    Chunking_info info(ranges_counter);
 
-    Chunking_info info;
-
+    info.ranges_counter = ranges_counter;
     info.table = &table;
     info.row_count = partition ? partition->row_count : table.info->row_count;
     info.rows_per_chunk =
@@ -1889,8 +2491,8 @@ class Dumper::Table_worker final {
 
   uint64_t row_count_from_explain(const std::string &explain) const {
     const auto error = [&explain](const std::string &msg) {
-      log_error("JSON output of malformed EXPLAIN statement:\n%s",
-                explain.c_str());
+      log_error("JSON output of malformed EXPLAIN statement:\n%s\nmsg: %s",
+                explain.c_str(), msg.c_str());
       return std::runtime_error(msg);
     };
 
@@ -1903,13 +2505,26 @@ class Dumper::Table_worker final {
           "Failed to parse JSON output of an EXPLAIN statement: %s", e.what()));
     }
 
+    if (auto *v = rapidjson::Pointer("/query_block/message").Get(json)) {
+      if (v->IsString()) {
+        std::string msg = v->GetString();
+        if (msg.find("no matching row") != std::string::npos ||
+            msg.find("no rows") != std::string::npos) {
+          log_info(
+              "EXPLAIN statement returned message indicating that there are no "
+              "rows to process: %s",
+              msg.c_str());
+          return 0;
+        }
+      }
+    }
     if (!m_json_path) {
       for (const auto path : {
                "/query_plan/inputs/0/estimated_rows",  // v2 + BUG#35239659
                "/inputs/0/estimated_rows",             // JSON format ver. 2
                "/query_block/table/rows_examined_per_scan",   // 5.7+ (ver. 1)
                "/query_block/ordering_operation/table/rows",  // 5.6
-               "/query_block/nested_loop/0/table/rows",       // MariaDB
+               "/query_block/nested_loop/0/table/rows"        // MariaDB
            }) {
         if (rapidjson::Pointer(path).Get(json)) {
           m_json_path = path;
@@ -1940,6 +2555,10 @@ class Dumper::Table_worker final {
         return value->GetUint64();
       }
     } else {
+      log_debug(
+          "Value at path '%s' in JSON output of an EXPLAIN statement is not a "
+          "number: %s",
+          m_json_path, shcore::json::to_string(*value).c_str());
       throw error(
           "The row count in JSON output of an EXPLAIN statement is not a "
           "number");
@@ -1964,6 +2583,10 @@ Decimal Dumper::Table_worker::cast(const Decimal &value) {
 template <>
 Decimal Dumper::Table_worker::sum(const Decimal &value, const Decimal &delta) {
   return value + delta;
+}
+template <>
+Decimal Dumper::Table_worker::mul(uint64_t value1, const Decimal &value2) {
+  return value1 * value2;
 }
 
 Dumper::Dumper(const Dump_options &options)
@@ -2248,6 +2871,18 @@ void Dumper::do_run() {
       if (!msg.empty()) {
         current_console()->print_status(msg);
       }
+
+      std::string strategy = (m_options.adaptive_step_strategy() ==
+                              mysqlsh::dump::AdaptiveStepStrategy::ENHANCED)
+                                 ? "enhanced"
+                                 : "original";
+      msg = "Using " + strategy + " adaptive step strategy.";
+      current_console()->print_status(msg);
+      msg = "Maximum chunking nesting depth: " +
+            (m_options.max_key_prefix_length() == 0
+                 ? "unlimited"
+                 : std::to_string(m_options.max_key_prefix_length()));
+      current_console()->print_status(msg);
 
       if (!m_options.is_dry_run() && m_options.show_progress() &&
           m_options.dump_data()) {

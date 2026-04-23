@@ -62,6 +62,8 @@ const shcore::Option_pack_def<Dump_options> &Dump_options::options() {
           .optional("defaultCharacterSet", &Dump_options::m_character_set)
           // WL17279-FR1.2: `allowDataMasking` option
           .optional("allowDataMasking", &Dump_options::m_allow_data_masking)
+          .optional("maxKeyPrefixLength", &Dump_options::m_max_key_prefix_len)
+          .optional("adaptiveStepStrategy", &Dump_options::set_string_option)
           .include(&Dump_options::m_dialect_unpacker)
           .on_done(&Dump_options::on_unpacked_options);
 
@@ -76,6 +78,17 @@ void Dump_options::on_start_unpack(const shcore::Dictionary_t &options) {
   m_options = options;
 }
 
+AdaptiveStepStrategy Dump_options::to_adaptive_step_strategy(
+    const std::string option) {
+  if (option == "enhanced") {
+    return AdaptiveStepStrategy::ENHANCED;
+  } else if (option == "original") {
+    return AdaptiveStepStrategy::ORIGINAL;
+  }
+  throw std::invalid_argument(
+      "Invalid value for 'adaptiveStepStrategy' option: " + option);
+}
+
 void Dump_options::set_string_option(const std::string &option,
                                      const std::string &value) {
   if (option == "maxRate") {
@@ -87,9 +100,10 @@ void Dump_options::set_string_option(const std::string &option,
       throw std::invalid_argument(
           "The option 'compression' cannot be set to an empty string.");
     }
-
     m_compression =
         mysqlshdk::storage::to_compression(value, &m_compression_options);
+  } else if (option == "adaptiveStepStrategy") {
+    m_adaptive_step_strategy = to_adaptive_step_strategy(value);
   } else {
     // This function should only be called with the options above.
     assert(false);

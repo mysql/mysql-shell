@@ -77,6 +77,11 @@ class Decimal final {
   Decimal &operator*=(const Decimal &rhs);
   Decimal &operator/=(const Decimal &rhs);
 
+  inline Decimal &operator=(shcore::Bignum rhs) {
+    m_decimal = shcore::Bignum(rhs);
+    return *this;
+  }
+
   inline Decimal &operator+=(shcore::Bignum rhs) {
     *this += convert(std::move(rhs));
     return *this;
