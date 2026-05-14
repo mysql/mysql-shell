@@ -86,9 +86,15 @@ struct Instance_cache {
 
     inline const std::string &columns_sql() const { return m_columns_sql; }
 
+    inline const std::string &quoted_name() const { return m_quoted_name; }
+
+    void set_name(const std::string &name);
+
     void add_column(const Column *column);
 
    private:
+    std::string m_quoted_name;
+
     std::vector<const Column *> m_columns;
 
     std::string m_columns_sql;

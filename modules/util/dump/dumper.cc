@@ -190,6 +190,19 @@ std::string quote(const std::string &schema, const std::string &table) {
          shcore::quote_identifier(table);
 }
 
+// Returns a `FORCE INDEX (...)` clause (with leading space) that pins the query
+// to the index used by the chunker, or an empty string when no index is in use.
+// Used by the EXPLAIN COUNT(*) probes in `adaptive_step_v2` for the integer
+// chunking path, to stabilize optimizer row-count estimates - without it, the
+// optimizer may pick a different access path (e.g. a `ref` lookup on a shorter
+// index that ignores the BETWEEN predicate on a later key part), making the
+// EXPLAIN row counts non-monotonic in the range width and breaking the binary
+// chop loop.
+std::string force_index_clause(const Instance_cache::Index *index) {
+  if (!index) return {};
+  return " FORCE INDEX (" + index->quoted_name() + ")";
+}
+
 Row fetch_row(const mysqlshdk::db::IRow *row) {
   Row result;
 
@@ -1703,6 +1716,7 @@ class Dumper::Table_worker final {
           query("EXPLAIN FORMAT=JSON SELECT " +
                 m_dumper->optimizer_hints(info.table->info) + "COUNT(*) FROM " +
                 info.table->quoted_name + info.partition +
+                force_index_clause(info.table->index.info) +
                 where(*info.table, between(info, begin, end)) + info.order_by +
                 comment)
               ->fetch_one_or_throw()

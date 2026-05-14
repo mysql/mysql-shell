@@ -133,6 +133,10 @@ void Instance_cache::Index::add_column(const Column *column) {
   m_columns_sql += column->quoted_name;
 }
 
+void Instance_cache::Index::set_name(const std::string &name) {
+  m_quoted_name = shcore::quote_identifier(name);
+}
+
 Instance_cache_builder::Instance_cache_builder(
     const std::shared_ptr<mysqlshdk::db::ISession> &session,
     const mysqlshdk::db::Filtering_options &filters, Instance_cache &&cache)
@@ -839,6 +843,7 @@ void Instance_cache_builder::fetch_table_indexes() {
         }
 
         if (add_index) {
+          new_index.set_name(index.first);
           auto ptr = &t.indexes.emplace(index.first, std::move(new_index))
                           .first->second;
 
