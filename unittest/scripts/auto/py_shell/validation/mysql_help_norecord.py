@@ -36,11 +36,21 @@ FUNCTIONS
       make_account(user, host)
             Joins user and host into an quoted account string.
 
+      parse_data_type(typeDefinition)
+            Parse a MySQL data type definition.
+
+      parse_ddl_script(script[, options])
+            Parse DDL statements and return the detected object changes.
+
       parse_statement_ast(statements[, options])
             Parse MySQL statements and return its AST representation.
 
       quote_identifier(s)
             Quote a string as a MySQL identifier, escaping characters when
+            needed.
+
+      quote_string(s)
+            Quote a string as a MySQL string literal, escaping characters when
             needed.
 
       split_account(account)
@@ -54,6 +64,9 @@ FUNCTIONS
 
       unquote_identifier(s)
             Unquote a MySQL identifier.
+
+      unquote_string(s)
+            Unquote a MySQL string literal.
 
 CLASSES
  - ClassicResult  Allows browsing through the result information after

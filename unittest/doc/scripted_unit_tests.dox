@@ -172,6 +172,12 @@ again a new file will be generated on the same location but appending the .new
 extension to it, if you execute the recording once again, the previous .new file
 will be overwritten.
 
+To update only failing multiline validation sections, append
+\a --merge-validation-file. This preserves the smallest contiguous span of
+actual output bounded by lines that still match the existing validation. The
+option updates the validation file in place and cannot be combined with
+\a --generate-validation-file.
+
 \subsection good_practices Testing Good Practices
 The next recommendations are considered good practices while creating new tests.
 

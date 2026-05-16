@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -199,9 +199,15 @@ struct SHCORE_PUBLIC Value final {
 
     void set(const std::string &k, const shcore::Value &v) { _map[k] = v; }
 
+    template <typename T>
+    void set(const std::string &k, T &&v) {
+      _map[k] = shcore::Value(std::forward<T>(v));
+    }
+
     const container_type::mapped_type &at(const std::string &k) const {
       return _map.at(k);
     }
+
     container_type::mapped_type &operator[](const std::string &k) {
       return _map[k];
     }

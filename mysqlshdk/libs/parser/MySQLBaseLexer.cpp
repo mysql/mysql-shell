@@ -26,15 +26,19 @@
 #include "mysqlshdk/libs/parser/MySQLBaseLexer.h"
 
 #include <algorithm>
+#include <cctype>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #include <CommonToken.h>
 #include <misc/Interval.h>
 
+#include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/parser/base/symbol-info.h"
 #include "mysqlshdk/libs/parser/mysql/MySQLLexer.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 using antlr4::CharStream;
 using antlr4::Token;
@@ -43,12 +47,33 @@ using base::MySQLSymbolInfo;
 
 namespace parsers {
 
+namespace {
+
+bool token_text_equals(antlr4::Token *token, std::string_view expected) {
+  const auto text = token->getText();
+  if (text.size() != expected.size()) return false;
+
+  return shcore::str_caseeq(text, expected);
+}
+
+}  // namespace
+
 //----------------------------------------------------------------------------------------------------------------------
 
 MySQLBaseLexer::MySQLBaseLexer(CharStream *input) : Lexer(input) {
   serverVersion = 0;
   sqlMode = NoMode;
   inVersionComment = false;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+void MySQLBaseLexer::set_server_version(uint32_t version) {
+  serverVersion = version;
+
+  charsets.clear();
+  for (const auto charset : mysqlshdk::db::charset::charset_names())
+    charsets.emplace("_" + std::string{charset});
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -181,6 +206,106 @@ bool MySQLBaseLexer::skipDefiner(std::unique_ptr<antlr4::Token> &tok) {
   return false;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
+MySQLQueryType MySQLBaseLexer::determineCreateFunctionType(
+    std::unique_ptr<antlr4::Token> &tok) {
+  tok = nextDefaultChannelToken();
+  if (tok->getType() == Token::EOF) return QtAmbiguous;
+
+  if (tok->getType() == MySQLLexer::IF_SYMBOL) {
+    tok = nextDefaultChannelToken();
+    if (tok->getType() != MySQLLexer::NOT_SYMBOL) return QtAmbiguous;
+
+    tok = nextDefaultChannelToken();
+    if (tok->getType() != MySQLLexer::EXISTS_SYMBOL) return QtAmbiguous;
+
+    tok = nextDefaultChannelToken();
+    if (tok->getType() == Token::EOF) return QtAmbiguous;
+  }
+
+  if (!isIdentifier(tok->getType())) return QtAmbiguous;
+
+  tok = nextDefaultChannelToken();
+  while (tok->getType() == MySQLLexer::DOT_SYMBOL) {
+    tok = nextDefaultChannelToken();
+    if (!isIdentifier(tok->getType())) return QtAmbiguous;
+
+    tok = nextDefaultChannelToken();
+  }
+
+  if (tok->getType() == MySQLLexer::RETURNS_SYMBOL) return QtCreateUdf;
+
+  return QtCreateFunction;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+bool MySQLBaseLexer::skipJsonDualityView(std::unique_ptr<antlr4::Token> &tok) {
+  if (serverVersion < 90700) return false;
+  if (tok->getType() != MySQLLexer::JSON_SYMBOL) return false;
+
+  tok = nextDefaultChannelToken();
+  if (token_text_equals(tok.get(), "RELATIONAL")) {
+    tok = nextDefaultChannelToken();
+  }
+
+  if (!token_text_equals(tok.get(), "DUALITY")) return false;
+
+  tok = nextDefaultChannelToken();
+  return tok->getType() == MySQLLexer::VIEW_SYMBOL;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+MySQLQueryType MySQLBaseLexer::determineViewType(
+    std::unique_ptr<antlr4::Token> &tok, MySQLQueryType json_duality_type,
+    MySQLQueryType standard_view_type) {
+  while (true) {
+    switch (tok->getType()) {
+      case MySQLLexer::ALGORITHM_SYMBOL:
+        tok = nextDefaultChannelToken();
+        if (tok->getType() == MySQLLexer::EQUAL_OPERATOR)
+          tok = nextDefaultChannelToken();
+
+        if (tok->getType() == MySQLLexer::MERGE_SYMBOL ||
+            tok->getType() == MySQLLexer::TEMPTABLE_SYMBOL ||
+            tok->getType() == MySQLLexer::UNDEFINED_SYMBOL) {
+          tok = nextDefaultChannelToken();
+          continue;
+        }
+
+        return standard_view_type;
+
+      case MySQLLexer::DEFINER_SYMBOL:
+        if (!skipDefiner(tok)) return QtAmbiguous;
+        continue;
+
+      case MySQLLexer::SQL_SYMBOL:
+        tok = nextDefaultChannelToken();
+        if (tok->getType() != MySQLLexer::SECURITY_SYMBOL)
+          return standard_view_type;
+
+        tok = nextDefaultChannelToken();
+        if (tok->getType() != MySQLLexer::DEFINER_SYMBOL &&
+            tok->getType() != MySQLLexer::INVOKER_SYMBOL)
+          return standard_view_type;
+
+        tok = nextDefaultChannelToken();
+        continue;
+
+      case MySQLLexer::JSON_SYMBOL:
+        return skipJsonDualityView(tok) ? json_duality_type : QtUnknown;
+
+      case MySQLLexer::VIEW_SYMBOL:
+        return standard_view_type;
+
+      default:
+        return standard_view_type;
+    }
+  }
+}
+
 //--------------------------------------------------------------------------------------------------
 
 MySQLQueryType MySQLBaseLexer::determineQueryType() {
@@ -217,29 +342,47 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
         case MySQLLexer::TABLESPACE_SYMBOL:
           return QtAlterTableSpace;
 
+        case MySQLLexer::UNDO_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::TABLESPACE_SYMBOL)
+            return QtAlterUndoTablespace;
+          return QtUnknown;
+
+        case MySQLLexer::RESOURCE_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::GROUP_SYMBOL)
+            return QtAlterResourceGroup;
+          return QtUnknown;
+
+        case MySQLLexer::LIBRARY_SYMBOL:
+          return serverVersion >= 90700 ? QtAlterLibrary : QtUnknown;
+
         case MySQLLexer::EVENT_SYMBOL:
           return QtAlterEvent;
 
         case MySQLLexer::VIEW_SYMBOL:
           return QtAlterView;
 
+        case MySQLLexer::ALGORITHM_SYMBOL:
+        case MySQLLexer::SQL_SYMBOL:
+        case MySQLLexer::JSON_SYMBOL:
+          return determineViewType(tok, QtAlterJsonDualityView, QtAlterView);
+
         case MySQLLexer::DEFINER_SYMBOL:  // Can be both event or view.
           if (!skipDefiner(tok)) return QtAmbiguous;
-
-          tok = nextDefaultChannelToken();
 
           switch (tok->getType()) {
             case MySQLLexer::EVENT_SYMBOL:
               return QtAlterEvent;
 
-            case MySQLLexer::SQL_SYMBOL:
+            case MySQLLexer::ALGORITHM_SYMBOL:
             case MySQLLexer::VIEW_SYMBOL:
-              return QtAlterView;
+            case MySQLLexer::SQL_SYMBOL:
+            case MySQLLexer::JSON_SYMBOL:
+              return determineViewType(tok, QtAlterJsonDualityView,
+                                       QtAlterView);
           }
           break;
-
-        case MySQLLexer::ALGORITHM_SYMBOL:  // Optional part of CREATE VIEW.
-          return QtAlterView;
 
         case MySQLLexer::USER_SYMBOL:
           return QtAlterUser;
@@ -270,7 +413,12 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
         case MySQLLexer::INDEX_SYMBOL:
         case MySQLLexer::UNIQUE_SYMBOL:
         case MySQLLexer::FULLTEXT_SYMBOL:
+          return QtCreateIndex;
+
         case MySQLLexer::SPATIAL_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::REFERENCE_SYMBOL)
+            return QtCreateSpatialReference;
           return QtCreateIndex;
 
         case MySQLLexer::DATABASE_SYMBOL:
@@ -288,25 +436,18 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
             case MySQLLexer::EVENT_SYMBOL:
               return QtCreateEvent;
 
-            case MySQLLexer::VIEW_SYMBOL:
+            case MySQLLexer::ALGORITHM_SYMBOL:
             case MySQLLexer::SQL_SYMBOL:
-              return QtCreateView;
+            case MySQLLexer::VIEW_SYMBOL:
+            case MySQLLexer::JSON_SYMBOL:
+              return determineViewType(tok, QtCreateJsonDualityView,
+                                       QtCreateView);
 
             case MySQLLexer::PROCEDURE_SYMBOL:
               return QtCreateProcedure;
 
-            case MySQLLexer::FUNCTION_SYMBOL: {
-              tok = nextDefaultChannelToken();
-              if (tok->getType() == Token::EOF) return QtAmbiguous;
-
-              if (!isIdentifier(tok->getType())) return QtAmbiguous;
-
-              tok = nextDefaultChannelToken();
-              if (tok->getType() == MySQLLexer::RETURNS_SYMBOL)
-                return QtCreateUdf;
-
-              return QtCreateFunction;
-            }
+            case MySQLLexer::FUNCTION_SYMBOL:
+              return determineCreateFunctionType(tok);
 
             case MySQLLexer::AGGREGATE_SYMBOL:
               return QtCreateUdf;
@@ -320,19 +461,24 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
 
         case MySQLLexer::VIEW_SYMBOL:
         case MySQLLexer::ALGORITHM_SYMBOL:  // CREATE ALGORITHM ... VIEW
-          return QtCreateView;
+        case MySQLLexer::SQL_SYMBOL:
+        case MySQLLexer::JSON_SYMBOL:
+          return determineViewType(tok, QtCreateJsonDualityView, QtCreateView);
 
         case MySQLLexer::EVENT_SYMBOL:
           return QtCreateEvent;
 
         case MySQLLexer::FUNCTION_SYMBOL:
-          return QtCreateFunction;
+          return determineCreateFunctionType(tok);
 
         case MySQLLexer::AGGREGATE_SYMBOL:
           return QtCreateUdf;
 
         case MySQLLexer::PROCEDURE_SYMBOL:
           return QtCreateProcedure;
+
+        case MySQLLexer::LIBRARY_SYMBOL:
+          return QtCreateLibrary;
 
         case MySQLLexer::LOGFILE_SYMBOL:
           return QtCreateLogFileGroup;
@@ -342,6 +488,21 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
 
         case MySQLLexer::TABLESPACE_SYMBOL:
           return QtCreateTableSpace;
+
+        case MySQLLexer::UNDO_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::TABLESPACE_SYMBOL)
+            return QtCreateUndoTablespace;
+          return QtUnknown;
+
+        case MySQLLexer::ROLE_SYMBOL:
+          return QtCreateRole;
+
+        case MySQLLexer::RESOURCE_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::GROUP_SYMBOL)
+            return QtCreateResourceGroup;
+          return QtUnknown;
 
         case MySQLLexer::USER_SYMBOL:
           return QtCreateUser;
@@ -385,17 +546,44 @@ MySQLQueryType MySQLBaseLexer::determineQueryType() {
         case MySQLLexer::TABLESPACE_SYMBOL:
           return QtDropTablespace;
 
+        case MySQLLexer::UNDO_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::TABLESPACE_SYMBOL)
+            return QtDropUndoTablespace;
+          return QtUnknown;
+
+        case MySQLLexer::SPATIAL_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() != MySQLLexer::REFERENCE_SYMBOL) return QtUnknown;
+
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::SYSTEM_SYMBOL)
+            return QtDropSpatialReference;
+          return QtUnknown;
+
+        case MySQLLexer::RESOURCE_SYMBOL:
+          tok = nextDefaultChannelToken();
+          if (tok->getType() == MySQLLexer::GROUP_SYMBOL)
+            return QtDropResourceGroup;
+          return QtUnknown;
+
         case MySQLLexer::TRIGGER_SYMBOL:
           return QtDropTrigger;
 
         case MySQLLexer::VIEW_SYMBOL:
           return QtDropView;
 
+        case MySQLLexer::LIBRARY_SYMBOL:
+          return serverVersion >= 90200 ? QtDropLibrary : QtUnknown;
+
         case MySQLLexer::PREPARE_SYMBOL:
           return QtDeallocate;
 
         case MySQLLexer::USER_SYMBOL:
           return QtDropUser;
+
+        case MySQLLexer::ROLE_SYMBOL:
+          return QtDropRole;
       }
 
       return QtUnknown;

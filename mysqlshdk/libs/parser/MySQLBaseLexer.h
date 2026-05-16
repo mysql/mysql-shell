@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -53,6 +53,8 @@ class PARSERS_PUBLIC_TYPE MySQLBaseLexer : public antlr4::Lexer,
 
   explicit MySQLBaseLexer(antlr4::CharStream *input);
 
+  void set_server_version(uint32_t version);
+
   void reset() override;
 
   bool isIdentifier(size_t type) const;
@@ -102,6 +104,12 @@ class PARSERS_PUBLIC_TYPE MySQLBaseLexer : public antlr4::Lexer,
 
   std::unique_ptr<antlr4::Token> nextDefaultChannelToken();
   bool skipDefiner(std::unique_ptr<antlr4::Token> &token);
+  MySQLQueryType determineCreateFunctionType(
+      std::unique_ptr<antlr4::Token> &token);
+  MySQLQueryType determineViewType(std::unique_ptr<antlr4::Token> &token,
+                                   MySQLQueryType json_duality_type,
+                                   MySQLQueryType standard_view_type);
+  bool skipJsonDualityView(std::unique_ptr<antlr4::Token> &token);
 };
 
 }  // namespace parsers

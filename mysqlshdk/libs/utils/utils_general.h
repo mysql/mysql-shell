@@ -271,7 +271,8 @@ std::string SHCORE_PUBLIC unquote_identifier(std::string_view str,
                                              bool allow_ansi_quotes = false);
 
 std::string SHCORE_PUBLIC unquote_sql_string(std::string_view str,
-                                             char quote = '\'');
+                                             char quote = '\'',
+                                             bool no_backslash_escapes = false);
 
 /**
  * Check whether a variable is enabled in @@session_track_system_variables,

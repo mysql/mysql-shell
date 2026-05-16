@@ -1218,8 +1218,12 @@ TEST_F(Completer_frontend, js_devapi_members_classic) {
 
   std::vector<std::pair<std::string, std::string>> mysql_calls{
       {"quoteIdentifier", "('a')"},
+      {"quoteString", "('a')"},
       {"unquoteIdentifier", "(`a`)"},
+      {"unquoteString", "('\\'a\\'')"},
       {"splitScript", "('a;b;')"},
+      {"parseDataType", "('int(11) unsigned')"},
+      {"parseDdlScript", "('create table t (id int)')"},
       {"parseStatementAst", "('select 1')"},
       {"tokenizeStatement", "('select 1')"},
       {"help", ""},

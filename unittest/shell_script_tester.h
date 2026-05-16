@@ -180,6 +180,7 @@ class Shell_script_tester : public Shell_core_test_wrapper {
   std::set<std::string> _skipped_chunks;
   std::vector<std::string> _chunk_order;
   std::map<std::string, Chunk_validations> m_chunk_validations;
+  std::map<int, std::string> m_validation_updates;
 
   void execute_script(const std::string &path = "", bool in_chunks = false,
                       bool is_pre_script = false);
@@ -210,6 +211,10 @@ class Shell_script_tester : public Shell_core_test_wrapper {
                       std::string_view sep = "|");
   void load_validations(const std::string &path);
   bool context_enabled(std::string code);
+  void queue_validation_update(const Validation &validation,
+                               const std::string &expected,
+                               const std::string &actual);
+  void apply_validation_updates(const std::string &path);
 };
 
 /**

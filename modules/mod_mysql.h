@@ -80,8 +80,12 @@ ClassicSession getClassicSession(ConnectionData connectionData,
 ClassicSession getSession(ConnectionData connectionData, String password);
 Array splitScript(String script, Dictionary options);
 Dictionary parseStatementAst(String statements, Dictionary options);
+Dictionary parseDataType(String typeDefinition);
+Dictionary parseDdlScript(String script, Dictionary options);
 Array tokenizeStatement(String statement, Dictionary options);
+String quoteString(String s);
 String quoteIdentifier(String s);
+String unquoteString(String s);
 String unquoteIdentifier(String s);
 String makeAccount(String user, String host);
 Dictionary splitAccount(String account);
@@ -90,8 +94,12 @@ ClassicSession get_classic_session(ConnectionData connectionData, str password);
 ClassicSession get_session(ConnectionData connectionData, str password);
 list split_script(str script, dict options);
 dict parse_statement_ast(str statements, dict options);
+dict parse_data_type(str type_definition);
+dict parse_ddl_script(str script, dict options);
 list tokenize_statement(str statement, dict options);
+str quote_string(str s);
 str quote_identifier(str s);
+str unquote_string(str s);
 str unquote_identifier(str s);
 str make_account(str user, str host);
 dict split_account(str account);
@@ -113,11 +121,16 @@ shcore::Value split_script(const std::string &script,
 shcore::Value parse_statement_ast(
     const std::string &statement,
     const shcore::Dictionary_t &options = {}) const;
+shcore::Value parse_data_type(const std::string &type_definition) const;
+shcore::Value parse_ddl_script(const std::string &script,
+                               const shcore::Dictionary_t &options = {}) const;
 shcore::Value tokenize_statement(
     const std::string &statement,
     const shcore::Dictionary_t &options = {}) const;
 
+std::string quote_string(const std::string &s) const;
 std::string quote_identifier(const std::string &s) const;
+std::string unquote_string(const std::string &s) const;
 std::string unquote_identifier(const std::string &s) const;
 
 std::string make_account(const std::string &user, const std::string &host);

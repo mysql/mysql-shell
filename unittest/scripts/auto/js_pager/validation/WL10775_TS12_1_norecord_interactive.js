@@ -27,7 +27,7 @@ DESCRIPTION
 
 CONSTANTS
  - ErrorCode MySQL server error codes.
-     
+
 FUNCTIONS
       getClassicSession(connectionData[, password])
             Opens a classic MySQL protocol session to a MySQL server.
@@ -41,11 +41,21 @@ FUNCTIONS
       makeAccount(user, host)
             Joins user and host into an quoted account string.
 
+      parseDataType(typeDefinition)
+            Parse a MySQL data type definition.
+
+      parseDdlScript(script[, options])
+            Parse DDL statements and return the detected object changes.
+
       parseStatementAst(statements[, options])
             Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)
             Quote a string as a MySQL identifier, escaping characters when
+            needed.
+
+      quoteString(s)
+            Quote a string as a MySQL string literal, escaping characters when
             needed.
 
       splitAccount(account)
@@ -60,6 +70,9 @@ FUNCTIONS
       unquoteIdentifier(s)
             Unquote a MySQL identifier.
 
+      unquoteString(s)
+            Unquote a MySQL string literal.
+
 CLASSES
  - ClassicResult  Allows browsing through the result information after
                   performing an operation on the database through the MySQL
@@ -67,7 +80,6 @@ CLASSES
  - ClassicSession Enables interaction with a MySQL Server using the MySQL
                   Protocol.
  - ShellResult    Encapsulates custom query result and metadata.
-
 //@ set pager to an external command
 |<<<__pager.cmd>>>|
 
@@ -114,11 +126,21 @@ FUNCTIONS
       makeAccount(user, host)
             Joins user and host into an quoted account string.
 
+      parseDataType(typeDefinition)
+            Parse a MySQL data type definition.
+
+      parseDdlScript(script[, options])
+            Parse DDL statements and return the detected object changes.
+
       parseStatementAst(statements[, options])
             Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)
             Quote a string as a MySQL identifier, escaping characters when
+            needed.
+
+      quoteString(s)
+            Quote a string as a MySQL string literal, escaping characters when
             needed.
 
       splitAccount(account)
@@ -133,6 +155,9 @@ FUNCTIONS
       unquoteIdentifier(s)
             Unquote a MySQL identifier.
 
+      unquoteString(s)
+            Unquote a MySQL string literal.
+
 CLASSES
  - ClassicResult  Allows browsing through the result information after
                   performing an operation on the database through the MySQL
@@ -140,4 +165,3 @@ CLASSES
  - ClassicSession Enables interaction with a MySQL Server using the MySQL
                   Protocol.
  - ShellResult    Encapsulates custom query result and metadata.
-

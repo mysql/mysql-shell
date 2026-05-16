@@ -22,14 +22,26 @@ mysql.help('help')
 //@ mysql help on help, \? [USE:mysql help on help]
 \? mysql.help
 
+//@ parseDataType
+\? mysql.parseDataType
+
+//@ parseDdlScript
+\? mysql.parseDdlScript
+
 //@ parseStatementAst
 \? mysql.parseStatementAst
 
 //@ quoteIdentifier
 \? mysql.quoteIdentifier
 
+//@ quoteString
+\? mysql.quoteString
+
 //@ splitScript
 \? mysql.splitScript
 
 //@ unquoteIdentifier
 \? mysql.unquoteIdentifier
+
+//@ unquoteString
+\? mysql.unquoteString

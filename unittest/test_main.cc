@@ -66,6 +66,7 @@ mysqlshdk::db::replay::Mode g_test_recording_mode =
     mysqlshdk::db::replay::Mode::Replay;
 
 bool g_generate_validation_file = false;
+bool g_merge_validation_file = false;
 bool g_test_parallel_execution = false;
 
 int g_test_trace_scripts = 0;
@@ -1035,6 +1036,8 @@ int main(int argc, char **argv) {
     } else if (shcore::str_caseeq(argv[index], "--generate-validation-file") ||
                strcmp(argv[index], "-g") == 0) {
       g_generate_validation_file = true;
+    } else if (shcore::str_caseeq(argv[index], "--merge-validation-file")) {
+      g_merge_validation_file = true;
     } else if (shcore::str_beginswith(argv[index], "--debug=")) {
       DBUG_SET_INITIAL(argv[index] + strlen("--debug="));
     } else if (strcmp(argv[index], "--trace-no-stop") == 0 ||
@@ -1087,6 +1090,15 @@ int main(int argc, char **argv) {
       exit(1);
     }
   }
+
+  if (g_generate_validation_file && g_merge_validation_file) {
+    std::cerr << "--generate-validation-file and --merge-validation-file "
+                 "cannot be used together\n";
+    exit(1);
+  }
+
+  // Merge mode must process every chunk so all failing sections are updated.
+  if (g_merge_validation_file) g_test_fail_early = false;
 
   std::string mysqld_path_variables;
   mysqlsh::Scoped_ssh_manager ssh_manager(

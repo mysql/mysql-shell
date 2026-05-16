@@ -17,11 +17,15 @@ validate_members(mysql, [
   'ErrorCode',
   'Type',
   'help',
+  'parse_data_type',
+  'parse_ddl_script',
   'parse_statement_ast',
-  'tokenize_statement',
   'quote_identifier',
+  'quote_string',
   'split_script',
+  'tokenize_statement',
   'unquote_identifier',
+  'unquote_string',
   'make_account',
   'split_account'
 ])
@@ -86,6 +90,40 @@ except RuntimeError:
 
 assert len(mysql.split_script("SELECT 'a\\''; SELECT 2", {"noBackslashEscapes": False})) == 2
 assert len(mysql.split_script("SELECT 'a\\''; SELECT 2", {"noBackslashEscapes": True})) == 1
+
+#@<> parse_ddl_script options
+mysql.parse_ddl_script("CREATE FUNCTION IF NOT EXISTS f() RETURNS INT RETURN 1")
+
+#@<> parse_data_type
+data_type = mysql.parse_data_type("DECIMAL(10,2) UNSIGNED")
+assert data_type["type"] == "DECIMAL"
+assert data_type["precision"] == 10
+assert data_type["scale"] == 2
+assert data_type["length"] is None
+assert data_type["flags"] == ["UNSIGNED"]
+
+try:
+  mysql.parse_ddl_script("CREATE FUNCTION IF NOT EXISTS f() RETURNS INT RETURN 1", {"version": "8.0.27"})
+  raise AssertionError("parse_ddl_script should honor the requested parser version")
+except RuntimeError:
+  pass
+
+ansi_quoted_ddl = mysql.parse_ddl_script('CREATE TABLE "quoted table" (id INT)', {"ansiQuotes": True})
+assert ansi_quoted_ddl["changes"][0]["create"]["name"] == "quoted table"
+
+try:
+  mysql.parse_ddl_script('CREATE TABLE "quoted table" (id INT)', {"ansiQuotes": False})
+  raise AssertionError("parse_ddl_script should reject double-quoted identifiers when ansiQuotes is disabled")
+except RuntimeError:
+  pass
+
+assert len(mysql.parse_ddl_script("CREATE EVENT e ON SCHEDULE EVERY 1 DAY DO SELECT 'a\\''", {"noBackslashEscapes": False})["changes"]) == 1
+
+try:
+  mysql.parse_ddl_script("CREATE EVENT e ON SCHEDULE EVERY 1 DAY DO SELECT 'a\\''", {"noBackslashEscapes": True})
+  raise AssertionError("parse_ddl_script should honor noBackslashEscapes")
+except RuntimeError:
+  pass
 
 #@<> make_account
 mysql.make_account("user", "localhost")

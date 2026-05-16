@@ -52,6 +52,7 @@ using namespace shcore;
 
 extern "C" const char *g_test_home;
 extern bool g_generate_validation_file;
+extern bool g_merge_validation_file;
 extern int g_test_script_timeout;
 extern std::set<int> g_break;
 
@@ -569,6 +570,92 @@ bool Shell_script_tester::validate_line_by_line(const std::string &context,
       srcline, valline);
 }
 
+void Shell_script_tester::queue_validation_update(const Validation &validation,
+                                                  const std::string &expected,
+                                                  const std::string &actual) {
+  if (!g_merge_validation_file ||
+      validation.def.validation != ValidationType::Multiline) {
+    return;
+  }
+
+  auto expected_lines = shcore::split_string(expected, "\n");
+  auto actual_lines = shcore::split_string(actual, "\n");
+
+  while (!expected_lines.empty() && expected_lines.front().empty()) {
+    expected_lines.erase(expected_lines.begin());
+  }
+
+  std::vector<std::vector<size_t>> lcs(
+      expected_lines.size() + 1, std::vector<size_t>(actual_lines.size() + 1));
+  for (size_t i = expected_lines.size(); i-- > 0;) {
+    for (size_t j = actual_lines.size(); j-- > 0;) {
+      const auto expected_line = resolve_string(expected_lines[i]);
+      if (multi_value_compare(expected_line,
+                              shcore::str_rstrip_view(actual_lines[j]))) {
+        lcs[i][j] = lcs[i + 1][j + 1] + 1;
+      } else {
+        lcs[i][j] = std::max(lcs[i + 1][j], lcs[i][j + 1]);
+      }
+    }
+  }
+
+  std::vector<size_t> matched_actual_lines;
+  for (size_t i = 0, j = 0;
+       i < expected_lines.size() && j < actual_lines.size();) {
+    const auto expected_line = resolve_string(expected_lines[i]);
+    if (multi_value_compare(expected_line,
+                            shcore::str_rstrip_view(actual_lines[j]))) {
+      matched_actual_lines.emplace_back(j);
+      ++i;
+      ++j;
+    } else if (lcs[i + 1][j] >= lcs[i][j + 1]) {
+      ++i;
+    } else {
+      ++j;
+    }
+  }
+
+  size_t first = 0;
+  size_t last = actual_lines.size();
+  if (!matched_actual_lines.empty()) {
+    first = matched_actual_lines.front();
+    last = matched_actual_lines.back() + 1;
+  }
+
+  m_validation_updates[validation.def.linenum] =
+      shcore::str_join(std::vector<std::string>(actual_lines.begin() + first,
+                                                actual_lines.begin() + last),
+                       "\n");
+}
+
+void Shell_script_tester::apply_validation_updates(const std::string &path) {
+  if (m_validation_updates.empty()) return;
+
+  std::ifstream input(path);
+  std::vector<std::string> lines;
+  for (std::string line; std::getline(input, line);) lines.emplace_back(line);
+
+  std::ostringstream updated;
+  for (size_t index = 0; index < lines.size();) {
+    updated << lines[index] << '\n';
+    const auto update = m_validation_updates.find(index + 1);
+    if (update == m_validation_updates.end()) {
+      ++index;
+      continue;
+    }
+
+    if (!update->second.empty()) updated << update->second << '\n';
+    ++index;
+    while (index < lines.size() &&
+           !shcore::str_beginswith(lines[index], get_chunk_token())) {
+      ++index;
+    }
+  }
+
+  std::ofstream output(path, std::ofstream::out | std::ofstream::trunc);
+  output << updated.str();
+}
+
 bool Shell_script_tester::validate(const std::string &context,
                                    const std::string &chunk_id, bool optional) {
   std::string original_std_out = output_handler.std_out;
@@ -638,6 +725,7 @@ bool Shell_script_tester::validate(const std::string &context,
 
   std::string full_statement;
   bool first_validation{true};
+  bool validation_succeeded{true};
   // The validations will be performed ONLY if the context is enabled
   for (const Validation &val : validations) {
     // Validation goes against validation code
@@ -725,12 +813,15 @@ bool Shell_script_tester::validate(const std::string &context,
           }
         } else {
           SCOPED_TRACE(_chunks[chunk_id].source);
-          if (!validate_line_by_line(
-                  context, chunk_id, "STDOUT", out,
-                  val.def.stream == "PROTOCOL" ? _cout.str() : original_std_out,
-                  _chunks[chunk_id].code[0].first, val.def.linenum)) {
+          const auto actual =
+              val.def.stream == "PROTOCOL" ? _cout.str() : original_std_out;
+          if (!validate_line_by_line(context, chunk_id, "STDOUT", out, actual,
+                                     _chunks[chunk_id].code[0].first,
+                                     val.def.linenum)) {
+            queue_validation_update(val, out, actual);
             output_handler.wipe_all();
-            return false;
+            validation_succeeded = false;
+            if (!g_merge_validation_file) return false;
           }
         }
       }
@@ -796,8 +887,10 @@ bool Shell_script_tester::validate(const std::string &context,
           if (!validate_line_by_line(
                   context, chunk_id, "STDERR", error, original_std_err,
                   _chunks[chunk_id].code[0].first, val.def.linenum)) {
+            queue_validation_update(val, error, original_std_err);
             output_handler.wipe_all();
-            return false;
+            validation_succeeded = false;
+            if (!g_merge_validation_file) return false;
           }
         }
       }
@@ -817,7 +910,7 @@ bool Shell_script_tester::validate(const std::string &context,
   _cout.str("");
   _cout.clear();
 
-  return true;
+  return validation_succeeded;
 }
 
 void Shell_script_tester::validate_interactive(const std::string &script) {
@@ -1148,6 +1241,7 @@ std::optional<Chunk_definition> Shell_script_tester::load_chunk_definition(
 
 void Shell_script_tester::load_validations(const std::string &path) {
   m_chunk_validations.clear();
+  m_validation_updates.clear();
 
   std::ifstream file(path.c_str());
   if (file.fail()) {
@@ -1551,6 +1645,9 @@ void Shell_script_tester::execute_script(const std::string &path,
 
       if (g_generate_validation_file) {
         ofile.close();
+      } else if (g_merge_validation_file) {
+        apply_validation_updates(_new_format ? VAL_SCRIPT(path)
+                                             : VALIDATION_SCRIPT(path));
       }
     } else {  // !in_chunks
       _options->interactive = false;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,10 +25,6 @@
 
 #include "mysqlshdk/libs/parser/code-completion/mysql_code_completion_context.h"
 
-#include <algorithm>
-#include <set>
-
-#include "mysqlshdk/libs/db/charset.h"
 #include "mysqlshdk/libs/parser/code-completion/mysql-code-completion.h"
 #include "mysqlshdk/libs/parser/mysql/MySQLLexer.h"
 #include "mysqlshdk/libs/parser/mysql/MySQLParser.h"
@@ -37,29 +33,11 @@ namespace mysqlshdk {
 
 using utils::Version;
 
-namespace {
-
-std::set<std::string> initialize_charsets() {
-  std::set<std::string> result;
-
-  for (const auto &charset : db::charset::charset_names()) {
-    // character set literals need to begin with an underscore
-    result.emplace("_" + std::string{charset});
-  }
-
-  return result;
-}
-
-}  // namespace
-
 class Sql_completion_context::Impl {
  public:
   explicit Impl(const Version &version)
       : m_lexer(&m_input), m_tokens(&m_lexer), m_parser(&m_tokens) {
     set_server_version(version);
-
-    static const auto k_charsets = initialize_charsets();
-    m_lexer.charsets = k_charsets;
 
     m_lexer.removeErrorListeners();
     m_parser.removeParseListeners();
@@ -79,7 +57,7 @@ class Sql_completion_context::Impl {
       resetPreconditions(&m_parser);
     }
 
-    m_lexer.serverVersion = m_parser.serverVersion;
+    m_lexer.set_server_version(m_parser.serverVersion);
   }
 
   void set_sql_mode(const std::string &sql_mode) {

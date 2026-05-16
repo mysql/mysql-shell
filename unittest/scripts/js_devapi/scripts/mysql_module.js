@@ -24,11 +24,15 @@ validateMembers(mysql, [
     'Type',
     'getSession',
     'help',
+    'parseDataType',
+    'parseDdlScript',
     'parseStatementAst',
-    'tokenizeStatement',
     'quoteIdentifier',
+    'quoteString',
     'splitScript',
+    'tokenizeStatement',
     'unquoteIdentifier',
+    'unquoteString',
     'makeAccount',
     'splitAccount'
 ])
@@ -95,6 +99,27 @@ EXPECT_THROWS_LIKE(function () { mysql.tokenizeStatement("SELECT 'a\\''", {noBac
 
 EXPECT_EQ(2, mysql.splitScript("SELECT 'a\\''; SELECT 2", {noBackslashEscapes: false}).length);
 EXPECT_EQ(1, mysql.splitScript("SELECT 'a\\''; SELECT 2", {noBackslashEscapes: true}).length);
+
+//@<> parseDdlScript options
+EXPECT_NO_THROWS(function () { mysql.parseDdlScript("CREATE FUNCTION IF NOT EXISTS f() RETURNS INT RETURN 1"); });
+
+//@<> parseDataType
+var dataType = mysql.parseDataType("DECIMAL(10,2) UNSIGNED");
+EXPECT_EQ("DECIMAL", dataType.type);
+EXPECT_EQ(10, dataType.precision);
+EXPECT_EQ(2, dataType.scale);
+EXPECT_EQ(null, dataType.length);
+EXPECT_EQ(1, dataType.flags.length);
+EXPECT_EQ("UNSIGNED", dataType.flags[0]);
+
+EXPECT_THROWS_LIKE(function () { mysql.parseDdlScript("CREATE FUNCTION IF NOT EXISTS f() RETURNS INT RETURN 1", {version: "8.0.27"}); }, /not valid at this position/);
+
+var ansiQuotedDdl = mysql.parseDdlScript('CREATE TABLE "quoted table" (id INT)', {ansiQuotes: true});
+EXPECT_EQ("quoted table", ansiQuotedDdl.changes[0].create.name);
+EXPECT_THROWS_LIKE(function () { mysql.parseDdlScript('CREATE TABLE "quoted table" (id INT)', {ansiQuotes: false}); }, /Cannot determine query type|not valid|syntax error/);
+
+EXPECT_EQ(1, mysql.parseDdlScript("CREATE EVENT e ON SCHEDULE EVERY 1 DAY DO SELECT 'a\\''", {noBackslashEscapes: false}).changes.length);
+EXPECT_THROWS_LIKE(function () { mysql.parseDdlScript("CREATE EVENT e ON SCHEDULE EVERY 1 DAY DO SELECT 'a\\''", {noBackslashEscapes: true}); }, /token recognition error|extraneous input|not valid|syntax error|Unfinished single quoted string literal/);
 
 //@ splitScript
 mysql.splitScript("select 1")

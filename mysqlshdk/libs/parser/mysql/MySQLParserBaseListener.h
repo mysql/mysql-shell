@@ -1,6 +1,6 @@
 // clang-format off
 /*
- * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,7 @@ namespace parsers {
  * which can be extended to create a listener which only needs to handle a subset
  * of the available methods.
  */
-class  MySQLParserBaseListener : public MySQLParserListener {
+class MySQLParserBaseListener : public MySQLParserListener {
 public:
 
   virtual void enterQuery(MySQLParser::QueryContext * /*ctx*/) override { }

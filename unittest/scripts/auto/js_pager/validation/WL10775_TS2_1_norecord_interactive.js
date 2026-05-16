@@ -46,11 +46,21 @@ FUNCTIONS
       makeAccount(user, host)
             Joins user and host into an quoted account string.
 
+      parseDataType(typeDefinition)
+            Parse a MySQL data type definition.
+
+      parseDdlScript(script[, options])
+            Parse DDL statements and return the detected object changes.
+
       parseStatementAst(statements[, options])
             Parse MySQL statements and return its AST representation.
 
       quoteIdentifier(s)
             Quote a string as a MySQL identifier, escaping characters when
+            needed.
+
+      quoteString(s)
+            Quote a string as a MySQL string literal, escaping characters when
             needed.
 
       splitAccount(account)
@@ -64,6 +74,9 @@ FUNCTIONS
 
       unquoteIdentifier(s)
             Unquote a MySQL identifier.
+
+      unquoteString(s)
+            Unquote a MySQL string literal.
 
 CLASSES
  - ClassicResult  Allows browsing through the result information after
@@ -167,4 +180,3 @@ DESCRIPTION
 
       The server autocommit mode will return back to it's state before calling
       startTransaction().
-

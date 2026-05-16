@@ -436,6 +436,7 @@ TEST(utils_general, unquote_sql_string) {
     EXPECT_SUCCESS("\n", "*\n*", quote);
     EXPECT_SUCCESS("\\", "*\\\\*", quote);
     EXPECT_SUCCESS("", "**", quote);
+    EXPECT_SUCCESS("abc", "*abc*", quote);
     EXPECT_SUCCESS("*", R"*(*\**)*", quote);
     EXPECT_SUCCESS("*", "*\\**", quote);
     EXPECT_SUCCESS("*", "****", quote);
@@ -445,6 +446,23 @@ TEST(utils_general, unquote_sql_string) {
     EXPECT_SUCCESS("\\n", "*\\\\n*", quote);
     EXPECT_SUCCESS("\\\n", "*\\\\\n*", quote);
     EXPECT_SUCCESS("*\n", "*\\*\n*", quote);
+  }
+
+  for (char quote : {'\'', '"'}) {
+    EXPECT_EQ(
+        insert_quotes(R"(\n)", quote),
+        unquote_sql_string(insert_quotes(R"*(*\n*)*", quote), quote, true));
+    EXPECT_EQ(
+        insert_quotes(R"(\)", quote),
+        unquote_sql_string(insert_quotes(R"*(*\*)*", quote), quote, true));
+    EXPECT_EQ(insert_quotes("*", quote),
+              unquote_sql_string(insert_quotes("****", quote), quote, true));
+
+    const auto str = insert_quotes(R"*(*\**)*", quote);
+    SCOPED_TRACE(str_format("string: %.*s, quote: %c", (int)str.size(),
+                            str.data(), quote));
+    EXPECT_THROW_LIKE(unquote_sql_string(str, quote, true),
+                      std::invalid_argument, "string is not properly quoted");
   }
 }
 

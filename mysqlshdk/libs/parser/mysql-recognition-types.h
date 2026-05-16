@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,6 +47,7 @@ enum class MySQLParseUnit {
   PuCreateLogfileGroup,
   PuCreateServer,
   PuCreateTablespace,
+  PuDropLibrary,
 };
 
 // Describes the type of a given query.
@@ -64,12 +65,17 @@ enum MySQLQueryType {
   QtAlterTableSpace,
   QtAlterEvent,
   QtAlterView,
+  QtAlterJsonDualityView,
+  QtAlterResourceGroup,
+  QtAlterUndoTablespace,
+  QtAlterLibrary,
 
   QtCreateTable,
   QtCreateIndex,
   QtCreateDatabase,
   QtCreateEvent,
   QtCreateView,
+  QtCreateJsonDualityView,
   QtCreateRoutine,  // All of procedure, function, UDF. Used for parse type.
   QtCreateProcedure,
   QtCreateFunction,
@@ -78,6 +84,11 @@ enum MySQLQueryType {
   QtCreateLogFileGroup,
   QtCreateServer,
   QtCreateTableSpace,
+  QtCreateLibrary,
+  QtCreateRole,
+  QtCreateSpatialReference,
+  QtCreateResourceGroup,
+  QtCreateUndoTablespace,
 
   QtDropDatabase,
   QtDropEvent,
@@ -90,6 +101,11 @@ enum MySQLQueryType {
   QtDropTablespace,
   QtDropTrigger,
   QtDropView,
+  QtDropLibrary,
+  QtDropRole,
+  QtDropSpatialReference,
+  QtDropResourceGroup,
+  QtDropUndoTablespace,
 
   QtRenameTable,
   QtTruncateTable,

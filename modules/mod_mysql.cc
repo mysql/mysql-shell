@@ -35,11 +35,13 @@
 #include "modules/mysqlxtest_utils.h"
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils/utils.h"
+#include "mysqlshdk/libs/parser/ddl/mysql_object_parser.h"
 #include "mysqlshdk/libs/parser/mysql_parser_utils.h"
 #include "mysqlshdk/libs/utils/utils_account.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_lexing.h"
 #include "mysqlshdk/libs/utils/utils_mysql_parsing.h"
+#include "mysqlshdk/libs/utils/utils_sqlstring.h"
 
 #include "errmsg.h"  // NOLINT
 namespace mysqlsh {
@@ -212,10 +214,14 @@ REGISTER_MODULE(Mysql, mysql) {
   expose("splitScript", &Mysql::split_script, "script", "?options");
   expose("parseStatementAst", &Mysql::parse_statement_ast, "statement",
          "?options");
+  expose("parseDataType", &Mysql::parse_data_type, "typeDefinition");
+  expose("parseDdlScript", &Mysql::parse_ddl_script, "script", "?options");
   expose("tokenizeStatement", &Mysql::tokenize_statement, "statement",
          "?options");
 
+  expose("quoteString", &Mysql::quote_string, "string");
   expose("quoteIdentifier", &Mysql::quote_identifier, "string");
+  expose("unquoteString", &Mysql::unquote_string, "string");
   expose("unquoteIdentifier", &Mysql::unquote_identifier, "string");
 
   expose("makeAccount", &Mysql::make_account, "user", "host");
@@ -381,8 +387,8 @@ DELIMITER keyword, which must be followed by the delimiter character(s)
 and a newline.
 
 Supported options are:
-- ansiQuotes: if true, treat `"` as an identifier quote
-- noBackslashEscapes: if true, backslashes do not escape characters in strings
+@li ansiQuotes: if true, treat `"` as an identifier quote
+@li noBackslashEscapes: if true, backslashes do not escape characters in strings
 )*");
 
 /**
@@ -416,8 +422,8 @@ Parse MySQL statements and return its AST representation.
 @returns AST encoded as a JSON structure
 
 Supported options are:
-- ansiQuotes: if true, treat `"` as an identifier quote
-- noBackslashEscapes: if true, backslashes do not escape characters in strings
+@li ansiQuotes: if true, treat `"` as an identifier quote
+@li noBackslashEscapes: if true, backslashes do not escape characters in strings
 )*");
 
 /**
@@ -492,6 +498,101 @@ shcore::Value Mysql::parse_statement_ast(
   return listener.ast();
 }
 
+REGISTER_HELP_FUNCTION(parseDdlScript, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_PARSEDDLSCRIPT, R"*(
+Parse DDL statements and return the detected object changes.
+
+@param script SQL script with DDL statements
+@param options Optional dictionary of parser options
+
+@returns Dictionary with parsed DDL changes
+
+Supported options are:
+@li schema: default schema for unqualified object names
+@li ignoreErrors: if true, ignore statements that cannot be parsed
+@li version: MySQL server version to parse against; defaults to Shell version
+@li ansiQuotes: if true, treat `"` as an identifier quote. Default is false.
+@li noBackslashEscapes: if true, backslashes do not escape characters in strings.
+  Default is false.
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_PARSEDDLSCRIPT_BRIEF)
+ *
+ * $(MYSQL_PARSEDDLSCRIPT)
+ */
+#if DOXYGEN_JS
+Dictionary parseDdlScript(String script, Dictionary options) {}
+#elif DOXYGEN_PY
+dict parse_ddl_script(str script, dict options) {}
+#endif
+shcore::Value Mysql::parse_ddl_script(
+    const std::string &sql, const shcore::Dictionary_t &options) const {
+  std::string schema;
+  bool ignore_errors = false;
+  bool ansi_quotes = false;
+  bool no_backslash_escapes = false;
+  std::string version = mysqlshdk::utils::k_shell_version.get_full();
+
+  if (options) {
+    mysqlsh::Unpack_options unpacker(options);
+    unpacker.optional("schema", &schema)
+        .optional("ignoreErrors", &ignore_errors)
+        .optional("version", &version)
+        .optional("ansiQuotes", &ansi_quotes)
+        .optional("noBackslashEscapes", &no_backslash_escapes)
+        .end("DDL parser options");
+  }
+
+  const mysqlshdk::parser::Parser_context_config config{
+      mysqlshdk::utils::Version(version), ansi_quotes, no_backslash_escapes};
+  auto context = mysqlshdk::parser::create_parser_context(config);
+
+  return shcore::Value(
+      mysqlshdk::parser::parse_ddl_script(context, sql, schema, ignore_errors));
+}
+
+REGISTER_HELP_FUNCTION(parseDataType, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_PARSEDATATYPE, R"*(
+Parse a MySQL data type definition.
+
+@param typeDefinition MySQL data type definition
+
+@returns Dictionary with the parsed type, precision, scale, length, explicit
+parameters, and flags. Absent precision, scale, and length values are null.
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_PARSEDATATYPE_BRIEF)
+ *
+ * $(MYSQL_PARSEDATATYPE)
+ */
+#if DOXYGEN_JS
+Dictionary parseDataType(String typeDefinition) {}
+#elif DOXYGEN_PY
+dict parse_data_type(str type_definition) {}
+#endif
+shcore::Value Mysql::parse_data_type(const std::string &type_definition) const {
+  mysqlshdk::parser::Data_type_definition definition;
+  if (!mysqlshdk::parser::parse_type_definition(type_definition, &definition))
+    throw shcore::Exception::parser_error("Invalid data type definition");
+
+  const auto as_value = [](const std::optional<int> &value) {
+    return value ? shcore::Value(*value) : shcore::Value::Null();
+  };
+
+  auto flags = shcore::make_array();
+  for (const auto &flag : definition.flags) flags->emplace_back(flag);
+
+  return shcore::Value(shcore::make_dict(
+      "type", definition.type, "precision", as_value(definition.precision),
+      "scale", as_value(definition.scale), "length",
+      as_value(definition.length), "explicitParams", definition.explicit_params,
+      "flags", flags));
+}
+
 REGISTER_HELP_FUNCTION(tokenizeStatement, mysql);
 REGISTER_HELP_FUNCTION_TEXT(MYSQL_TOKENIZESTATEMENT, R"*(
 Lexes a MySQL statement into a list of tokens.
@@ -502,8 +603,8 @@ Lexes a MySQL statement into a list of tokens.
 @returns A list of objects with type and token fields
 
 Supported options are:
-- ansiQuotes: if true, treat `"` as an identifier quote
-- noBackslashEscapes: if true, backslashes do not escape characters in strings
+@li ansiQuotes: if true, treat `"` as an identifier quote
+@li noBackslashEscapes: if true, backslashes do not escape characters in strings
 )*");
 
 /**
@@ -556,6 +657,30 @@ std::string Mysql::quote_identifier(const std::string &s) const {
   return shcore::quote_identifier(s);
 }
 
+REGISTER_HELP_FUNCTION(quoteString, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_QUOTESTRING, R"*(
+Quote a string as a MySQL string literal, escaping characters when needed.
+
+@param s the string value to be quoted
+
+@returns Quoted string
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_QUOTESTRING_BRIEF)
+ *
+ * $(MYSQL_QUOTESTRING)
+ */
+#if DOXYGEN_JS
+String quoteString(String s) {}
+#elif DOXYGEN_PY
+str quote_string(str s) {}
+#endif
+std::string Mysql::quote_string(const std::string &s) const {
+  return shcore::quote_sql_string(s);
+}
+
 REGISTER_HELP_FUNCTION(unquoteIdentifier, mysql);
 REGISTER_HELP_FUNCTION_TEXT(MYSQL_UNQUOTEIDENTIFIER, R"*(
 Unquote a MySQL identifier.
@@ -580,6 +705,31 @@ str unquote_identifier(str s) {}
 #endif
 std::string Mysql::unquote_identifier(const std::string &s) const {
   return shcore::unquote_identifier(s);
+}
+
+REGISTER_HELP_FUNCTION(unquoteString, mysql);
+REGISTER_HELP_FUNCTION_TEXT(MYSQL_UNQUOTESTRING, R"*(
+Unquote a MySQL string literal.
+
+@param s String to unquote
+
+@returns Unquoted string
+)*");
+
+/**
+ * \ingroup mysql
+ * $(MYSQL_UNQUOTESTRING_BRIEF)
+ *
+ * $(MYSQL_UNQUOTESTRING)
+ */
+#if DOXYGEN_JS
+String unquoteString(String s) {}
+#elif DOXYGEN_PY
+str unquote_string(str s) {}
+#endif
+std::string Mysql::unquote_string(const std::string &s) const {
+  if (s.empty()) return s;
+  return shcore::unquote_sql_string(s, s[0]);
 }
 
 REGISTER_HELP_FUNCTION(makeAccount, mysql);
