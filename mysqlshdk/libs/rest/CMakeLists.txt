@@ -1,4 +1,4 @@
-# Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2019, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -51,5 +51,8 @@ include_directories(SYSTEM ${CURL_INCLUDE_DIR})
 target_link_libraries(rest ssh ${CURL_LIBRARY})
 
 if (WIN32)
-  target_link_libraries(rest Crypt32)
+  target_link_libraries(rest
+    Bcrypt
+    Crypt32
+  )
 endif()
