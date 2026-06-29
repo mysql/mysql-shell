@@ -789,10 +789,10 @@ TEST(Upgrade_check_options, generated_target_version_aliases_match_current) {
     EXPECT_EQ(version, generated.at(key));
   }
 
-  EXPECT_EQ(Version(26, 7, 0), generated.at("26.7"));
+  EXPECT_EQ(Version(26, 10, 0), generated.at("26.10"));
   EXPECT_EQ(Version(8, 0, 46), generated.at("8.0"));
-  EXPECT_EQ(Version(8, 4, 15), generated.at("8.4"));
-  EXPECT_EQ(Version(9, 7, 5), generated.at("9.7"));
+  EXPECT_EQ(Version(8, 4, 16), generated.at("8.4"));
+  EXPECT_EQ(Version(9, 7, 6), generated.at("9.7"));
   EXPECT_FALSE(generated.contains("8"));
   EXPECT_FALSE(generated.contains("9"));
   EXPECT_FALSE(generated.contains("26"));

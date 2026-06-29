@@ -333,7 +333,9 @@ TEST(Version, supported_servers) {
   EXPECT_FALSE(version::is_supported_server(Version(26, 6, 99)));
   EXPECT_TRUE(version::is_supported_server(Version(26, 7, 0)));
   EXPECT_TRUE(version::is_supported_server(Version(26, 7, 99)));
-  EXPECT_FALSE(version::is_supported_server(Version(26, 10, 0)));
+  EXPECT_TRUE(version::is_supported_server(Version(26, 10, 0)));
+  EXPECT_TRUE(version::is_supported_server(Version(26, 10, 99)));
+  EXPECT_FALSE(version::is_supported_server(Version(27, 1, 0)));
 }
 
 }  // namespace
