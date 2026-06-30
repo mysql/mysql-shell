@@ -209,45 +209,45 @@ TEST(Version, corresponding_versions) {
   EXPECT_THAT(version::corresponding_versions(Version(8, 4, 10)),
               ElementsAre(Version(8, 0, 47), Version(8, 4, 10)));
 
-  EXPECT_THAT(version::corresponding_versions(Version(8, 4, 15)),
-              ElementsAre(Version(8, 4, 15)));
+  EXPECT_THAT(version::corresponding_versions(Version(8, 4, 11)),
+              ElementsAre(Version(8, 4, 11)));
 
-  EXPECT_THAT(version::corresponding_versions(Version(9, 7, 5)),
-              ElementsAre(Version(8, 4, 15), Version(9, 7, 5)));
+  EXPECT_THAT(version::corresponding_versions(Version(9, 7, 2)),
+              ElementsAre(Version(8, 4, 11), Version(9, 7, 2)));
 
   EXPECT_THAT(version::corresponding_versions(Version(9, 7, 10)),
-              ElementsAre(Version(8, 4, 20), Version(9, 7, 10)));
+              ElementsAre(Version(8, 4, 19), Version(9, 7, 10)));
 
   EXPECT_THAT(
       version::corresponding_versions(Version(26, 7, 0)),
-      ElementsAre(Version(8, 4, 15), Version(9, 7, 5), Version(26, 7, 0)));
+      ElementsAre(Version(8, 4, 11), Version(9, 7, 2), Version(26, 7, 0)));
 
   EXPECT_THAT(
       version::corresponding_versions(Version(26, 7, 1)),
-      ElementsAre(Version(8, 4, 16), Version(9, 7, 6), Version(26, 7, 1)));
+      ElementsAre(Version(8, 4, 12), Version(9, 7, 3), Version(26, 7, 1)));
 
   EXPECT_THAT(
       version::corresponding_versions(Version(26, 10, 0)),
-      ElementsAre(Version(8, 4, 16), Version(9, 7, 6), Version(26, 10, 0)));
+      ElementsAre(Version(8, 4, 12), Version(9, 7, 3), Version(26, 10, 0)));
 
   EXPECT_THAT(
       version::corresponding_versions(Version(27, 1, 0)),
-      ElementsAre(Version(8, 4, 17), Version(9, 7, 7), Version(27, 1, 0)));
+      ElementsAre(Version(8, 4, 13), Version(9, 7, 4), Version(27, 1, 0)));
 
   EXPECT_THAT(
       version::corresponding_versions(Version(28, 4, 0)),
-      ElementsAre(Version(8, 4, 22), Version(9, 7, 12), Version(28, 4, 0)));
+      ElementsAre(Version(8, 4, 18), Version(9, 7, 9), Version(28, 4, 0)));
 
   EXPECT_THAT(
       version::corresponding_versions(Version(28, 4, 1)),
-      ElementsAre(Version(8, 4, 23), Version(9, 7, 13), Version(28, 4, 1)));
+      ElementsAre(Version(8, 4, 19), Version(9, 7, 10), Version(28, 4, 1)));
 
   EXPECT_THAT(
       version::corresponding_versions(Version(28, 4, 5)),
-      ElementsAre(Version(8, 4, 27), Version(9, 7, 17), Version(28, 4, 5)));
+      ElementsAre(Version(8, 4, 23), Version(9, 7, 14), Version(28, 4, 5)));
 
   EXPECT_THAT(version::corresponding_versions(Version(28, 7, 0)),
-              ElementsAre(Version(8, 4, 23), Version(9, 7, 13),
+              ElementsAre(Version(8, 4, 19), Version(9, 7, 10),
                           Version(28, 4, 1), Version(28, 7, 0)));
 
   const auto overlap_versions =

@@ -200,8 +200,8 @@ namespace {
 const Version k_min_supported_mysql_server_version(8, 0, 0);
 const Version k_first_unsupported_legacy_mysql_server_version(10, 0, 0);
 const Version k_min_calendar_mysql_server_version(26, 7, 0);
-constexpr int k_july_2026_lts_anchor_patch_8_4 = 15;
-constexpr int k_july_2026_lts_anchor_patch_9_7 = 5;
+constexpr int k_july_2026_lts_anchor_patch_8_4 = 11;
+constexpr int k_july_2026_lts_anchor_patch_9_7 = 2;
 
 Version max_supported_mysql_server_version() {
   return Version(k_shell_version.get_major(), k_shell_version.get_minor(),

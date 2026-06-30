@@ -159,7 +159,7 @@ TEST_F(Admin_api_clone_test, check_clone_version_compatibility) {
   EXPECT_FALSE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(28, 10, 2), Version(28, 7, 1)));
   EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
-      Version(9, 7, 5), Version(28, 4, 0)));
+      Version(9, 7, 2), Version(28, 4, 0)));
   EXPECT_TRUE(mysqlshdk::mysql::verify_compatible_clone_versions(
       Version(28, 4, 4), Version(30, 4, 1)));
 
