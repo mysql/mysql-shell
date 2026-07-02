@@ -167,7 +167,7 @@ if(WITH_TESTS)
             shellcore-minimal
             ${GTEST_LIBRARIES}
             ${MYSQLX_LIBRARIES}
-            ${PROTOBUF_LIBRARY}
+            ${PROTOBUF_LIBRARIES}
             ${LZ4_LIBRARY}
             ${SSL_LIBRARIES}
             ${SSL_LIBRARIES_DL}

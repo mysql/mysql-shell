@@ -436,20 +436,59 @@ ENDIF()
 # If defined, installs the client authentication plugins
 IF(AUTH_CLIENT_PLUGINS)
   IF(AUTH_CLIENT_PLUGINS_DEPS)
+    SET(AUTH_CLIENT_PLUGINS_DEPS_OPTIONS)
+    IF(LINUX_UBUNTU AND NOT BUNDLED_OPENSSL)
+      # Do not add an RPATH to libfido2 itself; debugedit corrupts this
+      # patched DSO in dh_strip on Ubuntu builds using the system OpenSSL
+      # libraries.
+      LIST(APPEND AUTH_CLIENT_PLUGINS_DEPS_OPTIONS WRITE_RPATH FALSE)
+    ENDIF()
+
     install_bundled_binaries(
         DESCRIPTION "MySQL authentication plugins - dependencies"
         BINARIES ${AUTH_CLIENT_PLUGINS_DEPS}
         DESTINATION "${INSTALL_LIBDIR}"
         TARGET mysqlsh
+        ${AUTH_CLIENT_PLUGINS_DEPS_OPTIONS}
     )
   ENDIF()
 
-  install_bundled_binaries(
-      DESCRIPTION "MySQL authentication plugins"
-      BINARIES ${AUTH_CLIENT_PLUGINS}
-      DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
-      TARGET mysqlsh
-  )
+  SET(AUTH_CLIENT_PLUGINS_WITH_RPATH ${AUTH_CLIENT_PLUGINS})
+  SET(AUTH_CLIENT_PLUGINS_WITHOUT_RPATH)
+
+  IF(LINUX_UBUNTU AND NOT BUNDLED_OPENSSL)
+    SET(AUTH_CLIENT_PLUGINS_WITH_RPATH)
+
+    # The WebAuthn plugin needs the RPATH to find libfido2. Other
+    # authentication plugins in Ubuntu system-OpenSSL packages use only
+    # system shared libraries; avoid patching them before dh_strip.
+    FOREACH(_plugin ${AUTH_CLIENT_PLUGINS})
+      IF(_plugin MATCHES "authentication_webauthn_client\\.")
+        LIST(APPEND AUTH_CLIENT_PLUGINS_WITH_RPATH "${_plugin}")
+      ELSE()
+        LIST(APPEND AUTH_CLIENT_PLUGINS_WITHOUT_RPATH "${_plugin}")
+      ENDIF()
+    ENDFOREACH()
+  ENDIF()
+
+  IF(AUTH_CLIENT_PLUGINS_WITHOUT_RPATH)
+    install_bundled_binaries(
+        DESCRIPTION "MySQL authentication plugins without RPATH"
+        BINARIES ${AUTH_CLIENT_PLUGINS_WITHOUT_RPATH}
+        DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
+        TARGET mysqlsh
+        WRITE_RPATH FALSE
+    )
+  ENDIF()
+
+  IF(AUTH_CLIENT_PLUGINS_WITH_RPATH)
+    install_bundled_binaries(
+        DESCRIPTION "MySQL authentication plugins"
+        BINARIES ${AUTH_CLIENT_PLUGINS_WITH_RPATH}
+        DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
+        TARGET mysqlsh
+    )
+  ENDIF()
 ELSE()
   MESSAGE(WARNING "Could not find Authentication Client Plugins!")
 ENDIF()

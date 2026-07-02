@@ -112,6 +112,14 @@ IF(NOT WITH_PROTOBUF)
   ELSE()
     FILE(GLOB BUNDLED_ABSEIL_LIBRARIES LIST_DIRECTORIES false "${_protobuf_lib_dir}/libabsl_*.so")
 
+    IF(NOT APPLE)
+      FOREACH(_lib ${BUNDLED_ABSEIL_LIBRARIES})
+        IF(_lib MATCHES "libabsl_hash\\.so$")
+          list(APPEND PROTOBUF_LIBRARIES "${_lib}")
+        ENDIF()
+      ENDFOREACH()
+    ENDIF()
+
     IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
       # we need to explicitly link with log libraries and their dependencies
       FOREACH(_lib ${BUNDLED_ABSEIL_LIBRARIES})
