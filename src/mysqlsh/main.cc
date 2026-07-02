@@ -23,6 +23,11 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifdef HAVE_PYTHON
+// python_context.h includes Python.h, which has to be included first.
+#include "mysqlshdk/include/scripting/python_context.h"
+#endif
+
 #include "mysqlsh/cmdline_shell.h"
 #include "mysqlsh/json_shell.h"
 #include "mysqlshdk/include/shellcore/base_session.h"
@@ -36,9 +41,6 @@
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
-#ifdef HAVE_PYTHON
-#include "mysqlshdk/include/scripting/python_context.h"
-#endif
 
 #include <sys/stat.h>
 #include <clocale>

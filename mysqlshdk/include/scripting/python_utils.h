@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,31 +26,12 @@
 #ifndef _PYTHON_UTILS_H_
 #define _PYTHON_UTILS_H_
 
-#include <type_traits>
-#include <utility>
-
-// Include and avoid warnings from v8
-#if defined __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstrict-aliasing"
-#endif
-
-#if defined(__clang__) && \
-    ((__clang_major__ == 3 && __clang_minor__ >= 8) || __clang_major__ > 3)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-register"
-#endif
-
+// Python.h has to be included first:
+//   https://docs.python.org/3/c-api/intro.html#include-files
 #include <Python.h>
 
-#if defined(__clang__) && \
-    ((__clang_major__ == 3 && __clang_minor__ >= 8) || __clang_major__ > 3)
-#pragma clang diagnostic pop
-#endif
-
-#ifdef __GNUC__
-#pragma GCC diagnostic pop
-#endif
+#include <type_traits>
+#include <utility>
 
 #define PyString_FromString PyUnicode_FromString
 #define PyInt_Check PyLong_Check

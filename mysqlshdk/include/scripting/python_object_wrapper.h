@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,10 +26,11 @@
 #ifndef _PYTHON_OBJECT_WRAPPER_H_
 #define _PYTHON_OBJECT_WRAPPER_H_
 
-#include <memory>
-
+// python_context.h includes Python.h, which has to be included first.
 #include "scripting/python_context.h"
 #include "scripting/types.h"
+
+#include <memory>
 
 namespace shcore {
 

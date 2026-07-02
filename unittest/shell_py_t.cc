@@ -23,10 +23,12 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+// Python.h has to be included first:
+//   https://docs.python.org/3/c-api/intro.html#include-files
+#include <Python.h>
+
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
-
-#include <Python.h>
 
 namespace mysqlsh {
 

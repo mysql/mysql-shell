@@ -26,8 +26,7 @@
 #ifndef MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_CONTEXT_H_
 #define MYSQLSHDK_INCLUDE_SCRIPTING_PYTHON_CONTEXT_H_
 
-// keep the include order as is, otherwise we hit the Python issue 10910 (macOS)
-
+// python_utils.h includes Python.h, which has to be included first.
 #include "scripting/python_utils.h"
 
 #include "scripting/lang_base.h"
