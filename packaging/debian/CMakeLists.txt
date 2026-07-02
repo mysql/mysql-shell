@@ -25,7 +25,7 @@
 # the source, and at the same time do some modifications to these
 # files
 
-cmake_minimum_required(VERSION 2.8.5)
+cmake_minimum_required(VERSION 3.8.0)
 project(mysh_deb_init NONE)
 
 # ----------------------------------------------------------------------
