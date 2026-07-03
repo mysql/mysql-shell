@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -34,6 +34,7 @@
 #include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_net.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
+#include "mysqlshdk/libs/utils/version.h"
 
 namespace mysqlsh {
 namespace dba {
@@ -207,6 +208,44 @@ shcore::Dictionary_t channel_status(
   rstatus->set("replicationSsl", shcore::Value::Null());  // placeholder
 
   return rstatus;
+}
+
+void check_for_native_password_internal_account(
+    shcore::Array_t &issues, const mysqlshdk::mysql::IInstance &account_source,
+    std::string_view account_user, std::string_view account_host,
+    std::string_view api_class) {
+  // If no account, nothing to check
+  if (account_user.empty() || account_host.empty()) return;
+
+  const auto server_version = account_source.get_version();
+
+  // mysql_native_password was deprecated on 8.0.34
+  if (server_version < mysqlshdk::utils::Version(8, 0, 34)) return;
+
+  std::string plugin_state = "deprecated";
+  if (server_version >= mysqlshdk::utils::Version(9, 0, 0)) {
+    plugin_state = "removed";
+  }
+
+  auto result = account_source.queryf(
+      "SELECT 1 FROM mysql.user WHERE user = ? AND host = ? "
+      "AND plugin = 'mysql_native_password' LIMIT 1",
+      account_user, account_host);
+
+  if (!result->fetch_one()) return;  // nothing found
+
+  auto warning = shcore::str_format(
+      "WARNING: Internal replication account '%.*s'@'%.*s' uses the "
+      "'mysql_native_password' authentication plugin, which is %s. Use "
+      "%.*s.resetReplicationAccountsPassword({recreate: true}) to re-create "
+      "the internal replication accounts with 'caching_sha2_password'.",
+      static_cast<int>(account_user.size()), account_user.data(),
+      static_cast<int>(account_host.size()), account_host.data(),
+      plugin_state.c_str(), static_cast<int>(api_class.size()),
+      api_class.data());
+
+  if (!issues) issues = shcore::make_array();
+  issues->push_back(shcore::Value(std::move(warning)));
 }
 
 }  // namespace dba

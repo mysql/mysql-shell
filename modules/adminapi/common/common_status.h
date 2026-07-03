@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,7 +26,11 @@
 #ifndef MODULES_ADMINAPI_COMMON_COMMON_STATUS_H_
 #define MODULES_ADMINAPI_COMMON_COMMON_STATUS_H_
 
+#include <string>
+#include <string_view>
+
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/replication.h"
 
 namespace mysqlsh {
@@ -39,7 +43,12 @@ shcore::Dictionary_t channel_status(
     const std::string &expected_source, int show_details,
     bool show_source = false, bool show_lag = true);
 
-}
+void check_for_native_password_internal_account(
+    shcore::Array_t &issues, const mysqlshdk::mysql::IInstance &account_source,
+    std::string_view account_user, std::string_view account_host,
+    std::string_view api_class);
+
+}  // namespace dba
 }  // namespace mysqlsh
 
 #endif  // MODULES_ADMINAPI_COMMON_COMMON_STATUS_H_

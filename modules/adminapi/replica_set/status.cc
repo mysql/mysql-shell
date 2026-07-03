@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -463,14 +463,46 @@ shcore::Value Status::do_run(int extended) {
       return topo_errors->get_array("instanceErrors", nullptr);
     };
 
+    const auto account_source = md_storage->get_md_server();
+
+    auto check_instance_for_native_password_internal_account =
+        [&get_instance_errors, &account_source](
+            const shcore::Value::Map_type &topo_status,
+            const std::string &endpoint, const std::string &account_user,
+            const std::string &account_host) {
+          shcore::Array_t account_issues = nullptr;
+          check_for_native_password_internal_account(
+              account_issues, *account_source, account_user, account_host,
+              "ReplicaSet");
+
+          if (account_issues) {
+            auto instance_errors = get_instance_errors(topo_status, endpoint);
+            instance_errors->insert(instance_errors->end(),
+                                    account_issues->begin(),
+                                    account_issues->end());
+          }
+        };
+
     // check for replication options mismatch
     for (const topology::Server &server :
          topo->as<const topology::Server_global_topology>().servers()) {
       auto i = server.get_primary_member();
-      if (!i->master_channel) continue;
 
       auto topo_status = status->get_map("replicaSet")->get_map("topology");
       if (!topo_status->has_key(i->endpoint)) continue;
+      if (!i->master_channel && !server.primary_master) continue;
+
+      auto [md_account_user, md_account_host] =
+          md_storage->get_instance_repl_account(
+              i->uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
+
+      // The PRIMARY has no incoming channel, but its account can be used after
+      // a topology change.
+      if (!i->master_channel) {
+        check_instance_for_native_password_internal_account(
+            *topo_status, i->endpoint, md_account_user, md_account_host);
+        continue;
+      }
 
       // SSL channel mode
       {
@@ -521,10 +553,6 @@ shcore::Value Status::do_run(int extended) {
 
       // check replication account
       {
-        auto [md_account_user, md_account_host] =
-            md_storage->get_instance_repl_account(
-                i->uuid, Cluster_type::ASYNC_REPLICATION, Replica_type::NONE);
-
         if (md_account_user.empty() || md_account_host.empty()) {
           get_instance_errors(*topo_status, i->endpoint)
               ->push_back(shcore::Value(
@@ -552,6 +580,13 @@ shcore::Value Status::do_run(int extended) {
                   "actually in use (%s). Use ReplicaSet.rescan() to repair.",
                   md_account_user.c_str(),
                   i->master_channel->master_info.user_name.c_str())));
+
+        // Only check the authentication plugin once the account in use matches
+        // the account stored in metadata.
+        if (md_account_user == i->master_channel->master_info.user_name) {
+          check_instance_for_native_password_internal_account(
+              *topo_status, i->endpoint, md_account_user, md_account_host);
+        }
       }
     }
   }

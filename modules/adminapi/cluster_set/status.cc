@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -187,10 +187,12 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
         "group_replication_view_change_uuid", "");
   }
 
+  mysqlshdk::mysql::Replication_channel cs_channel;
+  bool channel_exists = false;
+
   if (add_repl_info && cluster->get_cluster_server()) {
     // Add clusterSetReplication object
-    mysqlshdk::mysql::Replication_channel cs_channel;
-    bool channel_exists = mysqlshdk::mysql::get_channel_status(
+    channel_exists = mysqlshdk::mysql::get_channel_status(
         *cluster->get_cluster_server(), k_clusterset_async_channel_name,
         &cs_channel);
 
@@ -277,6 +279,22 @@ shcore::Value cluster_status(const Cluster_set_member_metadata &mmd,
     cluster_errors = cluster_diagnostics(
         clusterset->get_primary_cluster().get(), cluster, {}, cluster_errors);
   }
+
+  if (primary) {
+    const auto account =
+        clusterset->get_metadata_storage()->get_cluster_repl_account(
+            cluster->get_id());
+
+    // The Primary Cluster account can be used after a topology change. For a
+    // Replica Cluster, only check the account configured on its channel.
+    if (mmd.primary_cluster ||
+        (channel_exists && account.first == cs_channel.user)) {
+      check_for_native_password_internal_account(cluster_errors, *primary,
+                                                 account.first, account.second,
+                                                 "ClusterSet");
+    }
+  }
+
   if (cluster_errors) {
     res->set("clusterErrors", shcore::Value(cluster_errors));
   }
