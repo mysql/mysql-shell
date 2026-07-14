@@ -1244,14 +1244,18 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
   _interactive_shell->connect(_options->connection_options());
   output_handler.wipe_all();
   execute("drop user if exists expired;");
+  execute("drop user if exists expired2;");
   output_handler.wipe_all();
   execute("create user expired@'%' identified by 'sample';");
+  execute("create user expired2@'%' identified by 'sample';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
   execute("grant all on *.* to expired@'%';");
+  execute("grant all on *.* to expired2@'%';");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
   execute("alter user expired@'%' password expire;");
+  execute("alter user expired2@'%' password expire;");
   MY_EXPECT_STDOUT_CONTAINS("Query OK, 0 rows affected");
   output_handler.wipe_all();
 
@@ -1280,6 +1284,27 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
         "client that supports expired passwords.");
     wipe_all();
   }
+
+  // API-created classic sessions must also be able to handle expired
+  // passwords.
+  execute(to_scripting);
+#ifdef HAVE_JS
+  execute("x = mysql.getSession('mysql://expired2:sample@localhost:" +
+          _mysql_port + "?can-handle-expired-passwords=true')");
+  execute("x.runSql(\"ALTER USER expired2@'%' IDENTIFIED BY 'updated';\")");
+  execute("x.runSql(\"SELECT CONCAT('hel', 'lo');\")");
+#else
+  execute("x = mysql.get_session('mysql://expired2:sample@localhost:" +
+          _mysql_port + "?can-handle-expired-passwords=true')");
+  execute("x.run_sql(\"ALTER USER expired2@'%' IDENTIFIED BY 'updated';\")");
+  execute("x.run_sql(\"SELECT CONCAT('hel', 'lo')\")");
+#endif
+  execute("x.close()");
+  MY_EXPECT_STDOUT_CONTAINS("hello");
+  EXPECT_EQ("", output_handler.std_err);
+  output_handler.wipe_all();
+
+  execute("\\sql");
 
   // Connects with the expired account
   execute("\\c mysql://expired:sample@localhost:" + _mysql_port);
@@ -1311,6 +1336,7 @@ TEST_F(Interactive_shell_test, expired_account_support_classic) {
 
   execute("\\c " + _mysql_uri);
   execute("drop user if exists expired;");
+  execute("drop user if exists expired2;");
   execute(to_scripting);
   execute("session.close()");
   MY_EXPECT_STDOUT_CONTAINS("");

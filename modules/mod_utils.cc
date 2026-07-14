@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -177,6 +177,12 @@ Connection_options get_connection_options(
         ret_val.set(mysqlshdk::db::kConnectionAttributes,
                     option.second.descr());
       }
+    } else if (ret_val.compare(option.first,
+                               mysqlshdk::db::kClientInteractive) == 0 ||
+               ret_val.compare(option.first,
+                               mysqlshdk::db::kCanHandleExpiredPasswords) ==
+                   0) {
+      ret_val.set(option.first, option.second.descr());
     } else {
       ret_val.set(option.first, connection_map.string_at(option.first));
     }

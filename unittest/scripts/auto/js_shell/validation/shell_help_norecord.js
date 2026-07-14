@@ -1423,6 +1423,7 @@ The following options are valid for use either in a URI or in a dictionary:
   path to an OpenId Connect authorization token file when using OpenId Connect
   authentication.
 - client-interactive: Enable/disable interactive mode for the session.
+- can-handle-expired-passwords: Enable handling of expired account passwords.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -1707,6 +1708,7 @@ The following options are valid for use either in a URI or in a dictionary:
   path to an OpenId Connect authorization token file when using OpenId Connect
   authentication.
 - client-interactive: Enable/disable interactive mode for the session.
+- can-handle-expired-passwords: Enable handling of expired account passwords.
 
 When these options are defined in a URI, their values must be URL encoded.
 
@@ -2069,6 +2071,7 @@ The following options are valid for use either in a URI or in a dictionary:
   path to an OpenId Connect authorization token file when using OpenId Connect
   authentication.
 - client-interactive: Enable/disable interactive mode for the session.
+- can-handle-expired-passwords: Enable handling of expired account passwords.
 
 When these options are defined in a URI, their values must be URL encoded.
 

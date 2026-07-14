@@ -267,6 +267,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   void clear_net_write_timeout();
 
   bool is_enabled(const std::string &option) const;
+  bool can_handle_expired_passwords() const;
   void set_interactive(bool value);
   bool is_interactive() const;
 

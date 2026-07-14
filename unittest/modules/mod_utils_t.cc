@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2015, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -55,6 +55,26 @@ TEST(modules_mod_utils, get_connection_data_dictionary) {
   EXPECT_EQ("localhost", options.get_host());
   EXPECT_EQ("root", options.get_user());
   EXPECT_EQ(mysqlshdk::db::kPassword, options.get_password());
+}
+
+TEST(modules_mod_utils, get_connection_data_dictionary_client_interactive) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kClientInteractive] = shcore::Value(true);
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.is_interactive());
+}
+
+TEST(modules_mod_utils, get_connection_data_dictionary_expired_passwords) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kCanHandleExpiredPasswords] = shcore::Value(true);
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.can_handle_expired_passwords());
 }
 
 TEST(modules_mod_utils, get_connection_data_invalid_uri) {

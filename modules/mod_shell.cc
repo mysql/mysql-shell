@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -596,6 +596,7 @@ the configuration for client side OCI authentication.
 @li authentication-openid-connect-client-id-token-file: Allows defining the file path to
 an OpenId Connect authorization token file when using OpenId Connect authentication.
 @li client-interactive: Enable/disable interactive mode for the session.
+@li can-handle-expired-passwords: Enable handling of expired account passwords.
 
 When these options are defined in a URI, their values must be URL encoded.
 

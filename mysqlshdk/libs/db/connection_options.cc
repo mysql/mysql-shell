@@ -63,6 +63,7 @@ const std::set<std::string> uri_extra_options = {
     kOciAuthenticationClientConfigProfile,
     kOpenIdConnectAuthenticationClientTokenFile,
     kClientInteractive,
+    kCanHandleExpiredPasswords,
     kWebauthnClientDeviceIndex};
 
 int lexical_cast_timeout(const std::string &name, const std::string &value) {
@@ -495,8 +496,10 @@ void Connection_options::set(const std::string &name,
   }
 #endif
   else if (is_extra_option(name)) {
-    if (name == kGetServerPublicKey || name == kClientInteractive ||
-        name == kLocalInfile) {
+    if (compare(name, kGetServerPublicKey) == 0 ||
+        compare(name, kClientInteractive) == 0 ||
+        compare(name, kCanHandleExpiredPasswords) == 0 ||
+        compare(name, kLocalInfile) == 0) {
       if (!is_bool_value(value)) {
         throw std::invalid_argument(
             shcore::str_format("Invalid value '%s' for '%s'. Allowed "
@@ -963,6 +966,10 @@ bool Connection_options::is_enabled(const std::string &option) const {
   }
 
   return false;
+}
+
+bool Connection_options::can_handle_expired_passwords() const {
+  return is_enabled(kCanHandleExpiredPasswords);
 }
 
 void Connection_options::set_interactive(bool value) {

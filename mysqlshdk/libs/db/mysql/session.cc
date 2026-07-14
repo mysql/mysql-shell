@@ -278,9 +278,11 @@ void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
   long flags = CLIENT_MULTI_RESULTS;
 
-  if (connection_options.is_interactive()) {
-    flags |= CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS | CLIENT_INTERACTIVE;
-  }
+  if (connection_options.can_handle_expired_passwords() ||
+      connection_options.is_interactive())
+    flags |= CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS;
+
+  if (connection_options.is_interactive()) flags |= CLIENT_INTERACTIVE;
 
   _mysql = mysql_init(nullptr);
 

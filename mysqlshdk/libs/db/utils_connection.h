@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -101,6 +101,8 @@ inline constexpr const char kNetBufferLength[] = "net-buffer-length";
 inline constexpr const char kMaxAllowedPacket[] = "max-allowed-packet";
 inline constexpr const char kMysqlPluginDir[] = "mysql-plugin-dir";
 inline constexpr const char kClientInteractive[] = "client-interactive";
+inline constexpr const char kCanHandleExpiredPasswords[] =
+    "can-handle-expired-passwords";
 inline constexpr const char kWebauthnClientPreservePrivacy[] =
     "plugin-authentication-webauthn-client-preserve-privacy";
 inline constexpr const char kWebauthnClientDeviceIndex[] =
