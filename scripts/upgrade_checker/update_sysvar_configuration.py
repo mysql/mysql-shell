@@ -41,6 +41,17 @@ FORCE_TYPES={
     "admin_tls_ciphersuites": "set",
 }
 
+# Set-typed variables whose elements are separated by characters other than the
+# default space/comma. The upgrade checker splits the value on ANY of these
+# characters before validating each element against the allowed list. Cipher
+# lists are colon-separated but also accept comma/space, so they carry " ,:".
+FORCE_SEPARATORS={
+    "ssl_cipher": " ,:",
+    "admin_ssl_cipher": " ,:",
+    "tls_ciphersuites": " ,:",
+    "admin_tls_ciphersuites": " ,:",
+}
+
 class Sysvar_definition_error(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
@@ -767,6 +778,10 @@ class Xml_sysvar(object):
     def shell_config(self):
         config = {}
         config["name"] = self.name
+
+        separator = FORCE_SEPARATORS.get(self.name)
+        if separator is not None:
+            config["separator"] = separator
 
         if self.introduced:
             config["version"] = self.introduced

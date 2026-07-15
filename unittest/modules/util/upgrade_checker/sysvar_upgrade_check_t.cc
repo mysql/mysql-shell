@@ -32,6 +32,7 @@
 #include "unittest/modules/util/upgrade_checker/test_utils.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session_pool.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
@@ -1077,6 +1078,102 @@ TEST(Upgrade_checker_sysvar_registry, load_configuration) {
 
     EXPECT_STREQ("0", check->forbidden_values[0].c_str());
   }
+
+  // Verifies the cipher list variables carry a separator that includes the
+  // colon. These variables hold colon-separated cipher lists, so the Set-value
+  // splitter must split on ':' (in addition to space/comma) before validating
+  // each cipher against the allowed list. See sysvar_check.cc split helpers.
+  {
+    for (const auto &name :
+         {"ssl_cipher", "admin_ssl_cipher", "tls_ciphersuites",
+          "admin_tls_ciphersuites"}) {
+      auto sysvar = reg.get_sysvar(name);
+      ASSERT_TRUE(sysvar.separator.has_value())
+          << "missing separator for " << name;
+      EXPECT_STREQ(" ,:", sysvar.separator.value().c_str())
+          << "unexpected separator for " << name;
+
+      auto ui = upgrade_info(Version(8, 4, 0), Version(9, 7, 0));
+      auto check = sysvar.get_check(ui);
+      ASSERT_TRUE(check.has_value()) << "no check produced for " << name;
+      ASSERT_TRUE(check->separator.has_value())
+          << "separator not carried into check for " << name;
+      EXPECT_STREQ(" ,:", check->separator.value().c_str());
+    }
+  }
+}
+
+namespace {
+// Runs the sysvar upgrade check against a cache pre-populated with the given
+// cipher values and returns the resulting issues. The cache is filled via
+// override_sysvar before run(), so Checker_cache::cache_sysvars() short-circuits
+// (it early-returns on a non-empty cache) and the mock session is never queried.
+std::vector<Upgrade_issue> run_cipher_check(
+    const std::vector<std::pair<std::string, std::string>> &cipher_values) {
+  auto server_info = upgrade_info(Version(8, 4, 0), Version(9, 7, 0));
+
+  Sysvar_check check(server_info);
+
+  auto msession = std::make_shared<testing::Mock_session>();
+  auto mock_pool = std::make_shared<testing::Mock_session_pool>();
+  mock_pool->setup_repeated_session(msession);
+
+  Upgrade_check_options options;
+  Checker_cache cache(options.filters);
+  for (const auto &[name, value] : cipher_values) {
+    override_sysvar(&cache, name, value);
+  }
+
+  return check.run(
+      {msession, server_info,
+       std::dynamic_pointer_cast<mysqlshdk::db::Session_pool>(mock_pool),
+       &cache});
+}
+
+// Counts issues whose schema matches the given sysvar name (issue.schema is set
+// to the variable name by Sysvar_check::get_issue).
+size_t count_issues_for(const std::vector<Upgrade_issue> &issues,
+                        const std::string &name) {
+  size_t count = 0;
+  for (const auto &issue : issues) {
+    if (issue.schema == name) ++count;
+  }
+  return count;
+}
+}  // namespace
+
+// Regression test for the colon-separated cipher list false positive: a
+// ssl_cipher / tls_ciphersuites value that is a colon-separated list of
+// individually-allowed ciphers must NOT be reported as invalid. Before the
+// separator fix the whole colon-joined string was compared against the list of
+// individual ciphers and always failed.
+TEST(Upgrade_checker_Sysvar_check, cipher_colon_list_allowed) {
+  auto issues = run_cipher_check(
+      {{"ssl_cipher",
+        "ECDHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES128-GCM-SHA256"},
+       {"tls_ciphersuites",
+        "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384"}});
+
+  EXPECT_EQ(0, count_issues_for(issues, "ssl_cipher"));
+  EXPECT_EQ(0, count_issues_for(issues, "tls_ciphersuites"));
+}
+
+// A colon-separated list that contains a cipher which is NOT in the allowed
+// list must still be flagged
+TEST(Upgrade_checker_Sysvar_check, cipher_colon_list_with_invalid) {
+  // RC4-MD5 is a valid OpenSSL cipher name but is not in the 8.4 allowed list.
+  auto issues = run_cipher_check(
+      {{"ssl_cipher", "ECDHE-RSA-AES128-GCM-SHA256:RC4-MD5"}});
+
+  EXPECT_EQ(1, count_issues_for(issues, "ssl_cipher"));
+}
+
+// A single allowed cipher (no separator present in the value) must pass
+TEST(Upgrade_checker_Sysvar_check, cipher_single_value_allowed) {
+  auto issues =
+      run_cipher_check({{"ssl_cipher", "ECDHE-RSA-AES128-GCM-SHA256"}});
+
+  EXPECT_EQ(0, count_issues_for(issues, "ssl_cipher"));
 }
 
 }  // namespace upgrade_checker
