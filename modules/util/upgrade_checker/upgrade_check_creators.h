@@ -97,6 +97,8 @@ std::unique_ptr<Upgrade_check> get_foreign_key_references_check();
 
 std::unique_ptr<Upgrade_check> get_spatial_index_check();
 
+std::unique_ptr<Sql_upgrade_check> get_removed_legacy_hashing_functions_check();
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
 

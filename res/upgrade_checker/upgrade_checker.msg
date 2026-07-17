@@ -692,6 +692,23 @@ Remove foreign keys referring to non unique key/partial columns of key.
 In case of multi level references which involves more than two tables change
 foreign key reference.
 
+* removedLegacyHashingFunctions.title
+Usage of removed legacy hashing functions (MD5, SHA1, SHA)
+
+* removedLegacyHashingFunctions.description
+The following DB objects use MD5(), SHA1(), or SHA() functions that are removed
+as of MySQL 9.6.0. If a generated column within any table uses these functions
+and MySQL server is upgraded to 9.6.0 or later, the table stops working. To
+resolve this, you must dispose of the generated column and either use triggers
+on the table to generate the column value, or rewrite the expression to use an
+alternative such as SHA2(). Functional indexes, CHECK constraints, and DEFAULT
+expressions using these functions will block the upgrade. For views, routines,
+triggers, and events, these can be resolved after upgrade by installing
+component_classic_hashing, or rewritten before upgrading.
+
+* removedLegacyHashingFunctions.docLink
+https://dev.mysql.com/doc/refman/9.7/en/legacy-hashing-component.html
+
 * spatialIndex.title
 Checks for Spatial Indexes
 

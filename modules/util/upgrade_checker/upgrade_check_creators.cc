@@ -944,6 +944,127 @@ std::unique_ptr<Sql_upgrade_check> get_removed_functions_check() {
   return std::make_unique<Removed_functions_check>();
 }
 
+class Removed_legacy_hashing_functions_check : public Sql_upgrade_check {
+ private:
+  static const std::unordered_map<std::string, const char *> functions;
+
+ public:
+  Removed_legacy_hashing_functions_check()
+      : Sql_upgrade_check(
+            ids::k_removed_legacy_hashing_functions_check, Category::SCHEMA,
+            {{"select table_schema, table_name, '', 'VIEW', "
+              "UPPER(view_definition) from information_schema.views where "
+              "<<schema_and_table_filter>>",
+              Upgrade_issue::Object_type::VIEW},
+             {"select routine_schema, routine_name, '', routine_type, "
+              "UPPER(routine_definition) from information_schema.routines where"
+              " <<schema_and_routine_filter>> and routine_definition is not "
+              "null",
+              Upgrade_issue::Object_type::ROUTINE},
+             {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, "
+              "EXTRA, UPPER(GENERATION_EXPRESSION) from "
+              "information_schema.columns where "
+              "extra in ('VIRTUAL GENERATED', 'STORED GENERATED') and "
+              "<<schema_and_table_filter>>",
+              Upgrade_issue::Object_type::COLUMN},
+             {"select TRIGGER_SCHEMA, EVENT_OBJECT_TABLE, TRIGGER_NAME, "
+              "'TRIGGER', UPPER(ACTION_STATEMENT) from "
+              "information_schema.triggers where <<schema_and_trigger_filter>>",
+              Upgrade_issue::Object_type::TRIGGER},
+             {"select event_schema, event_name, '', 'EVENT', "
+              "UPPER(EVENT_DEFINITION) from information_schema.events where "
+              "<<schema_and_event_filter>>",
+              Upgrade_issue::Object_type::EVENT},
+             {"select tc.TABLE_SCHEMA, tc.TABLE_NAME, cc.CONSTRAINT_NAME, "
+              "'CHECK CONSTRAINT', UPPER(cc.CHECK_CLAUSE) from "
+              "information_schema.CHECK_CONSTRAINTS cc "
+              "join information_schema.TABLE_CONSTRAINTS tc "
+              "on cc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA "
+              "and cc.CONSTRAINT_NAME = tc.CONSTRAINT_NAME "
+              "where tc.CONSTRAINT_TYPE = 'CHECK' and "
+              "<<tc.schema_and_table_filter>>",
+              Upgrade_issue::Object_type::TABLE},
+             {"select TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, "
+              "'COLUMN DEFAULT', UPPER(COLUMN_DEFAULT) from "
+              "information_schema.columns where "
+              "COLUMN_DEFAULT is not null and "
+              "EXTRA not in ('VIRTUAL GENERATED', 'STORED GENERATED') "
+              "and <<schema_and_table_filter>>",
+              Upgrade_issue::Object_type::COLUMN},
+             {"select TABLE_SCHEMA, TABLE_NAME, INDEX_NAME, "
+              "'FUNCTIONAL INDEX', UPPER(EXPRESSION) from "
+              "information_schema.statistics where EXPRESSION is not null and "
+              "<<schema_and_table_filter>>",
+              Upgrade_issue::Object_type::INDEX}},
+            Upgrade_issue::WARNING) {}
+
+  bool is_multi_lvl_check() const override { return true; }
+
+ protected:
+  Upgrade_issue parse_row(const std::vector<std::string> &,
+                          const mysqlshdk::db::IRow *row,
+                          Upgrade_issue::Object_type object_type) override {
+    auto res = create_issue();
+    std::vector<std::pair<std::string, const char *>> flagged_functions;
+    std::string definition = row->get_as_string(4);
+    mysqlshdk::utils::SQL_iterator it(definition);
+    std::string func;
+    while (!(func = it.next_sql_function()).empty()) {
+      auto i = functions.find(func);
+      if (i != functions.end()) flagged_functions.emplace_back(*i);
+    }
+
+    if (flagged_functions.empty()) return res;
+
+    std::string object_type_str = row->get_as_string(3);
+
+    // Objects that block or brick the upgrade cannot be resolved post-upgrade:
+    // - Generated columns: loadable functions disallowed, table bricked
+    // - Functional indexes: server blocks upgrade
+    // - CHECK constraints: server blocks upgrade
+    // - DEFAULT expressions: server blocks upgrade
+    // Recoverable objects (upgrade succeeds, install component post-upgrade):
+    // - Views, routines, triggers, events
+    bool is_recoverable = (object_type_str == "VIEW" ||
+                           object_type_str == "PROCEDURE" ||
+                           object_type_str == "FUNCTION" ||
+                           object_type_str == "TRIGGER" ||
+                           object_type_str == "EVENT");
+
+    std::stringstream ss;
+    ss << object_type_str << " uses removed function";
+    if (flagged_functions.size() > 1) ss << "s";
+    for (std::size_t i = 0; i < flagged_functions.size(); ++i) {
+      ss << (i > 0 ? ", " : " ") << flagged_functions[i].first;
+      if (flagged_functions[i].second != nullptr)
+        ss << " (consider using " << flagged_functions[i].second << " instead)";
+    }
+
+    res.schema = row->get_as_string(0);
+    res.table = row->get_as_string(1);
+    res.column = row->get_as_string(2);
+    res.description = ss.str();
+    res.object_type = object_type;
+
+    // WARNING for views/routines/triggers/events (recoverable via component)
+    // ERROR for everything else (blocks upgrade or bricks the table)
+    res.level = is_recoverable ? Upgrade_issue::WARNING : Upgrade_issue::ERROR;
+
+    return res;
+  }
+};
+
+const std::unordered_map<std::string, const char *>
+    Removed_legacy_hashing_functions_check::functions = {
+        {"MD5", "SHA2 or an alternative approach"},
+        {"SHA1", "SHA2 or an alternative approach"},
+        {"SHA", "SHA2 or an alternative approach"},
+};
+
+std::unique_ptr<Sql_upgrade_check> get_removed_legacy_hashing_functions_check() {
+  return std::make_unique<Removed_legacy_hashing_functions_check>();
+}
+
 class Groupby_asc_syntax_check : public Sql_upgrade_check {
  public:
   Groupby_asc_syntax_check()

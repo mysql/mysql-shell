@@ -299,6 +299,11 @@ bool register_manual_checks() {
         &get_partitions_with_prefix_keys_check, Target::OBJECT_DEFINITIONS,
         "8.4.0");
 
+[[maybe_unused]] bool register_removed_legacy_hashing_functions =
+    Upgrade_check_registry::register_check(
+        std::bind(&get_removed_legacy_hashing_functions_check),
+        Target::OBJECT_DEFINITIONS, "9.6.0");
+
 [[maybe_unused]] bool register_get_spatial_index_check =
     Upgrade_check_registry::register_check(
         std::bind(&get_spatial_index_check), Target::OBJECT_DEFINITIONS,

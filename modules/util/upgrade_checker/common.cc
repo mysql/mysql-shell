@@ -88,6 +88,7 @@ const std::set<std::string_view> all = {
     k_partitions_with_prefix_keys,
     k_foreign_key_references,
     k_spatial_index,
+    k_removed_legacy_hashing_functions_check,
 };
 
 }  // namespace ids
