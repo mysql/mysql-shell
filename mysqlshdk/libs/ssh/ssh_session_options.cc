@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -60,18 +60,24 @@ Ssh_session_options::Ssh_session_options(const std::string &config,
     m_no_host = true;
     return;
   }
+
+  const auto report_error = [](const char *fmt, auto &&...args) {
+    if (shcore::current_logger(true)) {
+      log_error(fmt, std::forward<decltype(args)>(args)...);
+    } else {
+      fprintf(stderr, fmt, std::forward<decltype(args)>(args)...);
+      fprintf(stderr, "\n");
+    }
+  };
+
   try {
     m_session->setOption(SSH_OPTIONS_HOST, host.c_str());
-  } catch (::ssh::SshException &exc) {
-    auto error = exc.getError();
-    if (error.empty()) {
-      error = shcore::str_format(
-          "SSH: Error setting remote host in ssh session: host '%s' is not "
-          "valid",
-          host.c_str());
-    }
-
-    throw std::invalid_argument(error);
+  } catch (::ssh::SshException &ex) {
+    report_error("Error when setting SSH host: %s [%d]", ex.getError().c_str(),
+                 ex.getCode());
+    throw std::invalid_argument(shcore::str_format(
+        "SSH: Error setting remote host in SSH session: host '%s' is not valid",
+        host.c_str()));
   }
 
   try {
@@ -79,15 +85,14 @@ Ssh_session_options::Ssh_session_options(const std::string &config,
     // files
     m_session->optionsParseConfig(config.empty() ? nullptr : config.c_str());
   } catch (::ssh::SshException &ex) {
-    auto logger = shcore::current_logger(true);
-    if (logger) {
-      log_error("Error during SSH config parse: %s [%d], path was: %s",
-                ex.getError().c_str(), ex.getCode(), config.c_str());
-    } else {
-      fprintf(stderr, "Error during SSH config parse: %s [%d], path was: %s",
-              ex.getError().c_str(), ex.getCode(), config.c_str());
-    }
-    throw std::invalid_argument("Unable to parse specified SSH config file");
+    report_error("Error during SSH config parse: %s [%d], path was: %s",
+                 ex.getError().c_str(), ex.getCode(), config.c_str());
+    throw std::invalid_argument(
+        config.empty()
+            ? "SSH: Unable to parse default SSH config file"
+            : shcore::str_format(
+                  "SSH: Unable to parse specified SSH config file '%s'",
+                  config.c_str()));
   }
 }
 
@@ -120,8 +125,7 @@ std::string Ssh_session_options::get_identity_file() const {
   // and what's worse we can do nothing with it, so the only solution is to just
   // skip the log since there's no error log here, there should be no problem
   // with it.
-  auto logger = shcore::current_logger(true);
-  if (logger) {
+  if (shcore::current_logger(true)) {
     log_warning("SSH: The SSH identity file %s doesn't exist.",
                 identity_file.c_str());
   }
