@@ -141,6 +141,45 @@ EXPECT_NO_THROWS(lambda: util.load_dump('mhs-test', {"osBucketName": OS_BUCKET_N
 # cleanup
 session.run_sql("DROP SCHEMA IF EXISTS !", [tested_schema])
 
+#@<> BUG#39790297 - allowed privileges match MHS
+def fetch_mhs_allowed_privileges(sess):
+    privileges = {
+        row[0]
+        for row in sess.run_sql(
+            """
+            SELECT PRIVILEGE_TYPE
+                FROM information_schema.USER_PRIVILEGES
+                WHERE GRANTEE = "'administrator'@'%'"
+            """
+        ).fetch_all()
+    }
+    privileges.add("USAGE")
+    grants = {
+        row[0]
+        for row in sess.run_sql(
+            "SHOW GRANTS FOR CURRENT_USER()"
+        ).fetch_all()
+    }
+    if any(grant.upper().startswith("GRANT PROXY ON ") for grant in grants):
+        privileges.add("PROXY")
+    return privileges
+
+shell.connect(MDS_URI)
+
+mhs_allowed_privileges = fetch_mhs_allowed_privileges(session)
+expected_allowed_privileges = allowed_privileges_for_version(session.run_sql("SELECT @@version").fetch_one()[0])
+
+EXPECT_EQ(
+    [],
+    sorted(expected_allowed_privileges - mhs_allowed_privileges),
+    "Privileges allowed by Shell but not granted to the MHS administrator",
+)
+EXPECT_EQ(
+    [],
+    sorted(mhs_allowed_privileges - expected_allowed_privileges),
+    "Privileges granted to the MHS administrator but not allowed by Shell",
+)
+
 #@<> cleanup
 shell.connect(MDS_URI)
 cleanup_mds(session)

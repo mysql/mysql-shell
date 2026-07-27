@@ -811,6 +811,61 @@ def extract_import_table_code():
         raise Exception("Captured output does not contain the import table code")
     return output[index:]
 
+def allowed_privileges_for_version(ver):
+    allowed_privileges = {
+        # each account has USAGE
+        "USAGE",
+        # global static privileges
+        "ALTER",
+        "ALTER ROUTINE",
+        "CREATE",
+        "CREATE ROLE",
+        "CREATE ROUTINE",
+        "CREATE TEMPORARY TABLES",
+        "CREATE USER",
+        "CREATE VIEW",
+        "DELETE",
+        "DROP",
+        "DROP ROLE",
+        "EVENT",
+        "EXECUTE",
+        "INDEX",
+        "INSERT",
+        "LOCK TABLES",
+        "PROCESS",
+        "PROXY",
+        "REFERENCES",
+        "REPLICATION CLIENT",
+        "REPLICATION SLAVE",
+        "SELECT",
+        "SHOW DATABASES",
+        "SHOW VIEW",
+        "TRIGGER",
+        "UPDATE",
+        # global dynamic privileges
+        "APPLICATION_PASSWORD_ADMIN",
+        "AUDIT_ADMIN",
+        "BACKUP_ADMIN",
+        "CONNECTION_ADMIN",
+        "EXPORT_QUERY_RESULTS",
+        "FLUSH_OPTIMIZER_COSTS",
+        "FLUSH_PRIVILEGES",
+        "FLUSH_STATUS",
+        "FLUSH_TABLES",
+        "FLUSH_USER_RESOURCES",
+        "MANAGE_DATA_MASKING_POLICY",
+        "OPTION_TRACKER_OBSERVER",
+        "REPLICATION_APPLIER",
+        "ROLE_ADMIN",
+        "SHOW_ROUTINE",
+        "TRANSACTION_GTID_TAG",
+        "VECTOR_STORE_LOAD_EXEC",
+        "XA_RECOVER_ADMIN",
+    }
+    if supports_set_any_definer_privilege(ver):
+        allowed_privileges.add("SET_ANY_DEFINER")
+    return allowed_privileges
+
 class Http_server(HTTPServer):
     allow_reuse_address = True
 

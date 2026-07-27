@@ -64,55 +64,9 @@ all_authentication_plugins = [
 
 disallowed_authentication_plugins = set(all_authentication_plugins) - set(allowed_authentication_plugins)
 
-allowed_privileges = [
-    # each account has USAGE
-    "USAGE",
-    # global static privileges
-    "ALTER",
-    "ALTER ROUTINE",
-    "CREATE",
-    "CREATE ROLE",
-    "CREATE ROUTINE",
-    "CREATE TEMPORARY TABLES",
-    "CREATE USER",
-    "CREATE VIEW",
-    "DELETE",
-    "DROP",
-    "DROP ROLE",
-    "EVENT",
-    "EXECUTE",
-    "INDEX",
-    "INSERT",
-    "LOCK TABLES",
-    "PROCESS",
-    "PROXY",
-    "REFERENCES",
-    "REPLICATION CLIENT",
-    "REPLICATION SLAVE",
-    "SELECT",
-    "SHOW DATABASES",
-    "SHOW VIEW",
-    "TRIGGER",
-    "UPDATE",
-    # global dynamic privileges
-    "APPLICATION_PASSWORD_ADMIN",
-    "AUDIT_ADMIN",
-    "BACKUP_ADMIN",
-    "CONNECTION_ADMIN",
-    "FLUSH_OPTIMIZER_COSTS",
-    "FLUSH_PRIVILEGES",
-    "FLUSH_STATUS",
-    "FLUSH_TABLES",
-    "FLUSH_USER_RESOURCES",
-    "OPTION_TRACKER_OBSERVER",
-    "REPLICATION_APPLIER",
-    "ROLE_ADMIN",
-    "SHOW_ROUTINE",
-    "TRANSACTION_GTID_TAG",
-    "XA_RECOVER_ADMIN",
-]
+allowed_privileges = allowed_privileges_for_version("8.1.0")
 
-all_privileges = [
+all_privileges = {
     # static privileges
     "ALTER",
     "ALTER ROUTINE",
@@ -173,6 +127,7 @@ all_privileges = [
     "GROUP_REPLICATION_STREAM",
     "INNODB_REDO_LOG_ARCHIVE",
     "INNODB_REDO_LOG_ENABLE",
+    "MANAGE_DATA_MASKING_POLICY",
     "MASKING_DICTIONARIES_ADMIN",
     "NDB_STORED_USER",
     "OPTIMIZE_LOCAL_TABLE",
@@ -197,12 +152,13 @@ all_privileges = [
     "TELEMETRY_LOG_ADMIN",
     "TP_CONNECTION_ADMIN",
     "TRANSACTION_GTID_TAG",
+    "VECTOR_STORE_LOAD_EXEC",
     "VERSION_TOKEN_ADMIN",
     "XA_RECOVER_ADMIN",
-]
+}
 
 # GRANT OPTION is implicitly allowed
-disallowed_privileges = set(all_privileges) - set(allowed_privileges) - {'GRANT OPTION'}
+disallowed_privileges = all_privileges - allowed_privileges - {'GRANT OPTION'}
 
 verification_schema = "wl13807_ver"
 
