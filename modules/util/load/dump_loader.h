@@ -63,7 +63,7 @@ namespace mysqlsh {
 
 class Dump_loader {
  public:
-  using Reconnect = std::function<void()>;
+  using Reconnect = std::function<bool()>;
 
   Dump_loader() = delete;
   explicit Dump_loader(const Load_dump_options &options);
@@ -437,7 +437,9 @@ class Dump_loader {
     void run();
     void stop();
 
-    uint64_t connection_id() const noexcept { return m_connection_id; }
+    uint64_t connection_id() const noexcept {
+      return m_connection_id.load(std::memory_order_relaxed);
+    }
 
     uint64_t thread_id() const noexcept { return m_thread_id; }
 
@@ -451,6 +453,10 @@ class Dump_loader {
     }
 
    private:
+#ifdef FRIEND_TEST
+    friend class Load_dump_mocked;
+#endif
+
     void handle_current_exception(Dump_loader *loader,
                                   const std::string &error);
 
@@ -468,7 +474,7 @@ class Dump_loader {
     Dump_loader *m_owner;
 
     std::shared_ptr<mysqlshdk::db::mysql::Session> m_session;
-    uint64_t m_connection_id = 0;
+    std::atomic<uint64_t> m_connection_id{0};
     // will be set to 0 if it's not possible to fetch the thread ID
     uint64_t m_thread_id = 0;
     Reconnect m_reconnect_callback;

@@ -146,9 +146,12 @@ auto run(const Reconnect &reconnect, const F &execute, Args &&...args) {
     } catch (const mysqlshdk::db::Error &e) {
       if (reconnect && !reconnected &&
           mysqlshdk::db::is_server_connection_error(e.code())) {
-        log_warning("Session disconnected: %s, attempting to reconnect...",
-                    e.format().c_str());
-        reconnect();
+        log_warning("Session disconnected: %s", e.format().c_str());
+
+        if (!reconnect()) {
+          throw;
+        }
+
         reconnected = true;
       } else {
         throw;
@@ -559,6 +562,7 @@ class Dump_loader::Monitoring final {
   void remove_worker(const Worker *w) {
     std::lock_guard lock{m_workers_mutex};
     m_workers.erase(w);
+    m_terminal_connection_ids.erase(w);
   }
 
  private:
@@ -585,14 +589,28 @@ class Dump_loader::Monitoring final {
     std::lock_guard lock{m_workers_mutex};
 
     for (const auto worker : m_workers) {
+      const auto connection_id = worker->connection_id();
+
+      if (const auto terminal = m_terminal_connection_ids.find(worker);
+          terminal != m_terminal_connection_ids.end() &&
+          terminal->second == connection_id) {
+        continue;
+      }
+
       try {
         // this is a monitoring session, which should be in continuous use, no
         // need to reconnect here
-        sql::execute(session,
-                     "KILL QUERY " + std::to_string(worker->connection_id()));
+        sql::execute(session, "KILL QUERY " + std::to_string(connection_id));
+      } catch (const mysqlshdk::db::Error &e) {
+        if (ER_NO_SUCH_THREAD == e.code()) {
+          m_terminal_connection_ids[worker] = connection_id;
+        } else {
+          log_warning("Error canceling SQL connection %" PRIu64 ": %s",
+                      connection_id, e.format().c_str());
+        }
       } catch (const std::exception &e) {
         log_warning("Error canceling SQL connection %" PRIu64 ": %s",
-                    worker->connection_id(), e.what());
+                    connection_id, e.what());
       }
     }
   }
@@ -611,6 +629,7 @@ class Dump_loader::Monitoring final {
   std::vector<Monitor> m_monitors;
   std::mutex m_workers_mutex;
   std::unordered_set<const Worker *> m_workers;
+  std::unordered_map<const Worker *, uint64_t> m_terminal_connection_ids;
 };
 
 class Dump_loader::Bulk_load_support {
@@ -2027,7 +2046,7 @@ bool Dump_loader::Worker::Secondary_load_task::execute(Worker *worker,
 }
 
 Dump_loader::Worker::Worker(size_t id, Dump_loader *owner)
-    : m_id(id), m_owner(owner), m_connection_id(0) {}
+    : m_id(id), m_owner(owner) {}
 
 void Dump_loader::Worker::run() {
   try {
@@ -2045,8 +2064,15 @@ void Dump_loader::Worker::run() {
 
 void Dump_loader::Worker::do_run() {
   try {
-    m_reconnect_callback = [this]() { connect(); };
-    m_reconnect_callback();
+    m_reconnect_callback = [this]() {
+      if (m_owner->m_worker_interrupt.test()) {
+        return false;
+      }
+
+      connect();
+      return true;
+    };
+    connect();
   } catch (const shcore::Error &e) {
     handle_current_exception("Error opening connection to MySQL: " +
                              e.format());
@@ -2075,7 +2101,8 @@ void Dump_loader::Worker::stop() { m_work_ready.push(false); }
 
 void Dump_loader::Worker::connect() {
   m_session = m_owner->create_session();
-  m_connection_id = m_session->get_connection_id();
+  m_connection_id.store(m_session->get_connection_id(),
+                        std::memory_order_relaxed);
   m_thread_id = current_thread_id();
 }
 
@@ -2093,7 +2120,7 @@ uint64_t Dump_loader::Worker::current_thread_id() const {
     } catch (const std::exception &e) {
       log_warning("Unable to fetch thread ID for connection ID '%" PRIu64
                   "': %s",
-                  m_connection_id, e.what());
+                  connection_id(), e.what());
       return UINT64_C(0);
     }
   };
@@ -4825,8 +4852,15 @@ void Dump_loader::execute_tasks(bool testing) {
 
   check_server_version();
 
-  m_reconnect_callback = [this]() { m_session = create_session(); };
-  m_reconnect_callback();
+  m_reconnect_callback = [this]() {
+    if (m_worker_interrupt.test()) {
+      return false;
+    }
+
+    m_session = create_session();
+    return true;
+  };
+  m_session = create_session();
 
   log_server_version();
 
@@ -6015,8 +6049,12 @@ void Dump_loader::apply_grants() {
   }
 
   const auto reconnect = [&, this]() {
-    m_reconnect_callback();
+    if (!m_reconnect_callback()) {
+      return false;
+    }
+
     m_users.ignored_grant_errors = 0;
+    return true;
   };
 
   const auto console = current_console();

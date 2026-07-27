@@ -25,6 +25,16 @@
 
 #include "unittest/gprod_clean.h"
 
+#include <errmsg.h>
+#include <mysqld_error.h>
+
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <string>
+#include <thread>
+#include <unordered_map>
+
 #include "modules/util/common/dump/utils.h"
 #include "modules/util/dump/compatibility.h"
 #include "modules/util/dump/schema_dumper.h"
@@ -429,7 +439,13 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
                 std::lock_guard<std::mutex> l(m_connected_options_mutex);
                 m_connected_options.push_back(connection_options);
               });
-          EXPECT_CALL(*mock, executes(_, _)).Times(AtLeast(0));
+          EXPECT_CALL(*mock, executes(_, _))
+              .Times(AtLeast(0))
+              .WillRepeatedly([this](const char *sql, std::size_t length) {
+                if (m_on_execute) {
+                  m_on_execute(std::string{sql, length});
+                }
+              });
           EXPECT_CALL(*mock, execute(_)).Times(AtLeast(0));
           EXPECT_CALL(*mock, get_connection_options())
               .WillRepeatedly(ReturnRef(m_coptions));
@@ -647,6 +663,11 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
 
     // run the load
     loader.spawn_workers();
+
+    if (m_on_loader_ready) {
+      m_on_loader_ready(&loader);
+    }
+
     {
       shcore::on_leave_scope cleanup([&loader]() {
         loader.join_workers();
@@ -656,6 +677,49 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
 
       loader.execute_tasks(true);
     }
+  }
+
+  void set_worker_connection_id(Dump_loader *loader, uint64_t connection_id) {
+    loader->m_workers.front().m_connection_id.store(connection_id,
+                                                    std::memory_order_relaxed);
+  }
+
+  void check_reconnect(bool worker, bool interrupt) {
+    Dump_loader *loader = nullptr;
+    int attempts = 0;
+
+    m_on_loader_ready = [&](Dump_loader *l) { loader = l; };
+    m_on_execute = [&](const std::string &sql) {
+      // Fail schema DDL on the worker, or preamble SQL on the main session.
+      if (!shcore::str_beginswith(sql, worker ? "CREATE DATABASE" : "--")) {
+        return;
+      }
+
+      ++attempts;
+
+      if (interrupt) {
+        loader->interrupt();
+      }
+
+      throw mysqlshdk::db::Error("Server lost", CR_SERVER_LOST, "HY000");
+    };
+
+    if (worker) {
+      // Worker errors are retained by the loader instead of propagated here.
+      EXPECT_NO_THROW(load_dump(1, false));
+    } else {
+      try {
+        load_dump(1, false);
+        FAIL() << "Expected the original connection error";
+      } catch (const mysqlshdk::db::Error &e) {
+        EXPECT_EQ(CR_SERVER_LOST, e.code());
+        EXPECT_STREQ("Server lost", e.what());
+      }
+    }
+
+    EXPECT_EQ(interrupt ? 1 : 2, attempts);
+    // Main, worker and monitoring sessions, plus one reconnect if allowed.
+    EXPECT_EQ(interrupt ? 3 : 4, m_session_count);
   }
 
   mysqlshdk::db::Connection_options m_coptions =
@@ -670,6 +734,8 @@ class Load_dump_mocked : public Shell_core_test_wrapper {
   std::vector<mysqlshdk::db::Connection_options> m_connected_options;
 
   std::function<void(const std::string &)> m_on_load_data;
+  std::function<void(Dump_loader *)> m_on_loader_ready;
+  std::function<void(const std::string &)> m_on_execute;
 
   std::string m_version = "8.0.20";
   std::optional<bool> m_auto_generate_pk_value;
@@ -698,6 +764,109 @@ TEST_F(Load_dump_mocked, load_sessions_reject_unexpected_local_infile) {
   for (const auto &connection_options : m_connected_options) {
     EXPECT_TRUE(connection_options.reject_local_infile_requests());
     EXPECT_TRUE(connection_options.is_enabled(mysqlshdk::db::kLocalInfile));
+  }
+}
+
+TEST_F(Load_dump_mocked, loader_reconnects_once) {
+  check_reconnect(false, false);
+}
+
+TEST_F(Load_dump_mocked, loader_does_not_reconnect_after_interrupt) {
+  check_reconnect(false, true);
+}
+
+TEST_F(Load_dump_mocked, worker_reconnects_once) {
+  check_reconnect(true, false);
+}
+
+TEST_F(Load_dump_mocked, worker_does_not_reconnect_after_interrupt) {
+  check_reconnect(true, true);
+}
+
+TEST_F(Load_dump_mocked, bug_39783888) {
+  std::mutex mutex;
+  std::condition_variable condition;
+  Dump_loader *loader = nullptr;
+  bool worker_is_loading = false;
+  bool release_worker = false;
+  std::unordered_map<std::string, std::size_t> kill_attempts;
+
+  m_on_loader_ready = [&](Dump_loader *l) {
+    std::lock_guard lock{mutex};
+    loader = l;
+    condition.notify_all();
+  };
+
+  m_on_load_data = [&](const std::string &) {
+    std::unique_lock lock{mutex};
+    worker_is_loading = true;
+    condition.notify_all();
+    condition.wait(lock, [&]() { return release_worker; });
+  };
+
+  m_on_execute = [&](const std::string &sql) {
+    if (!shcore::str_beginswith(sql, "KILL QUERY ")) {
+      return;
+    }
+
+    {
+      std::lock_guard lock{mutex};
+      ++kill_attempts[sql];
+      condition.notify_all();
+    }
+
+    throw mysqlshdk::db::Error("Unknown thread id", ER_NO_SUCH_THREAD, "HY000");
+  };
+
+  std::thread load_thread{[&]() { load_dump(1, false); }};
+  shcore::on_leave_scope cleanup([&]() {
+    {
+      std::lock_guard lock{mutex};
+      release_worker = true;
+    }
+
+    condition.notify_all();
+    load_thread.join();
+  });
+
+  {
+    std::unique_lock lock{mutex};
+    ASSERT_TRUE(condition.wait_for(lock, std::chrono::seconds{5}, [&]() {
+      return loader && worker_is_loading;
+    }));
+  }
+
+  loader->hard_interrupt();
+
+  {
+    std::unique_lock lock{mutex};
+    ASSERT_TRUE(condition.wait_for(lock, std::chrono::seconds{5},
+                                   [&]() { return !kill_attempts.empty(); }));
+  }
+
+  shcore::sleep_ms(750);
+
+  {
+    std::lock_guard lock{mutex};
+    ASSERT_EQ(1, kill_attempts.size());
+    EXPECT_EQ(1, kill_attempts.begin()->second);
+  }
+
+  set_worker_connection_id(loader, 9999);
+
+  {
+    std::unique_lock lock{mutex};
+    ASSERT_TRUE(condition.wait_for(lock, std::chrono::seconds{5}, [&]() {
+      return kill_attempts.end() != kill_attempts.find("KILL QUERY 9999");
+    }));
+  }
+
+  shcore::sleep_ms(750);
+
+  {
+    std::lock_guard lock{mutex};
+    ASSERT_EQ(2, kill_attempts.size());
+    EXPECT_EQ(1, kill_attempts["KILL QUERY 9999"]);
   }
 }
 
