@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1007,8 +1007,8 @@ class Parametrized_helper_test : public ::testing::TestWithParam<std::string> {
 
  protected:
   void SetUp() override {
-    if (Shell_test_env::get_target_server_version() <
-        mysqlshdk::utils::k_shell_version) {
+    if (Shell_test_env::get_target_server_version().numeric_version_series() <
+        mysqlshdk::utils::k_shell_version.numeric_version_series()) {
       // this is needed to prevent gtest from invoking the body of a test
       GTEST_SKIP();
       SKIP_TEST("This test is only executed once, with latest server");
