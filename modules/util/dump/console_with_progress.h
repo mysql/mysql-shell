@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -94,7 +94,8 @@ class Console_with_progress final : public IConsole {
       shcore::prompt::Prompt_type type = shcore::prompt::Prompt_type::TEXT,
       const std::string &title = "",
       const std::vector<std::string> &description = {},
-      const std::string &default_value = "") const override;
+      const std::string &default_value = "",
+      const Json_attributes &attribs = {}) const override;
 
   Prompt_answer confirm(
       const std::string &prompt, Prompt_answer def = Prompt_answer::NO,
@@ -106,7 +107,8 @@ class Console_with_progress final : public IConsole {
   shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
       Validator validator = nullptr, const std::string &title = "",
-      const std::vector<std::string> &description = {}) const override;
+      const std::vector<std::string> &description = {},
+      const Json_attributes &attribs = {}) const override;
 
   bool select(const std::string &prompt_text, std::string *result,
               const std::vector<std::string> &items, size_t default_option = 0,

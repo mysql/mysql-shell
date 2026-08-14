@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -118,16 +118,24 @@ class Command_line_shell : public Mysql_shell,
 
   static char *readline(const char *prompt);
 
-  static bool deleg_print(void *self, const char *text);
-  static bool deleg_delayed_print(void *self, const char *text);
-  static bool deleg_disable_print(void *self, const char *text);
-  static bool deleg_print_error(void *self, const char *text);
-  static bool deleg_delayed_print_error(void *self, const char *text);
-  static bool deleg_disable_print_error(void *self, const char *text);
-  static bool deleg_print_diag(void *self, const char *text);
+  static bool deleg_print(void *self, const char *text,
+                          const shcore::Dictionary_t &attributes);
+  static bool deleg_delayed_print(void *self, const char *text,
+                                  const shcore::Dictionary_t &attributes);
+  static bool deleg_disable_print(void *self, const char *text,
+                                  const shcore::Dictionary_t &attributes);
+  static bool deleg_print_error(void *self, const char *text,
+                                const shcore::Dictionary_t &attributes);
+  static bool deleg_delayed_print_error(void *self, const char *text,
+                                        const shcore::Dictionary_t &attributes);
+  static bool deleg_disable_print_error(void *self, const char *text,
+                                        const shcore::Dictionary_t &attributes);
+  static bool deleg_print_diag(void *self, const char *text,
+                               const shcore::Dictionary_t &attributes);
   static shcore::Prompt_result deleg_prompt(
       void *self, const char *text,
-      const shcore::prompt::Prompt_options &options, std::string *ret);
+      const shcore::prompt::Prompt_options &options,
+      const shcore::Dictionary_t &attributes, std::string *ret);
 
   shcore::Prompt_result do_prompt(bool is_password, const char *text,
                                   std::string *ret);

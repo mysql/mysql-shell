@@ -66,17 +66,20 @@ using mysqlshdk::db::uri::Type;
 
 bool Shell_options::Storage::has_connection_data(
     bool require_main_options) const {
+  const auto has_password_requirement = [this](int factor) {
+    return connection_data.password_requirement(factor) !=
+           mysqlshdk::db::Password_requirement::kUnspecified;
+  };
+
   if (require_main_options) {
     return connection_data.has_user() || connection_data.has_host() ||
            connection_data.has_port() || connection_data.has_socket() ||
            connection_data.has_pipe() || connection_data.has_password() ||
-           connection_data.has_needs_password(0) ||
-           connection_data.has_needs_password(1) ||
-           connection_data.has_needs_password(2);
+           has_password_requirement(0) || has_password_requirement(1) ||
+           has_password_requirement(2);
   }
-  return connection_data.has_data() || connection_data.has_needs_password(0) ||
-         connection_data.has_needs_password(1) ||
-         connection_data.has_needs_password(2);
+  return connection_data.has_data() || has_password_requirement(0) ||
+         has_password_requirement(1) || has_password_requirement(2);
 }
 
 mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
@@ -109,9 +112,11 @@ mysqlshdk::db::Connection_options Shell_options::Storage::connection_options()
   }
 
   if (webauthn_client_preserve_privacy.has_value()) {
-    target_server.set_unchecked(
-        mysqlshdk::db::kWebauthnClientPreservePrivacy,
-        (*webauthn_client_preserve_privacy) ? "1" : "0");
+    target_server.set_webauthn_client_preserve_privacy(
+        *webauthn_client_preserve_privacy);
+  }
+  if (!register_factor.empty()) {
+    target_server.set_register_factor(register_factor);
   }
 
   return target_server;
@@ -986,8 +991,8 @@ Shell_options::Shell_options(
       // if we didn't get any password in the cmdline, restore the ones we got
       // from my.cnf (if any)
       for (int f = 0; f < mysqlshdk::db::k_max_auth_factors; f++) {
-        if (!storage.connection_data.has_needs_password(f) ||
-            !storage.connection_data.needs_password(f)) {
+        if (storage.connection_data.password_requirement(f) !=
+            mysqlshdk::db::Password_requirement::kRequired) {
           if (mycnf_connection_data.has_mfa_password(f))
             storage.connection_data.set_mfa_password(
                 f, mycnf_connection_data.get_mfa_password(f));

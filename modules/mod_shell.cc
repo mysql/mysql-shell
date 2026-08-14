@@ -593,8 +593,13 @@ PERFORMANCE_SCHEMA connection attributes tables.
 @li net-buffer-length: The buffer size for TCP/IP and socket communication.
 @li plugin-authentication-kerberos-client-mode: (Windows) Allows defining the kerberos
 client mode (SSPI, GSSAPI) when using kerberos authentication.
-@li plugin-authentication-webauthn-device: Allows selecting the authentication device
-used for client side webauthn authentication.
+@li plugin-authentication-webauthn-device: Non-negative integer selecting the
+authentication device used for client side webauthn authentication.
+@li register-factor: Specifies authentication factors for which device
+registration needs to be done.
+@li plugin-authentication-webauthn-client-preserve-privacy: Boolean that
+enables the use of discoverable credentials for client side webauthn
+authentication.
 @li oci-config-file: Allows defining the OCI configuration file for OCI authentication.
 @li authentication-oci-client-config-profile: Allows defining the OCI profile used from
 the configuration for client side OCI authentication.
@@ -611,7 +616,20 @@ The following options are also valid when a dictionary is used:
 @li uri: a URI string.
 @li scheme: the protocol to be used on the connection.
 @li user: the MySQL user name to be used on the connection.
-@li password: the password to be used on the connection.
+@li password: the password for the first authentication factor. If omitted or
+  set to <b>null</b>, a stored first-factor password is used if available;
+  otherwise, it is prompted for.
+@li no-password: if <b>true</b>, sets an empty first-factor password and
+  prevents prompting for it.
+@li password1: alias for password. Takes precedence over password. If set to
+  <b>null</b>, a stored first-factor password is used if available; otherwise,
+  it is prompted for.
+@li password2: the password for the second authentication factor. If omitted,
+  no password is requested for this factor. If set to <b>null</b>, a stored
+  second-factor password is used if available; otherwise, it is prompted for.
+@li password3: the password for the third authentication factor. If omitted,
+  no password is requested for this factor. If set to <b>null</b>, a stored
+  third-factor password is used if available; otherwise, it is prompted for.
 @li host: the hostname or IP address to be used on the connection.
 @li port: the port to be used in a TCP connection.
 @li socket: the socket file name to be used on a connection through unix sockets.
@@ -1086,17 +1104,18 @@ try to print to stdout directly from the callback functions.
 
 @li printDelegate: function (default not set) which will be called when shell
 function will need to print something to stdout, expected signature: None
-printDelegate(str).
+printDelegate(str, dict).
 @li errorDelegate: function (default not set) which will be called when shell
 function will need to print something to stderr, expected signature: None
-errorDelegate(str).
+errorDelegate(str, dict).
 @li diagDelegate: function (default not set) which will be called when shell
 function will need to print something diagnostics, expected signature: None
-diagDelegate(str).
+diagDelegate(str, dict).
 @li promptDelegate: function (default not set) which will be called when shell
 function will need to ask user for input, this should return a tuple where
 first arguments is boolean indicating if user did input something, and second
-is a user input string, expected signature: tuple<bool,str> promptDelegate(str).
+is a user input string, expected signature: tuple<bool,str> promptDelegate(str,
+dict, dict).
 @li passwordDelegate: function (default not set) which will be called when
 shell function will need to ask user for input, this should return a tuple
 where first arguments is boolean indicating if user did input anything, and
@@ -1361,9 +1380,10 @@ REGISTER_HELP_FUNCTION(storeCredential, shell);
 REGISTER_HELP(SHELL_STORECREDENTIAL_BRIEF,
               "Stores given credential using the configured helper.");
 REGISTER_HELP(SHELL_STORECREDENTIAL_PARAM,
-              "@param url URL of the server for the password to be stored.");
+              "@param url URL of the server for the credential to be stored.");
 REGISTER_HELP(SHELL_STORECREDENTIAL_PARAM1,
-              "@param password Optional Password for the given URL.");
+              "@param password Optional first-factor password string or "
+              "password dictionary.");
 REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS,
               "Throws ArgumentError if URL has invalid form.");
 REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS1,
@@ -1373,12 +1393,19 @@ REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS2,
 REGISTER_HELP(SHELL_STORECREDENTIAL_THROWS3,
               "@li if storing the credential fails.");
 REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL,
-              "If password is not provided, displays password prompt.");
-REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL1,
-              "If URL is already in storage, it's value is overwritten.");
+              "If a required password is not provided, displays a password "
+              "prompt.");
+REGISTER_HELP(
+    SHELL_STORECREDENTIAL_DETAIL1,
+    "Passwords supplied in a password dictionary are stored for their "
+    "respective authentication factors.");
 REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL2,
-              "URL needs to be in the following form: "
-              "<b>user@(host[:port]|socket)</b>.");
+              "If a credential is already in storage, its value is "
+              "overwritten.");
+REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL3,
+              "The URL must have the form <b>user@(host[:port]|socket)</b>. "
+              "A password dictionary may contain <b>password</b>, "
+              "<b>password1</b>, <b>password2</b>, and <b>password3</b>.");
 
 /**
  * $(SHELL_STORECREDENTIAL_BRIEF)
@@ -1395,28 +1422,87 @@ REGISTER_HELP(SHELL_STORECREDENTIAL_DETAIL2,
  * $(SHELL_STORECREDENTIAL_DETAIL)
  * $(SHELL_STORECREDENTIAL_DETAIL1)
  * $(SHELL_STORECREDENTIAL_DETAIL2)
+ * $(SHELL_STORECREDENTIAL_DETAIL3)
  */
 #if DOXYGEN_JS
-Undefined Shell::storeCredential(String url, String password) {}
+Undefined Shell::storeCredential(String url, String | Dictionary password) {}
 #elif DOXYGEN_PY
-None Shell::store_credential(str url, str password) {}
+None Shell::store_credential(str url, str | dict password) {}
 #endif
 void Shell::store_credential(const std::string &url,
-                             std::optional<std::string> password) {
-  std::string pwd_to_store;
+                             std::optional<shcore::Value> password) {
   if (!password.has_value()) {
-    auto prompt = shcore::str_format("Please provide the password for '%s': ",
-                                     url.c_str());
-    const auto result =
-        current_console()->prompt_password(prompt, &pwd_to_store);
+    std::string value;
+    if (current_console()->prompt_password(
+            "Please provide the password for '" + url + "': ", &value) !=
+        shcore::Prompt_result::Ok) {
+      throw shcore::cancelled("Cancelled");
+    }
+    shcore::Credential_manager::get().store_credential(url, value);
+    return;
+  }
+
+  if (password->get_type() == shcore::String) {
+    shcore::Credential_manager::get().store_credential(url,
+                                                       password->get_string());
+    return;
+  }
+
+  if (password->get_type() != shcore::Map) {
+    throw shcore::Exception::type_error(
+        "Argument #2 is expected to be either a string or a dictionary.");
+  }
+
+  const auto password_data = password->as_map();
+  const mysqlshdk::db::Connection_options password_option_names;
+  for (const auto &entry : *password_data) {
+    if (password_option_names.compare(entry.first, mysqlshdk::db::kPassword) !=
+            0 &&
+        password_option_names.compare(entry.first, mysqlshdk::db::kPassword1) !=
+            0 &&
+        password_option_names.compare(entry.first, mysqlshdk::db::kPassword2) !=
+            0 &&
+        password_option_names.compare(entry.first, mysqlshdk::db::kPassword3) !=
+            0) {
+      throw shcore::Exception::argument_error(
+          "Invalid password dictionary option '" + entry.first + "'.");
+    }
+  }
+
+  const auto credential_url =
+      shcore::Credential_manager::normalize_credential_url(url);
+  auto password_options = mysqlsh::get_connection_options(*password);
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (!password_options.should_prompt_password(factor)) continue;
+
+    std::string value;
+    const auto result = current_console()->prompt_password(
+        "Please provide the password" +
+            (factor == 0 ? std::string{} : std::to_string(factor + 1)) +
+            " for '" + url + "': ",
+        &value);
     if (result != shcore::Prompt_result::Ok) {
       throw shcore::cancelled("Cancelled");
     }
-  } else {
-    pwd_to_store = std::move(*password);
+    password_options.set_mfa_password(factor, value);
   }
 
-  shcore::Credential_manager::get().store_credential(url, pwd_to_store);
+  shcore::Credential_manager::Mfa_passwords passwords{};
+  std::size_t password_count = 0;
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (password_options.has_mfa_password(factor)) {
+      passwords[factor] = password_options.get_mfa_password(factor);
+      ++password_count;
+    }
+  }
+
+  if (password_count == 1 && passwords[0].has_value()) {
+    shcore::Credential_manager::get().store_credential(credential_url,
+                                                       *passwords[0]);
+  } else {
+    shcore::Credential_manager::get().store_credential(credential_url,
+                                                       passwords);
+  }
 }
 
 REGISTER_HELP_FUNCTION(deleteCredential, shell);

@@ -55,6 +55,52 @@ TEST(modules_mod_utils, get_connection_data_dictionary) {
   EXPECT_EQ("localhost", options.get_host());
   EXPECT_EQ("root", options.get_user());
   EXPECT_EQ(mysqlshdk::db::kPassword, options.get_password());
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    EXPECT_EQ(mysqlshdk::db::Password_requirement::kUnspecified,
+              options.password_requirement(factor));
+  }
+}
+
+TEST(
+    modules_mod_utils,
+    get_connection_data_dictionary_password1_precedes_case_insensitive_password) {
+  const auto map = shcore::make_dict();
+  (*map)["Password1"] = shcore::Value("correct");
+  (*map)[mysqlshdk::db::kPassword] = shcore::Value("wrong");
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.has_password());
+  EXPECT_EQ("correct", options.get_password());
+}
+
+TEST(modules_mod_utils, get_connection_data_dictionary_mfa_null_passwords) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kPassword] = shcore::Value::Null();
+  (*map)[mysqlshdk::db::kPassword2] = shcore::Value::Null();
+  (*map)[mysqlshdk::db::kPassword3] = shcore::Value::Null();
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    EXPECT_FALSE(options.has_mfa_password(factor));
+    EXPECT_EQ(mysqlshdk::db::Password_requirement::kRequired,
+              options.password_requirement(factor));
+  }
+}
+
+TEST(modules_mod_utils, get_connection_data_dictionary_no_password) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kNoPassword] = shcore::Value::True();
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.has_password());
+  EXPECT_EQ("", options.get_password());
+  EXPECT_EQ(mysqlshdk::db::Password_requirement::kNotRequired,
+            options.password_requirement(0));
 }
 
 TEST(modules_mod_utils, get_connection_data_dictionary_client_interactive) {
@@ -75,6 +121,22 @@ TEST(modules_mod_utils, get_connection_data_dictionary_expired_passwords) {
   const auto options = mysqlsh::get_connection_options(shcore::Value(map));
 
   EXPECT_TRUE(options.can_handle_expired_passwords());
+}
+
+TEST(modules_mod_utils,
+     get_connection_data_dictionary_webauthn_preserve_privacy) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kWebauthnClientPreservePrivacy] = shcore::Value(true);
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.has_webauthn_client_preserve_privacy());
+  EXPECT_TRUE(options.get_webauthn_client_preserve_privacy());
+
+  const auto connection_data = mysqlsh::get_connection_map(options);
+  EXPECT_TRUE(connection_data->at(mysqlshdk::db::kWebauthnClientPreservePrivacy)
+                  .as_bool());
 }
 
 // WL17311-AUTO-04
@@ -108,6 +170,59 @@ TEST(modules_mod_utils, get_connection_data_dictionary_pqc_bool_type) {
   EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),
                     shcore::Exception,
                     "Argument 'force-pqc' is expected to be a bool");
+}
+
+TEST(modules_mod_utils, get_connection_data_dictionary_webauthn_device) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kWebauthnClientDeviceIndex] = shcore::Value(1);
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.has_webauth_device_index());
+  EXPECT_EQ(1, options.get_webauth_device_index());
+
+  const auto connection_data = mysqlsh::get_connection_map(options);
+  EXPECT_EQ(
+      1,
+      connection_data->at(mysqlshdk::db::kWebauthnClientDeviceIndex).as_int());
+}
+
+TEST(modules_mod_utils, get_connection_data_dictionary_register_factor) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kRegisterFactor] = shcore::Value("2,3");
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.has_register_factor());
+  EXPECT_EQ("2,3", options.get_register_factor());
+
+  const auto connection_data = mysqlsh::get_connection_map(options);
+  EXPECT_EQ("2,3",
+            connection_data->at(mysqlshdk::db::kRegisterFactor).get_string());
+}
+
+TEST(modules_mod_utils,
+     get_connection_data_dictionary_register_factor_integer) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kRegisterFactor] = shcore::Value(3);
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+
+  EXPECT_TRUE(options.has_register_factor());
+  EXPECT_EQ("3", options.get_register_factor());
+}
+
+TEST(modules_mod_utils, get_connection_data_dictionary_mysqlx_webauthn) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kScheme] = shcore::Value("mysqlx");
+  (*map)[mysqlshdk::db::kRegisterFactor] = shcore::Value(2);
+
+  EXPECT_THROW_LIKE(
+      mysqlsh::get_connection_options(shcore::Value(map)), shcore::Exception,
+      "Multi-factor authentication is only compatible with MySQL protocol");
 }
 
 TEST(modules_mod_utils, get_connection_data_invalid_uri) {

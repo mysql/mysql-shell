@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -134,9 +134,10 @@ class Console_with_prefix final : public IConsole {
       shcore::prompt::Prompt_type type = shcore::prompt::Prompt_type::TEXT,
       const std::string &title = "",
       const std::vector<std::string> &description = {},
-      const std::string &default_value = "") const override {
+      const std::string &default_value = "",
+      const Json_attributes &attribs = {}) const override {
     return m_console->prompt(get_text(prompt), out_val, validator, type, title,
-                             description, default_value);
+                             description, default_value, attribs);
   }
 
   Prompt_answer confirm(
@@ -152,9 +153,10 @@ class Console_with_prefix final : public IConsole {
   shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
       Validator validator = nullptr, const std::string &title = "",
-      const std::vector<std::string> &description = {}) const override {
+      const std::vector<std::string> &description = {},
+      const Json_attributes &attribs = {}) const override {
     return m_console->prompt_password(get_text(prompt), out_val, validator,
-                                      title, description);
+                                      title, description, attribs);
   }
 
   bool select(const std::string &prompt_text, std::string *result,

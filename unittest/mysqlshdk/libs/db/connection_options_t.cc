@@ -101,6 +101,41 @@ TEST(Connection_options, default_initialization) {
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSocket));
 }
 
+TEST(Connection_options, webauthn_client_preserve_privacy) {
+  Connection_options options;
+
+  options.set_webauthn_client_preserve_privacy(true);
+  EXPECT_TRUE(options.has(mysqlshdk::db::kWebauthnClientPreservePrivacy));
+  EXPECT_TRUE(options.has_value(mysqlshdk::db::kWebauthnClientPreservePrivacy));
+  EXPECT_EQ("true", options.get(mysqlshdk::db::kWebauthnClientPreservePrivacy));
+
+  options.set_webauthn_client_preserve_privacy(false);
+  EXPECT_EQ("false",
+            options.get(mysqlshdk::db::kWebauthnClientPreservePrivacy));
+}
+
+TEST(Connection_options, override_webauthn_device_index) {
+  Connection_options options;
+  options.set_webauth_device_index(1);
+
+  options.override_with(Connection_options("mysql://user@host"));
+  ASSERT_TRUE(options.has_webauth_device_index());
+  EXPECT_EQ(1, options.get_webauth_device_index());
+
+  options.override_with(Connection_options(
+      "mysql://user@host?plugin-authentication-webauthn-device=2"));
+  EXPECT_EQ(2, options.get_webauth_device_index());
+}
+
+TEST(Connection_options, register_factor_uri) {
+  constexpr auto uri = "mysql://user@host?register-factor=2";
+  const Connection_options options(uri);
+
+  ASSERT_TRUE(options.has_register_factor());
+  EXPECT_EQ("2", options.get_register_factor());
+  EXPECT_EQ(uri, options.as_uri(mysqlshdk::db::uri::formats::full()));
+}
+
 TEST(Connection_options, scheme_functions) {
   Connection_options options;
   std::string msg;

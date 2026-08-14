@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,6 +27,8 @@
 
 #include <algorithm>
 #include <memory>
+#include <optional>
+#include <set>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -40,8 +42,6 @@
 
 namespace shcore {
 
-using mysqlshdk::db::Connection_options;
-
 using mysql::secret_store::api::get_available_helpers;
 using mysql::secret_store::api::get_helper;
 using mysql::secret_store::api::Helper_interface;
@@ -49,6 +49,7 @@ using mysql::secret_store::api::Helper_name;
 using mysql::secret_store::api::Secret_spec;
 using mysql::secret_store::api::Secret_type;
 using mysql::secret_store::api::set_logger;
+using mysql::secret_store::api::validate_url;
 
 namespace {
 
@@ -74,6 +75,8 @@ constexpr auto k_no_such_secret_error = "Could not find the secret";
 constexpr auto k_invalid_url_error = "Invalid URL";
 constexpr auto k_invalid_secret_error =
     "Secret contains a disallowed character";
+constexpr std::string_view k_internal_secret_id_prefix = "mysqlsh:";
+constexpr std::string_view k_mfa_password_id_prefix = "mysqlsh:mfa-password:";
 
 Helper_name get_helper_by_name(const std::string &name) {
   auto helpers = get_available_helpers();
@@ -112,17 +115,46 @@ std::unique_ptr<Helper_interface> get_helper(const std::string &helper) {
   return get_helper(get_helper_by_name(get_helper_name(helper)));
 }
 
-std::string get_url(const mysqlshdk::IConnection &options) {
-  auto tokens = mysqlshdk::db::uri::formats::user_transport();
-  if (options.has_scheme() &&
-      (options.get_scheme() == "file" || options.get_scheme() == "ssh")) {
-    tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
-  }
-  return options.as_uri(tokens);
+Secret_spec get_secret_spec(const std::string &url) {
+  return {Secret_type::PASSWORD, url};
 }
 
 Secret_spec get_secret_spec(const mysqlshdk::IConnection &options) {
-  return {Secret_type::PASSWORD, get_url(options)};
+  return get_secret_spec(Credential_manager::normalize_credential_url(options));
+}
+
+Secret_spec get_mfa_secret_spec(const std::string &url, int factor) {
+  assert(factor > 0 && factor < mysqlshdk::db::k_max_auth_factors);
+  return {Secret_type::GENERIC, std::string{k_mfa_password_id_prefix} +
+                                    std::to_string(factor + 1) + ":" + url};
+}
+
+bool is_mfa_secret(const Secret_spec &spec, std::string *url = nullptr) {
+  if (spec.type != Secret_type::GENERIC ||
+      spec.id.compare(0, k_mfa_password_id_prefix.size(),
+                      k_mfa_password_id_prefix) != 0) {
+    return false;
+  }
+
+  const auto separator = spec.id.find(':', k_mfa_password_id_prefix.size());
+  if (separator == std::string::npos || separator + 1 == spec.id.size()) {
+    return false;
+  }
+
+  const auto factor =
+      spec.id.substr(k_mfa_password_id_prefix.size(),
+                     separator - k_mfa_password_id_prefix.size());
+  if (factor != "2" && factor != "3") return false;
+
+  if (url) *url = spec.id.substr(separator + 1);
+  return true;
+}
+
+void validate_generic_secret_id(const std::string &id) {
+  if (id.compare(0, k_internal_secret_id_prefix.size(),
+                 k_internal_secret_id_prefix) == 0) {
+    throw Exception::argument_error("Secret ID is reserved for internal use.");
+  }
 }
 
 Credential_manager::Save_passwords to_save_passwords(const std::string &str) {
@@ -180,6 +212,21 @@ Credential_manager::Credential_manager() {
 Credential_manager &Credential_manager::get() {
   static Credential_manager instance;
   return instance;
+}
+
+std::string Credential_manager::normalize_credential_url(
+    const std::string &url) {
+  return normalize_credential_url(mysqlshdk::db::Connection_options{url});
+}
+
+std::string Credential_manager::normalize_credential_url(
+    const mysqlshdk::IConnection &options) {
+  auto tokens = mysqlshdk::db::uri::formats::user_transport();
+  if (options.has_scheme() &&
+      (options.get_scheme() == "file" || options.get_scheme() == "ssh")) {
+    tokens.set(mysqlshdk::db::uri::Tokens::Scheme);
+  }
+  return options.as_uri(tokens);
 }
 
 void Credential_manager::initialize() {
@@ -342,8 +389,36 @@ bool Credential_manager::get_password(mysqlshdk::IConnection *options) const {
   }
 }
 
+Credential_manager::Factor_mask Credential_manager::get_mfa_passwords(
+    const std::string &url, const Factor_mask &requested,
+    Mfa_passwords *passwords) const {
+  Factor_mask retrieved{};
+
+  if (!m_helper) return retrieved;
+
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (!requested[factor] || (*passwords)[factor].has_value()) continue;
+
+    std::string password;
+    const auto secret_spec =
+        factor == 0 ? get_secret_spec(url) : get_mfa_secret_spec(url, factor);
+    log_debug2("Retrieving password from credential manager for '%s'",
+               secret_spec.id.c_str());
+    if (m_helper->get(secret_spec, &password)) {
+      (*passwords)[factor] = std::move(password);
+      retrieved[factor] = true;
+    } else if (const auto error = m_helper->get_last_error();
+               k_no_such_secret_error != error) {
+      mysqlsh::current_console()->print_error(
+          "Failed to retrieve the password: " + error);
+    }
+  }
+
+  return retrieved;
+}
+
 bool Credential_manager::save_password(const mysqlshdk::IConnection &options) {
-  if (m_helper && should_save_password(get_url(options))) {
+  if (m_helper && should_save_password(normalize_credential_url(options))) {
     bool ret =
         m_helper->store(get_secret_spec(options), options.get_password());
 
@@ -356,6 +431,32 @@ bool Credential_manager::save_password(const mysqlshdk::IConnection &options) {
   } else {
     return false;
   }
+}
+
+bool Credential_manager::save_mfa_passwords(const std::string &url,
+                                            const Mfa_passwords &passwords,
+                                            const Factor_mask &factors) {
+  if (!m_helper ||
+      !should_save_password(
+          url, std::count(factors.begin(), factors.end(), true) > 1)) {
+    return false;
+  }
+
+  bool saved = false;
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (!factors[factor] || !passwords[factor].has_value()) continue;
+
+    const auto secret_spec =
+        factor == 0 ? get_secret_spec(url) : get_mfa_secret_spec(url, factor);
+    if (!m_helper->store(secret_spec, *passwords[factor])) {
+      mysqlsh::current_console()->print_error("Failed to store the password: " +
+                                              m_helper->get_last_error());
+    } else {
+      saved = true;
+    }
+  }
+
+  return saved;
 }
 
 bool Credential_manager::remove_password(
@@ -374,6 +475,28 @@ bool Credential_manager::remove_password(
   }
 }
 
+bool Credential_manager::remove_mfa_passwords(const std::string &url,
+                                              const Factor_mask &factors) {
+  if (!m_helper) return false;
+
+  bool removed = false;
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (!factors[factor]) continue;
+
+    const auto secret_spec =
+        factor == 0 ? get_secret_spec(url) : get_mfa_secret_spec(url, factor);
+    if (m_helper->erase(secret_spec)) {
+      removed = true;
+    } else if (const auto error = m_helper->get_last_error();
+               k_no_such_secret_error != error) {
+      mysqlsh::current_console()->print_error("Failed to erase the password: " +
+                                              error);
+    }
+  }
+
+  return removed;
+}
+
 bool Credential_manager::get_credential(const std::string &url,
                                         std::string *credential) const {
   check_helper("get the credential");
@@ -389,8 +512,186 @@ bool Credential_manager::get_credential(const std::string &url,
   return ret;
 }
 
+void Credential_manager::store_credential(const std::string &url,
+                                          const Mfa_passwords &passwords) {
+  check_helper("save the credential");
+
+  std::string validated_url;
+  try {
+    validated_url = validate_url(url);
+  } catch (const std::exception &e) {
+    throw Exception::argument_error(e.what());
+  }
+
+  struct Credential_update {
+    Secret_spec spec;
+    std::string password;
+    std::optional<std::string> previous_password;
+  };
+
+  std::vector<Credential_update> updates;
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (!passwords[factor].has_value()) continue;
+
+    const auto secret_spec = factor == 0
+                                 ? get_secret_spec(validated_url)
+                                 : get_mfa_secret_spec(validated_url, factor);
+    Credential_update update{secret_spec, *passwords[factor], std::nullopt};
+    std::string password;
+    if (m_helper->get(secret_spec, &password)) {
+      update.previous_password = std::move(password);
+    } else if (const auto error = m_helper->get_last_error();
+               k_no_such_secret_error != error) {
+      if (std::string::npos != error.find(k_invalid_url_error)) {
+        throw Exception::argument_error(error);
+      }
+      throw Exception::runtime_error(
+          str_format("Failed to retrieve the credential: %s", error.c_str()));
+    }
+    updates.emplace_back(std::move(update));
+  }
+
+  for (std::size_t current = 0; current < updates.size(); ++current) {
+    const auto &update = updates[current];
+    if (m_helper->store(update.spec, update.password)) continue;
+
+    const auto error = m_helper->get_last_error();
+    std::vector<std::string> rollback_errors;
+    for (std::size_t i = current; i-- > 0;) {
+      const auto &previous = updates[i];
+      const bool restored =
+          previous.previous_password.has_value()
+              ? m_helper->store(previous.spec, *previous.previous_password)
+              : m_helper->erase(previous.spec);
+      if (!restored) {
+        rollback_errors.emplace_back("Failed to restore '" + previous.spec.id +
+                                     "': " + m_helper->get_last_error());
+      }
+    }
+
+    if (rollback_errors.empty() &&
+        std::string::npos != error.find(k_invalid_url_error)) {
+      throw Exception::argument_error(error);
+    }
+
+    auto message =
+        str_format("Failed to save the credential: %s", error.c_str());
+    if (!rollback_errors.empty()) {
+      message += "\nFailed to restore previous credentials:\n" +
+                 str_join(rollback_errors, "\n");
+    }
+    throw Exception::runtime_error(message);
+  }
+}
+
+void Credential_manager::store_credential(const std::string &url,
+                                          const std::string &password) {
+  check_helper("save the credential");
+
+  if (!m_helper->store({Secret_type::PASSWORD, url}, password)) {
+    const auto error = m_helper->get_last_error();
+    if (std::string::npos != error.find(k_invalid_url_error)) {
+      throw Exception::argument_error(error);
+    }
+    throw Exception::runtime_error(
+        str_format("Failed to save the credential: %s", error.c_str()));
+  }
+}
+
+void Credential_manager::delete_credential(const std::string &url) {
+  check_helper("delete the credential");
+
+  std::string validated_url;
+  try {
+    validated_url = validate_url(url);
+  } catch (const std::exception &e) {
+    throw Exception::argument_error(e.what());
+  }
+
+  std::vector<Secret_spec> specs;
+  if (!m_helper->list(&specs)) {
+    throw Exception::runtime_error("Failed to obtain credentials to delete: " +
+                                   m_helper->get_last_error());
+  }
+
+  bool removed = false;
+  for (const auto &spec : specs) {
+    std::string mfa_url;
+    if ((spec.type != Secret_type::PASSWORD || spec.id != validated_url) &&
+        (!is_mfa_secret(spec, &mfa_url) || mfa_url != validated_url)) {
+      continue;
+    }
+
+    if (m_helper->erase(spec)) {
+      removed = true;
+    } else if (const auto error = m_helper->get_last_error();
+               k_no_such_secret_error != error) {
+      if (std::string::npos != error.find(k_invalid_url_error)) {
+        throw Exception::argument_error(error);
+      }
+      throw Exception::runtime_error(
+          str_format("Failed to delete the credential: %s", error.c_str()));
+    }
+  }
+
+  if (!removed) {
+    throw Exception::runtime_error("Failed to delete the credential: " +
+                                   std::string{k_no_such_secret_error});
+  }
+}
+
+void Credential_manager::delete_all_credentials() {
+  check_helper("delete all credentials");
+
+  std::vector<Secret_spec> specs;
+  if (!m_helper->list(&specs)) {
+    throw Exception::runtime_error(
+        "Failed to obtain list of credentials to delete: " +
+        m_helper->get_last_error());
+  }
+
+  std::vector<std::string> errors;
+  for (const auto &spec : specs) {
+    if (spec.type != Secret_type::PASSWORD && !is_mfa_secret(spec)) continue;
+
+    if (!m_helper->erase(spec)) {
+      errors.emplace_back("Failed to delete '" + spec.id +
+                          "': " + m_helper->get_last_error());
+    }
+  }
+
+  if (!errors.empty()) {
+    throw Exception::runtime_error("Failed to delete all credentials:\n" +
+                                   str_join(errors, "\n"));
+  }
+}
+
+std::vector<std::string> Credential_manager::list_credentials() const {
+  check_helper("list credentials");
+
+  std::vector<Secret_spec> specs;
+  if (!m_helper->list(&specs)) {
+    throw Exception::runtime_error("Failed to list credentials: " +
+                                   m_helper->get_last_error());
+  }
+
+  std::set<std::string> credentials;
+  for (const auto &spec : specs) {
+    if (spec.type == Secret_type::PASSWORD) {
+      credentials.emplace(spec.id);
+    } else {
+      std::string url;
+      if (is_mfa_secret(spec, &url)) credentials.emplace(std::move(url));
+    }
+  }
+
+  return {credentials.begin(), credentials.end()};
+}
+
 void Credential_manager::store_secret(const std::string &id,
                                       const std::string &secret) {
+  validate_generic_secret_id(id);
+
   // we prepend 'r' for a unmodified secret and 'b' for a base64-encoded secret
   // we encode the secret if helper reports an error when storing the raw secret
   try {
@@ -429,6 +730,8 @@ void Credential_manager::store_secret(Secret_type type, const std::string &id,
 }
 
 std::string Credential_manager::read_secret(const std::string &id) {
+  validate_generic_secret_id(id);
+
   auto secret = read_secret(Secret_type::GENERIC, id);
 
   if (secret.empty()) {
@@ -475,6 +778,11 @@ std::string Credential_manager::read_secret(Secret_type type,
   return secret;
 }
 
+void Credential_manager::delete_secret(const std::string &id) {
+  validate_generic_secret_id(id);
+  delete_secret(Secret_type::GENERIC, id);
+}
+
 void Credential_manager::delete_secret(Secret_type type,
                                        const std::string &id) {
   check_helper(str_format("delete the %s", to_message(type)));
@@ -505,6 +813,8 @@ void Credential_manager::delete_all_secrets(Secret_type type) {
   std::vector<std::string> errors;
 
   for (const auto &s : specs) {
+    if (type == Secret_type::GENERIC && is_mfa_secret(s)) continue;
+
     if (type == s.type) {
       if (!m_helper->erase(s)) {
         errors.emplace_back("Failed to delete '" + s.id +
@@ -537,7 +847,7 @@ std::vector<std::string> Credential_manager::list_secrets(
   for (auto &s : specs) {
     // type was added to the list() command by WL#16958, helpers may not support
     // it, double check the type
-    if (type == s.type) {
+    if (type == s.type && !(type == Secret_type::GENERIC && is_mfa_secret(s))) {
       ret.emplace_back(std::move(s.id));
     }
   }
@@ -545,7 +855,8 @@ std::vector<std::string> Credential_manager::list_secrets(
   return ret;
 }
 
-bool Credential_manager::should_save_password(const std::string &url) {
+bool Credential_manager::should_save_password(const std::string &url,
+                                              bool all_prompted_passwords) {
   if (is_ignored_url(url)) {
     return false;
   }
@@ -560,9 +871,12 @@ bool Credential_manager::should_save_password(const std::string &url) {
     case Save_passwords::PROMPT:
       if (mysqlsh::current_shell_options()->get().wizards) {
         using mysqlsh::Prompt_answer;
+        const auto message =
+            std::string{all_prompted_passwords ? "Save all prompted passwords"
+                                               : "Save password"} +
+            " for '" + url + "'?";
         auto answer = mysqlsh::current_console()->confirm(
-            "Save password for '" + url + "'?", Prompt_answer::NO, "&Yes",
-            "&No", "Ne&ver");
+            message, Prompt_answer::NO, "&Yes", "&No", "Ne&ver");
 
         switch (answer) {
           case Prompt_answer::YES:

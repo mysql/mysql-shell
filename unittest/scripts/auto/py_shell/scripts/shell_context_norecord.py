@@ -8,11 +8,11 @@ callback_diag_queue = queue.Queue()
 
 def thread_sample_print(thread_name):
     prompt_return = True
-    def print_delegate(text):
+    def print_delegate(text, attributes):
         callback_print_queue.put(text)
-    def diag_delegate(text):
+    def diag_delegate(text, attributes):
         callback_diag_queue.put(text)
-    def prompt_delegate(prompt, options):
+    def prompt_delegate(prompt, options, attributes):
         ret_caption = prompt
         if "defaultValue" in options:
             ret_caption = options["defaultValue"]
@@ -83,7 +83,7 @@ th.join()
 
 #@<> Check if we can register report on the context and get help
 def thread_sample_report(thread_name):
-    def print_delegate(text):
+    def print_delegate(text, attributes):
         callback_print_queue.put(text)
     ctx = shell.create_context({"printDelegate":print_delegate})
     sh = ctx.get_shell()
@@ -167,9 +167,9 @@ th.join()
 
 #@<> Create extension object on the context
 def thread_sample_extension_object(thread_name):
-    def print_delegate(text):
+    def print_delegate(text, attributes):
         callback_print_queue.put(text)
-    def diag_delegate(text):
+    def diag_delegate(text, attributes):
         callback_print_queue.put(text)
     ctx = shell.create_context({"printDelegate":print_delegate, "diagDelegate": diag_delegate})
     sh = ctx.get_shell()

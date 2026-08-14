@@ -1331,15 +1331,19 @@ SYNTAX
       shell.store_credential(url[, password])
 
 WHERE
-      url: URL of the server for the password to be stored.
-      password: Password for the given URL.
+      url: URL of the server for the credential to be stored.
+      password: Optional first-factor password string or password dictionary.
 
 DESCRIPTION
-      If password is not provided, displays password prompt.
+      If a required password is not provided, displays a password prompt.
 
-      If URL is already in storage, it's value is overwritten.
+      Passwords supplied in a password dictionary are stored for their
+      respective authentication factors.
 
-      URL needs to be in the following form: user@(host[:port]|socket).
+      If a credential is already in storage, its value is overwritten.
+
+      The URL must have the form user@(host[:port]|socket). A password
+      dictionary may contain password, password1, password2, and password3.
 
 EXCEPTIONS
       Throws ArgumentError if URL has invalid form.
@@ -1394,18 +1398,18 @@ DESCRIPTION
 
       - printDelegate: function (default not set) which will be called when
         shell function will need to print something to stdout, expected
-        signature: None printDelegate(str).
+        signature: None printDelegate(str, dict).
       - errorDelegate: function (default not set) which will be called when
         shell function will need to print something to stderr, expected
-        signature: None errorDelegate(str).
+        signature: None errorDelegate(str, dict).
       - diagDelegate: function (default not set) which will be called when
         shell function will need to print something diagnostics, expected
-        signature: None diagDelegate(str).
+        signature: None diagDelegate(str, dict).
       - promptDelegate: function (default not set) which will be called when
         shell function will need to ask user for input, this should return a
         tuple where first arguments is boolean indicating if user did input
         something, and second is a user input string, expected signature:
-        tuple<bool,str> promptDelegate(str).
+        tuple<bool,str> promptDelegate(str, dict, dict).
       - passwordDelegate: function (default not set) which will be called when
         shell function will need to ask user for input, this should return a
         tuple where first arguments is boolean indicating if user did input
@@ -1472,8 +1476,13 @@ The following options are valid for use either in a URI or in a dictionary:
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
 - plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
-- plugin-authentication-webauthn-device: Allows selecting the authentication
-  device used for client side webauthn authentication.
+- plugin-authentication-webauthn-device: Non-negative integer selecting the
+  authentication device used for client side webauthn authentication.
+- register-factor: Specifies authentication factors for which device
+  registration needs to be done.
+- plugin-authentication-webauthn-client-preserve-privacy: Boolean that
+  enables the use of discoverable credentials for client side webauthn
+  authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -1493,7 +1502,20 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- password: the password to be used on the connection.
+- password: the password for the first authentication factor. If omitted or
+  set to null, a stored first-factor password is used if available; otherwise,
+  it is prompted for.
+- no-password: if true, sets an empty first-factor password and prevents
+  prompting for it.
+- password1: alias for password. Takes precedence over password. If set to
+  null, a stored first-factor password is used if available; otherwise, it is
+  prompted for.
+- password2: the password for the second authentication factor. If omitted,
+  no password is requested for this factor. If set to null, a stored
+  second-factor password is used if available; otherwise, it is prompted for.
+- password3: the password for the third authentication factor. If omitted,
+  no password is requested for this factor. If set to null, a stored
+  third-factor password is used if available; otherwise, it is prompted for.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
@@ -1762,8 +1784,13 @@ The following options are valid for use either in a URI or in a dictionary:
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
 - plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
-- plugin-authentication-webauthn-device: Allows selecting the authentication
-  device used for client side webauthn authentication.
+- plugin-authentication-webauthn-device: Non-negative integer selecting the
+  authentication device used for client side webauthn authentication.
+- register-factor: Specifies authentication factors for which device
+  registration needs to be done.
+- plugin-authentication-webauthn-client-preserve-privacy: Boolean that
+  enables the use of discoverable credentials for client side webauthn
+  authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -1783,7 +1810,20 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- password: the password to be used on the connection.
+- password: the password for the first authentication factor. If omitted or
+  set to null, a stored first-factor password is used if available; otherwise,
+  it is prompted for.
+- no-password: if true, sets an empty first-factor password and prevents
+  prompting for it.
+- password1: alias for password. Takes precedence over password. If set to
+  null, a stored first-factor password is used if available; otherwise, it is
+  prompted for.
+- password2: the password for the second authentication factor. If omitted,
+  no password is requested for this factor. If set to null, a stored
+  second-factor password is used if available; otherwise, it is prompted for.
+- password3: the password for the third authentication factor. If omitted,
+  no password is requested for this factor. If set to null, a stored
+  third-factor password is used if available; otherwise, it is prompted for.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
@@ -2130,8 +2170,13 @@ The following options are valid for use either in a URI or in a dictionary:
 - net-buffer-length: The buffer size for TCP/IP and socket communication.
 - plugin-authentication-kerberos-client-mode: (Windows) Allows defining the
   kerberos client mode (SSPI, GSSAPI) when using kerberos authentication.
-- plugin-authentication-webauthn-device: Allows selecting the authentication
-  device used for client side webauthn authentication.
+- plugin-authentication-webauthn-device: Non-negative integer selecting the
+  authentication device used for client side webauthn authentication.
+- register-factor: Specifies authentication factors for which device
+  registration needs to be done.
+- plugin-authentication-webauthn-client-preserve-privacy: Boolean that
+  enables the use of discoverable credentials for client side webauthn
+  authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -2151,7 +2196,20 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- password: the password to be used on the connection.
+- password: the password for the first authentication factor. If omitted or
+  set to null, a stored first-factor password is used if available; otherwise,
+  it is prompted for.
+- no-password: if true, sets an empty first-factor password and prevents
+  prompting for it.
+- password1: alias for password. Takes precedence over password. If set to
+  null, a stored first-factor password is used if available; otherwise, it is
+  prompted for.
+- password2: the password for the second authentication factor. If omitted,
+  no password is requested for this factor. If set to null, a stored
+  second-factor password is used if available; otherwise, it is prompted for.
+- password3: the password for the third authentication factor. If omitted,
+  no password is requested for this factor. If set to null, a stored
+  third-factor password is used if available; otherwise, it is prompted for.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.

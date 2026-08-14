@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -164,7 +164,8 @@ std::vector<std::string> Command_watch::parse_arguments(
   return new_args;
 }
 
-bool Command_watch::print_hook(void *user_data, const char *) {
+bool Command_watch::print_hook(void *user_data, const char *,
+                               const shcore::Dictionary_t &) {
   const auto self = static_cast<Command_watch *>(user_data);
 
   if (self->m_clear_screen && self->m_first_line) {

@@ -64,6 +64,7 @@ const std::set<std::string> uri_extra_options = {
     kOpenIdConnectAuthenticationClientTokenFile,
     kClientInteractive,
     kCanHandleExpiredPasswords,
+    kWebauthnClientPreservePrivacy,
     kWebauthnClientDeviceIndex};
 
 int lexical_cast_timeout(const std::string &name, const std::string &value) {
@@ -75,6 +76,17 @@ int lexical_cast_timeout(const std::string &name, const std::string &value) {
     Connection_options::throw_invalid_timeout(name.c_str(), value);
   }
   throw std::runtime_error("lexical_cast_timeout invalid operation.");
+}
+
+bool lexical_cast_bool(const std::string &name, const std::string &value) {
+  const auto lower_case_value = shcore::str_lower(value);
+  if (lower_case_value == "true" || lower_case_value == "1") return true;
+  if (lower_case_value == "false" || lower_case_value == "0") return false;
+
+  throw std::invalid_argument(
+      shcore::str_format("Invalid value '%s' for '%s'. Allowed "
+                         "values: true, false, 1, 0.",
+                         value.c_str(), name.c_str()));
 }
 
 }  // namespace
@@ -140,10 +152,22 @@ void Connection_options::override_with(const Connection_options &options) {
   m_default_transport_type = options.m_default_transport_type;
   m_transport_type = options.m_transport_type;
   m_reject_local_infile_requests = options.m_reject_local_infile_requests;
+  if (options.has_webauthn_client_preserve_privacy()) {
+    m_webauthn_client_preserve_privacy =
+        options.m_webauthn_client_preserve_privacy;
+  }
+  if (options.has_webauth_device_index()) {
+    m_webauth_device_index = options.m_webauth_device_index;
+  }
+  if (options.has_register_factor()) {
+    m_register_factor = options.m_register_factor;
+  }
 
   for (int f = 0; f < k_max_auth_factors; f++) {
-    if (options.has_needs_password(f))
-      set_needs_password(f, options.needs_password(f));
+    const auto requirement = options.password_requirement(f);
+    if (requirement != Password_requirement::kUnspecified) {
+      set_needs_password(f, requirement == Password_requirement::kRequired);
+    }
     if (options.has_mfa_password(f))
       set_mfa_password(f, options.get_mfa_password(f));
   }
@@ -271,23 +295,25 @@ bool Connection_options::has_mfa_password(int factor) const {
   }
 }
 
-bool Connection_options::has_needs_password(int factor) const {
+Password_requirement Connection_options::password_requirement(
+    int factor) const {
   assert(factor >= 0 && factor < k_max_auth_factors);
 
-  return m_needs_password[factor].has_value();
-}
+  if (!m_needs_password[factor].has_value()) {
+    return Password_requirement::kUnspecified;
+  }
 
-bool Connection_options::needs_password(int factor) const {
-  assert(has_needs_password(factor));
-
-  return *m_needs_password[factor];
+  return *m_needs_password[factor] ? Password_requirement::kRequired
+                                   : Password_requirement::kNotRequired;
 }
 
 bool Connection_options::should_prompt_password(int factor) const {
-  return (!has_mfa_password(factor) && has_needs_password(factor) &&
-          needs_password(factor)) ||
+  return (!has_mfa_password(factor) &&
+          password_requirement(factor) == Password_requirement::kRequired) ||
          // prompt for password1 by default
-         (factor == 0 && !has_needs_password(0) && !has_password());
+         (factor == 0 &&
+          password_requirement(0) == Password_requirement::kUnspecified &&
+          !has_password());
 }
 
 void Connection_options::clear_password() { IConnection::clear_password(); }
@@ -459,12 +485,6 @@ bool Connection_options::is_extra_option(const std::string &option) {
                       }) != uri_extra_options.end();
 }
 
-bool Connection_options::is_bool_value(const std::string &value) {
-  auto lower_case_value = shcore::str_lower(value);
-  return lower_case_value == "true" || lower_case_value == "false" ||
-         lower_case_value == "1" || lower_case_value == "0";
-}
-
 void Connection_options::set(const std::string &name,
                              const std::string &value) {
   using namespace std::string_literals;
@@ -496,6 +516,18 @@ void Connection_options::set(const std::string &name,
     set_net_read_timeout(lexical_cast_timeout(db::kNetReadTimeout, value));
   } else if (compare(name, db::kNetWriteTimeout) == 0) {
     set_net_write_timeout(lexical_cast_timeout(db::kNetWriteTimeout, value));
+  } else if (compare(name, kWebauthnClientPreservePrivacy) == 0) {
+    set_webauthn_client_preserve_privacy(lexical_cast_bool(name, value));
+  } else if (compare(name, kWebauthnClientDeviceIndex) == 0) {
+    try {
+      set_webauth_device_index(shcore::lexical_cast<int>(value));
+    } catch (...) {
+      throw std::invalid_argument(
+          "The value of '"s + kWebauthnClientDeviceIndex +
+          "' must be an integer equal to or greater than 0."s);
+    }
+  } else if (compare(name, kRegisterFactor) == 0) {
+    set_register_factor(value);
   }
 #ifdef _WIN32
   else if (name == kKerberosClientAuthMode) {
@@ -507,25 +539,11 @@ void Connection_options::set(const std::string &name,
         compare(name, kClientInteractive) == 0 ||
         compare(name, kCanHandleExpiredPasswords) == 0 ||
         compare(name, kLocalInfile) == 0) {
-      if (!is_bool_value(value)) {
-        throw std::invalid_argument(
-            shcore::str_format("Invalid value '%s' for '%s'. Allowed "
-                               "values: true, false, 1, 0.",
-                               value.c_str(), name.c_str()));
-      }
+      lexical_cast_bool(name, value);
     }
     if (name == kOpenIdConnectAuthenticationClientTokenFile &&
         !has_value(kAuthMethod)) {
       set(kAuthMethod, kAuthMethodOpenIdConnect);
-    }
-    if (name == kWebauthnClientDeviceIndex) {
-      try {
-        set_webauth_device_index(shcore::lexical_cast<uint8_t>(value));
-      } catch (...) {
-        throw std::invalid_argument(
-            "The value of '"s + kWebauthnClientDeviceIndex +
-            "' must be an integer equal to or greater than 0."s);
-      }
     }
     m_extra_options.set(name, value, Set_mode::CREATE);
   } else if (name == kConnectionAttributes) {
@@ -534,14 +552,15 @@ void Connection_options::set(const std::string &name,
     // it should avoid ANY connection attribute to be sent, however
     // on the shell this behavior is not present, see WL12446 NOTES on FR10
     // for more details
-    if (!value.empty() && !is_bool_value(value)) {
-      throw std::invalid_argument(
-          "The value of 'connection-attributes' must be either a boolean or a "
-          "list of key-value pairs.");
-    } else {
-      auto lower_case_value = shcore::str_lower(value);
-      if (lower_case_value == "0" || lower_case_value == "false") {
-        m_enable_connection_attributes = false;
+    if (!value.empty()) {
+      try {
+        if (!lexical_cast_bool(name, value)) {
+          m_enable_connection_attributes = false;
+        }
+      } catch (const std::invalid_argument &) {
+        throw std::invalid_argument(
+            "The value of 'connection-attributes' must be either a boolean "
+            "or a list of key-value pairs.");
       }
     }
   } else if (name == kCompressionLevel) {
@@ -617,6 +636,9 @@ bool Connection_options::has(const std::string &name) const {
   if (name == db::kNetReadTimeout) return has_net_read_timeout();
   if (name == db::kNetWriteTimeout) return has_net_write_timeout();
   if (name == db::kWebauthnClientDeviceIndex) return has_webauth_device_index();
+  if (name == db::kWebauthnClientPreservePrivacy)
+    return has_webauthn_client_preserve_privacy();
+  if (name == db::kRegisterFactor) return has_register_factor();
 
   return m_options.has(name) || m_ssl_options.has(name) ||
          m_extra_options.has(name) || m_options.compare(name, kPort) == 0;
@@ -633,6 +655,10 @@ bool Connection_options::has_value(const std::string &name) const {
     return has_net_read_timeout();
   else if (m_options.compare(name, kNetWriteTimeout) == 0)
     return has_net_write_timeout();
+  else if (m_options.compare(name, kWebauthnClientPreservePrivacy) == 0)
+    return has_webauthn_client_preserve_privacy();
+  else if (m_options.compare(name, kRegisterFactor) == 0)
+    return has_register_factor();
   else if (m_options.has(name))
     return m_options.has_value(name);
   else if (m_ssl_options.has(name))
@@ -664,6 +690,21 @@ Connection_options::query_attributes() const {
         uri_extra_options.find(option.first) != uri_extra_options.end()) {
       attributes.push_back(option);
     }
+  }
+
+  if (has_webauthn_client_preserve_privacy()) {
+    attributes.push_back(
+        {kWebauthnClientPreservePrivacy,
+         get_webauthn_client_preserve_privacy() ? "true" : "false"});
+  }
+
+  if (has_webauth_device_index()) {
+    attributes.push_back({kWebauthnClientDeviceIndex,
+                          std::to_string(get_webauth_device_index())});
+  }
+
+  if (has_register_factor()) {
+    attributes.push_back({kRegisterFactor, get_register_factor()});
   }
 
   if (has_connect_timeout()) {
@@ -736,6 +777,11 @@ const std::string &Connection_options::get(const std::string &name) const {
   if (m_extra_options.has(name)) return m_extra_options.get_value(name);
   if (m_options.compare(name, kSocket) == 0) return get_socket();
   if (m_options.compare(name, kPipe) == 0) return get_pipe();
+  if (m_options.compare(name, kWebauthnClientPreservePrivacy) == 0) {
+    static const std::string k_true{"true"};
+    static const std::string k_false{"false"};
+    return get_webauthn_client_preserve_privacy() ? k_true : k_false;
+  }
 
   return get_value(name);
 }
@@ -766,6 +812,19 @@ void Connection_options::clear_pipe() {
 }
 
 void Connection_options::remove(const std::string &name) {
+  if (m_options.compare(name, kWebauthnClientDeviceIndex) == 0) {
+    m_webauth_device_index.reset();
+    return;
+  }
+  if (m_options.compare(name, kWebauthnClientPreservePrivacy) == 0) {
+    m_webauthn_client_preserve_privacy.reset();
+    return;
+  }
+  if (m_options.compare(name, kRegisterFactor) == 0) {
+    m_register_factor.reset();
+    return;
+  }
+
   // Can't delete fixed values
   if (m_options.has(name))
     throw std::invalid_argument(
@@ -787,6 +846,10 @@ bool Connection_options::operator==(const Connection_options &other) const {
              other.m_enable_connection_attributes &&
          m_connection_attributes == other.m_connection_attributes &&
          m_port == other.m_port && m_transport_type == other.m_transport_type &&
+         m_webauth_device_index == other.m_webauth_device_index &&
+         m_webauthn_client_preserve_privacy ==
+             other.m_webauthn_client_preserve_privacy &&
+         m_register_factor == other.m_register_factor &&
          m_reject_local_infile_requests == other.m_reject_local_infile_requests;
 }
 
@@ -994,13 +1057,45 @@ bool Connection_options::has_webauth_device_index() const {
   return m_webauth_device_index.has_value();
 }
 
-void Connection_options::set_webauth_device_index(uint8_t index) {
+void Connection_options::set_webauth_device_index(int index) {
+  if (index < 0) {
+    throw std::invalid_argument(std::string("The value of '") +
+                                kWebauthnClientDeviceIndex +
+                                "' must be an integer equal to or greater "
+                                "than 0.");
+  }
   m_webauth_device_index = index;
 }
 
-uint8_t Connection_options::get_webauth_device_index() const {
+int Connection_options::get_webauth_device_index() const {
   assert(has_webauth_device_index());
   return *m_webauth_device_index;
+}
+
+bool Connection_options::has_webauthn_client_preserve_privacy() const {
+  return m_webauthn_client_preserve_privacy.has_value();
+}
+
+void Connection_options::set_webauthn_client_preserve_privacy(bool value) {
+  m_webauthn_client_preserve_privacy = value;
+}
+
+bool Connection_options::get_webauthn_client_preserve_privacy() const {
+  assert(has_webauthn_client_preserve_privacy());
+  return *m_webauthn_client_preserve_privacy;
+}
+
+bool Connection_options::has_register_factor() const {
+  return m_register_factor.has_value();
+}
+
+void Connection_options::set_register_factor(const std::string &factor) {
+  m_register_factor = factor;
+}
+
+const std::string &Connection_options::get_register_factor() const {
+  assert(has_register_factor());
+  return *m_register_factor;
 }
 
 void Connection_options::set_connection_attribute(const std::string &attribute,

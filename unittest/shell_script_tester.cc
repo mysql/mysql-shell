@@ -79,7 +79,8 @@ class TestResultCatcher : public ::testing::EmptyTestEventListener {
 
 //-----------------------------------------------------------------------------
 
-static bool do_print(void * /* udata */, const char *s) {
+static bool do_print(void * /* udata */, const char *s,
+                     const shcore::Dictionary_t & /*attributes*/) {
   printf("%s", s);
   fflush(stdout);
   return true;
@@ -88,7 +89,7 @@ static bool do_print(void * /* udata */, const char *s) {
 static shcore::Prompt_result do_prompt(
     void * /* udata */, const char *prompt,
     const shcore::prompt::Prompt_options & /*options*/,
-    std::string *ret_input) {
+    const shcore::Dictionary_t & /*attributes*/, std::string *ret_input) {
   printf("%s", prompt);
   fflush(stdout);
   std::cin >> *ret_input;

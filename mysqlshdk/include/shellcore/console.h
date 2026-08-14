@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -93,7 +93,8 @@ class IConsole {
       shcore::prompt::Prompt_type type = shcore::prompt::Prompt_type::TEXT,
       const std::string &title = "",
       const std::vector<std::string> &description = {},
-      const std::string &default_value = "") const = 0;
+      const std::string &default_value = "",
+      const Json_attributes &attribs = {}) const = 0;
 
   /**
    * Show confirmation prompt with the displayed options.
@@ -119,7 +120,8 @@ class IConsole {
   virtual shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
       Validator validator = nullptr, const std::string &title = "",
-      const std::vector<std::string> &description = {}) const = 0;
+      const std::vector<std::string> &description = {},
+      const Json_attributes &attribs = {}) const = 0;
 
   virtual bool select(
       const std::string &prompt_text, std::string *result,

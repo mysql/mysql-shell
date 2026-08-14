@@ -63,6 +63,11 @@ inline constexpr int k_default_mysql_port = 3306;
 inline constexpr int k_default_mysql_x_port = 33060;
 
 inline constexpr int k_max_auth_factors = 3;
+
+using Auth_factor_mask = std::array<bool, k_max_auth_factors>;
+
+enum class Password_requirement { kUnspecified, kNotRequired, kRequired };
+
 class SHCORE_PUBLIC Connection_options : public IConnection {
  public:
   using Nullable_options = mysqlshdk::utils::Nullable_options;
@@ -119,9 +124,7 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   const std::vector<std::string> &get_warnings() const { return m_warnings; }
   bool has_password() const override { return has_value(kPassword); }
   bool has_mfa_password(int factor) const;
-  bool has_needs_password(int factor) const;
-
-  bool needs_password(int factor) const;
+  Password_requirement password_requirement(int factor) const;
 
   /**
    * This function returns a boolean indicating if the password should be
@@ -280,13 +283,20 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   }
 
   bool has_webauth_device_index() const;
-  void set_webauth_device_index(uint8_t index);
-  uint8_t get_webauth_device_index() const;
+  void set_webauth_device_index(int index);
+  int get_webauth_device_index() const;
+
+  bool has_webauthn_client_preserve_privacy() const;
+  void set_webauthn_client_preserve_privacy(bool value);
+  bool get_webauthn_client_preserve_privacy() const;
+
+  bool has_register_factor() const;
+  void set_register_factor(const std::string &factor);
+  const std::string &get_register_factor() const;
 
  private:
   void _set_fixed(const std::string &key, const std::string &val);
   bool is_extra_option(const std::string &option);
-  bool is_bool_value(const std::string &value);
   bool uses_local_transport() const;
 
   void check_compression_conflicts();
@@ -297,7 +307,9 @@ class SHCORE_PUBLIC Connection_options : public IConnection {
   std::optional<int> m_connect_timeout;
   std::optional<int> m_net_read_timeout;
   std::optional<int> m_net_write_timeout;
-  std::optional<uint8_t> m_webauth_device_index;
+  std::optional<int> m_webauth_device_index;
+  std::optional<bool> m_webauthn_client_preserve_privacy;
+  std::optional<std::string> m_register_factor;
 
   Ssl_options m_ssl_options;
   ssh::Ssh_connection_options m_ssh_options;

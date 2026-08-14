@@ -80,6 +80,14 @@ with TEST("plaintext"):
 with TEST("plaintext"):
     EXPECT_THROWS(lambda: shell.store_secret("", test_secret), "ValueError: Key cannot be empty.")
 
+#@<> Shell namespace is reserved
+with TEST("plaintext"):
+    key = "mysqlsh:reserved"
+    error = "ValueError: Secret ID is reserved for internal use."
+    EXPECT_THROWS(lambda: shell.store_secret(key, test_secret), error)
+    EXPECT_THROWS(lambda: shell.read_secret(key), error)
+    EXPECT_THROWS(lambda: shell.delete_secret(key), error)
+
 #@<> WL16958-TSFR_1_2_6 - prompt for empty value
 with TEST("plaintext"):
     # store

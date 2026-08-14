@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -27,8 +27,18 @@
 #include <utility>
 #include "modules/mod_shell.h"
 #include "mysqlshdk/include/scripting/types.h"
+#include "mysqlshdk/libs/utils/logger.h"
 
 namespace mysqlsh {
+namespace {
+
+void log_delegate_error(const char *delegate, const std::exception &error) {
+  if (shcore::current_logger()->log_allowed()) {
+    log_error("Exception in %s: %s", delegate, error.what());
+  }
+}
+
+}  // namespace
 
 Delegate_wrapper::Delegate_wrapper(
     const Shell_context_wrapper_options &callbacks)
@@ -43,12 +53,13 @@ Delegate_wrapper::Delegate_wrapper(
 }
 
 shcore::Value Delegate_wrapper::call_delegate(
-    void *cdata, const char *text,
+    void *cdata, const char *text, const shcore::Dictionary_t &attributes,
     shcore::Function_base_ref Delegate_wrapper::*func) {
   Delegate_wrapper *self = reinterpret_cast<Delegate_wrapper *>(cdata);
   if (self && text && self->*func) {
     shcore::Argument_list r;
     r.push_back(shcore::Value(text));
+    r.push_back(shcore::Value(attributes));
     return (self->*func)->invoke(r);
   }
   return shcore::Value();
@@ -57,6 +68,7 @@ shcore::Value Delegate_wrapper::call_delegate(
 shcore::Value Delegate_wrapper::call_prompt_delegate(
     void *cdata, const char *text,
     const shcore::prompt::Prompt_options &options,
+    const shcore::Dictionary_t &attributes,
     shcore::Function_base_ref Delegate_wrapper::*func) {
   using shcore::prompt::Prompt_type;
   Delegate_wrapper *self = reinterpret_cast<Delegate_wrapper *>(cdata);
@@ -106,6 +118,7 @@ shcore::Value Delegate_wrapper::call_prompt_delegate(
     }
 
     r.push_back(shcore::Value(options_dict));
+    r.push_back(shcore::Value(attributes));
 
     return (self->*func)->invoke(r);
   }
@@ -130,38 +143,56 @@ shcore::Prompt_result Delegate_wrapper::get_prompt_value(
 
 shcore::Prompt_result Delegate_wrapper::deleg_prompt(
     void *cdata, const char *text,
-    const shcore::prompt::Prompt_options &options, std::string *ret) {
-  return get_prompt_value(
-      call_prompt_delegate(cdata, text, options,
-                           &Delegate_wrapper::m_deleg_prompt_func),
-      ret);
+    const shcore::prompt::Prompt_options &options,
+    const shcore::Dictionary_t &attributes, std::string *ret) {
+  try {
+    return get_prompt_value(
+        call_prompt_delegate(cdata, text, options, attributes,
+                             &Delegate_wrapper::m_deleg_prompt_func),
+        ret);
+  } catch (const std::exception &error) {
+    log_delegate_error("promptDelegate callback", error);
+    return shcore::Prompt_result::Cancel;
+  }
 }
 
-bool Delegate_wrapper::deleg_print(void *cdata, const char *text) {
-  call_delegate(cdata, text, &Delegate_wrapper::m_deleg_print_func);
+bool Delegate_wrapper::deleg_print(void *cdata, const char *text,
+                                   const shcore::Dictionary_t &attributes) {
+  try {
+    call_delegate(cdata, text, attributes,
+                  &Delegate_wrapper::m_deleg_print_func);
+  } catch (const std::exception &error) {
+    log_delegate_error("printDelegate callback", error);
+  }
   return true;
 }
 
-bool Delegate_wrapper::deleg_print_error(void *cdata, const char *text) {
-  call_delegate(cdata, text, &Delegate_wrapper::m_deleg_error_func);
+bool Delegate_wrapper::deleg_print_error(
+    void *cdata, const char *text, const shcore::Dictionary_t &attributes) {
+  try {
+    call_delegate(cdata, text, attributes,
+                  &Delegate_wrapper::m_deleg_error_func);
+  } catch (const std::exception &error) {
+    log_delegate_error("errorDelegate callback", error);
+  }
   return true;
 }
 
-bool Delegate_wrapper::deleg_print_diag(void *cdata, const char *text) {
-  call_delegate(cdata, text, &Delegate_wrapper::m_deleg_diag_func);
+bool Delegate_wrapper::deleg_print_diag(
+    void *cdata, const char *text, const shcore::Dictionary_t &attributes) {
+  try {
+    call_delegate(cdata, text, attributes,
+                  &Delegate_wrapper::m_deleg_diag_func);
+  } catch (const std::exception &error) {
+    log_delegate_error("diagDelegate callback", error);
+  }
   return true;
-}
-
-void Shell_context_wrapper_options::on_start_unpack(
-    const shcore::Dictionary_t &options) {
-  m_options = options;
 }
 
 const shcore::Option_pack_def<Shell_context_wrapper_options>
     &Shell_context_wrapper_options::options() {
   static const auto opts =
       shcore::Option_pack_def<Shell_context_wrapper_options>()
-          .on_start(&Shell_context_wrapper_options::on_start_unpack)
           .optional("logFile", &Shell_context_wrapper_options::m_log_file)
           .optional("printDelegate",
                     &Shell_context_wrapper_options::m_deleg_print_func)

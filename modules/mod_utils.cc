@@ -25,6 +25,8 @@
 
 #include "modules/mod_utils.h"
 
+#include <algorithm>
+#include <array>
 #include <string>
 #include <utility>
 
@@ -44,6 +46,24 @@
 #include "mysqlshdk/shellcore/credential_manager.h"
 
 namespace mysqlsh {
+
+void validate_mfa_connection_options(
+    const Connection_options &connection_options) {
+  if (connection_options.has_scheme() &&
+      connection_options.get_scheme() == "mysqlx" &&
+      (connection_options.has_mfa_password(1) ||
+       connection_options.has_mfa_password(2) ||
+       connection_options.has_register_factor() ||
+       connection_options.has_webauth_device_index() ||
+       connection_options.has_webauthn_client_preserve_privacy() ||
+       connection_options.password_requirement(1) ==
+           mysqlshdk::db::Password_requirement::kRequired ||
+       connection_options.password_requirement(2) ==
+           mysqlshdk::db::Password_requirement::kRequired)) {
+    throw shcore::Exception::argument_error(
+        "Multi-factor authentication is only compatible with MySQL protocol");
+  }
+}
 
 namespace {
 
@@ -107,6 +127,9 @@ Connection_options get_connection_options(
   connection_map.ensure_keys(mandatory, mysqlshdk::db::connection_attributes(),
                              "connection options", case_sensitive);
 
+  bool suppress_password_prompt = false;
+  const shcore::Value::Map_type::value_type *password1_option = nullptr;
+
   // First we load uri if possible, so we can override it later with explicit
   // options.
   for (auto &option : *instance_def) {
@@ -124,6 +147,29 @@ Connection_options get_connection_options(
       continue;  // those will be handled in different place
     } else if (ret_val.compare(option.first, mysqlshdk::db::kUri) == 0) {
       continue;  // those were already handled
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kNoPassword) == 0) {
+      suppress_password_prompt = connection_map.bool_at(option.first);
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kPassword1) == 0) {
+      // Apply password1 after all other options, including password.
+      password1_option = &option;
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kPassword2) == 0) {
+      if (option.second.get_type() == shcore::Null) {
+        ret_val.clear_mfa_password(1);
+        ret_val.set_needs_password(1, true);
+      } else {
+        ret_val.set_mfa_password(1, connection_map.string_at(option.first));
+      }
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kPassword3) == 0) {
+      if (option.second.get_type() == shcore::Null) {
+        ret_val.clear_mfa_password(2);
+        ret_val.set_needs_password(2, true);
+      } else {
+        ret_val.set_mfa_password(2, connection_map.string_at(option.first));
+      }
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kPassword) == 0 &&
+               option.second.get_type() == shcore::Null) {
+      ret_val.clear_password();
+      ret_val.set_needs_password(0, true);
     } else if (ret_val.compare(option.first, mysqlshdk::db::kHost) == 0) {
       const auto &host = connection_map.string_at(option.first);
 
@@ -177,6 +223,24 @@ Connection_options get_connection_options(
         ret_val.set(mysqlshdk::db::kConnectionAttributes,
                     option.second.descr());
       }
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kRegisterFactor) ==
+               0) {
+      if (option.second.get_type() != shcore::String &&
+          option.second.get_type() != shcore::Integer) {
+        throw shcore::Exception::type_error(
+            "The 'register-factor' connection option must be a string or an "
+            "integer.");
+      }
+      ret_val.set_register_factor(option.second.descr());
+    } else if (ret_val.compare(option.first,
+                               mysqlshdk::db::kWebauthnClientDeviceIndex) ==
+               0) {
+      ret_val.set_webauth_device_index(connection_map.int_at(option.first));
+    } else if (ret_val.compare(option.first,
+                               mysqlshdk::db::kWebauthnClientPreservePrivacy) ==
+               0) {
+      ret_val.set_webauthn_client_preserve_privacy(
+          connection_map.bool_at(option.first));
     } else if (ret_val.compare(option.first,
                                mysqlshdk::db::kClientInteractive) == 0 ||
                ret_val.compare(option.first,
@@ -203,6 +267,22 @@ Connection_options get_connection_options(
       ret_val.set(option.first, connection_map.string_at(option.first));
     }
   }
+
+  if (password1_option != nullptr) {
+    if (password1_option->second.get_type() == shcore::Null) {
+      ret_val.clear_password();
+      ret_val.set_needs_password(0, true);
+    } else {
+      ret_val.set_password(connection_map.string_at(password1_option->first));
+    }
+  }
+
+  if (suppress_password_prompt) {
+    ret_val.set_needs_password(0, false);
+    ret_val.set_password("");
+  }
+
+  validate_mfa_connection_options(ret_val);
 
   // The ssh has to be set as the last step cause we need the host and port to
   // be set, otherwise we can't use the tunneling.
@@ -287,6 +367,23 @@ shcore::Value::Map_type_ref get_connection_map(
   if (connection_options.has_password())
     (*map)[mysqlshdk::db::kPassword] =
         shcore::Value(connection_options.get_password());
+  else if (connection_options.password_requirement(0) ==
+           mysqlshdk::db::Password_requirement::kRequired)
+    (*map)[mysqlshdk::db::kPassword] = shcore::Value::Null();
+
+  if (connection_options.has_mfa_password(1))
+    (*map)[mysqlshdk::db::kPassword2] =
+        shcore::Value(connection_options.get_mfa_password(1));
+  else if (connection_options.password_requirement(1) ==
+           mysqlshdk::db::Password_requirement::kRequired)
+    (*map)[mysqlshdk::db::kPassword2] = shcore::Value::Null();
+
+  if (connection_options.has_mfa_password(2))
+    (*map)[mysqlshdk::db::kPassword3] =
+        shcore::Value(connection_options.get_mfa_password(2));
+  else if (connection_options.password_requirement(2) ==
+           mysqlshdk::db::Password_requirement::kRequired)
+    (*map)[mysqlshdk::db::kPassword3] = shcore::Value::Null();
 
   if (connection_options.has_host())
     (*map)[mysqlshdk::db::kHost] = shcore::Value(connection_options.get_host());
@@ -359,6 +456,19 @@ shcore::Value::Map_type_ref get_connection_map(
     else {
       (*map)[option.first] = shcore::Value(*option.second);
     }
+  }
+
+  if (connection_options.has_webauthn_client_preserve_privacy()) {
+    (*map)[mysqlshdk::db::kWebauthnClientPreservePrivacy] = shcore::Value(
+        connection_options.get_webauthn_client_preserve_privacy());
+  }
+  if (connection_options.has_webauth_device_index()) {
+    (*map)[mysqlshdk::db::kWebauthnClientDeviceIndex] =
+        shcore::Value(connection_options.get_webauth_device_index());
+  }
+  if (connection_options.has_register_factor()) {
+    (*map)[mysqlshdk::db::kRegisterFactor] =
+        shcore::Value(connection_options.get_register_factor());
   }
 
   if (connection_options.has_connect_timeout()) {
@@ -444,6 +554,10 @@ std::shared_ptr<mysqlshdk::db::ISession> create_and_connect(
     }
   }
 
+  if (type == mysqlsh::SessionType::X) {
+    validate_mfa_connection_options(copy);
+  }
+
   switch (type) {
     case mysqlsh::SessionType::X:
       session = create_x_session();
@@ -494,7 +608,8 @@ std::shared_ptr<mysqlshdk::db::ISession> create_session(
   return session;
 }
 
-void password_prompt(Connection_options *options) {
+mysqlshdk::db::Auth_factor_mask password_prompt(Connection_options *options) {
+  mysqlshdk::db::Auth_factor_mask prompted{};
   const std::string uri =
       options->as_uri(mysqlshdk::db::uri::formats::user_transport());
   for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; factor++) {
@@ -507,10 +622,45 @@ void password_prompt(Connection_options *options) {
 
     if (result == shcore::Prompt_result::Ok) {
       options->set_mfa_password(factor, answer);
+      prompted[factor] = true;
     } else {
       throw shcore::cancelled("Cancelled");
     }
   }
+
+  return prompted;
+}
+
+void prepare_password_retry(Connection_options *options) {
+  // Access denied does not identify which authentication factor failed. Do not
+  // reuse any supplied password that can be prompted again. Values explicitly
+  // disabled for password1 by --no-password remain authoritative.
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (!options->has_mfa_password(factor) ||
+        (factor == 0 &&
+         options->password_requirement(factor) ==
+             mysqlshdk::db::Password_requirement::kNotRequired)) {
+      continue;
+    }
+
+    options->clear_mfa_password(factor);
+    options->set_needs_password(factor, true);
+  }
+}
+
+bool can_prompt_password(const Connection_options &options) {
+  if (!options.has_user() ||
+      options.is_auth_method(mysqlshdk::db::kAuthMethodKerberos) ||
+      options.is_auth_method(mysqlshdk::db::kAuthMethodOci) ||
+      options.is_auth_method(mysqlshdk::db::kAuthMethodOpenIdConnect)) {
+    return false;
+  }
+
+  for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (options.should_prompt_password(factor)) return true;
+  }
+
+  return false;
 }
 
 }  // namespace
@@ -562,20 +712,52 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
       tunnel = mysqlshdk::ssh::current_ssh_manager()->create_tunnel(&ssh);
     }
 
-    // TODO(alfredo) - password storage for MFA needs to be figured out
-    if (!copy.has_password() && copy.has_user() && enable_stored_passwords) {
-      if (shcore::Credential_manager::get().get_password(&copy)) {
+    mysqlshdk::db::Auth_factor_mask requested_passwords{};
+    for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+      requested_passwords[factor] = copy.should_prompt_password(factor);
+    }
+
+    const auto credential_url =
+        shcore::Credential_manager::normalize_credential_url(copy);
+    shcore::Credential_manager::Mfa_passwords credential_passwords{};
+    for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+      if (copy.has_mfa_password(factor)) {
+        credential_passwords[factor] = copy.get_mfa_password(factor);
+      }
+    }
+
+    mysqlshdk::db::Auth_factor_mask cached_passwords{};
+    if (copy.has_user() && enable_stored_passwords) {
+      cached_passwords = shcore::Credential_manager::get().get_mfa_passwords(
+          credential_url, requested_passwords, &credential_passwords);
+      for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors;
+           ++factor) {
+        if (cached_passwords[factor]) {
+          copy.set_mfa_password(factor, *credential_passwords[factor]);
+        }
+      }
+      bool all_requested_passwords_available = true;
+      for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors;
+           ++factor) {
+        if (requested_passwords[factor] && !copy.has_mfa_password(factor)) {
+          all_requested_passwords_available = false;
+          break;
+        }
+      }
+
+      if (all_requested_passwords_available &&
+          std::any_of(cached_passwords.begin(), cached_passwords.end(),
+                      [](bool cached) { return cached; })) {
         try {
           return create_session(copy, feature_id);
         } catch (const mysqlshdk::db::Error &e) {
           if (e.code() != ER_ACCESS_DENIED_ERROR) {
             throw;
           } else {
-            // we don't which password was wrong, so assume all of them were
-            for (int f = 0; f < mysqlshdk::db::k_max_auth_factors; f++)
-              copy.clear_mfa_password(f);
-
-            shcore::Credential_manager::get().remove_password(copy);
+            shcore::Credential_manager::get().remove_mfa_passwords(
+                credential_url, cached_passwords);
+            prepare_password_retry(&copy);
+            cached_passwords.fill(false);
             log_info(
                 "Connection to \"%s\" could not be established using the "
                 "stored password: %s. Invalid password has been erased.",
@@ -590,21 +772,12 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
     if (prompt_for_password) {
       do {
         bool prompted_for_password = false;
-        bool should_prompt = false;
-        for (int f = 0; f < mysqlshdk::db::k_max_auth_factors; f++) {
-          if (copy.should_prompt_password(f)) {
-            should_prompt = true;
-            break;
-          }
-        }
+        mysqlshdk::db::Auth_factor_mask prompted_passwords{};
 
         // TODO(alfredo) - kerberos/oci should disable password prompt in
         // shell_options
-        if (should_prompt && copy.has_user() &&
-            !copy.is_auth_method(mysqlshdk::db::kAuthMethodKerberos) &&
-            !copy.is_auth_method(mysqlshdk::db::kAuthMethodOci) &&
-            !copy.is_auth_method(mysqlshdk::db::kAuthMethodOpenIdConnect)) {
-          password_prompt(&copy);
+        if (can_prompt_password(copy)) {
+          prompted_passwords = password_prompt(&copy);
           prompted_for_password = true;
         }
 
@@ -614,24 +787,47 @@ std::shared_ptr<mysqlshdk::db::ISession> establish_session(
           if (prompted_for_password &&
               (!mysqlsh::current_shell_options()->get().passwords_from_stdin ||
                mysqlsh::current_shell_options()->get().gui_mode)) {
-            // save password using the same connection options as the ones used
-            // to fetch the password from the secret storage
-            shcore::Credential_manager::get().save_password(copy);
+            shcore::Credential_manager::Mfa_passwords prompted_values{};
+            for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors;
+                 ++factor) {
+              if (prompted_passwords[factor] && copy.has_mfa_password(factor)) {
+                prompted_values[factor] = copy.get_mfa_password(factor);
+              }
+            }
+            shcore::Credential_manager::get().save_mfa_passwords(
+                credential_url, prompted_values, prompted_passwords);
           }
 
           return session;
         } catch (const mysqlshdk::db::Error &e) {
+          if (e.code() == ER_ACCESS_DENIED_ERROR) {
+            shcore::Credential_manager::get().remove_mfa_passwords(
+                credential_url, cached_passwords);
+          }
+
           if (!prompt_in_loop || e.code() != ER_ACCESS_DENIED_ERROR) {
             throw;
           } else {
-            copy.clear_password();
+            prepare_password_retry(&copy);
+            cached_passwords.fill(false);
+
+            if (!can_prompt_password(copy)) throw;
+
             current_console()->print_error(e.format());
           }
         }
       } while (prompt_in_loop);
     }
 
-    return create_session(copy, feature_id);
+    try {
+      return create_session(copy, feature_id);
+    } catch (const mysqlshdk::db::Error &e) {
+      if (e.code() == ER_ACCESS_DENIED_ERROR) {
+        shcore::Credential_manager::get().remove_mfa_passwords(
+            credential_url, cached_passwords);
+      }
+      throw;
+    }
   } catch (const mysqlshdk::db::Error &e) {
     throw shcore::Exception::mysql_error_with_code_and_state(e.what(), e.code(),
                                                              e.sqlstate());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2016, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -240,6 +240,7 @@ std::shared_ptr<shcore::Object_bridge> Mysqlx::get_session(
   auto co = co_;
   set_password_from_string(&co, password);
   co.set_scheme("mysqlx");
+  validate_mfa_connection_options(co);
   return Session::create(co);
 }
 #endif

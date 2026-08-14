@@ -224,9 +224,10 @@ static std::string table_name_for_chunk_file(const std::string &f) {
 }
 
 shcore::Interpreter_print_handler g_silencer(
-    nullptr, [](void *, const char *) { return true; },
-    [](void *, const char *) { return true; },
-    [](void *, const char *) { return true; });
+    nullptr,
+    [](void *, const char *, const shcore::Dictionary_t &) { return true; },
+    [](void *, const char *, const shcore::Dictionary_t &) { return true; },
+    [](void *, const char *, const shcore::Dictionary_t &) { return true; });
 
 namespace {
 #include "unittest/data/load/test_dump1.h"

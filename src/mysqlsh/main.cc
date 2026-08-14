@@ -33,7 +33,6 @@
 #include "mysqlshdk/include/shellcore/base_session.h"
 #include "mysqlshdk/include/shellcore/interrupt_helper.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
-#include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
 #include "mysqlshdk/libs/textui/textui.h"
 #include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/debug.h"
@@ -592,27 +591,8 @@ int main(int argc, char **argv) {
                 "insecure.");
           }
 
-          std::function<void(std::shared_ptr<mysqlshdk::db::ISession>)>
-              extra_init;
-
-          if (!options.register_factor.empty()) {
-            extra_init =
-                [&options](std::shared_ptr<mysqlshdk::db::ISession> session) {
-                  auto mysql_session =
-                      std::dynamic_pointer_cast<mysqlshdk::db::mysql::Session>(
-                          session);
-
-                  if (mysql_session) {
-                    mysqlshdk::db::mysql::fido::register_device(
-                        mysql_session->get_handle(),
-                        options.register_factor.c_str());
-                  }
-                };
-          }
-
           // Connect to the requested instance
-          shell->connect(target, true, std::move(extra_init),
-                         !options.prompt_password);
+          shell->connect(target, true, {}, !options.prompt_password);
 
           // if protocol was auto-detected in 5.7 and turned out to be X
           // protocol, then recommend using --mysqlx. This is a problem in 5.7

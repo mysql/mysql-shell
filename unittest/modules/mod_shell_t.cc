@@ -35,6 +35,8 @@
 #include "modules/mod_mysql_resultset.h"
 #include "modules/mod_mysql_session.h"
 #include "modules/mod_shell.h"
+#include "modules/mod_shell_context.h"
+#include "mysqlshdk/include/scripting/types/cpp.h"
 #include "scripting/types.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
@@ -304,6 +306,68 @@ TEST_F(mod_shell_test, pqc_status_output) {
   MY_EXPECT_STDOUT_NOT_CONTAINS("TLS signature algorithm:");
 
   _backend->shell_context()->set_dev_session({});
+}
+
+TEST_F(mod_shell_test, context_delegates_json_attributes) {
+  std::string print_text;
+  std::string print_source;
+  std::string prompt_text;
+  std::string prompt_type;
+  std::string prompt_source;
+  std::exception_ptr error;
+
+  std::thread worker([&] {
+    try {
+      const auto print_delegate = shcore::Cpp_function::create(
+          "print",
+          [&print_text, &print_source](const shcore::Argument_list &arguments) {
+            print_text = arguments[0].as_string();
+            print_source = arguments[1].as_map()->get_string("source");
+            return shcore::Value();
+          },
+          {{"text", shcore::String}, {"attributes", shcore::Map}});
+      const auto prompt_delegate = shcore::Cpp_function::create(
+          "prompt",
+          [&prompt_text, &prompt_type,
+           &prompt_source](const shcore::Argument_list &arguments) {
+            prompt_text = arguments[0].as_string();
+            prompt_type = arguments[1].as_map()->get_string("type");
+            prompt_source = arguments[2].as_map()->get_string("source");
+            return shcore::Value(shcore::make_array(true, "answer"));
+          },
+          {{"text", shcore::String},
+           {"options", shcore::Map},
+           {"attributes", shcore::Map}});
+      const auto options =
+          shcore::make_dict("errorDelegate", shcore::Value(print_delegate),
+                            "promptDelegate", shcore::Value(prompt_delegate));
+      mysqlsh::Shell_context_wrapper_options callbacks;
+      mysqlsh::Shell_context_wrapper_options::options().unpack(options,
+                                                               &callbacks);
+      const auto context = _shell->create_context(callbacks);
+      const auto attributes = shcore::make_dict("source", "test");
+
+      mysqlsh::current_console()->print_info("output", attributes);
+
+      std::string result;
+      EXPECT_EQ(shcore::Prompt_result::Ok,
+                mysqlsh::current_console()->prompt(
+                    "prompt", &result, nullptr,
+                    shcore::prompt::Prompt_type::TEXT, "", {}, "", attributes));
+      EXPECT_EQ("answer", result);
+    } catch (...) {
+      error = std::current_exception();
+    }
+  });
+  worker.join();
+
+  if (error) std::rethrow_exception(error);
+
+  EXPECT_EQ("output\n", print_text);
+  EXPECT_EQ("test", print_source);
+  EXPECT_EQ("prompt", prompt_text);
+  EXPECT_EQ("text", prompt_type);
+  EXPECT_EQ("test", prompt_source);
 }
 
 // clang-format off

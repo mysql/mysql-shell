@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -43,7 +43,8 @@ class Command_watch : public Command_show {
   bool execute(const std::vector<std::string> &args) override;
 
  private:
-  static bool print_hook(void *user_data, const char *msg);
+  static bool print_hook(void *user_data, const char *msg,
+                         const shcore::Dictionary_t &attributes);
 
   std::vector<std::string> parse_arguments(
       const std::vector<std::string> &args);

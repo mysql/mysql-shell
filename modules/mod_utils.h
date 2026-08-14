@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -47,6 +47,9 @@ using mysqlshdk::db::Connection_options;
 using shcore::option_tracker::Shell_feature;
 
 Connection_options SHCORE_PUBLIC get_connection_options(const shcore::Value &v);
+
+void SHCORE_PUBLIC
+validate_mfa_connection_options(const Connection_options &connection_options);
 
 mysqlshdk::ssh::Ssh_connection_options get_ssh_options(
     const shcore::Dictionary_t &instance_def);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -827,33 +827,36 @@ bool Command_line_shell::cmd_nopager(const std::vector<std::string> &args) {
   return true;
 }
 
-bool Command_line_shell::deleg_disable_print(void *cdata, const char *text) {
+bool Command_line_shell::deleg_disable_print(void *cdata, const char *text,
+                                             const shcore::Dictionary_t &) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_full_output.emplace_back(STDOUT_FILENO, text);
   return true;
 }
 
-bool Command_line_shell::deleg_disable_print_error(void *cdata,
-                                                   const char *text) {
+bool Command_line_shell::deleg_disable_print_error(
+    void *cdata, const char *text, const shcore::Dictionary_t &) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_full_output.emplace_back(STDERR_FILENO, text);
   return true;
 }
 
-bool Command_line_shell::deleg_delayed_print(void *cdata, const char *text) {
+bool Command_line_shell::deleg_delayed_print(void *cdata, const char *text,
+                                             const shcore::Dictionary_t &) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_delayed_output.emplace_back(STDOUT_FILENO, text);
   return true;
 }
 
-bool Command_line_shell::deleg_delayed_print_error(void *cdata,
-                                                   const char *text) {
+bool Command_line_shell::deleg_delayed_print_error(
+    void *cdata, const char *text, const shcore::Dictionary_t &) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   self->_delayed_output.emplace_back(STDERR_FILENO, text);
   return true;
 }
 
-bool Command_line_shell::deleg_print(void *cdata, const char *text) {
+bool Command_line_shell::deleg_print(void *cdata, const char *text,
+                                     const shcore::Dictionary_t &) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
     self->m_prompt_requires_newline = !write_to_console(fileno(stdout), text);
@@ -861,7 +864,8 @@ bool Command_line_shell::deleg_print(void *cdata, const char *text) {
   return true;
 }
 
-bool Command_line_shell::deleg_print_error(void *cdata, const char *text) {
+bool Command_line_shell::deleg_print_error(void *cdata, const char *text,
+                                           const shcore::Dictionary_t &) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
     self->m_prompt_requires_newline = !write_to_console(fileno(stderr), text);
@@ -869,7 +873,8 @@ bool Command_line_shell::deleg_print_error(void *cdata, const char *text) {
   return true;
 }
 
-bool Command_line_shell::deleg_print_diag(void *cdata, const char *text) {
+bool Command_line_shell::deleg_print_diag(void *cdata, const char *text,
+                                          const shcore::Dictionary_t &) {
   Command_line_shell *self = reinterpret_cast<Command_line_shell *>(cdata);
   if (text && *text) {
     self->m_prompt_requires_newline = !write_to_console(fileno(stderr), text);
@@ -970,7 +975,8 @@ void Command_line_shell::handle_interrupt() { _interrupted.test_and_set(); }
 
 shcore::Prompt_result Command_line_shell::deleg_prompt(
     void *cdata, const char *prompt,
-    const shcore::prompt::Prompt_options &options, std::string *ret) {
+    const shcore::prompt::Prompt_options &options, const shcore::Dictionary_t &,
+    std::string *ret) {
   const auto self = reinterpret_cast<Command_line_shell *>(cdata);
 
   return Prompt_handler(

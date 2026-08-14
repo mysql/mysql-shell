@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -228,7 +228,8 @@ class Shell_console : public IConsole {
       shcore::prompt::Prompt_type type = shcore::prompt::Prompt_type::TEXT,
       const std::string &title = "",
       const std::vector<std::string> &description = {},
-      const std::string &default_value = "") const override;
+      const std::string &default_value = "",
+      const Json_attributes &attribs = {}) const override;
   /**
    * @brief Prompt interface for confirmation prompts coming from Shell code
    *
@@ -265,7 +266,8 @@ class Shell_console : public IConsole {
   shcore::Prompt_result prompt_password(
       const std::string &prompt, std::string *out_val,
       Validator validator = nullptr, const std::string &title = "",
-      const std::vector<std::string> &description = {}) const override;
+      const std::vector<std::string> &description = {},
+      const Json_attributes &attribs = {}) const override;
   /**
    * @brief Prompt interface for select prompts coming from Shell code
    *
@@ -308,13 +310,16 @@ class Shell_console : public IConsole {
   void dump_json(const char *tag, const std::string &s,
                  const Json_attributes &attribs = {}) const;
 
-  void delegate_print(const char *msg) const;
+  void delegate_print(const char *msg,
+                      const Json_attributes &attribs = {}) const;
 
-  void delegate_print_error(const char *msg) const;
+  void delegate_print_error(const char *msg,
+                            const Json_attributes &attribs = {}) const;
 
-  void delegate_print_diag(const char *msg) const;
+  void delegate_print_diag(const char *msg,
+                           const Json_attributes &attribs = {}) const;
 
-  void delegate(const char *msg,
+  void delegate(const char *msg, const Json_attributes &attribs,
                 shcore::Interpreter_print_handler::Print print) const;
 
   void on_set_verbose() override;
@@ -323,7 +328,7 @@ class Shell_console : public IConsole {
 
   shcore::Prompt_result call_prompt(
       const std::string &text, const shcore::prompt::Prompt_options &options,
-      std::string *ret_val, Validator validator,
+      std::string *ret_val, Validator validator, const Json_attributes &attribs,
       shcore::Interpreter_delegate::Prompt func) const;
 
   shcore::Interpreter_delegate *m_ideleg;

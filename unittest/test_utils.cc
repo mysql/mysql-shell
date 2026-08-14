@@ -172,7 +172,8 @@ void Shell_test_output_handler::log_hook(const shcore::Logger::Log_entry &entry,
   if (current_level == entry.level) self->log.emplace_back(entry.message);
 }
 
-bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
+bool Shell_test_output_handler::deleg_print(void *user_data, const char *text,
+                                            const shcore::Dictionary_t &) {
   Shell_test_output_handler *target =
       reinterpret_cast<Shell_test_output_handler *>(user_data);
 
@@ -192,8 +193,8 @@ bool Shell_test_output_handler::deleg_print(void *user_data, const char *text) {
   return true;
 }
 
-bool Shell_test_output_handler::deleg_print_error(void *user_data,
-                                                  const char *text) {
+bool Shell_test_output_handler::deleg_print_error(
+    void *user_data, const char *text, const shcore::Dictionary_t &) {
   Shell_test_output_handler *target =
       reinterpret_cast<Shell_test_output_handler *>(user_data);
 
@@ -226,7 +227,8 @@ bool Shell_test_output_handler::deleg_print_error(void *user_data,
 }
 
 bool Shell_test_output_handler::deleg_print_diag(void *user_data,
-                                                 const char *text) {
+                                                 const char *text,
+                                                 const shcore::Dictionary_t &) {
   Shell_test_output_handler *target =
       reinterpret_cast<Shell_test_output_handler *>(user_data);
 
@@ -294,7 +296,8 @@ shcore::Prompt_result Shell_test_output_handler::do_prompt(bool is_password,
 
 shcore::Prompt_result Shell_test_output_handler::deleg_prompt(
     void *user_data, const char *prompt,
-    const shcore::prompt::Prompt_options &options, std::string *ret) {
+    const shcore::prompt::Prompt_options &options, const shcore::Dictionary_t &,
+    std::string *ret) {
   Shell_test_output_handler *target =
       reinterpret_cast<Shell_test_output_handler *>(user_data);
 

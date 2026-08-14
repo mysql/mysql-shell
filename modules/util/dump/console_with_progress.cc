@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -150,10 +150,10 @@ shcore::Prompt_result Console_with_progress::prompt(
     const std::string &prompt, std::string *out_val, Validator validator,
     shcore::prompt::Prompt_type type, const std::string &title,
     const std::vector<std::string> &description,
-    const std::string &default_value) const {
+    const std::string &default_value, const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
   return m_console->prompt(prompt, out_val, validator, type, title, description,
-                           default_value);
+                           default_value, attribs);
 }
 
 Prompt_answer Console_with_progress::confirm(
@@ -168,11 +168,11 @@ Prompt_answer Console_with_progress::confirm(
 
 shcore::Prompt_result Console_with_progress::prompt_password(
     const std::string &prompt, std::string *out_val, Validator validator,
-    const std::string &title,
-    const std::vector<std::string> &description) const {
+    const std::string &title, const std::vector<std::string> &description,
+    const Json_attributes &attribs) const {
   Hide_progress hp(m_progress, m_mutex);
   return m_console->prompt_password(prompt, out_val, validator, title,
-                                    description);
+                                    description, attribs);
 }
 
 bool Console_with_progress::select(

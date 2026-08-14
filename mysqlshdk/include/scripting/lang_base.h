@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -29,6 +29,7 @@
 #include <string>
 #include <system_error>
 
+#include "mysqlshdk/include/scripting/types.h"
 #include "mysqlshdk/shellcore/shell_prompt_options.h"
 
 namespace shcore {
@@ -48,9 +49,10 @@ enum class Prompt_result {
 class Interpreter_print_handler {
  public:
   // true -> print request was handled and other handlers should not be called
-  using Print_function = bool (*)(void *, const char *);
+  using Print_function = bool (*)(void *, const char *, const Dictionary_t &);
 
-  using Print = bool (Interpreter_print_handler::*)(const char *) const;
+  using Print = bool (Interpreter_print_handler::*)(const char *,
+                                                    const Dictionary_t &) const;
 
   Interpreter_print_handler(void *user_data, Print_function print_,
                             Print_function error, Print_function diag)
@@ -61,21 +63,27 @@ class Interpreter_print_handler {
 
   virtual ~Interpreter_print_handler() = default;
 
-  bool print(const char *msg) const { return delegate(msg, m_print); }
-
-  bool print_error(const char *msg) const {
-    return delegate(msg, m_print_error);
+  bool print(const char *msg, const Dictionary_t &attributes = {}) const {
+    return delegate(msg, attributes, m_print);
   }
 
-  bool print_diag(const char *msg) const { return delegate(msg, m_print_diag); }
+  bool print_error(const char *msg, const Dictionary_t &attributes = {}) const {
+    return delegate(msg, attributes, m_print_error);
+  }
+
+  bool print_diag(const char *msg, const Dictionary_t &attributes = {}) const {
+    return delegate(msg, attributes, m_print_diag);
+  }
 
  protected:
   void *m_user_data = nullptr;
 
  private:
-  bool delegate(const char *msg, Print_function func) const {
+  bool delegate(const char *msg, const Dictionary_t &attributes,
+                Print_function func) const {
     if (func) {
-      return func(m_user_data, msg);
+      const auto normalized_attributes = attributes ? attributes : make_dict();
+      return func(m_user_data, msg, normalized_attributes);
     } else {
       return false;
     }
@@ -88,12 +96,13 @@ class Interpreter_print_handler {
 
 class Interpreter_delegate : public Interpreter_print_handler {
  public:
-  using Prompt_function =
-      Prompt_result (*)(void *, const char *,
-                        const prompt::Prompt_options &options, std::string *);
+  using Prompt_function = Prompt_result (*)(
+      void *, const char *, const prompt::Prompt_options &options,
+      const Dictionary_t &, std::string *);
 
   using Prompt = Prompt_result (Interpreter_delegate ::*)(
-      const char *, const prompt::Prompt_options &options, std::string *) const;
+      const char *, const prompt::Prompt_options &options, const Dictionary_t &,
+      std::string *) const;
 
   Interpreter_delegate(void *user_data, Print_function print_,
                        Prompt_function prompt_, Print_function error,
@@ -102,20 +111,16 @@ class Interpreter_delegate : public Interpreter_print_handler {
         m_prompt(prompt_) {}
 
   Prompt_result prompt(const char *msg, const prompt::Prompt_options &options,
+                       const Dictionary_t &attributes,
                        std::string *result) const {
-    return delegate(msg, options, result, m_prompt);
+    if (m_prompt) {
+      const auto normalized_attributes = attributes ? attributes : make_dict();
+      return m_prompt(m_user_data, msg, options, normalized_attributes, result);
+    }
+    return Prompt_result::CTRL_D;
   }
 
  private:
-  Prompt_result delegate(const char *msg, const prompt::Prompt_options &options,
-                         std::string *result, Prompt_function func) const {
-    if (func) {
-      return func(m_user_data, msg, options, result);
-    } else {
-      return Prompt_result::CTRL_D;
-    }
-  }
-
   Prompt_function m_prompt = nullptr;
 };
 

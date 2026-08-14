@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2021, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -24,6 +24,7 @@
  */
 
 #include "mysqlshdk/libs/db/mysql/auth_plugins/fido.h"
+#include "mysqlshdk/libs/db/mysql/auth_plugins/webauthn.h"
 
 #include <mysql.h>
 
@@ -179,6 +180,12 @@ void register_device(MYSQL *conn, const char *factor) {
 
     if (nullptr == plugin) {
       plugin = auth::get_authentication_plugin(conn, plugin_name.c_str());
+
+      if (plugin_name == "authentication_webauthn_client") {
+        webauthn::register_callbacks(conn);
+        webauthn::set_preserve_privacy(conn);
+        webauthn::set_device_index(conn);
+      }
     }
 
     /* set server challenge in plugin */

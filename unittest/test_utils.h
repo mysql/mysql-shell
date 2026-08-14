@@ -138,12 +138,16 @@ class Shell_test_output_handler {
 
   virtual void TearDown() {}
 
-  static bool deleg_print(void *user_data, const char *text);
-  static bool deleg_print_error(void *user_data, const char *text);
-  static bool deleg_print_diag(void *user_data, const char *text);
+  static bool deleg_print(void *user_data, const char *text,
+                          const shcore::Dictionary_t &attributes);
+  static bool deleg_print_error(void *user_data, const char *text,
+                                const shcore::Dictionary_t &attributes);
+  static bool deleg_print_diag(void *user_data, const char *text,
+                               const shcore::Dictionary_t &attributes);
   static shcore::Prompt_result deleg_prompt(
       void *user_data, const char *prompt,
-      const shcore::prompt::Prompt_options &options, std::string *ret);
+      const shcore::prompt::Prompt_options &options,
+      const shcore::Dictionary_t &attributes, std::string *ret);
 
   shcore::Prompt_result do_prompt(bool is_password, const char *text,
                                   std::string *ret);

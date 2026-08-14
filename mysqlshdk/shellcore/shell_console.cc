@@ -143,7 +143,8 @@ class Shell_pager : public IPager {
   }
 
  private:
-  static bool print(void *user_data, const char *text) {
+  static bool print(void *user_data, const char *text,
+                    const shcore::Dictionary_t &) {
     const auto self = static_cast<Shell_pager *>(user_data);
     fprintf(self->m_pager, "%s", text);
     fflush(self->m_pager);
@@ -196,6 +197,7 @@ void log_hook(const shcore::Logger::Log_entry &log, void *data) {
     }
 
     if (show_prefix && shcore::current_logger()->log_allowed()) {
+      shcore::Log_reentrant_protector lock;
       static char color_on[16] = {0};
       static char color_off[16] = {0};
       std::string ts = mysqlshdk::utils::fmttime(
@@ -250,13 +252,14 @@ bool Shell_console::use_json() const {
 
 void Shell_console::dump_json(const char *tag, const std::string &s,
                               const Json_attributes &attribs) const {
-  delegate_print(json_obj(tag, s, attribs).c_str());
+  delegate_print(json_obj(tag, s, attribs).c_str(), attribs);
 }
 
 void Shell_console::raw_print(const std::string &text, Output_stream stream,
                               bool format_json,
                               const Json_attributes &attribs) const {
-  using Print_func = void (Shell_console::*)(const char *) const;
+  using Print_func =
+      void (Shell_console::*)(const char *, const Json_attributes &) const;
   Print_func func = stream == Output_stream::STDOUT
                         ? &Shell_console::delegate_print
                         : &Shell_console::delegate_print_diag;
@@ -266,7 +269,7 @@ void Shell_console::raw_print(const std::string &text, Output_stream stream,
     const char *tag = stream == Output_stream::STDOUT ? "info" : "error";
     dump_json(tag, text, attribs);
   } else {
-    (this->*func)(text.c_str());
+    (this->*func)(text.c_str(), attribs);
   }
 }
 
@@ -341,7 +344,8 @@ void Shell_console::print_error(const std::string &text,
     const auto safe_text =
         mysqlshdk::textui::sanitize_utf8_terminal_text(ftext);
     delegate_print_error(
-        (mysqlshdk::textui::error("ERROR: ") + safe_text + "\n").c_str());
+        (mysqlshdk::textui::error("ERROR: ") + safe_text + "\n").c_str(),
+        attribs);
   }
 
   if (shcore::current_logger()->log_allowed()) {
@@ -360,7 +364,8 @@ void Shell_console::print_warning(const std::string &text,
     const auto safe_text =
         mysqlshdk::textui::sanitize_utf8_terminal_text(ftext);
     delegate_print_error(
-        (mysqlshdk::textui::warning("WARNING: ") + safe_text + "\n").c_str());
+        (mysqlshdk::textui::warning("WARNING: ") + safe_text + "\n").c_str(),
+        attribs);
   }
 
   if (shcore::current_logger()->log_allowed()) {
@@ -380,7 +385,8 @@ void Shell_console::print_note(const std::string &text,
     const auto safe_text =
         mysqlshdk::textui::sanitize_utf8_terminal_text(ftext);
     delegate_print_error(
-        (mysqlshdk::textui::notice("NOTE: ") + safe_text + "\n").c_str());
+        (mysqlshdk::textui::notice("NOTE: ") + safe_text + "\n").c_str(),
+        attribs);
   }
 
   if (shcore::current_logger()->log_allowed()) {
@@ -398,7 +404,7 @@ void Shell_console::print_info(const std::string &text,
   } else {
     const auto safe_text =
         mysqlshdk::textui::sanitize_utf8_terminal_text(ftext);
-    delegate_print_error((safe_text + "\n").c_str());
+    delegate_print_error((safe_text + "\n").c_str(), attribs);
   }
 
   if (shcore::current_logger()->log_allowed() && !text.empty()) {
@@ -416,7 +422,7 @@ void Shell_console::print_status(const std::string &text,
   } else {
     const auto safe_text =
         mysqlshdk::textui::sanitize_utf8_terminal_text(ftext);
-    delegate_print_error((safe_text + "\n").c_str());
+    delegate_print_error((safe_text + "\n").c_str(), attribs);
   }
 
   if (shcore::current_logger()->log_allowed() && !text.empty()) {
@@ -444,12 +450,12 @@ void Shell_console::print_para(const std::string &text) const {
 
 shcore::Prompt_result Shell_console::call_prompt(
     const std::string &text, const shcore::prompt::Prompt_options &options,
-    std::string *out_val, Validator validator,
+    std::string *out_val, Validator validator, const Json_attributes &attribs,
     shcore::Interpreter_delegate::Prompt func) const {
   shcore::Prompt_result result;
   bool valid = true;
   do {
-    result = (m_ideleg->*func)(text.c_str(), options, out_val);
+    result = (m_ideleg->*func)(text.c_str(), options, attribs, out_val);
 
     if (result == shcore::Prompt_result::Ok) {
       if (validator) {
@@ -468,7 +474,7 @@ shcore::Prompt_result Shell_console::call_prompt(
 shcore::Prompt_result Shell_console::prompt(
     const std::string &prompt, const shcore::prompt::Prompt_options &options,
     std::string *out_val) const {
-  return call_prompt(prompt, options, out_val, {},
+  return call_prompt(prompt, options, out_val, {}, {},
                      &shcore::Interpreter_delegate::prompt);
 }
 
@@ -476,7 +482,7 @@ shcore::Prompt_result Shell_console::prompt(
     const std::string &prompt, std::string *ret_val, Validator validator,
     shcore::prompt::Prompt_type type, const std::string &title,
     const std::vector<std::string> &description,
-    const std::string &default_value) const {
+    const std::string &default_value, const Json_attributes &attribs) const {
   // Other prompt types mus use their specific Shell_console function
   assert(type == shcore::prompt::Prompt_type::TEXT ||
          type == shcore::prompt::Prompt_type::PASSWORD ||
@@ -492,7 +498,7 @@ shcore::Prompt_result Shell_console::prompt(
 
   options.done();
 
-  return call_prompt(prompt, options, ret_val, validator,
+  return call_prompt(prompt, options, ret_val, validator, attribs,
                      &shcore::Interpreter_delegate::prompt);
 }
 
@@ -523,7 +529,7 @@ Prompt_answer Shell_console::confirm(
 
   std::string ans;
 
-  auto res = call_prompt(prompt, options, &ans, {},
+  auto res = call_prompt(prompt, options, &ans, {}, {},
                          &shcore::Interpreter_delegate::prompt);
 
   Prompt_answer final_ans = Prompt_answer::NONE;
@@ -562,7 +568,7 @@ bool Shell_console::select(const std::string &prompt_text, std::string *out_val,
 
   prompt_options.done();
 
-  call_prompt(prompt_text, prompt_options, out_val, validator,
+  call_prompt(prompt_text, prompt_options, out_val, validator, {},
               &shcore::Interpreter_delegate::prompt);
 
   // TODO(rennox): Not needed to validate anything as SELECT prompts always
@@ -572,11 +578,11 @@ bool Shell_console::select(const std::string &prompt_text, std::string *out_val,
 
 shcore::Prompt_result Shell_console::prompt_password(
     const std::string &prompt, std::string *out_val, Validator validator,
-    const std::string &title,
-    const std::vector<std::string> &description) const {
+    const std::string &title, const std::vector<std::string> &description,
+    const Json_attributes &attribs) const {
   return this->prompt(prompt, out_val, validator,
-                      shcore::prompt::Prompt_type::PASSWORD, title,
-                      description);
+                      shcore::prompt::Prompt_type::PASSWORD, title, description,
+                      "", attribs);
 }
 
 void Shell_console::print_value(const shcore::Value &value,
@@ -661,23 +667,27 @@ void Shell_console::remove_print_handler(shcore::Interpreter_print_handler *h) {
   m_print_handlers.remove(h);
 }
 
-void Shell_console::delegate_print(const char *msg) const {
-  delegate(msg, &shcore::Interpreter_print_handler::print);
+void Shell_console::delegate_print(const char *msg,
+                                   const Json_attributes &attribs) const {
+  delegate(msg, attribs, &shcore::Interpreter_print_handler::print);
 }
 
-void Shell_console::delegate_print_error(const char *msg) const {
-  delegate(msg, &shcore::Interpreter_print_handler::print_error);
+void Shell_console::delegate_print_error(const char *msg,
+                                         const Json_attributes &attribs) const {
+  delegate(msg, attribs, &shcore::Interpreter_print_handler::print_error);
 }
 
-void Shell_console::delegate_print_diag(const char *msg) const {
-  delegate(msg, &shcore::Interpreter_print_handler::print_diag);
+void Shell_console::delegate_print_diag(const char *msg,
+                                        const Json_attributes &attribs) const {
+  delegate(msg, attribs, &shcore::Interpreter_print_handler::print_diag);
 }
 
 void Shell_console::delegate(
-    const char *msg, shcore::Interpreter_print_handler::Print func) const {
+    const char *msg, const Json_attributes &attribs,
+    shcore::Interpreter_print_handler::Print func) const {
   for (auto it = m_print_handlers.crbegin(); it != m_print_handlers.crend();
        ++it) {
-    if ((*it->*func)(msg)) {
+    if ((*it->*func)(msg, attribs)) {
       return;
     }
   }

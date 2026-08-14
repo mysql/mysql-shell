@@ -484,6 +484,10 @@ void Session_impl::connect(
   static_assert(MAX_AUTH_FACTORS == 3);
   for (int factor = 1; factor <= 3; factor++) {
     if (_connection_options.has_mfa_password(factor - 1)) {
+      DBUG_LOG("sqlconnectpwd",
+               "MYSQL_OPT_USER_PASSWORD: "
+                   << factor << ": "
+                   << _connection_options.get_mfa_password(factor - 1));
       mysql_options4(_mysql, MYSQL_OPT_USER_PASSWORD, &factor,
                      _connection_options.get_mfa_password(factor - 1).c_str());
     }
@@ -542,6 +546,12 @@ void Session_impl::connect(
   }
 
   m_thread_id = mysql_thread_id(_mysql);
+
+  if (_connection_options.has_register_factor()) {
+    fido::register_device(_mysql,
+                          _connection_options.get_register_factor().c_str());
+    _connection_options.remove(kRegisterFactor);
+  }
 }
 
 std::optional<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(

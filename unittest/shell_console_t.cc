@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,7 +40,7 @@ struct Test_data {
 };
 
 namespace {
-bool print(void *user_data, const char *text) {
+bool print(void *user_data, const char *text, const shcore::Dictionary_t &) {
   Test_data *data = static_cast<Test_data *>(user_data);
   if (!data->output.empty()) data->output.append("||");
   data->output.append(text);
@@ -49,7 +49,7 @@ bool print(void *user_data, const char *text) {
 
 shcore::Prompt_result prompt(void *user_data, const char *prompt,
                              const shcore::prompt::Prompt_options &options,
-                             std::string *ret) {
+                             const shcore::Dictionary_t &, std::string *ret) {
   Test_data *data = static_cast<Test_data *>(user_data);
 
   return mysqlsh::Prompt_handler(

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -40,11 +40,16 @@ namespace mysql {
 namespace webauthn {
 
 namespace {
+
+shcore::Dictionary_t authentication_webauthn() {
+  return shcore::make_dict("auth", shcore::Value("authentication_webauthn"));
+}
+
 /**
  * Callback for print operations on the authentication_webauthn_client plugin
  */
 void plugin_messages_callback(const char *msg) {
-  mysqlsh::current_console()->print_info(msg);
+  mysqlsh::current_console()->print_info(msg, authentication_webauthn());
 }
 
 /**
@@ -55,8 +60,9 @@ int plugin_messages_callback_get_password(char *buffer,
   std::string reply;
   // The empty prompt is because the plugin already printed the prompt using the
   // message callback.
-  if (mysqlsh::current_console()->prompt_password("", &reply) ==
-      shcore::Prompt_result::Ok) {
+  if (mysqlsh::current_console()->prompt_password(
+          "Enter PIN", &reply, nullptr, "FIDO2 Device PIN", {},
+          authentication_webauthn()) == shcore::Prompt_result::Ok) {
     // check if reply will fit inside buffer - if not, the function fails
     if (reply.length() >= buffer_len) {
       shcore::clear_buffer(reply);
@@ -78,8 +84,9 @@ int plugin_messages_callback_get_uint(unsigned int *val) {
   std::string reply;
   // The empty prompt is because the plugin already printed the prompt using the
   // message callback.
-  if (mysqlsh::current_console()->prompt("", &reply) ==
-      shcore::Prompt_result::Ok) {
+  if (mysqlsh::current_console()->prompt(
+          "", &reply, nullptr, shcore::prompt::Prompt_type::TEXT, "", {}, "",
+          authentication_webauthn()) == shcore::Prompt_result::Ok) {
     try {
       *val = shcore::lexical_cast<unsigned int>(reply);
       return 0;
@@ -124,10 +131,8 @@ void set_preserve_privacy(MYSQL *conn) {
   auto conn_data = auth::get_connection_options_for_mysql(conn);
   assert(conn_data != nullptr);
 
-  if (conn_data->has(mysqlshdk::db::kWebauthnClientPreservePrivacy)) {
-    auto &str_value =
-        conn_data->get(mysqlshdk::db::kWebauthnClientPreservePrivacy);
-    bool value = str_value.at(0) == '1';
+  if (conn_data->has_webauthn_client_preserve_privacy()) {
+    const bool value = conn_data->get_webauthn_client_preserve_privacy();
 
     const auto plugin =
         auth::get_authentication_plugin(conn, "authentication_webauthn_client");
@@ -139,8 +144,8 @@ void set_preserve_privacy(MYSQL *conn) {
           "Failed to set the Preserve Privacy option on "
           "authentication_webauthn_client plugin.");
     } else {
-      log_debug3("Using authentication_webauthn_client_preserve_privacy =  %s",
-                 str_value.c_str());
+      log_debug3("Using authentication_webauthn_client_preserve_privacy =  %d",
+                 value ? 1 : 0);
     }
   }
 }
