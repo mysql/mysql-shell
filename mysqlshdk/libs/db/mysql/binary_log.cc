@@ -74,9 +74,9 @@ bool is_supported_server_version(const mysqlshdk::utils::Version &version) {
 
 #if IS_BIG_ENDIAN
 inline uint32_t uint4korr(const unsigned char *ptr) {
-  return static_cast<uint32_t>(A[0]) | (static_cast<uint32_t>(A[1]) << 8) |
-         (static_cast<uint32_t>(A[2]) << 16) |
-         (static_cast<uint32_t>(A[3]) << 24);
+  return static_cast<uint32_t>(ptr[0]) | (static_cast<uint32_t>(ptr[1]) << 8) |
+         (static_cast<uint32_t>(ptr[2]) << 16) |
+         (static_cast<uint32_t>(ptr[3]) << 24);
 }
 #else
 inline uint32_t uint4korr(const unsigned char *ptr) {
