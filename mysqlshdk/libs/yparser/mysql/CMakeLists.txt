@@ -188,6 +188,13 @@ function(create_parser_plugin)
 
     # create the plugin
     add_library(${PLUGIN_NAME} MODULE ${MYSQL_SOURCES} ${PLUGIN_SOURCES})
+
+    # The generated parser sources are diagnosed again at link time when LTO is
+    # enabled, where the per-source COMPILE_FLAGS above no longer apply, so
+    # relax warnings on the link line as well
+    if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_link_options(${PLUGIN_NAME} PRIVATE "-Wno-error")
+    endif()
     target_compile_definitions(${PLUGIN_NAME} PRIVATE
         "BUILDING_PARSER_PLUGIN"
         "PARSER_VERSION=\"${ARG_VERSION}\""
