@@ -198,7 +198,7 @@ cmake .. \
     -DMYSQLCLIENT_STATIC_LINKING=ON \
 %else
     -DMYSQLCLIENT_STATIC_LINKING=ON \
-    -DHAVE_JS=OFF
+    -DHAVE_JS=OFF \
 %endif
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \
