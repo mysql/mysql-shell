@@ -134,6 +134,11 @@ message(STATUS "OS code name    : ${CODENAME}")
 set(EXTRA_CMAKE_OPTS)
 set(DEB_BUILD_DEPS)
 set(DEB_DEPS)
+
+# Always required: mysqlshdk/libs/yparser generates its parsers with bison and
+# drives the generation from a python3 interpreter
+list(APPEND DEB_BUILD_DEPS "bison")
+list(APPEND DEB_BUILD_DEPS "python3")
 if(BUNDLED_SSH_DIR)
   list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_SSH_DIR=${BUNDLED_SSH_DIR}")
 else()
