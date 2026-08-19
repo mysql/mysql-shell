@@ -16,3 +16,8 @@ __pycache__/
 .codex/
 .agents/
 .release-prep/
+
+# written into the source root by the packaging generators
+# (cmake -S packaging/rpm / -S packaging/debian)
+/mysql-shell.spec
+/debian/
