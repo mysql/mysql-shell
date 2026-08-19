@@ -187,6 +187,9 @@ IF(BUNDLED_MYSQLBINLOG)
       BINARIES "${BUNDLED_MYSQLBINLOG}"
       DESTINATION "${INSTALL_LIBEXECDIR}"
       TARGET api_modules
+      # This binary links only system libraries; rewriting its RPATH is both
+      # unnecessary and, as with libfido2, corrupts it during RPM packaging
+      WRITE_RPATH FALSE
       EXTRA_COPY_COMMANDS ${EXTRA_COPY_COMMANDS}
   )
 ENDIF()

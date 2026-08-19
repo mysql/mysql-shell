@@ -53,5 +53,8 @@ IF(BUNDLED_MYSQL_CONFIG_EDITOR)
       BINARIES "${BUNDLED_MYSQL_CONFIG_EDITOR}"
       DESTINATION "${INSTALL_LIBEXECDIR}"
       TARGET mysql-secret-store-login-path
+      # This binary links only system libraries; rewriting its RPATH is both
+      # unnecessary and, as with libfido2, corrupts it during RPM packaging
+      WRITE_RPATH FALSE
   )
 ENDIF()
