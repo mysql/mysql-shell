@@ -343,14 +343,26 @@ endif()
 
 # build libraries for all bundled parsers
 set(PARSERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/yacc")
+set(BUNDLED_PARSER_SERIES)
 file(GLOB DIR_CONTENTS LIST_DIRECTORIES true "${PARSERS_DIR}/*")
 foreach(FULL_PATH ${DIR_CONTENTS})
     get_filename_component(VERSION "${FULL_PATH}" NAME)
 
     if(IS_DIRECTORY "${FULL_PATH}" AND VERSION MATCHES "[0-9]+\\.[0-9]+\\.[0-9]+")
         create_parser_plugin(PATH "${FULL_PATH}" VERSION "${VERSION}")
+        GET_MAJOR_MINOR("${VERSION}" BUNDLED_SERIES)
+        list(APPEND BUNDLED_PARSER_SERIES "${BUNDLED_SERIES}")
     endif()
 endforeach()
 
-# parser for the current innovation release
-create_parser_plugin(PATH "${MYSQL_SOURCE_DIR}/sql" VERSION "${MYSQL_VERSION}")
+# parser for the current innovation release, unless a bundled parser already
+# covers that series: plugin and generator target names are keyed on
+# major.minor, so building both would be a target name collision
+GET_MAJOR_MINOR("${MYSQL_VERSION}" MYSQL_VERSION_SERIES)
+list(FIND BUNDLED_PARSER_SERIES "${MYSQL_VERSION_SERIES}" _bundled_index)
+if(NOT _bundled_index EQUAL -1)
+    message(STATUS "Parser for MySQL ${MYSQL_VERSION} is already bundled "
+                   "(series ${MYSQL_VERSION_SERIES}), skipping")
+else()
+    create_parser_plugin(PATH "${MYSQL_SOURCE_DIR}/sql" VERSION "${MYSQL_VERSION}")
+endif()
