@@ -65,9 +65,11 @@ std::unique_ptr<Sql_upgrade_check> get_old_temporal_check() {
 std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
     const Upgrade_info &info) {
   std::string keywords;
-  const auto add_keywords = [&keywords, &info](const char *v, const char *kws) {
+  const auto add_keywords = [&keywords, &info](const char *v, const char *kws,
+                                              const char *max_v = nullptr) {
     Version kv(v);
-    if (info.server_version < kv && info.target_version >= kv) {
+    if (info.server_version < kv && info.target_version >= kv &&
+        (max_v == nullptr || info.target_version < Version(max_v))) {
       if (!keywords.empty()) keywords += ", ";
       keywords += kws;
     }
@@ -83,6 +85,10 @@ std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
 
   add_keywords("8.0.17", "'ARRAY' ,'MEMBER'");
   add_keywords("8.0.31", "'FULL', 'INTERSECT'");
+  add_keywords("8.4.0", "'QUALIFY', 'TABLESAMPLE'");
+  add_keywords("8.4.0", "'MANUAL', 'PARALLEL'", "8.4.11");
+  add_keywords("9.2.0", "'LIBRARY'");
+  add_keywords("9.4.0", "'EXTERNAL'");
 
   keywords = "(" + keywords + ");";
   return std::make_unique<Sql_upgrade_check>(

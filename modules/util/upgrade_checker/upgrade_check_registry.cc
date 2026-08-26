@@ -80,7 +80,8 @@ namespace {
 [[maybe_unused]] bool register_reserved =
     Upgrade_check_registry::register_check(&get_reserved_keywords_check,
                                            Target::OBJECT_DEFINITIONS, "8.0.11",
-                                           "8.0.14", "8.0.17", "8.0.31");
+                                           "8.0.14", "8.0.17", "8.0.31", "8.4.0",
+                                           "9.2.0", "9.4.0");
 
 [[maybe_unused]] bool register_utf8mb3 = Upgrade_check_registry::register_check(
     std::bind(&get_utf8mb3_check), Target::OBJECT_DEFINITIONS, "8.0.11");

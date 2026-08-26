@@ -215,5 +215,66 @@ TEST(Upgrade_check_creators,
   }
 }
 
+TEST(Upgrade_check_creators, get_reserved_keywords_check_test) {
+  // Every per-object-type query produced by the reserved keywords check embeds
+  // the same keyword IN-list, so inspecting the first query is enough to verify
+  // which keywords are included for a given source -> target version pair.
+  const auto keyword_list = [](const Version &server, const Version &target) {
+    const auto info = upgrade_info(server, target);
+    const auto check = get_reserved_keywords_check(info);
+    return check->get_queries().front().first;
+  };
+  const auto has = [](const std::string &query, const char *keyword) {
+    return query.find(keyword) != std::string::npos;
+  };
+
+  // 8.0 -> 8.4.8: QUALIFY/TABLESAMPLE plus MANUAL/PARALLEL, which are still
+  // reserved below 8.4.11. LIBRARY/EXTERNAL do not apply yet (target < 9.x).
+  {
+    const auto query = keyword_list(Version(8, 0, 0), Version(8, 4, 8));
+    EXPECT_TRUE(has(query, "'QUALIFY'"));
+    EXPECT_TRUE(has(query, "'TABLESAMPLE'"));
+    EXPECT_TRUE(has(query, "'MANUAL'"));
+    EXPECT_TRUE(has(query, "'PARALLEL'"));
+    EXPECT_FALSE(has(query, "'LIBRARY'"));
+    EXPECT_FALSE(has(query, "'EXTERNAL'"));
+  }
+
+  // 8.0 -> 8.4.11: MANUAL/PARALLEL became nonreserved in 8.4.11 and must drop
+  // out (upper bound of the ranged add_keywords call); QUALIFY/TABLESAMPLE stay.
+  {
+    const auto query = keyword_list(Version(8, 0, 0), Version(8, 4, 11));
+    EXPECT_TRUE(has(query, "'QUALIFY'"));
+    EXPECT_TRUE(has(query, "'TABLESAMPLE'"));
+    EXPECT_FALSE(has(query, "'MANUAL'"));
+    EXPECT_FALSE(has(query, "'PARALLEL'"));
+  }
+
+  // 8.4.0 -> 9.2.0: LIBRARY (reserved since 9.2.0) applies; EXTERNAL (9.4.0)
+  // does not. The 8.4.0 words are not re-reported since the source is 8.4.0.
+  {
+    const auto query = keyword_list(Version(8, 4, 0), Version(9, 2, 0));
+    EXPECT_TRUE(has(query, "'LIBRARY'"));
+    EXPECT_FALSE(has(query, "'EXTERNAL'"));
+    EXPECT_FALSE(has(query, "'QUALIFY'"));
+    EXPECT_FALSE(has(query, "'MANUAL'"));
+  }
+
+  // 8.4.0 -> 9.4.0: both LIBRARY (9.2.0) and EXTERNAL (9.4.0) apply.
+  {
+    const auto query = keyword_list(Version(8, 4, 0), Version(9, 4, 0));
+    EXPECT_TRUE(has(query, "'LIBRARY'"));
+    EXPECT_TRUE(has(query, "'EXTERNAL'"));
+  }
+
+  // 9.2.0 -> 9.4.0: LIBRARY is already reserved on the source, so only EXTERNAL
+  // is newly reserved on the target.
+  {
+    const auto query = keyword_list(Version(9, 2, 0), Version(9, 4, 0));
+    EXPECT_TRUE(has(query, "'EXTERNAL'"));
+    EXPECT_FALSE(has(query, "'LIBRARY'"));
+  }
+}
+
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
