@@ -140,6 +140,14 @@ class Shell_cmdline_options : public tests::Shell_base_test {
       return options->connection_options()
           .get_ssl_options()
           .get_tls_ciphersuites();
+    else if (option == "tls-kex")
+      return options->connection_options().get_ssl_options().get_tls_kex();
+    else if (option == "force-pqc")
+      return AS__STRING(
+          options->connection_options().get_ssl_options().get_force_pqc());
+    else if (option == "use-pqc-sign")
+      return AS__STRING(
+          options->connection_options().get_ssl_options().get_use_pqc_sign());
     else if (option == "uri")
       return options->connection_options().as_uri();
     else if (option == "result_format")
@@ -799,6 +807,16 @@ TEST_F(Shell_cmdline_options, default_values) {
       !options.connection_options().get_ssl_options().has_tls_version());
   EXPECT_FALSE(
       options.connection_options().get_ssl_options().has_tls_ciphersuites());
+
+  // WL17311-AUTO-03
+  EXPECT_FALSE(options.connection_options().get_ssl_options().has_tls_kex());
+  EXPECT_FALSE(options.connection_options().get_ssl_options().has_force_pqc());
+  EXPECT_FALSE(
+      options.connection_options().get_ssl_options().has_use_pqc_sign());
+  EXPECT_FALSE(options.connection_options().get_ssl_options().get_force_pqc());
+  EXPECT_FALSE(
+      options.connection_options().get_ssl_options().get_use_pqc_sign());
+
   EXPECT_FALSE(options.trace_protocol);
   EXPECT_TRUE(options.execute_statement.empty());
   EXPECT_TRUE(options.wizards);
@@ -879,6 +897,26 @@ TEST_F(Shell_cmdline_options, app) {
                          !IS_NULLABLE);
   test_option_with_value("tls-ciphersuites", "", "some_value", "",
                          IS_CONNECTION_DATA, !IS_NULLABLE);
+
+  // WL17311-AUTO-03
+  test_option_with_value("tls-kex", "", "X25519MLKEM768:X25519", "",
+                         IS_CONNECTION_DATA, !IS_NULLABLE);
+  test_option_with_no_value("--force-pqc", "force-pqc", "1");
+  test_option_equal_value("force-pqc", "false", IS_CONNECTION_DATA, "force-pqc",
+                          "0");
+  test_option_with_no_value("--enable-force-pqc", "force-pqc", "1");
+  test_option_with_no_value("--disable-force-pqc", "force-pqc", "0");
+  test_option_with_no_value("--skip-force-pqc", "force-pqc", "0");
+  test_option_with_no_value("--use-pqc-sign", "use-pqc-sign", "1");
+  test_option_equal_value("use-pqc-sign", "false", IS_CONNECTION_DATA,
+                          "use-pqc-sign", "0");
+  test_option_with_no_value("--enable-use-pqc-sign", "use-pqc-sign", "1");
+  test_option_with_no_value("--disable-use-pqc-sign", "use-pqc-sign", "0");
+  test_option_with_no_value("--skip-use-pqc-sign", "use-pqc-sign", "0");
+  test_option_equal_invalid_value("force-pqc", "whatever",
+                                  "--force-pqc: Incorrect option value.\n");
+  test_option_equal_invalid_value("use-pqc-sign", "whatever",
+                                  "--use-pqc-sign: Incorrect option value.\n");
 
   test_option_with_value("execute", "e", "show databases;", "",
                          !IS_CONNECTION_DATA, !IS_NULLABLE,

@@ -170,6 +170,9 @@ void Connection_options::set_login_options_from(
   m_ssl_options.clear_crlpath();
   m_ssl_options.clear_tls_version();
   m_ssl_options.clear_tls_ciphersuites();
+  m_ssl_options.clear_tls_kex();
+  m_ssl_options.clear_force_pqc();
+  m_ssl_options.clear_use_pqc_sign();
   const Ssl_options &ssl = options.get_ssl_options();
   if (ssl.has_ca()) m_ssl_options.set_ca(ssl.get_ca());
   if (ssl.has_capath()) m_ssl_options.set_capath(ssl.get_capath());
@@ -182,6 +185,10 @@ void Connection_options::set_login_options_from(
     m_ssl_options.set_tls_version(ssl.get_tls_version());
   if (ssl.has_tls_ciphersuites())
     m_ssl_options.set_tls_ciphersuites(ssl.get_tls_ciphersuites());
+  if (ssl.has_tls_kex()) m_ssl_options.set_tls_kex(ssl.get_tls_kex());
+  if (ssl.has_force_pqc()) m_ssl_options.set_force_pqc(ssl.get_force_pqc());
+  if (ssl.has_use_pqc_sign())
+    m_ssl_options.set_use_pqc_sign(ssl.get_use_pqc_sign());
 
   if (options.is_auth_method(kAuthMethodOpenIdConnect)) {
     if (has(kAuthMethod)) {

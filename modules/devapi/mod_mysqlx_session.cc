@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -708,6 +708,21 @@ shcore::Value::Map_type_ref Session::get_status() {
       (*status)["SSL_CIPHER"] =
           shcore::Value(std::string(cipher) + " " + row->get_string(1));
     }
+
+    result =
+        execute_sql("SHOW SESSION STATUS LIKE 'Tls_key_exchange_algorithm'");
+    row = result->fetch_one();
+    if (row) {
+      (*status)["TLS_KEY_EXCHANGE_ALGORITHM"] =
+          shcore::Value(row->get_string(1));
+    }
+
+    result = execute_sql("SHOW SESSION STATUS LIKE 'Tls_sign_algorithm'");
+    row = result->fetch_one();
+    if (row) {
+      (*status)["TLS_SIGNATURE_ALGORITHM"] = shcore::Value(row->get_string(1));
+    }
+
     //(*status)["SKIP_UPDATES"] = shcore::Value(???);
 
     // (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());

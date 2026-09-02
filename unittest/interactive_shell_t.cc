@@ -22,6 +22,7 @@
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
 #include <cstdio>
+#include <optional>
 
 #include "unittest/gprod_clean.h"
 
@@ -35,6 +36,25 @@ extern bool g_test_parallel_execution;
 extern "C" const char *g_test_home;
 
 namespace mysqlsh {
+namespace {
+
+std::optional<std::string> get_session_status_value(
+    const std::shared_ptr<ShellBaseSession> &session, const char *name) {
+  auto result = session->get_core_session()->query(
+      std::string{"SHOW SESSION STATUS LIKE '"} + name + "'");
+
+  if (const auto row = result->fetch_one()) return row->get_string(1);
+
+  return std::nullopt;
+}
+
+bool is_tls_algorithm_status_line(const std::string &line) {
+  return shcore::str_beginswith(line, "TLS key exchange algorithm:") ||
+         shcore::str_beginswith(line, "TLS signature algorithm:");
+}
+
+}  // namespace
+
 class Interactive_shell_test : public Shell_core_test_wrapper {
  protected:
 #ifdef HAVE_JS
@@ -42,6 +62,34 @@ class Interactive_shell_test : public Shell_core_test_wrapper {
 #else
   const std::string to_scripting = "\\py";
 #endif
+
+  void validate_tls_status_output(const std::string &uri) {
+    execute("\\connect " + uri + "?ssl-Mode=REQUIRED");
+    const auto session = _interactive_shell->shell_context()->get_dev_session();
+    const auto tls_kex =
+        get_session_status_value(session, "Tls_key_exchange_algorithm");
+    const auto tls_sign =
+        get_session_status_value(session, "Tls_sign_algorithm");
+
+    wipe_all();
+    execute("\\status");
+
+    if (tls_kex) {
+      // The value can be empty depending on the server, OpenSSL and protocol.
+      MY_EXPECT_STDOUT_CONTAINS(shcore::str_format(
+          "%-30s%s", "TLS key exchange algorithm: ", tls_kex->c_str()));
+    } else {
+      MY_EXPECT_STDOUT_NOT_CONTAINS("TLS key exchange algorithm:");
+    }
+
+    if (tls_sign) {
+      MY_EXPECT_STDOUT_CONTAINS(shcore::str_format(
+          "%-30s%s", "TLS signature algorithm: ", tls_sign->c_str()));
+    } else {
+      MY_EXPECT_STDOUT_NOT_CONTAINS("TLS signature algorithm:");
+    }
+  }
+
  public:
   virtual void set_options() {
     _options->interactive = true;
@@ -1759,7 +1807,11 @@ TEST_F(Interactive_shell_test, status_x) {
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("SSL"));
 
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  // The optional TLS algorithm lines are covered by the dedicated test below.
+  do {
+    ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  } while (is_tls_algorithm_status_line(line));
+
   EXPECT_EQ(1, sscanf(line.c_str(), "Using delimiter:              %c", &c));
   EXPECT_EQ(c, ';');
 
@@ -1831,7 +1883,11 @@ TEST_F(Interactive_shell_test, status_classic) {
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("SSL"));
 
-  ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  // The optional TLS algorithm lines are covered by the dedicated test below.
+  do {
+    ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
+  } while (is_tls_algorithm_status_line(line));
+
   EXPECT_EQ(1, sscanf(line.c_str(), "Using delimiter:              %c", &c));
   EXPECT_EQ(c, ';');
 
@@ -1875,6 +1931,16 @@ TEST_F(Interactive_shell_test, status_classic) {
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Uptime"));
   EXPECT_NE(std::string::npos, line.find("sec"));
+}
+
+// WL17311-AUTO-07
+TEST_F(Interactive_shell_test, status_tls_algorithms_x) {
+  validate_tls_status_output(_uri);
+}
+
+// WL17311-AUTO-07
+TEST_F(Interactive_shell_test, status_tls_algorithms_classic) {
+  validate_tls_status_output(_mysql_uri);
 }
 
 TEST_F(Interactive_shell_test, status_ansi_quotes) {

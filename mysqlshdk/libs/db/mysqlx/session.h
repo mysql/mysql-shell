@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -70,6 +70,10 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
   friend class Session;  // The Session class instantiates this class
   friend class Result;   // The Reslt class uses some functions of this class
 
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Pqc_connection, x_forwarding);
+#endif
+
  public:
   ~XSession_impl();
 
@@ -79,6 +83,7 @@ class XSession_impl : public std::enable_shared_from_this<XSession_impl> {
 
   XSession_impl();
   void connect(const mysqlshdk::db::Connection_options &data);
+  void setup_ssl(const mysqlshdk::db::Ssl_options &ssl_options);
 
   const mysqlshdk::db::Connection_options &get_connection_options() {
     return _connection_options;

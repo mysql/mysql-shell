@@ -1,4 +1,4 @@
-/* Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+/* Copyright (c) 2017, 2026, Oracle and/or its affiliates.
 
  This program is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License, version 2.0,
@@ -21,8 +21,12 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
-#include "mysqlshdk/libs/db/ssl_options.h"
+#include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
+
+#include "mysqlshdk/libs/db/mysql/session.h"
+#include "mysqlshdk/libs/db/mysqlx/session.h"
+#include "mysqlshdk/libs/db/ssl_options.h"
 
 #ifndef MY_EXPECT_THROW
 #define MY_EXPECT_THROW(e, m, c)         \
@@ -40,6 +44,94 @@
 
 using mysqlshdk::db::Ssl_options;
 namespace testing {
+
+namespace {
+
+class Recording_xsession : public xcl::XSession {
+ public:
+  xcl::XProtocol::Client_id client_id() const override { return 0; }
+
+  xcl::XProtocol &get_protocol() override {
+    throw std::logic_error("get_protocol() is not used by this test");
+  }
+
+  xcl::XError set_mysql_option(Mysqlx_option option, bool value) override {
+    bool_options.emplace_back(option, value);
+    return {};
+  }
+
+  xcl::XError set_mysql_option(Mysqlx_option option,
+                               const std::string &value) override {
+    string_options.emplace_back(option, value);
+    return {};
+  }
+
+  xcl::XError set_mysql_option(Mysqlx_option,
+                               const std::vector<std::string> &) override {
+    return {};
+  }
+
+  xcl::XError set_mysql_option(Mysqlx_option option,
+                               const char *value) override {
+    return set_mysql_option(option, std::string(value));
+  }
+
+  xcl::XError set_mysql_option(Mysqlx_option, int64_t) override { return {}; }
+
+  xcl::XError set_capability(Mysqlx_capability, bool, bool) override {
+    return {};
+  }
+  xcl::XError set_capability(Mysqlx_capability, const std::string &,
+                             bool) override {
+    return {};
+  }
+  xcl::XError set_capability(Mysqlx_capability, const char *, bool) override {
+    return {};
+  }
+  xcl::XError set_capability(Mysqlx_capability, int64_t, bool) override {
+    return {};
+  }
+  xcl::XError set_capability(Mysqlx_capability, const xcl::Argument_object &,
+                             bool) override {
+    return {};
+  }
+  xcl::XError set_capability(Mysqlx_capability, const xcl::Argument_uobject &,
+                             bool) override {
+    return {};
+  }
+
+  xcl::XError connect(const char *, uint16_t, const char *, const char *,
+                      const char *) override {
+    return {};
+  }
+  xcl::XError connect(const char *, const char *, const char *,
+                      const char *) override {
+    return {};
+  }
+  xcl::XError reauthenticate(const char *, const char *,
+                             const char *) override {
+    return {};
+  }
+
+  std::unique_ptr<xcl::XQuery_result> execute_sql(const std::string &,
+                                                  xcl::XError *) override {
+    return {};
+  }
+  std::unique_ptr<xcl::XQuery_result> execute_stmt(const std::string &,
+                                                   const std::string &,
+                                                   const xcl::Argument_array &,
+                                                   xcl::XError *) override {
+    return {};
+  }
+
+  void close() override {}
+  xcl::Argument_uobject get_connect_attrs() const override { return {}; }
+
+  std::vector<std::pair<Mysqlx_option, bool>> bool_options;
+  std::vector<std::pair<Mysqlx_option, std::string>> string_options;
+};
+
+}  // namespace
 
 void test_option(const std::string &option) {
   Ssl_options options;
@@ -74,6 +166,13 @@ TEST(Ssl_options, initialization) {
   EXPECT_FALSE(options.has_tls_version());
   EXPECT_FALSE(options.has_tls_ciphersuites());
 
+  // WL17311-AUTO-01
+  EXPECT_FALSE(options.has_tls_kex());
+  EXPECT_FALSE(options.has_force_pqc());
+  EXPECT_FALSE(options.has_use_pqc_sign());
+  EXPECT_FALSE(options.get_force_pqc());
+  EXPECT_FALSE(options.get_use_pqc_sign());
+
   // has verifies the existence of the option
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCa));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslCaPath));
@@ -86,6 +185,11 @@ TEST(Ssl_options, initialization) {
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslTlsVersion));
   EXPECT_TRUE(options.has(mysqlshdk::db::kSslTlsCiphersuites));
 
+  // WL17311-AUTO-01
+  EXPECT_TRUE(options.has(mysqlshdk::db::kSslTlsKex));
+  EXPECT_TRUE(options.has(mysqlshdk::db::kSslForcePqc));
+  EXPECT_TRUE(options.has(mysqlshdk::db::kSslUsePqcSign));
+
   // has_value verifies the existence of a value for the option
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCa));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslCaPath));
@@ -97,6 +201,55 @@ TEST(Ssl_options, initialization) {
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslMode));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslTlsVersion));
   EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslTlsCiphersuites));
+
+  // WL17311-AUTO-01
+  EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslTlsKex));
+  EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslForcePqc));
+  EXPECT_FALSE(options.has_value(mysqlshdk::db::kSslUsePqcSign));
+  EXPECT_FALSE(options.has_data());
+}
+
+// WL17311-AUTO-01
+TEST(Ssl_options, pqc_functions) {
+  Ssl_options options;
+
+  options.set_tls_kex("X25519MLKEM768:X25519");
+  options.set_force_pqc(true);
+  options.set_use_pqc_sign(false);
+
+  EXPECT_TRUE(options.has_data());
+  EXPECT_EQ("X25519MLKEM768:X25519", options.get_tls_kex());
+  EXPECT_TRUE(options.get_force_pqc());
+  EXPECT_FALSE(options.get_use_pqc_sign());
+
+  options.clear_tls_kex();
+  options.clear_force_pqc();
+  options.clear_use_pqc_sign();
+
+  EXPECT_FALSE(options.has_tls_kex());
+  EXPECT_FALSE(options.has_force_pqc());
+  EXPECT_FALSE(options.has_use_pqc_sign());
+  EXPECT_FALSE(options.get_force_pqc());
+  EXPECT_FALSE(options.get_use_pqc_sign());
+  EXPECT_FALSE(options.has_data());
+}
+
+// WL17311-AUTO-01
+TEST(Ssl_options, pqc_generic_set) {
+  Ssl_options options;
+
+  options.set(mysqlshdk::db::kSslTlsKex, "SecP384r1MLKEM1024:X25519");
+  options.set(mysqlshdk::db::kSslForcePqc, "1");
+  options.set(mysqlshdk::db::kSslUsePqcSign, "FALSE");
+
+  EXPECT_EQ("SecP384r1MLKEM1024:X25519", options.get_tls_kex());
+  EXPECT_TRUE(options.get_force_pqc());
+  EXPECT_FALSE(options.get_use_pqc_sign());
+
+  MY_EXPECT_THROW(std::invalid_argument,
+                  "Invalid value 'yes' for 'force-pqc'. Allowed values: true, "
+                  "false, 1, 0.",
+                  options.set(mysqlshdk::db::kSslForcePqc, "yes"));
 }
 
 TEST(Ssl_options, ca_functions) {
@@ -252,3 +405,84 @@ TEST(Ssl_options, generic_set_mode) {
 }
 
 }  // namespace testing
+
+namespace mysqlshdk {
+namespace db {
+namespace mysql {
+
+// WL17311-AUTO-05
+TEST(Pqc_connection, classic_forwarding) {
+  Session_impl session;
+  session._mysql = mysql_init(nullptr);
+  ASSERT_NE(nullptr, session._mysql);
+
+  Ssl_options options;
+  session.setup_ssl(options);
+
+  char *tls_kex = nullptr;
+  bool force_pqc = true;
+  bool use_pqc_sign = true;
+  EXPECT_EQ(0, mysql_get_option(session._mysql, MYSQL_OPT_TLS_KEX, &tls_kex));
+  EXPECT_EQ(0,
+            mysql_get_option(session._mysql, MYSQL_OPT_FORCE_PQC, &force_pqc));
+  EXPECT_EQ(0, mysql_get_option(session._mysql, MYSQL_OPT_USE_PQC_SIGN,
+                                &use_pqc_sign));
+  EXPECT_EQ(nullptr, tls_kex);
+  EXPECT_FALSE(force_pqc);
+  EXPECT_FALSE(use_pqc_sign);
+
+  options.set_tls_kex("X25519MLKEM768:X25519");
+  options.set_force_pqc(true);
+  options.set_use_pqc_sign(true);
+  session.setup_ssl(options);
+
+  EXPECT_EQ(0, mysql_get_option(session._mysql, MYSQL_OPT_TLS_KEX, &tls_kex));
+  EXPECT_EQ(0,
+            mysql_get_option(session._mysql, MYSQL_OPT_FORCE_PQC, &force_pqc));
+  EXPECT_EQ(0, mysql_get_option(session._mysql, MYSQL_OPT_USE_PQC_SIGN,
+                                &use_pqc_sign));
+  ASSERT_NE(nullptr, tls_kex);
+  EXPECT_STREQ("X25519MLKEM768:X25519", tls_kex);
+  EXPECT_TRUE(force_pqc);
+  EXPECT_TRUE(use_pqc_sign);
+}
+
+}  // namespace mysql
+
+namespace mysqlx {
+
+// WL17311-AUTO-06
+TEST(Pqc_connection, x_forwarding) {
+  XSession_impl session;
+  auto driver = std::make_unique<::testing::Recording_xsession>();
+  auto *recording = driver.get();
+  session._mysql = std::move(driver);
+
+  Ssl_options options;
+  session.setup_ssl(options);
+
+  EXPECT_TRUE(recording->string_options.empty());
+  EXPECT_EQ((std::vector<std::pair<xcl::XSession::Mysqlx_option, bool>>{
+                {xcl::XSession::Mysqlx_option::Force_pqc, false},
+                {xcl::XSession::Mysqlx_option::Use_pqc_sign, false}}),
+            recording->bool_options);
+
+  recording->bool_options.clear();
+  options.set_tls_kex("SecP384r1MLKEM1024:X25519");
+  options.set_force_pqc(true);
+  options.set_use_pqc_sign(true);
+  session.setup_ssl(options);
+
+  EXPECT_EQ((std::vector<std::pair<xcl::XSession::Mysqlx_option, std::string>>{
+                {xcl::XSession::Mysqlx_option::Tls_kex,
+                 "SecP384r1MLKEM1024:X25519"}}),
+            recording->string_options);
+  EXPECT_EQ((std::vector<std::pair<xcl::XSession::Mysqlx_option, bool>>{
+                {xcl::XSession::Mysqlx_option::Force_pqc, true},
+                {xcl::XSession::Mysqlx_option::Use_pqc_sign, true}}),
+            recording->bool_options);
+}
+
+}  // namespace mysqlx
+}  // namespace db
+}  // namespace mysqlshdk

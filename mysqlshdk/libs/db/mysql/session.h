@@ -100,6 +100,11 @@ struct Classic_query_attribute : public IQuery_attribute_value {
 class Session_impl : public std::enable_shared_from_this<Session_impl> {
   friend class Session;  // The Session class instantiates this class
   friend class Result;   // The Result class uses some functions of this class
+
+#ifdef FRIEND_TEST
+  FRIEND_TEST(Pqc_connection, classic_forwarding);
+#endif
+
  public:
   virtual ~Session_impl();
 

@@ -863,6 +863,26 @@ Shell_options::Shell_options(
         std::bind(&Ssl_options::set_tls_version, &storage.connection_data.get_ssl_options(), _2))
     (cmdline("--tls-ciphersuites=<name>"), "TLS v1.3 cipher to use.",
         std::bind(&Ssl_options::set_tls_ciphersuites, &storage.connection_data.get_ssl_options(), _2))
+    (cmdline("--tls-kex=<group_list>"),
+        "TLS key exchange groups to use. Expects a colon-separated list.",
+        std::bind(&Ssl_options::set_tls_kex,
+                  &storage.connection_data.get_ssl_options(), _2));
+
+  add_startup_bool_options(true)
+    ("--force-pqc",
+        "Require encrypted connections to use a PQC-compatible key exchange. "
+        "Boolean option, default value \"false\".",
+        [this](const std::string &, const bool value) {
+          storage.connection_data.get_ssl_options().set_force_pqc(value);
+        })
+    ("--use-pqc-sign",
+        "Advertise PQC TLS handshake signature algorithms. Boolean option, "
+        "default value \"false\".",
+        [this](const std::string &, const bool value) {
+          storage.connection_data.get_ssl_options().set_use_pqc_sign(value);
+        });
+
+  add_startup_options(true)
     (cmdline("--auth-method=<method>"),
         "Authentication method to use. In case of classic session, this is the "
         "name of the authentication plugin to use, i.e. caching_sha2_password. "

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -28,6 +28,7 @@
 #include <stdexcept>
 
 #include "mysqlshdk/libs/db/utils_connection.h"
+#include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlshdk {
@@ -38,8 +39,15 @@ constexpr const char *const option_str_list[] = {
     kSslCa,     kSslCaPath,     kSslCert,
     kSslKey,    kSslCrl,        kSslCrlPath,
     kSslCipher, kSslTlsVersion, kSslTlsCiphersuites,
+    kSslTlsKex, kSslForcePqc,   kSslUsePqcSign,
     kSslMode};
+
+bool is_bool_value(const std::string &value) {
+  const auto normalized = shcore::str_lower(value);
+  return normalized == "true" || normalized == "false" || normalized == "1" ||
+         normalized == "0";
 }
+}  // namespace
 
 using mysqlshdk::utils::nullable_options::Comparison_mode;
 using mysqlshdk::utils::nullable_options::Set_mode;
@@ -77,6 +85,12 @@ const std::string &Ssl_options::_get(const std::string &id) const {
   return get_value(id);
 }
 
+bool Ssl_options::_get_bool(const std::string &id) const {
+  if (!has_value(id)) return false;
+
+  return shcore::lexical_cast<bool>(get_value(id));
+}
+
 void Ssl_options::set_ca(const std::string &value) {
   Nullable_options::set(kSslCa, value, Set_mode::CREATE_AND_UPDATE);
 }
@@ -106,6 +120,20 @@ void Ssl_options::set_tls_ciphersuites(const std::string &value) {
                         Set_mode::CREATE_AND_UPDATE);
 }
 
+void Ssl_options::set_tls_kex(const std::string &value) {
+  Nullable_options::set(kSslTlsKex, value, Set_mode::CREATE_AND_UPDATE);
+}
+
+void Ssl_options::set_force_pqc(bool value) {
+  Nullable_options::set(kSslForcePqc, value ? "true" : "false",
+                        Set_mode::CREATE_AND_UPDATE);
+}
+
+void Ssl_options::set_use_pqc_sign(bool value) {
+  Nullable_options::set(kSslUsePqcSign, value ? "true" : "false",
+                        Set_mode::CREATE_AND_UPDATE);
+}
+
 void Ssl_options::set_cert(const std::string &value) {
   Nullable_options::set(kSslCert, value, Set_mode::CREATE_AND_UPDATE);
 }
@@ -131,6 +159,12 @@ void Ssl_options::set(const std::string &name, const std::string &value) {
           "DISABLED, PREFERRED, REQUIRED, VERIFY_CA, VERIFY_IDENTITY.",
           value.c_str(), name.c_str()));
     }
+  } else if ((compare(name, kSslForcePqc) == 0 ||
+              compare(name, kSslUsePqcSign) == 0) &&
+             !is_bool_value(value)) {
+    throw std::invalid_argument(shcore::str_format(
+        "Invalid value '%s' for '%s'. Allowed values: true, false, 1, 0.",
+        value.c_str(), name.c_str()));
   }
 
   Nullable_options::set(name, value, Set_mode::CREATE_AND_UPDATE);

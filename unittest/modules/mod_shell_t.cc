@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -23,6 +23,13 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <algorithm>
+#include <functional>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "modules/devapi/mod_mysqlx_resultset.h"
 #include "modules/devapi/mod_mysqlx_session.h"
 #include "modules/mod_mysql_resultset.h"
@@ -31,8 +38,137 @@
 #include "scripting/types.h"
 #include "unittest/test_utils.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
+#include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_mysql_session.h"
 
 namespace testing {
+
+namespace {
+
+std::shared_ptr<Mock_result> make_status_result(
+    const std::optional<std::string> &value, const std::string &variable) {
+  auto result = std::make_shared<Mock_result>();
+  std::vector<std::vector<std::string>> rows;
+
+  if (value) rows.push_back({variable, *value});
+
+  result->add_result({"Variable_name", "Value"},
+                     {mysqlshdk::db::Type::String, mysqlshdk::db::Type::String},
+                     rows);
+  return result;
+}
+
+std::shared_ptr<Mock_result> make_string_result(
+    size_t columns, const std::vector<std::vector<std::string>> &rows = {}) {
+  auto result = std::make_shared<Mock_result>();
+  std::vector<std::string> names;
+  names.reserve(columns);
+
+  for (size_t i = 0; i < columns; ++i)
+    names.emplace_back("column" + std::to_string(i));
+
+  result->add_result(
+      names,
+      std::vector<mysqlshdk::db::Type>(columns, mysqlshdk::db::Type::String),
+      rows);
+  return result;
+}
+
+class Mock_mysqlx_session : public mysqlshdk::db::mysqlx::Session {
+ public:
+  MOCK_CONST_METHOD0(get_connection_id, uint64_t());
+  MOCK_CONST_METHOD0(get_ssl_cipher, const char *());
+  MOCK_CONST_METHOD0(get_connection_options,
+                     const mysqlshdk::db::Connection_options &());
+  MOCK_CONST_METHOD0(get_connection_info, const std::string &());
+  MOCK_CONST_METHOD0(is_open, bool());
+};
+
+class Mock_mysqlx_shell_session : public mysqlsh::mysqlx::Session {
+ public:
+  using Query_handler = std::function<std::shared_ptr<mysqlshdk::db::IResult>(
+      const std::string &)>;
+
+  explicit Mock_mysqlx_shell_session(
+      std::shared_ptr<mysqlshdk::db::mysqlx::Session> session)
+      : mysqlsh::mysqlx::Session(std::move(session)) {}
+
+  void set_query_handler(Query_handler handler) {
+    m_query_handler = std::move(handler);
+  }
+
+ private:
+  std::shared_ptr<mysqlshdk::db::IResult> do_execute_sql(
+      std::string_view query, [[maybe_unused]] const shcore::Array_t &args,
+      [[maybe_unused]] const std::vector<mysqlshdk::db::Query_attribute>
+          &query_attributes) override {
+    return m_query_handler(std::string{query});
+  }
+
+  Query_handler m_query_handler;
+};
+
+constexpr auto k_tls_kex_status_query =
+    "SHOW SESSION STATUS LIKE 'Tls_key_exchange_algorithm'";
+constexpr auto k_tls_sign_status_query =
+    "SHOW SESSION STATUS LIKE 'Tls_sign_algorithm'";
+
+void configure_classic_status_results(Mock_mysql_session *session,
+                                      std::optional<std::string> *tls_kex,
+                                      std::optional<std::string> *tls_sign,
+                                      std::vector<std::string> *queries) {
+  session->set_query_handler(
+      [tls_kex, tls_sign, queries](const std::string &sql) {
+        queries->push_back(sql);
+
+        if (sql == "select DATABASE(), USER() limit 1")
+          return make_string_result(2);
+
+        if (shcore::str_beginswith(sql, "select @@character_set_client"))
+          return make_string_result(9);
+
+        if (sql == k_tls_kex_status_query)
+          return make_status_result(*tls_kex, "Tls_key_exchange_algorithm");
+
+        if (sql == k_tls_sign_status_query)
+          return make_status_result(*tls_sign, "Tls_sign_algorithm");
+
+        ADD_FAILURE() << "Unexpected query: " << sql;
+        return make_string_result(0);
+      });
+}
+
+void configure_x_status_results(Mock_mysqlx_shell_session *session,
+                                std::optional<std::string> *tls_kex,
+                                std::optional<std::string> *tls_sign,
+                                std::vector<std::string> *queries) {
+  session->set_query_handler(
+      [tls_kex, tls_sign, queries](const std::string &sql) {
+        queries->push_back(sql);
+
+        if (sql == "select DATABASE(), USER() limit 1")
+          return make_string_result(2, {{"", "user@host"}});
+
+        if (shcore::str_beginswith(sql, "select @@character_set_client"))
+          return make_string_result(9);
+
+        if (shcore::str_beginswith(sql, "show status where variable_name in "))
+          return make_string_result(2);
+
+        if (sql == "SHOW GLOBAL STATUS LIKE 'Uptime';")
+          return make_string_result(2, {{"Uptime", "10"}});
+
+        if (sql == k_tls_kex_status_query)
+          return make_status_result(*tls_kex, "Tls_key_exchange_algorithm");
+
+        if (sql == k_tls_sign_status_query)
+          return make_status_result(*tls_sign, "Tls_sign_algorithm");
+
+        ADD_FAILURE() << "Unexpected query: " << sql;
+        return make_string_result(0);
+      });
+}
+
+}  // namespace
 
 class Mock_mysql_shell : public mysqlsh::Mysql_shell {
  public:
@@ -68,6 +204,108 @@ class mod_shell_test : public Shell_core_test_wrapper {
   std::shared_ptr<mysqlsh::Shell> _shell;
 };
 
+// WL17311-AUTO-07
+TEST_F(mod_shell_test, classic_pqc_status_collection) {
+  mysqlshdk::db::Connection_options connection_options;
+  auto driver = std::make_shared<NiceMock<Mock_mysql_session>>();
+  ON_CALL(*driver, get_connection_options())
+      .WillByDefault(ReturnRef(connection_options));
+  ON_CALL(*driver, get_ssl_cipher())
+      .WillByDefault(Return(static_cast<const char *>(nullptr)));
+
+  std::optional<std::string> tls_kex{"X25519MLKEM768"};
+  std::optional<std::string> tls_sign{""};
+  std::vector<std::string> queries;
+  configure_classic_status_results(driver.get(), &tls_kex, &tls_sign, &queries);
+
+  auto session = std::make_shared<mysqlsh::mysql::ClassicSession>(driver);
+  auto status = session->get_status();
+
+  ASSERT_TRUE(status->has_key("TLS_KEY_EXCHANGE_ALGORITHM"));
+  ASSERT_TRUE(status->has_key("TLS_SIGNATURE_ALGORITHM"));
+  EXPECT_EQ("X25519MLKEM768", status->get_string("TLS_KEY_EXCHANGE_ALGORITHM"));
+  EXPECT_EQ("", status->get_string("TLS_SIGNATURE_ALGORITHM"));
+  EXPECT_NE(queries.end(),
+            std::find(queries.begin(), queries.end(), k_tls_kex_status_query));
+  EXPECT_NE(queries.end(),
+            std::find(queries.begin(), queries.end(), k_tls_sign_status_query));
+
+  tls_kex.reset();
+  tls_sign.reset();
+  status = session->get_status();
+
+  EXPECT_FALSE(status->has_key("TLS_KEY_EXCHANGE_ALGORITHM"));
+  EXPECT_FALSE(status->has_key("TLS_SIGNATURE_ALGORITHM"));
+}
+
+// WL17311-AUTO-07
+TEST_F(mod_shell_test, x_pqc_status_collection) {
+  mysqlshdk::db::Connection_options connection_options;
+  auto driver = std::make_shared<NiceMock<Mock_mysqlx_session>>();
+  ON_CALL(*driver, get_connection_options())
+      .WillByDefault(ReturnRef(connection_options));
+  ON_CALL(*driver, get_ssl_cipher())
+      .WillByDefault(Return(static_cast<const char *>(nullptr)));
+
+  std::optional<std::string> tls_kex{"SecP384r1MLKEM1024"};
+  std::optional<std::string> tls_sign{""};
+  std::vector<std::string> queries;
+  auto session = std::make_shared<Mock_mysqlx_shell_session>(driver);
+  configure_x_status_results(session.get(), &tls_kex, &tls_sign, &queries);
+  auto status = session->get_status();
+
+  ASSERT_TRUE(status->has_key("TLS_KEY_EXCHANGE_ALGORITHM"));
+  ASSERT_TRUE(status->has_key("TLS_SIGNATURE_ALGORITHM"));
+  EXPECT_EQ("SecP384r1MLKEM1024",
+            status->get_string("TLS_KEY_EXCHANGE_ALGORITHM"));
+  EXPECT_EQ("", status->get_string("TLS_SIGNATURE_ALGORITHM"));
+  EXPECT_NE(queries.end(),
+            std::find(queries.begin(), queries.end(), k_tls_kex_status_query));
+  EXPECT_NE(queries.end(),
+            std::find(queries.begin(), queries.end(), k_tls_sign_status_query));
+
+  tls_kex.reset();
+  tls_sign.reset();
+  status = session->get_status();
+
+  EXPECT_FALSE(status->has_key("TLS_KEY_EXCHANGE_ALGORITHM"));
+  EXPECT_FALSE(status->has_key("TLS_SIGNATURE_ALGORITHM"));
+}
+
+// WL17311-AUTO-07
+TEST_F(mod_shell_test, pqc_status_output) {
+  mysqlshdk::db::Connection_options connection_options;
+  auto driver = std::make_shared<NiceMock<Mock_mysql_session>>();
+  ON_CALL(*driver, get_connection_options())
+      .WillByDefault(ReturnRef(connection_options));
+  ON_CALL(*driver, get_ssl_cipher())
+      .WillByDefault(Return(static_cast<const char *>(nullptr)));
+  ON_CALL(*driver, is_open()).WillByDefault(Return(true));
+
+  std::optional<std::string> tls_kex{"X25519MLKEM768"};
+  std::optional<std::string> tls_sign{"rsa_pss_rsae_sha256"};
+  std::vector<std::string> queries;
+  configure_classic_status_results(driver.get(), &tls_kex, &tls_sign, &queries);
+
+  auto session = std::make_shared<mysqlsh::mysql::ClassicSession>(driver);
+  _backend->shell_context()->set_dev_session(session);
+
+  wipe_all();
+  _shell->status();
+  MY_EXPECT_STDOUT_CONTAINS("TLS key exchange algorithm:   X25519MLKEM768");
+  MY_EXPECT_STDOUT_CONTAINS(
+      "TLS signature algorithm:      rsa_pss_rsae_sha256");
+
+  tls_kex.reset();
+  tls_sign.reset();
+  wipe_all();
+  _shell->status();
+  MY_EXPECT_STDOUT_NOT_CONTAINS("TLS key exchange algorithm:");
+  MY_EXPECT_STDOUT_NOT_CONTAINS("TLS signature algorithm:");
+
+  _backend->shell_context()->set_dev_session({});
+}
+
 // clang-format off
 TEST_F(mod_shell_test, parse_uri) {
   {
@@ -100,6 +338,22 @@ TEST_F(mod_shell_test, parse_uri) {
         "mysql://user:password@localhost:1234/"
         "schema?ssl-mode=REQUIRED&auth-method=PLAIN",
         _shell->unparse_uri(dict));
+  }
+
+  // WL17311-AUTO-02
+  {
+    const auto dict = _shell->parse_uri(
+        "mysql://user@host?tls-kex=X25519MLKEM768%3AX25519&"
+        "force-pqc=true&use-pqc-sign=false");
+
+    EXPECT_EQ("X25519MLKEM768:X25519",
+              dict->get_string(mysqlshdk::db::kSslTlsKex));
+    EXPECT_EQ(shcore::Bool,
+              dict->get_type(mysqlshdk::db::kSslForcePqc));
+    EXPECT_EQ(shcore::Bool,
+              dict->get_type(mysqlshdk::db::kSslUsePqcSign));
+    EXPECT_TRUE(dict->get_bool(mysqlshdk::db::kSslForcePqc));
+    EXPECT_FALSE(dict->get_bool(mysqlshdk::db::kSslUsePqcSign));
   }
 
 #ifdef _WIN32  // TODO(alfredo) - these shouldn't be different in windows

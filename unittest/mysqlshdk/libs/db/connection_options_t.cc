@@ -274,6 +274,52 @@ TEST(Connection_options, uri_constructor) {
   }
 }
 
+// WL17311-AUTO-02
+TEST(Connection_options, pqc_uri_round_trip) {
+  const std::string uri =
+      "mysqlx://user@host:33060?tls-kex=X25519MLKEM768%3AX25519&"
+      "force-pqc=true&use-pqc-sign=false";
+
+  Connection_options options(uri);
+  const auto &ssl = options.get_ssl_options();
+
+  EXPECT_EQ("X25519MLKEM768:X25519", ssl.get_tls_kex());
+  EXPECT_TRUE(ssl.get_force_pqc());
+  EXPECT_FALSE(ssl.get_use_pqc_sign());
+  EXPECT_EQ(
+      "mysqlx://user@host:33060?force-pqc=true&"
+      "tls-kex=X25519MLKEM768%3AX25519&use-pqc-sign=false",
+      options.as_uri(mysqlshdk::db::uri::formats::full()));
+}
+
+// WL17311-AUTO-02
+TEST(Connection_options, pqc_login_options_copy_and_override) {
+  Connection_options source;
+  auto &source_ssl = source.get_ssl_options();
+  source_ssl.set_tls_kex("X25519MLKEM768:X25519");
+  source_ssl.set_force_pqc(true);
+  source_ssl.set_use_pqc_sign(false);
+
+  Connection_options copied;
+  copied.set_login_options_from(source);
+  EXPECT_EQ("X25519MLKEM768:X25519", copied.get_ssl_options().get_tls_kex());
+  EXPECT_TRUE(copied.get_ssl_options().get_force_pqc());
+  EXPECT_FALSE(copied.get_ssl_options().get_use_pqc_sign());
+
+  Connection_options overridden;
+  overridden.override_with(source);
+  EXPECT_EQ("X25519MLKEM768:X25519",
+            overridden.get_ssl_options().get_tls_kex());
+  EXPECT_TRUE(overridden.get_ssl_options().get_force_pqc());
+  EXPECT_FALSE(overridden.get_ssl_options().get_use_pqc_sign());
+
+  Connection_options empty;
+  overridden.set_login_options_from(empty);
+  EXPECT_FALSE(overridden.get_ssl_options().has_tls_kex());
+  EXPECT_FALSE(overridden.get_ssl_options().has_force_pqc());
+  EXPECT_FALSE(overridden.get_ssl_options().has_use_pqc_sign());
+}
+
 void combine(
     const std::string &input,
     std::function<void(const std::string &, const std::string)> callback) {
@@ -377,6 +423,14 @@ TEST(Connection_options, case_insensitive_options) {
   auto callback = std::bind(case_insensitive::callback, std::placeholders::_1,
                             std::placeholders::_2, "whatever");
 
+  // WL17311-AUTO-02
+  auto bool_callback =
+      std::bind(case_insensitive::callback, std::placeholders::_1,
+                std::placeholders::_2, "true");
+
+  combine(mysqlshdk::db::kSslForcePqc, bool_callback);
+  combine(mysqlshdk::db::kSslUsePqcSign, bool_callback);
+
   std::set<std::string> attributes(uri_connection_attributes.begin(),
                                    uri_connection_attributes.end());
 
@@ -391,6 +445,8 @@ TEST(Connection_options, case_insensitive_options) {
   attributes.erase(mysqlshdk::db::kCompression);
   attributes.erase(mysqlshdk::db::kCompressionLevel);
   attributes.erase(mysqlshdk::db::kConnectionAttributes);
+  attributes.erase(mysqlshdk::db::kSslForcePqc);
+  attributes.erase(mysqlshdk::db::kSslUsePqcSign);
 #ifdef _WIN32
   attributes.erase(mysqlshdk::db::kKerberosClientAuthMode);
 #endif

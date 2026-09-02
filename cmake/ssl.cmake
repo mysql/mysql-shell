@@ -1,4 +1,4 @@
-# Copyright (c) 2009, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2009, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -66,7 +66,7 @@
 # pkg-config --cflags openssl11
 #    -I/usr/include/openssl11
 
-SET(MIN_OPENSSL_VERSION_REQUIRED "1.0.0")
+SET(MIN_OPENSSL_VERSION_REQUIRED "1.1.1")
 
 SET(WITH_SSL_DOC "\nsystem (use the OS openssl library)")
 SET(WITH_SSL_DOC "\nopenssl[0-9]+ (use alternative system library)")

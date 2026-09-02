@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -162,6 +162,49 @@ XSession_impl::XSession_impl() : m_prep_stmt_count(0) {
   DEBUG_OBJ_ALLOC(db_mysqlx_Session);
 }
 
+void XSession_impl::setup_ssl(const mysqlshdk::db::Ssl_options &ssl_options) {
+  if (ssl_options.has_ca())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_ca,
+                             ssl_options.get_ca());
+
+  if (ssl_options.has_cert())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_cert,
+                             ssl_options.get_cert());
+
+  if (ssl_options.has_key())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_key,
+                             ssl_options.get_key());
+
+  if (ssl_options.has_capath())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_ca_path,
+                             ssl_options.get_capath());
+
+  if (ssl_options.has_crl())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_crl,
+                             ssl_options.get_crl());
+
+  if (ssl_options.has_crlpath())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_crl_path,
+                             ssl_options.get_crlpath());
+
+  if (ssl_options.has_tls_version())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Allowed_tls,
+                             ssl_options.get_tls_version());
+
+  if (ssl_options.has_cipher())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_cipher,
+                             ssl_options.get_cipher());
+
+  if (ssl_options.has_tls_kex())
+    _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Tls_kex,
+                             ssl_options.get_tls_kex());
+
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Force_pqc,
+                           ssl_options.get_force_pqc());
+  _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Use_pqc_sign,
+                           ssl_options.get_use_pqc_sign());
+}
+
 void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
   _mysql = ::xcl::create_session();
   if (_enable_trace) _trace_handler = do_enable_trace(_mysql.get());
@@ -212,39 +255,9 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
     }
 
     ssl_options.validate();
-
-    if (ssl_options.has_ca())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_ca,
-                               ssl_options.get_ca());
-
-    if (ssl_options.has_cert())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_cert,
-                               ssl_options.get_cert());
-
-    if (ssl_options.has_key())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_key,
-                               ssl_options.get_key());
-
-    if (ssl_options.has_capath())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_ca_path,
-                               ssl_options.get_capath());
-
-    if (ssl_options.has_crl())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_crl,
-                               ssl_options.get_crl());
-
-    if (ssl_options.has_crlpath())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_crl_path,
-                               ssl_options.get_crlpath());
-
-    if (ssl_options.has_tls_version())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Allowed_tls,
-                               ssl_options.get_tls_version());
-
-    if (ssl_options.has_cipher())
-      _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_cipher,
-                               ssl_options.get_cipher());
   }
+
+  setup_ssl(ssl_options);
 
   _mysql->set_mysql_option(xcl::XSession::Mysqlx_option::Ssl_mode, ssl_mode);
 

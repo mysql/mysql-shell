@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2014, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -1591,6 +1591,16 @@ bool Mysql_shell::cmd_status(
                   .c_str()));
         else
           println(shcore::str_format(format.c_str(), "SSL: ", "Not in use."));
+
+        if (status->has_key("TLS_KEY_EXCHANGE_ALGORITHM"))
+          println(shcore::str_format(
+              format.c_str(), "TLS key exchange algorithm: ",
+              (*status)["TLS_KEY_EXCHANGE_ALGORITHM"].descr(true).c_str()));
+
+        if (status->has_key("TLS_SIGNATURE_ALGORITHM"))
+          println(shcore::str_format(
+              format.c_str(), "TLS signature algorithm: ",
+              (*status)["TLS_SIGNATURE_ALGORITHM"].descr(true).c_str()));
 
         if (status->has_key("DELIMITER"))
           println(shcore::str_format(

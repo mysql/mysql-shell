@@ -86,6 +86,9 @@ inline constexpr const char kSslCipher[] = "ssl-cipher";
 inline constexpr const char kSslTlsVersion[] = "tls-version";
 inline constexpr const char kSslTlsVersions[] = "tls-versions";
 inline constexpr const char kSslTlsCiphersuites[] = "tls-ciphersuites";
+inline constexpr const char kSslTlsKex[] = "tls-kex";
+inline constexpr const char kSslForcePqc[] = "force-pqc";
+inline constexpr const char kSslUsePqcSign[] = "use-pqc-sign";
 inline constexpr const char kSslMode[] = "ssl-mode";
 inline constexpr const char kAuthMethod[] = "auth-method";
 inline constexpr const char kGetServerPublicKey[] = "get-server-public-key";
@@ -153,6 +156,9 @@ inline const std::set<std::string> uri_connection_attributes = {
     kSslCipher,
     kSslTlsVersion,
     kSslTlsCiphersuites,
+    kSslTlsKex,
+    kSslForcePqc,
+    kSslUsePqcSign,
     kSslMode,
     kAuthMethod,
     kGetServerPublicKey,

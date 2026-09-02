@@ -183,6 +183,22 @@ Connection_options get_connection_options(
                                mysqlshdk::db::kCanHandleExpiredPasswords) ==
                    0) {
       ret_val.set(option.first, option.second.descr());
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kSslForcePqc) ==
+               0) {
+      if (option.second.get_type() != shcore::Bool) {
+        throw shcore::Exception::type_error("Argument '" + option.first +
+                                            "' is expected to be a bool");
+      }
+
+      ret_val.get_ssl_options().set_force_pqc(option.second.as_bool());
+    } else if (ret_val.compare(option.first, mysqlshdk::db::kSslUsePqcSign) ==
+               0) {
+      if (option.second.get_type() != shcore::Bool) {
+        throw shcore::Exception::type_error("Argument '" + option.first +
+                                            "' is expected to be a bool");
+      }
+
+      ret_val.get_ssl_options().set_use_pqc_sign(option.second.as_bool());
     } else {
       ret_val.set(option.first, connection_map.string_at(option.first));
     }
@@ -325,6 +341,16 @@ shcore::Value::Map_type_ref get_connection_map(
     if (ssl.has_tls_ciphersuites())
       (*map)[mysqlshdk::db::kSslTlsCiphersuites] =
           shcore::Value(ssl.get_tls_ciphersuites());
+
+    if (ssl.has_tls_kex())
+      (*map)[mysqlshdk::db::kSslTlsKex] = shcore::Value(ssl.get_tls_kex());
+
+    if (ssl.has_force_pqc())
+      (*map)[mysqlshdk::db::kSslForcePqc] = shcore::Value(ssl.get_force_pqc());
+
+    if (ssl.has_use_pqc_sign())
+      (*map)[mysqlshdk::db::kSslUsePqcSign] =
+          shcore::Value(ssl.get_use_pqc_sign());
   }
 
   for (auto &option : connection_options.get_extra_options()) {

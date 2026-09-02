@@ -568,6 +568,11 @@ files in PEM format.
 use TLS protocols up through TLSv1.2.
 @li tls-version: List of protocols permitted for secure connections.
 @li tls-ciphers: List of TLS v1.3 ciphers to use.
+@li tls-kex: TLS key exchange groups to use. Expects a colon-separated list.
+@li force-pqc: Require encrypted connections to use a PQC-compatible key
+exchange. Boolean option, default value "false".
+@li use-pqc-sign: Advertise PQC TLS handshake signature algorithms. Boolean
+option, default value "false".
 @li auth-method: Authentication method.
 @li get-server-public-key: Request public key from the server required for
 RSA key pair-based password exchange. Use when connecting to MySQL 8.0

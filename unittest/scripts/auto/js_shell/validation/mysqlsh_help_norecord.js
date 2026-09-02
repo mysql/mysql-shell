@@ -248,6 +248,14 @@ Usage: mysqlsh [OPTIONS] [URI]
   --tls-version=<version>          TLS version to use. Allowed values: TLSv1.2,
                                    TLSv1.3.
   --tls-ciphersuites=<name>        TLS v1.3 cipher to use.
+  --tls-kex=<group_list>           TLS key exchange groups to use. Expects a
+                                   colon-separated list.
+  --force-pqc[=<bool>]             Require encrypted connections to use a
+                                   PQC-compatible key exchange. Boolean option,
+                                   default value "false".
+  --use-pqc-sign[=<bool>]          Advertise PQC TLS handshake signature
+                                   algorithms. Boolean option, default value
+                                   "false".
   --auth-method=<method>           Authentication method to use. In case of
                                    classic session, this is the name of the
                                    authentication plugin to use, i.e.

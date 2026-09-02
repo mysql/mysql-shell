@@ -77,6 +77,39 @@ TEST(modules_mod_utils, get_connection_data_dictionary_expired_passwords) {
   EXPECT_TRUE(options.can_handle_expired_passwords());
 }
 
+// WL17311-AUTO-04
+TEST(modules_mod_utils, get_connection_data_dictionary_pqc_options) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kSslTlsKex] = shcore::Value("X25519MLKEM768:X25519");
+  (*map)[mysqlshdk::db::kSslForcePqc] = shcore::Value(true);
+  (*map)[mysqlshdk::db::kSslUsePqcSign] = shcore::Value(false);
+
+  const auto options = mysqlsh::get_connection_options(shcore::Value(map));
+  const auto &ssl = options.get_ssl_options();
+
+  EXPECT_EQ("X25519MLKEM768:X25519", ssl.get_tls_kex());
+  EXPECT_TRUE(ssl.get_force_pqc());
+  EXPECT_FALSE(ssl.get_use_pqc_sign());
+
+  const auto output = mysqlsh::get_connection_map(options);
+  EXPECT_EQ(shcore::Bool, output->get_type(mysqlshdk::db::kSslForcePqc));
+  EXPECT_EQ(shcore::Bool, output->get_type(mysqlshdk::db::kSslUsePqcSign));
+  EXPECT_TRUE(output->get_bool(mysqlshdk::db::kSslForcePqc));
+  EXPECT_FALSE(output->get_bool(mysqlshdk::db::kSslUsePqcSign));
+}
+
+// WL17311-AUTO-04
+TEST(modules_mod_utils, get_connection_data_dictionary_pqc_bool_type) {
+  const auto map = shcore::make_dict();
+  (*map)[mysqlshdk::db::kUser] = shcore::Value("root");
+  (*map)[mysqlshdk::db::kSslForcePqc] = shcore::Value("true");
+
+  EXPECT_THROW_LIKE(mysqlsh::get_connection_options(shcore::Value(map)),
+                    shcore::Exception,
+                    "Argument 'force-pqc' is expected to be a bool");
+}
+
 TEST(modules_mod_utils, get_connection_data_invalid_uri) {
   EXPECT_THROW_LIKE(
       mysqlsh::get_connection_options(shcore::Value("root:p@ssword@localhost")),

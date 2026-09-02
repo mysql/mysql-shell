@@ -1393,6 +1393,11 @@ The following options are valid for use either in a URI or in a dictionary:
   use TLS protocols up through TLSv1.2.
 - tls-version: List of protocols permitted for secure connections.
 - tls-ciphers: List of TLS v1.3 ciphers to use.
+- tls-kex: TLS key exchange groups to use. Expects a colon-separated list.
+- force-pqc: Require encrypted connections to use a PQC-compatible key
+  exchange. Boolean option, default value "false".
+- use-pqc-sign: Advertise PQC TLS handshake signature algorithms. Boolean
+  option, default value "false".
 - auth-method: Authentication method.
 - get-server-public-key: Request public key from the server required for RSA
   key pair-based password exchange. Use when connecting to MySQL 8.0 servers
@@ -1678,6 +1683,11 @@ The following options are valid for use either in a URI or in a dictionary:
   use TLS protocols up through TLSv1.2.
 - tls-version: List of protocols permitted for secure connections.
 - tls-ciphers: List of TLS v1.3 ciphers to use.
+- tls-kex: TLS key exchange groups to use. Expects a colon-separated list.
+- force-pqc: Require encrypted connections to use a PQC-compatible key
+  exchange. Boolean option, default value "false".
+- use-pqc-sign: Advertise PQC TLS handshake signature algorithms. Boolean
+  option, default value "false".
 - auth-method: Authentication method.
 - get-server-public-key: Request public key from the server required for RSA
   key pair-based password exchange. Use when connecting to MySQL 8.0 servers
@@ -2041,6 +2051,11 @@ The following options are valid for use either in a URI or in a dictionary:
   use TLS protocols up through TLSv1.2.
 - tls-version: List of protocols permitted for secure connections.
 - tls-ciphers: List of TLS v1.3 ciphers to use.
+- tls-kex: TLS key exchange groups to use. Expects a colon-separated list.
+- force-pqc: Require encrypted connections to use a PQC-compatible key
+  exchange. Boolean option, default value "false".
+- use-pqc-sign: Advertise PQC TLS handshake signature algorithms. Boolean
+  option, default value "false".
 - auth-method: Authentication method.
 - get-server-public-key: Request public key from the server required for RSA
   key pair-based password exchange. Use when connecting to MySQL 8.0 servers

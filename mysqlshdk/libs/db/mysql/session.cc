@@ -589,6 +589,10 @@ std::optional<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
       mysql_options(_mysql, MYSQL_OPT_TLS_CIPHERSUITES,
                     (ssl_options.get_tls_ciphersuites().c_str()));
 
+    if (ssl_options.has_tls_kex())
+      mysql_options(_mysql, MYSQL_OPT_TLS_KEX,
+                    ssl_options.get_tls_kex().c_str());
+
     if (ssl_options.has_cert())
       mysql_options(_mysql, MYSQL_OPT_SSL_CERT,
                     (ssl_options.get_cert().c_str()));
@@ -599,6 +603,12 @@ std::optional<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
     value = static_cast<int>(*ssl_mode);
     mysql_options(_mysql, MYSQL_OPT_SSL_MODE, &value);
   }
+
+  const bool force_pqc = ssl_options.get_force_pqc();
+  mysql_options(_mysql, MYSQL_OPT_FORCE_PQC, &force_pqc);
+
+  const bool use_pqc_sign = ssl_options.get_use_pqc_sign();
+  mysql_options(_mysql, MYSQL_OPT_USE_PQC_SIGN, &use_pqc_sign);
 
   return ssl_mode;
 }
