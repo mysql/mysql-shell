@@ -94,7 +94,7 @@ ClassicSession get_classic_session(ConnectionData connectionData, str password);
 ClassicSession get_session(ConnectionData connectionData, str password);
 list split_script(str script, dict options);
 dict parse_statement_ast(str statements, dict options);
-dict parse_data_type(str type_definition);
+dict parse_data_type(str typeDefinition);
 dict parse_ddl_script(str script, dict options);
 list tokenize_statement(str statement, dict options);
 str quote_string(str s);

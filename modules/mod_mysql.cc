@@ -572,7 +572,7 @@ parameters, and flags. Absent precision, scale, and length values are null.
 #if DOXYGEN_JS
 Dictionary parseDataType(String typeDefinition) {}
 #elif DOXYGEN_PY
-dict parse_data_type(str type_definition) {}
+dict parse_data_type(str typeDefinition) {}
 #endif
 shcore::Value Mysql::parse_data_type(const std::string &type_definition) const {
   mysqlshdk::parser::Data_type_definition definition;
