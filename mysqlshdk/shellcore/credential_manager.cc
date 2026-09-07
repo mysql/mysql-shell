@@ -615,12 +615,15 @@ void Credential_manager::delete_credential(const std::string &url) {
   }
 
   bool removed = false;
-  for (const auto &spec : specs) {
+  for (auto it = specs.cbegin(); it != specs.cend(); ++it) {
+    const auto &spec = *it;
     std::string mfa_url;
     if ((spec.type != Secret_type::PASSWORD || spec.id != validated_url) &&
         (!is_mfa_secret(spec, &mfa_url) || mfa_url != validated_url)) {
       continue;
     }
+
+    if (std::find(specs.cbegin(), it, spec) != it) continue;
 
     if (m_helper->erase(spec)) {
       removed = true;

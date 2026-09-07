@@ -105,7 +105,7 @@ expect_mfa_passwords(capture_mfa_passwords(() => {
     password3: null
   }));
 }));
-testutil.assert_no_prompts();
+testutil.assertNoPrompts();
 
 //@<> Missing cached passwords are prompted and forwarded to libmysql
 const save_passwords = shell.options["credentialStore.savePasswords"];
@@ -115,13 +115,13 @@ shell.options["useWizards"] = true;
 shell.deleteAllCredentials();
 shell.storeCredential(credential_url, {password: password1});
 
-testutil.expect_password(
+testutil.expectPassword(
     `Please provide the password2 for '${credential_url}': `,
     password2);
-testutil.expect_password(
+testutil.expectPassword(
     `Please provide the password3 for '${credential_url}': `,
     password3);
-testutil.expect_prompt(
+testutil.expectPrompt(
     `Save all prompted passwords for '${credential_url}'?`,
     "N");
 expect_mfa_passwords(capture_mfa_passwords(() => {
@@ -131,7 +131,7 @@ expect_mfa_passwords(capture_mfa_passwords(() => {
     password3: null
   }));
 }));
-testutil.assert_no_prompts();
+testutil.assertNoPrompts();
 
 //@<> MFA is not available for X protocol with connection data
 EXPECT_THROWS(function() {

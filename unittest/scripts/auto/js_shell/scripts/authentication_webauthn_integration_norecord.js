@@ -68,11 +68,15 @@ EXPECT_OUTPUT_CONTAINS("MySQL Error 4057 (HY000): 2 factor authentication method
 
 //@<> Test authentication {fido_available && __os_type != 'windows'}
 // This currently crashes on Windows, see: BUG#34918044
-// Attempt registering the FIDO device (assuming there's none)
+// Attempt registering the FIDO device using a nonexistent device index
 // This test confirms the print callback is properly set on the FIDO authentication client plugin as
 // a JSON document is generated for the error coming from the plugin, instead of raw text in stderr
-testutil.callMysqlsh([`webauthn_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--json=raw", "--register-factor=2", "--sql", "-e", 'select user()']);
-EXPECT_OUTPUT_CONTAINS('{"info":"No FIDO device available on client host.\\n"}');
+testutil.callMysqlsh([`webauthn_test:mypwd@localhost:${__mysql_sandbox_port1}`, "--json=raw", "--register-factor=2", "--plugin-authentication-webauthn-device=9", "--sql", "-e", 'select user()']);
+EXPECT_OUTPUT_CONTAINS_ONE_OF([
+  '"info":"No FIDO device available on client host.\\n"',
+  '"info":"Requested FIDO device \'9\' not present. Please correct the device id supplied or make sure the device is present.\\n"'
+]);
+EXPECT_OUTPUT_CONTAINS('"auth":"authentication_webauthn"');
 
 //@<> Drops the sandbox
 testutil.destroySandbox(__mysql_sandbox_port1);

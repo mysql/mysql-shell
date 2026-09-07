@@ -190,8 +190,8 @@ SYNTAX
       shell store-credential <url> [<password>]
 
 WHERE
-      url: URL of the server for the password to be stored.
-      password: Password for the given URL.
+      url: URL of the server for the credential to be stored.
+      password: First-factor password string or password dictionary.
 
 //@<OUT> CLI shell options set-persist --help
 NAME

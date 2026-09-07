@@ -1323,7 +1323,7 @@ SYNTAX
 
 WHERE
       url: URL of the server for the credential to be stored.
-      password: Optional first-factor password string or password dictionary.
+      password: First-factor password string or password dictionary.
 
 DESCRIPTION
       If a required password is not provided, displays a password prompt.
@@ -1343,7 +1343,6 @@ EXCEPTIONS
 
       - if configured credential helper is invalid.
       - if storing the credential fails.
-
 //@<OUT> Help on storeSecret
 NAME
       storeSecret - Stores given secret using the configured helper.
@@ -1426,9 +1425,8 @@ The following options are valid for use either in a URI or in a dictionary:
   authentication device used for client side webauthn authentication.
 - register-factor: Specifies authentication factors for which device
   registration needs to be done.
-- plugin-authentication-webauthn-client-preserve-privacy: Boolean that
-  enables the use of discoverable credentials for client side webauthn
-  authentication.
+- plugin-authentication-webauthn-client-preserve-privacy: Boolean that enables
+  the use of discoverable credentials for client side webauthn authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -1448,20 +1446,20 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- password: the password for the first authentication factor. If omitted or
-  set to null, a stored first-factor password is used if available; otherwise,
-  it is prompted for.
+- password: the password for the first authentication factor. If omitted or set
+  to null, a stored first-factor password is used if available; otherwise, it
+  is prompted for.
 - no-password: if true, sets an empty first-factor password and prevents
   prompting for it.
 - password1: alias for password. Takes precedence over password. If set to
   null, a stored first-factor password is used if available; otherwise, it is
   prompted for.
-- password2: the password for the second authentication factor. If omitted,
-  no password is requested for this factor. If set to null, a stored
-  second-factor password is used if available; otherwise, it is prompted for.
-- password3: the password for the third authentication factor. If omitted,
-  no password is requested for this factor. If set to null, a stored
-  third-factor password is used if available; otherwise, it is prompted for.
+- password2: the password for the second authentication factor. If omitted, no
+  password is requested for this factor. If set to null, a stored second-factor
+  password is used if available; otherwise, it is prompted for.
+- password3: the password for the third authentication factor. If omitted, no
+  password is requested for this factor. If set to null, a stored third-factor
+  password is used if available; otherwise, it is prompted for.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
@@ -1673,7 +1671,6 @@ characters.
 
 If host is a literal IPv6 address with zone ID, the '%' character separating
 address from the zone ID needs to be URL encoded.
-
 //@<OUT> BUG28393119 UNABLE TO GET HELP ON CONNECTION DATA, after session
 Information about the data used to create sessions.
 
@@ -1734,9 +1731,8 @@ The following options are valid for use either in a URI or in a dictionary:
   authentication device used for client side webauthn authentication.
 - register-factor: Specifies authentication factors for which device
   registration needs to be done.
-- plugin-authentication-webauthn-client-preserve-privacy: Boolean that
-  enables the use of discoverable credentials for client side webauthn
-  authentication.
+- plugin-authentication-webauthn-client-preserve-privacy: Boolean that enables
+  the use of discoverable credentials for client side webauthn authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -1756,20 +1752,20 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- password: the password for the first authentication factor. If omitted or
-  set to null, a stored first-factor password is used if available; otherwise,
-  it is prompted for.
+- password: the password for the first authentication factor. If omitted or set
+  to null, a stored first-factor password is used if available; otherwise, it
+  is prompted for.
 - no-password: if true, sets an empty first-factor password and prevents
   prompting for it.
 - password1: alias for password. Takes precedence over password. If set to
   null, a stored first-factor password is used if available; otherwise, it is
   prompted for.
-- password2: the password for the second authentication factor. If omitted,
-  no password is requested for this factor. If set to null, a stored
-  second-factor password is used if available; otherwise, it is prompted for.
-- password3: the password for the third authentication factor. If omitted,
-  no password is requested for this factor. If set to null, a stored
-  third-factor password is used if available; otherwise, it is prompted for.
+- password2: the password for the second authentication factor. If omitted, no
+  password is requested for this factor. If set to null, a stored second-factor
+  password is used if available; otherwise, it is prompted for.
+- password3: the password for the third authentication factor. If omitted, no
+  password is requested for this factor. If set to null, a stored third-factor
+  password is used if available; otherwise, it is prompted for.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
@@ -2000,7 +1996,6 @@ The following topics were found at the SQL Syntax category:
 For help on a specific topic use: \? <topic>
 
 e.g.: \? ALTER TABLE
-
 //@<OUT> Help on connection attributes
 Connection Attributes
 
@@ -2120,9 +2115,8 @@ The following options are valid for use either in a URI or in a dictionary:
   authentication device used for client side webauthn authentication.
 - register-factor: Specifies authentication factors for which device
   registration needs to be done.
-- plugin-authentication-webauthn-client-preserve-privacy: Boolean that
-  enables the use of discoverable credentials for client side webauthn
-  authentication.
+- plugin-authentication-webauthn-client-preserve-privacy: Boolean that enables
+  the use of discoverable credentials for client side webauthn authentication.
 - oci-config-file: Allows defining the OCI configuration file for OCI
   authentication.
 - authentication-oci-client-config-profile: Allows defining the OCI profile
@@ -2142,20 +2136,20 @@ Base Connection Options
 - uri: a URI string.
 - scheme: the protocol to be used on the connection.
 - user: the MySQL user name to be used on the connection.
-- password: the password for the first authentication factor. If omitted or
-  set to null, a stored first-factor password is used if available; otherwise,
-  it is prompted for.
+- password: the password for the first authentication factor. If omitted or set
+  to null, a stored first-factor password is used if available; otherwise, it
+  is prompted for.
 - no-password: if true, sets an empty first-factor password and prevents
   prompting for it.
 - password1: alias for password. Takes precedence over password. If set to
   null, a stored first-factor password is used if available; otherwise, it is
   prompted for.
-- password2: the password for the second authentication factor. If omitted,
-  no password is requested for this factor. If set to null, a stored
-  second-factor password is used if available; otherwise, it is prompted for.
-- password3: the password for the third authentication factor. If omitted,
-  no password is requested for this factor. If set to null, a stored
-  third-factor password is used if available; otherwise, it is prompted for.
+- password2: the password for the second authentication factor. If omitted, no
+  password is requested for this factor. If set to null, a stored second-factor
+  password is used if available; otherwise, it is prompted for.
+- password3: the password for the third authentication factor. If omitted, no
+  password is requested for this factor. If set to null, a stored third-factor
+  password is used if available; otherwise, it is prompted for.
 - host: the hostname or IP address to be used on the connection.
 - port: the port to be used in a TCP connection.
 - socket: the socket file name to be used on a connection through unix sockets.
@@ -2176,7 +2170,6 @@ ATTENTION: The connection options have precedence over options specified in the
 The connection options are case insensitive and can only be defined once.
 
 If an option is defined more than once, an error will be generated.
-
 //@<OUT> Help on connection types
 The options specified in the connection data determine the type of connection
 to be used.

@@ -25,6 +25,7 @@
 #include "modules/mod_shell.h"
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -617,19 +618,19 @@ The following options are also valid when a dictionary is used:
 @li scheme: the protocol to be used on the connection.
 @li user: the MySQL user name to be used on the connection.
 @li password: the password for the first authentication factor. If omitted or
-  set to <b>null</b>, a stored first-factor password is used if available;
-  otherwise, it is prompted for.
+set to <b>null</b>, a stored first-factor password is used if available;
+otherwise, it is prompted for.
 @li no-password: if <b>true</b>, sets an empty first-factor password and
-  prevents prompting for it.
+prevents prompting for it.
 @li password1: alias for password. Takes precedence over password. If set to
-  <b>null</b>, a stored first-factor password is used if available; otherwise,
-  it is prompted for.
+<b>null</b>, a stored first-factor password is used if available; otherwise,
+it is prompted for.
 @li password2: the password for the second authentication factor. If omitted,
-  no password is requested for this factor. If set to <b>null</b>, a stored
-  second-factor password is used if available; otherwise, it is prompted for.
+no password is requested for this factor. If set to <b>null</b>, a stored
+second-factor password is used if available; otherwise, it is prompted for.
 @li password3: the password for the third authentication factor. If omitted,
-  no password is requested for this factor. If set to <b>null</b>, a stored
-  third-factor password is used if available; otherwise, it is prompted for.
+no password is requested for this factor. If set to <b>null</b>, a stored
+third-factor password is used if available; otherwise, it is prompted for.
 @li host: the hostname or IP address to be used on the connection.
 @li port: the port to be used in a TCP connection.
 @li socket: the socket file name to be used on a connection through unix sockets.
@@ -1469,9 +1470,20 @@ void Shell::store_credential(const std::string &url,
     }
   }
 
-  const auto credential_url =
-      shcore::Credential_manager::normalize_credential_url(url);
   auto password_options = mysqlsh::get_connection_options(*password);
+  // A first-factor-only dictionary follows the string-password path and keeps
+  // the original URL. Start at factor 1 because normalization is needed only
+  // when second- or third-factor internal secret IDs are stored.
+  std::optional<std::string> credential_url;
+  for (int factor = 1; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
+    if (password_options.has_mfa_password(factor) ||
+        password_options.should_prompt_password(factor)) {
+      credential_url =
+          shcore::Credential_manager::normalize_credential_url(url);
+      break;
+    }
+  }
+
   for (int factor = 0; factor < mysqlshdk::db::k_max_auth_factors; ++factor) {
     if (!password_options.should_prompt_password(factor)) continue;
 
@@ -1497,10 +1509,14 @@ void Shell::store_credential(const std::string &url,
   }
 
   if (password_count == 1 && passwords[0].has_value()) {
-    shcore::Credential_manager::get().store_credential(credential_url,
-                                                       *passwords[0]);
+    shcore::Credential_manager::get().store_credential(url, *passwords[0]);
   } else {
-    shcore::Credential_manager::get().store_credential(credential_url,
+    assert(credential_url.has_value());
+    if (!credential_url.has_value()) {
+      throw std::logic_error("Missing normalized URL for MFA credential.");
+    }
+
+    shcore::Credential_manager::get().store_credential(*credential_url,
                                                        passwords);
   }
 }

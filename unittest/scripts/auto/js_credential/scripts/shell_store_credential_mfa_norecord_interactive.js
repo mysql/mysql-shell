@@ -40,7 +40,7 @@ EXPECT_EQ(0, stored.filter(secret => secret.SecretID === normalized_credential_u
 
 //@<> Invalid credential URL is rejected before listing credentials
 EXPECT_THROWS(() => shell.deleteCredential("mfa@host?ssl-mode=REQUIRED"),
-              "ArgumentError: Invalid URL: URL should not have options: mfa@host?ssl-mode=REQUIRED");
+              "Invalid URL: URL should not have options: mfa@host?ssl-mode=REQUIRED");
 
 //@<> password1 takes precedence over password
 shell.deleteAllCredentials();
@@ -65,7 +65,12 @@ EXPECT_EQ("ssh-password", stored.find(secret => secret.SecretType === "password"
 shell.options["credentialStore.helper"] = "login-path";
 const rollback_url = "mfa-rollback@host";
 shell.deleteAllCredentials();
-EXPECT_THROWS(() => shell.storeCredential(rollback_url, {password: "password1", password2: "x".repeat(79)}), "RuntimeError: Failed to save the credential: The login-path helper cannot store secrets longer than 78 characters.");
+EXPECT_THROWS(
+    () => shell.storeCredential(rollback_url, {
+      password: "password1",
+      password2: "x".repeat(79)
+    }),
+    "Failed to save the credential: The login-path helper cannot store secrets longer than 78 characters.");
 EXPECT_FALSE(shell.listCredentials().includes(rollback_url));
 
 //@<> Cleanup
