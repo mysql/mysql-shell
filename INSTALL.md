@@ -3,8 +3,8 @@
 ## 1. Prerequisites
 
 ### Required tools and libraries
-- cmake 3.5.1 (downgrade if a newer release causes issues)
-- gcc 14, Visual Studio 2019, or clang 10
+- CMake 3.17.5+ (3.19+ on macOS, 3.21+ when using Visual Studio 2022)
+- GCC 14, Visual Studio 2022 17.13+, or Clang 17+
 - zip
 - python 3.10+
 - libssh 0.9.2
@@ -43,17 +43,20 @@ if yours doesn't, build it from source before configuring CMake.
 ```bash
 mkdir -p ~/mysql-src
 cd ~/mysql-src
-git clone --depth 1 --branch 4.13.1 --sparse \
+git clone --depth 1 --branch 4.13.2 --sparse \
   https://github.com/antlr/antlr4.git antlr4-runtime
 cd antlr4-runtime
 git sparse-checkout set runtime/Cpp
-mkdir -p build
-cd build
-scl enable gcc-toolset-14 -- cmake ../runtime/Cpp \
-  -DCMAKE_BUILD_TYPE=Release -DANTLR_BUILD_CPP_TESTS=OFF
-scl enable gcc-toolset-14 -- cmake --build . --parallel $(nproc --all)
-make install DESTDIR=~/mysql-src
+cmake -S runtime/Cpp -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DANTLR_BUILD_CPP_TESTS=OFF \
+  -DCMAKE_INSTALL_PREFIX="$HOME/mysql-src/antlr4-runtime-install"
+cmake --build build --parallel
+cmake --build build --target install
 ```
+
+On EL9-like systems, activate `gcc-toolset-14` before running the CMake
+commands if it is not already active.
 
 ### Optional
 - GraalVM 23.0.1 (for JavaScript support)
@@ -66,8 +69,8 @@ directory so the relative paths used below remain valid.
 ```bash
 mkdir -p ~/mysql-src
 cd ~/mysql-src
-git clone --depth 1 --branch mysql-9.7.0 https://github.com/mysql/mysql-server.git mysql-server
-git clone --depth 1 --branch 9.7.0 https://github.com/mysql/mysql-shell.git mysql-shell
+git clone --depth 1 --branch mysql-26.10.0 https://github.com/mysql/mysql-server.git mysql-server
+git clone --depth 1 --branch 26.10.0 https://github.com/mysql/mysql-shell.git mysql-shell
 ```
 
 You may also use source archives for a specific version from
@@ -87,9 +90,18 @@ cd ~/mysql-src/mysql-server/bld
 ```bash
 cmake .. -DWITH_AUTHENTICATION_CLIENT_PLUGINS=YES -DWITH_TIRPC=bundled
 ```
+On Windows, configure the server with Visual Studio 2022 instead:
+```bash
+cmake .. -G "Visual Studio 17 2022" -A x64 \
+    -DWITH_AUTHENTICATION_CLIENT_PLUGINS=YES
+```
 3. Compile:
 ```bash
 cmake --build . --parallel $(nproc --all)
+```
+On Windows, build the `RelWithDebInfo` configuration:
+```bash
+cmake --build . --config RelWithDebInfo --parallel
 ```
 or if you'd like to build only what's needed by MySQL Shell:
 ```bash
@@ -100,9 +112,11 @@ cmake --build . --parallel $(nproc --all) --target libprotobuf-lite
 cmake --build . --parallel $(nproc --all) --target mysql_config_editor
 cmake --build . --parallel $(nproc --all) --target mysql_binlog_event_standalone
 cmake --build . --parallel $(nproc --all) --target mysqlbinlog
-cmake --build . --parallel $(nproc --all) --target routing_guidelines-objects
+cmake --build . --parallel $(nproc --all) --target routing_guidelines_object
 cmake --build . --parallel $(nproc --all) --target mysql_native_password # optional
 ```
+On Windows, add `--config RelWithDebInfo` and omit `$(nproc --all)` in each
+of the target-specific commands above.
 
 ## 4. Build MySQL Shell
 
@@ -118,8 +132,12 @@ cd ~/mysql-src/mysql-shell/bld
 cmake .. \
     -DMYSQL_SOURCE_DIR=`pwd`/../../mysql-server \
     -DMYSQL_BUILD_DIR=`pwd`/../../mysql-server/bld \
-    -DBUNDLED_ANTLR_DIR=~/mysql-src/usr/local\
     -DHAVE_PYTHON=1
+```
+If you built the ANTLR4 runtime from source instead of installing a system
+package, also pass:
+```bash
+-DBUNDLED_ANTLR_DIR="$HOME/mysql-src/antlr4-runtime-install"
 ```
 3. Build and install the shell:
 ```bash
@@ -136,15 +154,21 @@ cd bld
 ```
 2. Configure with Visual Studio:
 ```bash
-cmake .. -G "Visual Studio 16" \
+cmake .. -G "Visual Studio 17 2022" -A x64 \
     -DMYSQL_SOURCE_DIR=../../mysql-server \
     -DMYSQL_BUILD_DIR=../../mysql-server/bld \
-    -DBUNDLED_ANTLR_DIR=../../antlr4-runtime/build \
+    -DBUNDLED_ANTLR_DIR=C:/path/to/antlr4-runtime-install \
     -DHAVE_PYTHON=1 \
     -DPYTHON_LIBRARY=<path_to_python_library> \
     -DPYTHON_INCLUDE_DIR=<python_src>/include
 ```
-3. Open `mysh.sln` in Visual Studio 2019 and build the desired configuration.
+3. Build the `RelWithDebInfo` configuration:
+```bash
+cmake --build . --config RelWithDebInfo --parallel
+```
+
+Alternatively, open `mysqlsh.sln` in Visual Studio 2022 and build the
+`RelWithDebInfo` configuration.
 
 All Windows dependencies must be compiled with matching settings (Release vs.
 Debug and /MD vs. /MT).
