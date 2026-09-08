@@ -279,8 +279,6 @@ def expect_tls_algorithm(options, query, expected_values=None):
         if "result" in outcome:
             actual = outcome["result"]
             allowed_values = expected_values
-            if context[0] == "x":  # Remove when the server bug is fixed.
-                allowed_values = ("",)
             if allowed_values is None:
                 details = (
                     f"{context}: expected a non-empty value, got {actual!r}"
