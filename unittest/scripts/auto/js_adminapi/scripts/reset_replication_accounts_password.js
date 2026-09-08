@@ -87,6 +87,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 restart_gr_plugin(__mysql_sandbox_port3);
 testutil.waitMemberState(__mysql_sandbox_port3, "ONLINE");
 
+shell.connectToPrimary();
 //@<> Deprecated resetRecoveryAccountsPassword behaves the same (but prints deprecation message)
 var before = snapshot_cluster_accounts([server_id1, server_id2, server_id3]);
 
