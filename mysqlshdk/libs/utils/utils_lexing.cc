@@ -187,14 +187,34 @@ std::size_t span_quotable_sql_identifier(std::string_view s, std::size_t offset,
 }
 
 SQL_iterator::SQL_iterator(std::string_view str, size_type offset,
-                           bool skip_quoted_sql_ids, bool dollar_quotes)
+                           bool skip_quoted_sql_ids, bool dollar_quotes,
+                           bool no_backslash_escapes, bool ansi_quotes)
     : m_s(str),
       m_offset(offset - 1),
       m_skip_quoted(skip_quoted_sql_ids),
-      m_dollar_quotes(dollar_quotes) {
+      m_dollar_quotes(dollar_quotes),
+      m_no_backslash_escapes(no_backslash_escapes),
+      m_ansi_quotes(ansi_quotes) {
   assert(offset <= str.size());
   // Let's make sure we start from valid SQL
   ++(*this);
+}
+
+SQL_iterator::size_type SQL_iterator::span_quoted() const {
+  const auto quote = get_char();
+  assert(quote == '\'' || quote == '"');
+
+  if (m_ansi_quotes && quote == '"') {
+    return span_quoted_sql_identifier_dquote(m_s, m_offset);
+  }
+
+  if (m_no_backslash_escapes) {
+    const auto end = m_s.find(quote, m_offset + 1);
+    return end == std::string_view::npos ? end : end + 1;
+  }
+
+  return quote == '\'' ? span_quoted_string_sq(m_s, m_offset)
+                       : span_quoted_string_dq(m_s, m_offset);
 }
 
 SQL_iterator &SQL_iterator::operator++() {
@@ -208,14 +228,9 @@ SQL_iterator &SQL_iterator::operator++() {
   while (!incremented && m_offset < length) {
     switch (m_s[m_offset]) {
       case '\'':
-        if (m_skip_quoted)
-          m_offset = span_quoted_string_sq(m_s, m_offset);
-        else
-          incremented = true;
-        break;
       case '"':
         if (m_skip_quoted)
-          m_offset = span_quoted_string_dq(m_s, m_offset);
+          m_offset = span_quoted();
         else
           incremented = true;
         break;
@@ -298,10 +313,8 @@ std::pair<std::string_view, size_t> SQL_iterator::next_token_and_offset() {
   if (!m_skip_quoted) {
     switch (get_char()) {
       case '\'':
-        m_offset = span_quoted_string_sq(m_s, m_offset);
-        return {m_s.substr(start, m_offset - start), start};
       case '"':
-        m_offset = span_quoted_string_dq(m_s, m_offset);
+        m_offset = span_quoted();
         return {m_s.substr(start, m_offset - start), start};
       case '$':
         if (m_dollar_quotes) {

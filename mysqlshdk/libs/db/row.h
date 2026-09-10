@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <set>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <utility>
 
@@ -75,6 +76,11 @@ class SHCORE_PUBLIC IRow {
   virtual void get_raw_data(uint32_t index, const char **out_data,
                             size_t *out_size) const = 0;
   virtual std::tuple<uint64_t, int> get_bit(uint32_t index) const = 0;
+
+  // The returned view borrows the row's storage and must not outlive it.
+  inline std::string_view get_string_view(uint32_t index) const {
+    return std::make_from_tuple<std::string_view>(get_string_data(index));
+  }
 
   inline std::string get_as_string(uint32_t index,
                                    const std::string &default_if_null) const {

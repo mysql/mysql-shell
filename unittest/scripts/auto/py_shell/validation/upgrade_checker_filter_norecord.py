@@ -220,6 +220,11 @@ Excluded:
   Category: schema
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
+- removedLegacyHashingFunctions
+  Usage of removed legacy hashing functions (MD5, SHA1, SHA)
+  Category: schema
+  Condition: When the upgrade reaches any of the following versions: 9.6.0
+
 - spatialIndex
   Checks for Spatial Indexes
   Category: schema
@@ -228,7 +233,7 @@ Excluded:
   versions.
 
 Included: 1
-Excluded: 40
+Excluded: 41
 
 
 #@<OUT> WL15974-TSFR_3_3_2
@@ -451,6 +456,11 @@ Included:
   Category: schema
   Condition: When the upgrade reaches any of the following versions: 8.4.0
 
+- removedLegacyHashingFunctions
+  Usage of removed legacy hashing functions (MD5, SHA1, SHA)
+  Category: schema
+  Condition: When the upgrade reaches any of the following versions: 9.6.0
+
 - spatialIndex
   Checks for Spatial Indexes
   Category: schema
@@ -461,7 +471,7 @@ Included:
 Excluded:
   Empty.
 
-Included: 41
+Included: 42
 
 
 #@<OUT> warning about excluded checks

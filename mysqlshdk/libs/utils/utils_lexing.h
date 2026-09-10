@@ -419,9 +419,13 @@ class SQL_iterator {
    * @arg str string containing SQL query.
    * @arg offset offset in str, need to point to valid part of SQL.
    * @arg dollar_quotes if true, treats $tag$ as string quotes
+   * @arg no_backslash_escapes if true, backslashes in strings are literal
+   * @arg ansi_quotes if true, double quotes delimit identifiers
    */
   explicit SQL_iterator(std::string_view str, size_type offset = 0,
-                        bool skip_quoted = true, bool dollar_quotes = true);
+                        bool skip_quoted = true, bool dollar_quotes = true,
+                        bool no_backslash_escapes = false,
+                        bool ansi_quotes = false);
 
   SQL_iterator &operator++();
 
@@ -471,10 +475,14 @@ class SQL_iterator {
   }
 
  private:
+  size_type span_quoted() const;
+
   std::string_view m_s;
   size_type m_offset;
   bool m_skip_quoted;
   bool m_dollar_quotes;
+  bool m_no_backslash_escapes;
+  bool m_ansi_quotes;
   bool m_comment_hint = false;
 };
 

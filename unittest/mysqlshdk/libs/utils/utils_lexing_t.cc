@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -732,6 +732,98 @@ TEST(Utils_lexing, SQL_string_iterator_get_next_sql_function) {
   SQL_iterator it1(sql1);
   EXPECT_EQ("ST_TOUCHES", it1.next_sql_function());
   EXPECT_TRUE(it1.next_sql_function().empty());
+}
+
+TEST(Utils_lexing, SQL_iterator_no_backslash_escapes) {
+  const struct {
+    std::string_view sql;
+    std::string_view function;
+  } cases[] = {
+      {R"(SELECT '\', MD5(1))", "MD5"},
+      {R"(SELECT "\", SHA1(1))", "SHA1"},
+      {R"('\', SHA(1))", "SHA"},
+      {R"("\", MD5(1))", "MD5"},
+      {R"(SELECT 'it''s \', SHA1(1), 'MD5(2)')", "SHA1"},
+      {R"sql(SELECT "a""b\", SHA(1), "MD5(2)")sql", "SHA"},
+  };
+
+  for (const auto &test : cases) {
+    SCOPED_TRACE(test.sql);
+    SQL_iterator it{test.sql, 0, true, true, true};
+    EXPECT_EQ(test.function, it.next_sql_function());
+    EXPECT_TRUE(it.next_sql_function().empty());
+  }
+
+  for (const auto sql : {R"(SELECT '\', MD5(1)', SHA1(2))",
+                         R"sql(SELECT "\", MD5(1)", SHA1(2))sql"}) {
+    SCOPED_TRACE(sql);
+    SQL_iterator it{sql};
+    EXPECT_EQ("SHA1", it.next_sql_function());
+    EXPECT_TRUE(it.next_sql_function().empty());
+  }
+}
+
+TEST(Utils_lexing, SQL_iterator_no_backslash_escapes_quoted_tokens) {
+  for (const std::string_view literal : {R"('\')", R"("\")"}) {
+    const auto sql = std::string(literal) + ", MD5(1)";
+    SCOPED_TRACE(sql);
+    SQL_iterator it{sql, 0, false, true, true};
+    const auto [token, offset] = it.next_token_and_offset();
+    EXPECT_EQ(literal, token);
+    EXPECT_EQ(0, offset);
+    EXPECT_EQ(",", it.next_token());
+    EXPECT_EQ("MD5", it.next_sql_function());
+    EXPECT_TRUE(it.next_sql_function().empty());
+  }
+}
+
+TEST(Utils_lexing, SQL_iterator_ansi_quotes) {
+  const struct {
+    std::string_view sql;
+    std::string_view function;
+  } cases[] = {
+      {R"(SELECT 1 AS "a\", MD5(1))", "MD5"},
+      {R"("a\", SHA1(1))", "SHA1"},
+      {R"(SELECT 1 AS "a""b\", SHA(1), 'MD5(2)')", "SHA"},
+      {R"sql(SELECT 1 AS "SHA1(1)", MD5(2))sql", "MD5"},
+  };
+
+  for (const bool no_backslash_escapes : {false, true}) {
+    SCOPED_TRACE(no_backslash_escapes);
+
+    for (const auto &test : cases) {
+      SCOPED_TRACE(test.sql);
+      SQL_iterator it{test.sql, 0, true, false, no_backslash_escapes, true};
+      EXPECT_EQ(test.function, it.next_sql_function());
+      EXPECT_TRUE(it.next_sql_function().empty());
+    }
+
+    // ANSI_QUOTES must not change escaping within single-quoted strings.
+    const auto sql = no_backslash_escapes ? R"(SELECT '\', SHA1(2))"
+                                          : R"(SELECT '\', MD5(1)', SHA1(2))";
+    SQL_iterator it{sql, 0, true, false, no_backslash_escapes, true};
+    EXPECT_EQ("SHA1", it.next_sql_function());
+    EXPECT_TRUE(it.next_sql_function().empty());
+  }
+}
+
+TEST(Utils_lexing, SQL_iterator_ansi_quotes_quoted_tokens) {
+  for (const bool no_backslash_escapes : {false, true}) {
+    SCOPED_TRACE(no_backslash_escapes);
+
+    for (const std::string_view identifier : {R"("a\")", R"("a""b\")"}) {
+      SCOPED_TRACE(identifier);
+      const auto sql = "SELECT " + std::string(identifier) + ", MD5(1)";
+      SQL_iterator it{sql, 0, false, false, no_backslash_escapes, true};
+      EXPECT_EQ("SELECT", it.next_token());
+      const auto [token, offset] = it.next_token_and_offset();
+      EXPECT_EQ(identifier, token);
+      EXPECT_EQ(7, offset);
+      EXPECT_EQ(",", it.next_token());
+      EXPECT_EQ("MD5", it.next_sql_function());
+      EXPECT_TRUE(it.next_sql_function().empty());
+    }
+  }
 }
 
 TEST(Utils_lexing, SQL_iterator_consume_tokens) {

@@ -2227,6 +2227,525 @@ TEST_F(MySQL_upgrade_check_test, removed_functions) {
                        " 'dbObjectType':'Event'}");
 }
 
+TEST_F(MySQL_upgrade_check_test, removed_legacy_hashing_functions) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(9, 6, 0));
+
+  const std::string schema = "aaa_test_legacy_hashing";
+  PrepareTestDatabase(schema);
+  auto check = get_removed_legacy_hashing_functions_check(info);
+  std::vector<Upgrade_issue> expected;
+  const std::string advice =
+      " (consider using SHA2 or an alternative approach instead)";
+
+  auto expect = [&](const std::string &table, const std::string &column,
+                    Upgrade_issue::Object_type type, Upgrade_issue::Level level,
+                    const std::string &description) {
+    Upgrade_issue issue;
+    issue.schema = schema;
+    issue.table = table;
+    issue.column = column;
+    issue.object_type = type;
+    issue.level = level;
+    issue.description = description;
+    expected.push_back(std::move(issue));
+  };
+
+  for (const std::string function : {"MD5", "SHA1", "SHA"}) {
+    SCOPED_TRACE(function);
+    const auto suffix = shcore::str_lower(function);
+    const auto table = "t_" + suffix;
+    const auto routine_suffix = " uses removed function " + function + advice;
+    // The server normalizes SHA1() to SHA() when serializing expressions.
+    const auto normalized_function = function == "SHA1" ? "SHA" : function;
+    const auto expression_suffix =
+        " uses removed function " + normalized_function + advice;
+
+    ASSERT_NO_THROW(session->execute(
+        "CREATE TABLE " + table +
+        " (val VARCHAR(64), stored_hash VARCHAR(64) AS (" + function +
+        "(val)) STORED, virtual_hash VARCHAR(64) AS (" + function +
+        "(val)) VIRTUAL)"));
+    ASSERT_NO_THROW(session->execute("CREATE VIEW v_" + suffix + " AS SELECT " +
+                                     function + "(val) AS h FROM " + table));
+    ASSERT_NO_THROW(session->execute("CREATE PROCEDURE p_" + suffix +
+                                     "(val VARCHAR(64)) SELECT " + function +
+                                     "(val)"));
+    ASSERT_NO_THROW(session->execute(
+        "CREATE FUNCTION f_" + suffix +
+        "(val VARCHAR(64)) RETURNS VARCHAR(64) DETERMINISTIC NO SQL RETURN " +
+        function + "(val)"));
+    ASSERT_NO_THROW(session->execute(
+        "CREATE TRIGGER tr_" + suffix + " BEFORE INSERT ON " + table +
+        " FOR EACH ROW SET NEW.val = " + function + "(NEW.val)"));
+    ASSERT_NO_THROW(session->execute("CREATE EVENT e_" + suffix +
+                                     " ON SCHEDULE AT CURRENT_TIMESTAMP + "
+                                     "INTERVAL 1 DAY DISABLE DO SELECT " +
+                                     function + "('value')"));
+
+    expect(table, "stored_hash", Upgrade_issue::Object_type::COLUMN,
+           Upgrade_issue::ERROR, "Stored generated column" + expression_suffix);
+    expect(table, "virtual_hash", Upgrade_issue::Object_type::COLUMN,
+           Upgrade_issue::ERROR,
+           "Virtual generated column" + expression_suffix);
+    expect("v_" + suffix, "", Upgrade_issue::Object_type::VIEW,
+           Upgrade_issue::WARNING, "View" + expression_suffix);
+    expect("p_" + suffix, "", Upgrade_issue::Object_type::ROUTINE,
+           Upgrade_issue::WARNING, "Procedure" + routine_suffix);
+    expect("f_" + suffix, "", Upgrade_issue::Object_type::ROUTINE,
+           Upgrade_issue::WARNING, "Function" + routine_suffix);
+    expect(table, "tr_" + suffix, Upgrade_issue::Object_type::TRIGGER,
+           Upgrade_issue::WARNING, "Trigger" + routine_suffix);
+    expect("e_" + suffix, "", Upgrade_issue::Object_type::EVENT,
+           Upgrade_issue::WARNING, "Event" + routine_suffix);
+
+    if (_target_server_version >= Version(8, 0, 13)) {
+      ASSERT_NO_THROW(session->execute(
+          "ALTER TABLE " + table +
+          " ADD COLUMN default_hash VARCHAR(64) DEFAULT (" + function +
+          "('value')), ADD INDEX functional_hash ((" + function + "(val)))"));
+      expect(table, "default_hash", Upgrade_issue::Object_type::COLUMN,
+             Upgrade_issue::ERROR, "Column default" + expression_suffix);
+      expect(table, "functional_hash", Upgrade_issue::Object_type::INDEX,
+             Upgrade_issue::ERROR, "Functional index" + expression_suffix);
+    }
+
+    if (_target_server_version >= Version(8, 0, 16)) {
+      ASSERT_NO_THROW(session->execute("ALTER TABLE " + table +
+                                       " ADD CONSTRAINT check_" + suffix +
+                                       " CHECK (" + function + "(val) <> '')"));
+      expect(table, "check_" + suffix, Upgrade_issue::Object_type::TABLE,
+             Upgrade_issue::ERROR, "CHECK constraint" + expression_suffix);
+    }
+  }
+
+  ASSERT_NO_THROW(
+      session->execute("CREATE PROCEDURE p_multiple() "
+                       "SELECT SHA1('value'), MD5('value'), SHA('value')"));
+  expect("p_multiple", "", Upgrade_issue::Object_type::ROUTINE,
+         Upgrade_issue::WARNING,
+         "Procedure uses removed functions SHA1, MD5, SHA "
+         "(consider using SHA2 or an alternative approach instead)");
+
+  auto filters = default_filtering_options();
+  filters.schemas().include(schema);
+  Checker_cache filtered_cache(filters);
+  ASSERT_NO_THROW(
+      issues = check->run({session, info, session_pool, &filtered_cache}));
+  ASSERT_EQ(expected.size(), issues.size());
+
+  for (const auto &item : expected) {
+    SCOPED_TRACE(item.get_db_object());
+    const auto index = find_issue(issues, schema, item.table, item.column);
+    ASSERT_LT(index, issues.size());
+    const auto &actual = issues[index];
+    EXPECT_ISSUE(actual, schema, item.table, item.column, item.level);
+    EXPECT_EQ(item.object_type, actual.object_type);
+    EXPECT_EQ(check->get_name(), actual.check_name);
+    EXPECT_EQ(item.description, actual.description);
+    EXPECT_TRUE(actual.doclink.empty());
+    EXPECT_TRUE(actual.group.empty());
+  }
+
+  TEST_SCHEMA_FILTERING(check.get(), schema, expected.size(), expected, {});
+
+  std::vector<Upgrade_issue> table_issues;
+  std::vector<Upgrade_issue> other_tables;
+  std::vector<Upgrade_issue> routine_issues;
+  std::vector<Upgrade_issue> other_routines;
+  std::vector<Upgrade_issue> trigger_issues;
+  std::vector<Upgrade_issue> other_triggers;
+  std::vector<Upgrade_issue> event_issues;
+  std::vector<Upgrade_issue> other_events;
+
+  for (const auto &item : expected) {
+    switch (item.object_type) {
+      case Upgrade_issue::Object_type::TRIGGER:
+        (item.table == "t_md5" ? trigger_issues : other_triggers)
+            .push_back(item);
+        [[fallthrough]];
+      case Upgrade_issue::Object_type::COLUMN:
+      case Upgrade_issue::Object_type::INDEX:
+      case Upgrade_issue::Object_type::TABLE:
+      case Upgrade_issue::Object_type::VIEW:
+        (item.table == "t_md5" ? table_issues : other_tables).push_back(item);
+        break;
+      case Upgrade_issue::Object_type::ROUTINE:
+        (item.table == "p_md5" ? routine_issues : other_routines)
+            .push_back(item);
+        break;
+      case Upgrade_issue::Object_type::EVENT:
+        (item.table == "e_md5" ? event_issues : other_events).push_back(item);
+        break;
+      default:
+        FAIL() << "Unexpected fixture object type";
+    }
+  }
+
+  TEST_TABLE_FILTERING(check.get(), schema + ".t_md5", expected.size(),
+                       table_issues, other_tables);
+  TEST_ROUTINE_FILTERING(check.get(), schema + ".p_md5", expected.size(),
+                         routine_issues, other_routines);
+  TEST_TRIGGER_FILTERING(check.get(), schema + ".t_md5.tr_md5", expected.size(),
+                         trigger_issues, other_triggers);
+  TEST_EVENT_FILTERING(check.get(), schema + ".e_md5", expected.size(),
+                       event_issues, other_events);
+}
+
+TEST_F(MySQL_upgrade_check_test,
+       removed_legacy_hashing_functions_without_show_view) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(9, 6, 0));
+
+  const std::string schema = "aaa_test_legacy_hashing_view_access";
+  PrepareTestDatabase(schema);
+  ASSERT_NO_THROW(
+      session->execute("CREATE TABLE t (val VARCHAR(32), "
+                       "h VARCHAR(32) AS (MD5(val)) STORED)"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE VIEW v AS SELECT MD5(val) AS h FROM t"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE USER 'legacy_hashing_reader'@'%' IDENTIFIED BY 'testpass'"));
+  shcore::Scoped_callback cleanup(
+      [&]() { session->execute("DROP USER 'legacy_hashing_reader'@'%'"); });
+  ASSERT_NO_THROW(session->execute(
+      "GRANT SELECT, PROCESS ON *.* TO 'legacy_hashing_reader'@'%'"));
+
+  auto connection_options = Connection_options(_mysql_uri);
+  connection_options.set_user("legacy_hashing_reader");
+  connection_options.set_password("testpass");
+  auto reader = mysqlshdk::db::mysql::Session::create();
+  reader->connect(connection_options);
+  auto reader_pool =
+      std::make_shared<mysqlshdk::db::Session_pool>(connection_options, 1);
+
+  const auto result = reader->query(
+      "SELECT VIEW_DEFINITION FROM information_schema.views "
+      "WHERE TABLE_SCHEMA = '" +
+      schema + "' AND TABLE_NAME = 'v'");
+  const auto row = result->fetch_one();
+  ASSERT_NE(nullptr, row);
+  // An inaccessible view has an empty definition, not a SQL NULL.
+  ASSERT_FALSE(row->is_null(0));
+  EXPECT_TRUE(row->get_string_view(0).empty());
+
+  auto filters = default_filtering_options();
+  filters.schemas().include(schema);
+  Checker_cache filtered_cache(filters);
+  const auto check = get_removed_legacy_hashing_functions_check(info);
+  ASSERT_NO_THROW(issues =
+                      check->run({reader, info, reader_pool, &filtered_cache}));
+  ASSERT_EQ(1, issues.size());
+  EXPECT_ISSUE(issues[0], schema, "t", "h", Upgrade_issue::ERROR);
+  EXPECT_EQ(Upgrade_issue::Object_type::COLUMN, issues[0].object_type);
+  EXPECT_EQ(check->get_name(), issues[0].check_name);
+  EXPECT_EQ(
+      "Stored generated column uses removed function MD5 "
+      "(consider using SHA2 or an alternative approach instead)",
+      issues[0].description);
+}
+
+TEST_F(MySQL_upgrade_check_test, removed_legacy_hashing_functions_sql_mode) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(9, 6, 0));
+
+  const auto saved_sql_mode =
+      session->query("SELECT @@SESSION.sql_mode")->fetch_one()->get_string(0);
+  shcore::Scoped_callback reset_sql_mode(
+      [&]() { session->executef("SET SESSION sql_mode = ?", saved_sql_mode); });
+  const std::string schema = "aaa_test_legacy_hashing_sql_mode";
+  PrepareTestDatabase(schema);
+  ASSERT_NO_THROW(session->execute("CREATE TABLE t (val VARCHAR(64))"));
+  std::vector<Upgrade_issue> expected;
+  const std::string sql_modes[] = {"", "NO_BACKSLASH_ESCAPES", "ANSI_QUOTES",
+                                   "ANSI_QUOTES,NO_BACKSLASH_ESCAPES"};
+
+  for (const auto &sql_mode : sql_modes) {
+    SCOPED_TRACE(sql_mode);
+    const bool no_backslash_escapes =
+        sql_mode.find("NO_BACKSLASH_ESCAPES") != std::string::npos;
+    const bool ansi_quotes = sql_mode.find("ANSI_QUOTES") != std::string::npos;
+    session->executef("SET SESSION sql_mode = ?", sql_mode);
+
+    for (const std::string function : {"MD5", "SHA1", "SHA"}) {
+      for (const char quote : {'\'', '"'}) {
+        const auto suffix = shcore::str_lower(function) +
+                            (quote == '\'' ? "_sq" : "_dq") +
+                            (no_backslash_escapes ? "_nbe" : "_escaped") +
+                            (ansi_quotes ? "_ansi" : "");
+        const bool quoted_identifier = ansi_quotes && quote == '"';
+        const auto argument =
+            quoted_identifier
+                ? std::string{R"sql((SELECT 1 AS "a\"))sql"}
+                : std::string(1, quote) +
+                      (no_backslash_escapes ? "\\" : "plain") + quote;
+        const char literal_quote = ansi_quotes ? '\'' : quote;
+        const auto expression = "CONCAT(" + argument + ", " + function +
+                                "(1), " + std::string(1, literal_quote) +
+                                "MD5(2) SHA1(2) SHA(2)" + literal_quote + ")";
+
+        if (!no_backslash_escapes && !quoted_identifier) {
+          // The apparent call is inside a literal containing an escaped
+          // backslash and quote.
+          ASSERT_NO_THROW(session->execute(
+              "CREATE PROCEDURE p_literal_" + suffix + "() SELECT " +
+              std::string(1, quote) + std::string(3, '\\') + quote + ", " +
+              function + "(1)" + quote));
+        }
+
+        ASSERT_NO_THROW(session->execute("CREATE PROCEDURE p_" + suffix +
+                                         "() SELECT " + expression));
+        ASSERT_NO_THROW(session->execute(
+            "CREATE FUNCTION f_" + suffix +
+            "() RETURNS VARCHAR(64) DETERMINISTIC NO SQL RETURN " +
+            expression));
+        ASSERT_NO_THROW(session->execute(
+            "CREATE TRIGGER tr_" + suffix +
+            " BEFORE INSERT ON t FOR EACH ROW SET NEW.val = " + expression));
+        ASSERT_NO_THROW(session->execute(
+            "CREATE EVENT e_" + suffix +
+            " ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 DAY DISABLE DO "
+            "SELECT " +
+            expression));
+
+        for (const std::string kind :
+             {"Procedure", "Function", "Trigger", "Event"}) {
+          Upgrade_issue issue;
+          issue.schema = schema;
+          issue.level = Upgrade_issue::WARNING;
+          issue.check_name = ids::k_removed_legacy_hashing_functions_check;
+          issue.description =
+              kind + " uses removed function " + function +
+              " (consider using SHA2 or an alternative approach instead)";
+
+          if (kind == "Trigger") {
+            issue.table = "t";
+            issue.column = "tr_" + suffix;
+            issue.object_type = Upgrade_issue::Object_type::TRIGGER;
+          } else {
+            issue.table = (kind == "Procedure"  ? "p_"
+                           : kind == "Function" ? "f_"
+                                                : "e_") +
+                          suffix;
+            issue.object_type = kind == "Event"
+                                    ? Upgrade_issue::Object_type::EVENT
+                                    : Upgrade_issue::Object_type::ROUTINE;
+          }
+
+          expected.push_back(std::move(issue));
+        }
+      }
+    }
+  }
+
+  // Objects with different saved modes must be checked together correctly.
+  for (const auto &checking_mode : sql_modes) {
+    SCOPED_TRACE(checking_mode);
+    session->executef("SET SESSION sql_mode = ?", checking_mode);
+    auto filters = default_filtering_options();
+    filters.schemas().include(schema);
+    Checker_cache filtered_cache(filters);
+    const auto check = get_removed_legacy_hashing_functions_check(info);
+    ASSERT_NO_THROW(
+        issues = check->run({session, info, session_pool, &filtered_cache}));
+    ASSERT_EQ(expected.size(), issues.size());
+
+    for (const auto &item : expected) {
+      SCOPED_TRACE(item.get_db_object());
+      const auto index = find_issue(issues, schema, item.table, item.column);
+      ASSERT_LT(index, issues.size());
+      const auto &actual = issues[index];
+      EXPECT_ISSUE(actual, schema, item.table, item.column, item.level);
+      EXPECT_EQ(item.object_type, actual.object_type);
+      EXPECT_EQ(item.check_name, actual.check_name);
+      EXPECT_EQ(item.description, actual.description);
+      EXPECT_TRUE(actual.doclink.empty());
+      EXPECT_TRUE(actual.group.empty());
+    }
+  }
+}
+
+TEST_F(MySQL_upgrade_check_test,
+       removed_legacy_hashing_functions_dollar_identifiers) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(9, 6, 0));
+
+  const std::string schema = "aaa_test_legacy_hashing_dollar_identifiers";
+  PrepareTestDatabase(schema);
+  ASSERT_NO_THROW(
+      session->execute("CREATE TABLE t (val VARCHAR(32), "
+                       "h VARCHAR(32) AS (MD5(val)) STORED)"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE PROCEDURE p_safe() SELECT 1 AS a$b$"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE PROCEDURE p_hash() SELECT 1 AS a$b$, SHA1(1)"));
+
+  auto filters = default_filtering_options();
+  filters.schemas().include(schema);
+  Checker_cache filtered_cache(filters);
+  const auto check = get_removed_legacy_hashing_functions_check(info);
+  ASSERT_NO_THROW(
+      issues = check->run({session, info, session_pool, &filtered_cache}));
+  ASSERT_EQ(2, issues.size());
+  const auto column_index = find_issue(issues, schema, "t", "h");
+  ASSERT_LT(column_index, issues.size());
+  const auto &column_issue = issues[column_index];
+  EXPECT_ISSUE(column_issue, schema, "t", "h", Upgrade_issue::ERROR);
+  EXPECT_EQ(Upgrade_issue::Object_type::COLUMN, column_issue.object_type);
+  EXPECT_EQ(check->get_name(), column_issue.check_name);
+  EXPECT_EQ(
+      "Stored generated column uses removed function MD5 "
+      "(consider using SHA2 or an alternative approach instead)",
+      column_issue.description);
+
+  const auto routine_index = find_issue(issues, schema, "p_hash", "");
+  ASSERT_LT(routine_index, issues.size());
+  const auto &routine_issue = issues[routine_index];
+  EXPECT_ISSUE(routine_issue, schema, "p_hash", "", Upgrade_issue::WARNING);
+  EXPECT_EQ(Upgrade_issue::Object_type::ROUTINE, routine_issue.object_type);
+  EXPECT_EQ(check->get_name(), routine_issue.check_name);
+  EXPECT_EQ(
+      "Procedure uses removed function SHA1 "
+      "(consider using SHA2 or an alternative approach instead)",
+      routine_issue.description);
+}
+
+TEST_F(MySQL_upgrade_check_test,
+       removed_legacy_hashing_functions_sql_routines_only) {
+  const std::string schema = "aaa_test_legacy_hashing_routines";
+  PrepareTestDatabase(schema);
+
+  // Exercise the metadata query with external routines even on servers that
+  // cannot create them, such as MySQL 5.7 and 8.4.
+  ASSERT_NO_THROW(
+      session->execute("CREATE TABLE routines (routine_schema VARCHAR(64), "
+                       "routine_name VARCHAR(64), routine_type VARCHAR(9), "
+                       "routine_body VARCHAR(8), routine_definition TEXT, "
+                       "sql_mode VARCHAR(1024) DEFAULT '')"));
+  ASSERT_NO_THROW(session->execute(
+      "INSERT INTO routines (routine_schema, routine_name, routine_type, "
+      "routine_body, routine_definition) VALUES "
+      "('test', 'f_sql', 'FUNCTION', 'SQL', 'RETURN MD5(1)'), "
+      "('test', 'p_sql', 'PROCEDURE', 'SQL', 'SELECT SHA1(1)'), "
+      "('test', 'f_js', 'FUNCTION', 'EXTERNAL', 'return 42; // MD5(x)'), "
+      "('test', 'p_js', 'PROCEDURE', 'EXTERNAL', "
+      "'function SHA(value) { return value; } SHA(1);'), "
+      "('test', 'hidden', 'FUNCTION', 'SQL', NULL)"));
+
+  const auto check = get_removed_legacy_hashing_functions_check(info);
+  const auto sql_check = dynamic_cast<const Sql_upgrade_check *>(check.get());
+  ASSERT_NE(nullptr, sql_check);
+  const auto &queries = sql_check->get_queries();
+  const auto routine_query =
+      std::ranges::find_if(queries, [](const auto &query) {
+        return query.second == Upgrade_issue::Object_type::ROUTINE;
+      });
+  ASSERT_NE(queries.end(), routine_query);
+
+  auto query =
+      shcore::str_replace(routine_query->first, "information_schema", schema);
+  query = shcore::str_replace(query, "<<schema_and_routine_filter>>", "1");
+  auto result = session->query(query);
+  std::vector<std::string> routines;
+
+  while (const auto row = result->fetch_one()) {
+    routines.emplace_back(row->get_string(1));
+  }
+
+  EXPECT_THAT(routines, testing::UnorderedElementsAre("f_sql", "p_sql"));
+}
+
+TEST_F(MySQL_upgrade_check_test,
+       removed_legacy_hashing_functions_ignores_literals_and_comments) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(9, 6, 0));
+
+  const std::string schema = "aaa_test_legacy_hashing_safe";
+  PrepareTestDatabase(schema);
+  auto check = get_removed_legacy_hashing_functions_check(info);
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE safe (val VARCHAR(64), "
+      "literal_md5 VARCHAR(64) DEFAULT 'MD5(x)', "
+      "literal_sha1 VARCHAR(64) DEFAULT 'SHA1(x)', "
+      "literal_sha VARCHAR(64) DEFAULT 'SHA(x)', "
+      "stored_hash VARCHAR(64) AS (SHA2(val, 256)) STORED, "
+      "virtual_hash VARCHAR(64) AS (SHA2(val, 256)) VIRTUAL)"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE VIEW v_safe AS SELECT SHA2(val, 256) AS h, "
+                       "'MD5() SHA1() SHA()' AS literal FROM safe"));
+  ASSERT_NO_THROW(
+      session->execute("CREATE PROCEDURE p_safe() BEGIN\n"
+                       "-- MD5('value')\n"
+                       "# SHA1('value')\n"
+                       "/* SHA('value') */\n"
+                       "SELECT 'MD5() SHA1() SHA()', SHA2('value', 256); END"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE FUNCTION f_safe() RETURNS VARCHAR(64) DETERMINISTIC NO SQL "
+      "RETURN 'MD5() SHA1() SHA()'"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TRIGGER tr_safe BEFORE INSERT ON safe FOR EACH ROW "
+      "SET NEW.val = SHA2(NEW.val, 256)"));
+  ASSERT_NO_THROW(session->execute(
+      "CREATE EVENT e_safe ON SCHEDULE AT CURRENT_TIMESTAMP + INTERVAL 1 DAY "
+      "DISABLE DO SELECT 'MD5() SHA1() SHA()'"));
+
+  if (_target_server_version >= Version(8, 0, 13)) {
+    ASSERT_NO_THROW(
+        session->execute("ALTER TABLE safe ADD COLUMN default_hash VARCHAR(64) "
+                         "DEFAULT (SHA2('value', 256)), "
+                         "ADD INDEX functional_hash ((SHA2(val, 256)))"));
+  }
+
+  if (_target_server_version >= Version(8, 0, 16)) {
+    ASSERT_NO_THROW(
+        session->execute("ALTER TABLE safe ADD CONSTRAINT check_safe "
+                         "CHECK (SHA2(val, 256) <> '')"));
+  }
+
+  auto filters = default_filtering_options();
+  filters.schemas().include(schema);
+  Checker_cache filtered_cache(filters);
+  ASSERT_NO_THROW(
+      issues = check->run({session, info, session_pool, &filtered_cache}));
+  EXPECT_TRUE(issues.empty());
+}
+
+TEST_F(MySQL_upgrade_check_test,
+       removed_legacy_hashing_functions_invisible_columns) {
+  SKIP_IF_NOT_BETWEEN(Version(8, 0, 23), Version(9, 5, 99));
+
+  const std::string schema = "aaa_test_legacy_hashing_invisible";
+  PrepareTestDatabase(schema);
+  auto check = get_removed_legacy_hashing_functions_check(info);
+
+  ASSERT_NO_THROW(session->execute(
+      "CREATE TABLE t (val VARCHAR(64), "
+      "stored_hash VARCHAR(32) AS (MD5(val)) STORED INVISIBLE, "
+      "virtual_hash VARCHAR(32) AS (MD5(val)) VIRTUAL INVISIBLE, "
+      "default_hash VARCHAR(32) DEFAULT (MD5('value')) INVISIBLE, "
+      "literal_default VARCHAR(64) DEFAULT 'MD5(x)' INVISIBLE, "
+      "safe_default_hash VARCHAR(64) DEFAULT (SHA2('value', 256)) INVISIBLE)"));
+
+  auto filters = default_filtering_options();
+  filters.schemas().include(schema);
+  Checker_cache filtered_cache(filters);
+  ASSERT_NO_THROW(
+      issues = check->run({session, info, session_pool, &filtered_cache}));
+  ASSERT_EQ(3, issues.size());
+  EXPECT_FIND_ISSUE(schema, "t", "stored_hash", Upgrade_issue::ERROR,
+                    "Stored generated column uses removed function MD5 "
+                    "(consider using SHA2 or an alternative approach instead)");
+  EXPECT_FIND_ISSUE(schema, "t", "virtual_hash", Upgrade_issue::ERROR,
+                    "Virtual generated column uses removed function MD5 "
+                    "(consider using SHA2 or an alternative approach instead)");
+  EXPECT_FIND_ISSUE(schema, "t", "default_hash", Upgrade_issue::ERROR,
+                    "Column default uses removed function MD5 "
+                    "(consider using SHA2 or an alternative approach instead)");
+
+  for (const auto &issue : issues) {
+    EXPECT_EQ(Upgrade_issue::Object_type::COLUMN, issue.object_type);
+    EXPECT_EQ(check->get_name(), issue.check_name);
+    EXPECT_TRUE(issue.doclink.empty());
+    EXPECT_TRUE(issue.group.empty());
+  }
+}
+
 TEST_F(MySQL_upgrade_check_test, groupby_asc_desc_syntax) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 13));
 

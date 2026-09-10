@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -96,6 +96,9 @@ std::unique_ptr<Sql_upgrade_check> get_partitions_with_prefix_keys_check(
 std::unique_ptr<Upgrade_check> get_foreign_key_references_check();
 
 std::unique_ptr<Upgrade_check> get_spatial_index_check();
+
+std::unique_ptr<Sql_upgrade_check> get_removed_legacy_hashing_functions_check(
+    const Upgrade_info &info);
 
 }  // namespace upgrade_checker
 }  // namespace mysqlsh
