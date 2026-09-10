@@ -30,6 +30,7 @@
 #include <utility>
 
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_encoding.h"
 #include "mysqlshdk/libs/utils/utils_ssl.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -113,6 +114,36 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request &request,
   const auto &payload_hash = request.size
                                  ? hex_sha256({request.body, request.size})
                                  : k_empty_payload_hash;
+
+  // AWS S3 with Object Lock rejects PutObject/UploadPart lacking a
+  // client-side checksum. Every payload-bearing S3 request funnels through
+  // here, so injecting Content-MD5 at signing time covers both single-shot
+  // and multipart uploads with no changes elsewhere. try_emplace() leaves
+  // any header the caller already set intact (e.g. the one that
+  // S3_bucket::delete_objects computes over its own XML body).
+  //
+  // The guard is on request.body rather than request.size: an empty PutObject
+  // (BUG#34891382, dumper emits 0-byte objects) still creates a new object
+  // version and Object Lock rejects it too if Content-MD5 is missing. GET,
+  // HEAD, and no-body PUTs like CopyObject / UploadPartCopy / CreateBucket
+  // all leave request.body at nullptr, so they are correctly skipped.
+  //
+  // Anonymous access (empty access-key-id + secret) short-circuits earlier
+  // in Signed_request::headers() via Signer::should_sign_request(), so this
+  // block is skipped for unauthenticated requests. That is intentional and
+  // safe: S3 rejects anonymous PUT/UploadPart against an Object-Lock bucket
+  // as unauthorized before Object Lock is ever evaluated, so there is no
+  // authenticated Object-Lock upload path that could bypass this injection.
+  //
+  // See https://perconadev.atlassian.net/browse/PS-10416 and
+  // https://perconadev.atlassian.net/browse/PS-11509.
+  if (request.body != nullptr) {
+    if (auto [it, inserted] = result.try_emplace("Content-MD5"); inserted) {
+      const auto md5 = shcore::ssl::restricted::md5(
+          std::string_view(request.body, request.size));
+      shcore::encode_base64(md5.data(), md5.size(), &it->second);
+    }
+  }
 
   // add required headers
   result[k_host_header] = m_host;
