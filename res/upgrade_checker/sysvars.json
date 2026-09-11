@@ -235,6 +235,7 @@
   },
   {
     "name": "admin_ssl_cipher",
+    "separator": " ,:",
     "version": "8.0.21",
     "initial": {
       "all": {
@@ -273,6 +274,7 @@
   },
   {
     "name": "admin_tls_ciphersuites",
+    "separator": " ,:",
     "version": "8.0.21",
     "initial": {
       "all": {
@@ -5400,6 +5402,7 @@
   },
   {
     "name": "ssl_cipher",
+    "separator": " ,:",
     "version": "5.0.23",
     "initial": {
       "all": {
@@ -5803,6 +5806,7 @@
   },
   {
     "name": "tls_ciphersuites",
+    "separator": " ,:",
     "version": "8.0.16",
     "initial": {
       "all": {

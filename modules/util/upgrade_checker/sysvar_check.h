@@ -106,6 +106,7 @@ struct Sysvar_definition {
   Sysvar_configuration initials;
   std::map<Version, Sysvar_configuration> changes;
   std::optional<std::string> replacement;
+  std::optional<std::string> separator;
 
   void set_default(std::string value,
                    const std::optional<Version> &version = {}, size_t bits = 0,
@@ -136,6 +137,7 @@ struct Sysvar_version_check {
   std::optional<Version> removal_version;
   std::optional<Version> deprecation_version;
   std::optional<Variable_type> vartype;
+  std::optional<std::string> separator;
 };
 
 class Sysvar_registry {

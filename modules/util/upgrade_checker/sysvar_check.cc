@@ -378,6 +378,8 @@ constexpr const char *k_default = "default";
 constexpr const char *k_allowed = "allowed";
 constexpr const char *k_forbidden = "forbidden";
 constexpr const char *k_vartype = "vartype";
+constexpr const char *k_separator = "separator";
+constexpr const char *k_default_set_separator = " ,";
 
 std::vector<std::string> parse_string_list(const rapidjson::Value &source) {
   std::vector<std::string> result;
@@ -509,6 +511,10 @@ void parse_sysvar(const rapidjson::Value &source, Sysvar_definition *sysvar) {
 
   if (source.HasMember("replacement")) {
     sysvar->replacement = get_string(source["replacement"]);
+  }
+
+  if (source.HasMember(k_separator)) {
+    sysvar->separator = get_string(source[k_separator]);
   }
 
   // Parses the initial values
@@ -680,6 +686,7 @@ std::optional<Sysvar_version_check> Sysvar_definition::get_check(
     }
 
     cnf.vartype = vartype;
+    cnf.separator = separator;
 
     return cnf;
   }
@@ -755,7 +762,7 @@ std::vector<std::string_view> Sysvar_check::get_invalid_allowed_values(
             }
             return true;
           },
-          " ,");
+          sysvar_check.separator.value_or(k_default_set_separator));
     } else if (!cont_contains(sysvar_check.allowed_values, sysvar->value)) {
       invalid_values.push_back(sysvar->value);
     }
@@ -780,7 +787,7 @@ std::vector<std::string_view> Sysvar_check::get_invalid_forbidden_values(
             }
             return true;
           },
-          " ,");
+          sysvar_check.separator.value_or(k_default_set_separator));
     } else if (cont_contains(sysvar_check.forbidden_values, sysvar->value)) {
       invalid_values.push_back(sysvar->value);
     }
