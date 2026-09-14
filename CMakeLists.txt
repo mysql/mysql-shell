@@ -451,7 +451,30 @@ ENDIF()
 ###
 ### Initial configuration
 ###
+IF(NOT BUILD_SOURCE_PACKAGE)
+  IF(NOT MYSQL_SOURCE_DIR)
+    SET(MYSQL_SOURCE_DIR "../mysql" CACHE PATH "Path to MySQL source directory")
+    MESSAGE(STATUS "MYSQL_SOURCE_DIR has been set to: ${MYSQL_SOURCE_DIR}")
+  ENDIF()
+
+  IF(NOT MYSQL_BUILD_DIR)
+    SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL build directory")
+    MESSAGE(STATUS "MYSQL_BUILD_DIR has been set to: ${MYSQL_BUILD_DIR}")
+  ENDIF()
+ENDIF()
+
 INCLUDE(version.cmake)
+
+IF(NOT BUILD_SOURCE_PACKAGE)
+  # Shell may require client library features introduced in its release series.
+  IF("${MYSQL_MAJOR_VERSION}.${MYSQL_MINOR_VERSION}"
+      VERSION_LESS "${MYSH_BASE_VERSION}")
+    MESSAGE(FATAL_ERROR
+      "Building MySQL Shell ${MYSH_VERSION} requires MySQL Server "
+      "${MYSH_BASE_VERSION} or newer. "
+      "Found ${MYSQL_VERSION} in '${MYSQL_SOURCE_DIR}'.")
+  ENDIF()
+ENDIF()
 
 ###
 ### Detect Stuff
@@ -997,16 +1020,6 @@ IF (WITH_SSL_PATH AND (APPLE OR WIN32 OR LINUX_STANDALONE))
 ENDIF()
 
 if (NOT BUILD_SOURCE_PACKAGE)
-  IF(NOT MYSQL_SOURCE_DIR)
-    SET(MYSQL_SOURCE_DIR "../mysql" CACHE PATH "Path to MySQL source directory")
-    MESSAGE(STATUS "MYSQL_SOURCE_DIR has been set to: ${MYSQL_SOURCE_DIR}")
-  ENDIF()
-
-  IF(NOT MYSQL_BUILD_DIR)
-    SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL build directory")
-    MESSAGE(STATUS "MYSQL_BUILD_DIR has been set to: ${MYSQL_BUILD_DIR}")
-  ENDIF()
-
   # Needed for protobuf header paths, which are needed to use libmysqlxclient
   INCLUDE(protobuf)
   INCLUDE(FindMySQLx)
