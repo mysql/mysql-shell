@@ -26,7 +26,7 @@ Excluded:
   Usage of db objects with names conflicting with new reserved keywords
   Category: schema
   Condition: When the upgrade reaches any of the following versions: 8.0.11,
-  8.0.14, 8.0.17, 8.0.31
+  8.0.14, 8.0.17, 8.0.31, 8.2.0, 8.3.0, 8.4.0, 9.0.0, 9.2.0, 9.4.0, 9.6.0
 
 - utf8mb3
   Usage of utf8mb3 charset
@@ -253,7 +253,7 @@ Included:
   Usage of db objects with names conflicting with new reserved keywords
   Category: schema
   Condition: When the upgrade reaches any of the following versions: 8.0.11,
-  8.0.14, 8.0.17, 8.0.31
+  8.0.14, 8.0.17, 8.0.31, 8.2.0, 8.3.0, 8.4.0, 9.0.0, 9.2.0, 9.4.0, 9.6.0
 
 - utf8mb3
   Usage of utf8mb3 charset

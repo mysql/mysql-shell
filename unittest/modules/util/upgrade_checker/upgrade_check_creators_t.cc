@@ -24,6 +24,9 @@
  */
 #include "unittest/gprod_clean.h"
 
+#include <string>
+#include <string_view>
+
 #include "modules/util/upgrade_checker/common.h"
 #include "modules/util/upgrade_checker/upgrade_check_creators.h"
 
@@ -33,6 +36,7 @@
 #include "unittest/test_utils/mocks/mysqlshdk/libs/db/mock_session_pool.h"
 
 #include "mysqlshdk/libs/db/filtering_options.h"
+#include "mysqlshdk/libs/utils/utils_string.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
@@ -212,6 +216,130 @@ TEST(Upgrade_check_creators,
     EXPECT_NE(std::string::npos,
               query.first.find(
                   "<<schema_filter_without_user_filters:table_schema>>"));
+  }
+}
+
+TEST(Upgrade_check_creators, get_reserved_keywords_check_test) {
+  // Every per-object-type query produced by the reserved keywords check embeds
+  // the same keyword IN-list, so inspecting the first query is enough to verify
+  // which keywords are included for a given source -> target version pair.
+  const auto keyword_list = [](const Version &server, const Version &target) {
+    const auto info = upgrade_info(server, target);
+    const auto check = get_reserved_keywords_check(info);
+    return check->get_queries().front().first;
+  };
+  const auto has = [](const std::string &query, const char *keyword) {
+    return query.find(keyword) != std::string::npos;
+  };
+
+  // 8.0 -> 8.4.8: QUALIFY/TABLESAMPLE plus MANUAL/PARALLEL, which are still
+  // reserved below 8.4.11. LIBRARY/EXTERNAL do not apply yet (target < 9.x).
+  {
+    const auto query = keyword_list(Version(8, 0, 0), Version(8, 4, 8));
+    EXPECT_TRUE(has(query, "'QUALIFY'"));
+    EXPECT_TRUE(has(query, "'TABLESAMPLE'"));
+    EXPECT_TRUE(has(query, "'MANUAL'"));
+    EXPECT_TRUE(has(query, "'PARALLEL'"));
+    EXPECT_FALSE(has(query, "'LIBRARY'"));
+    EXPECT_FALSE(has(query, "'EXTERNAL'"));
+  }
+
+  // 8.0 -> 8.4.11: MANUAL/PARALLEL became nonreserved in 8.4.11 and must drop
+  // out (upper bound of the ranged add_keywords call); QUALIFY/TABLESAMPLE
+  // stay.
+  {
+    const auto query = keyword_list(Version(8, 0, 0), Version(8, 4, 11));
+    EXPECT_TRUE(has(query, "'QUALIFY'"));
+    EXPECT_TRUE(has(query, "'TABLESAMPLE'"));
+    EXPECT_FALSE(has(query, "'MANUAL'"));
+    EXPECT_FALSE(has(query, "'PARALLEL'"));
+  }
+
+  // 8.4.0 -> 9.2.0: LIBRARY (reserved since 9.2.0) applies; EXTERNAL (9.4.0)
+  // does not. The 8.4.0 words are not re-reported since the source is 8.4.0.
+  {
+    const auto query = keyword_list(Version(8, 4, 0), Version(9, 2, 0));
+    EXPECT_TRUE(has(query, "'LIBRARY'"));
+    EXPECT_FALSE(has(query, "'EXTERNAL'"));
+    EXPECT_FALSE(has(query, "'QUALIFY'"));
+    EXPECT_FALSE(has(query, "'MANUAL'"));
+  }
+
+  // 8.4.0 -> 9.4.0: both LIBRARY (9.2.0) and EXTERNAL (9.4.0) apply.
+  {
+    const auto query = keyword_list(Version(8, 4, 0), Version(9, 4, 0));
+    EXPECT_TRUE(has(query, "'LIBRARY'"));
+    EXPECT_TRUE(has(query, "'EXTERNAL'"));
+  }
+
+  // 9.2.0 -> 9.4.0: LIBRARY is already reserved on the source, so only EXTERNAL
+  // is newly reserved on the target.
+  {
+    const auto query = keyword_list(Version(9, 2, 0), Version(9, 4, 0));
+    EXPECT_TRUE(has(query, "'EXTERNAL'"));
+    EXPECT_FALSE(has(query, "'LIBRARY'"));
+  }
+}
+
+TEST(Upgrade_check_creators, get_reserved_keywords_check_ranges) {
+  struct Test_case {
+    Version source;
+    Version target;
+    std::string_view keywords;
+  };
+
+  const Test_case cases[] = {
+      {Version(8, 1, 0), Version(8, 2, 0), "'PARALLEL'"},
+      {Version(8, 2, 0), Version(8, 3, 0), "'QUALIFY'"},
+      {Version(8, 3, 0), Version(8, 4, 0), "'MANUAL', 'TABLESAMPLE'"},
+      {Version(8, 0, 31), Version(9, 7, 1),
+       "'EXTERNAL', 'LIBRARY', 'MANUAL', 'PARALLEL', 'QUALIFY', 'TABLESAMPLE'"},
+      {Version(8, 4, 0), Version(9, 7, 1), "'EXTERNAL', 'LIBRARY'"},
+      {Version(8, 4, 10), Version(9, 7, 1), "'EXTERNAL', 'LIBRARY'"},
+      {Version(8, 4, 10), Version(8, 4, 11), ""},
+      {Version(8, 4, 11), Version(9, 0, 0), "'MANUAL', 'PARALLEL'"},
+      {Version(8, 4, 11), Version(9, 7, 1),
+       "'EXTERNAL', 'LIBRARY', 'MANUAL', 'PARALLEL'"},
+      {Version(8, 4, 11), Version(9, 7, 2), "'EXTERNAL', 'LIBRARY'"},
+      {Version(8, 4, 11), Version(26, 7, 0), "'EXTERNAL', 'LIBRARY'"},
+      {Version(9, 5, 0), Version(9, 6, 0), "'SETS'"},
+      {Version(9, 5, 0), Version(9, 7, 0), ""},
+      {Version(9, 6, 0), Version(9, 7, 0), ""},
+      {Version(8, 4, 11), Version(8, 4, 11), ""},
+  };
+
+  for (const auto &test : cases) {
+    SCOPED_TRACE(test.source.get_base() + " -> " + test.target.get_base());
+    const auto info = upgrade_info(test.source, test.target);
+    const auto check = get_reserved_keywords_check(info);
+    ASSERT_NE(nullptr, check);
+    const auto &queries = check->get_queries();
+
+    if (test.keywords.empty()) {
+      ASSERT_TRUE(queries.empty());
+      auto session =
+          std::make_shared<testing::StrictMock<testing::Mock_session>>();
+      auto pool =
+          std::make_shared<testing::StrictMock<testing::Mock_session_pool>>();
+      mysqlshdk::db::Filtering_options filters;
+      Checker_cache cache(filters);
+
+      EXPECT_TRUE(check->run({session, info, pool, &cache}).empty());
+      continue;
+    }
+
+    ASSERT_EQ(7, queries.size());
+    const auto expected = shcore::str_split(test.keywords, ", ", -1, true);
+
+    for (const auto &[query, object_type] : queries) {
+      const auto list_begin = query.rfind('(');
+      ASSERT_NE(std::string::npos, list_begin) << query;
+      ASSERT_TRUE(query.ends_with(");")) << query;
+      const auto actual = shcore::str_split(
+          query.substr(list_begin + 1, query.size() - list_begin - 3), ",");
+      EXPECT_THAT(actual, testing::UnorderedElementsAreArray(expected))
+          << query;
+    }
   }
 }
 

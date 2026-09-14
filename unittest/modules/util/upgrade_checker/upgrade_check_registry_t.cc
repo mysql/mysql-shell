@@ -380,14 +380,37 @@ TEST(Upgrade_check_registry, create_checklist) {
                           {{v5_7_0, Version(8, 0, 11)},
                            {Version(8, 0, 11), Version(8, 0, 14)},
                            {Version(8, 0, 14), Version(8, 0, 17)},
-                           {Version(8, 0, 17), Version(8, 0, 31)}});
+                           {Version(8, 0, 17), Version(8, 0, 31)},
+                           {Version(8, 1, 0), Version(8, 2, 0)},
+                           {Version(8, 2, 0), Version(8, 3, 0)},
+                           {Version(8, 3, 0), Version(8, 4, 0)},
+                           {Version(8, 4, 11), Version(9, 0, 0)},
+                           {Version(9, 0, 0), Version(9, 2, 0)},
+                           {Version(9, 2, 0), Version(9, 4, 0)},
+                           {Version(9, 5, 0), Version(9, 6, 0)},
+                           {Version(9, 4, 0), vShell},
+                           {Version(8, 0, 31), vShell}});
+
+  // Crossing a reservation threshold selects the check even when the creator
+  // finds no newly reserved keywords for the source and target versions.
+  test_check_availability(ids::k_reserved_keywords_check, true,
+                          {{Version(8, 4, 1), Version(9, 1, 0)},
+                           {Version(9, 5, 0), Version(9, 7, 0)}});
 
   test_check_availability(ids::k_reserved_keywords_check, false,
                           {{v5_7_0, Version(8, 0, 10)},
                            {Version(8, 0, 11), Version(8, 0, 13)},
                            {Version(8, 0, 14), Version(8, 0, 16)},
                            {Version(8, 0, 17), Version(8, 0, 30)},
-                           {Version(8, 0, 31), vShell}});
+                           {Version(8, 0, 31), Version(8, 1, 0)},
+                           {Version(8, 2, 0), Version(8, 2, 1)},
+                           {Version(8, 3, 0), Version(8, 3, 1)},
+                           {Version(8, 4, 0), Version(8, 4, 11)},
+                           {Version(9, 0, 0), Version(9, 1, 0)},
+                           {Version(9, 2, 0), Version(9, 3, 0)},
+                           {Version(9, 4, 0), Version(9, 5, 0)},
+                           {Version(9, 7, 1), Version(9, 7, 2)},
+                           {Version(9, 6, 0), vShell}});
 
   // syntax_check:
   // available: always between series versions

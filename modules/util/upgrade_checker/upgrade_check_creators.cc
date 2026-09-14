@@ -28,10 +28,14 @@
 #include <my_dbug.h>
 #include <mysqld_error.h>
 
+#include <algorithm>
 #include <forward_list>
+#include <initializer_list>
+#include <iterator>
 #include <ranges>
 #include <regex>
 #include <set>
+#include <string_view>
 #include <vector>
 
 #include "modules/util/upgrade_checker/feature_life_cycle_check.h"
@@ -64,27 +68,61 @@ std::unique_ptr<Sql_upgrade_check> get_old_temporal_check() {
 
 std::unique_ptr<Sql_upgrade_check> get_reserved_keywords_check(
     const Upgrade_info &info) {
-  std::string keywords;
-  const auto add_keywords = [&keywords, &info](const char *v, const char *kws) {
-    Version kv(v);
-    if (info.server_version < kv && info.target_version >= kv) {
-      if (!keywords.empty()) keywords += ", ";
-      keywords += kws;
+  std::set<std::string_view> source_keywords;
+  std::set<std::string_view> target_keywords;
+  const auto add_keywords = [&](const char *v,
+                                std::initializer_list<std::string_view> kws,
+                                const char *max_v = nullptr) {
+    const Version min_version(v);
+    const Version max_version = max_v ? Version(max_v) : Version{};
+    const auto is_reserved = [&](const Version &version) {
+      return version >= min_version &&
+             (max_v == nullptr || version < max_version);
+    };
+
+    if (is_reserved(info.server_version)) {
+      source_keywords.insert(kws);
+    }
+
+    if (is_reserved(info.target_version)) {
+      target_keywords.insert(kws);
     }
   };
 
-  add_keywords("8.0.11",
-               "'ADMIN', 'CUBE', 'CUME_DIST', 'DENSE_RANK', 'EMPTY', 'EXCEPT', "
-               "'FIRST_VALUE', 'FUNCTION', 'GROUPING', 'GROUPS', 'JSON_TABLE', "
-               "'LAG', 'LAST_VALUE', 'LEAD', 'NTH_VALUE', 'NTILE', 'OF', "
-               "'OVER', 'PERCENT_RANK', 'PERSIST', 'PERSIST_ONLY', 'RANK', "
-               "'RECURSIVE', 'ROW', 'ROWS', 'ROW_NUMBER', 'SYSTEM', 'WINDOW'");
-  add_keywords("8.0.14", "'LATERAL'");
+  add_keywords(
+      "8.0.11",
+      {"ADMIN",        "CUBE",        "CUME_DIST",  "DENSE_RANK",   "EMPTY",
+       "EXCEPT",       "FIRST_VALUE", "FUNCTION",   "GROUPING",     "GROUPS",
+       "JSON_TABLE",   "LAG",         "LAST_VALUE", "LEAD",         "NTH_VALUE",
+       "NTILE",        "OF",          "OVER",       "PERCENT_RANK", "PERSIST",
+       "PERSIST_ONLY", "RANK",        "RECURSIVE",  "ROW",          "ROWS",
+       "ROW_NUMBER",   "SYSTEM",      "WINDOW"});
+  add_keywords("8.0.14", {"LATERAL"});
 
-  add_keywords("8.0.17", "'ARRAY' ,'MEMBER'");
-  add_keywords("8.0.31", "'FULL', 'INTERSECT'");
+  add_keywords("8.0.17", {"ARRAY", "MEMBER"});
+  add_keywords("8.0.31", {"FULL", "INTERSECT"});
+  add_keywords("8.2.0", {"PARALLEL"}, "8.4.11");
+  add_keywords("8.3.0", {"QUALIFY"});
+  add_keywords("8.4.0", {"MANUAL"}, "8.4.11");
+  add_keywords("8.4.0", {"TABLESAMPLE"});
+  add_keywords("9.0.0", {"MANUAL", "PARALLEL"}, "9.7.2");
+  add_keywords("9.2.0", {"LIBRARY"});
+  add_keywords("9.4.0", {"EXTERNAL"});
+  add_keywords("9.6.0", {"SETS"}, "9.7.0");
 
-  keywords = "(" + keywords + ");";
+  std::vector<std::string_view> new_keywords;
+  std::ranges::set_difference(target_keywords, source_keywords,
+                              std::back_inserter(new_keywords));
+
+  if (new_keywords.empty()) {
+    return std::make_unique<Sql_upgrade_check>(
+        ids::k_reserved_keywords_check, Category::SCHEMA,
+        std::vector<Check_query>{}, Upgrade_issue::WARNING);
+  }
+
+  const auto keywords =
+      "(" + shcore::str_join(new_keywords, ",", shcore::quote_sql_string) +
+      ");";
   return std::make_unique<Sql_upgrade_check>(
       ids::k_reserved_keywords_check, Category::SCHEMA,
       std::vector<Check_query>{

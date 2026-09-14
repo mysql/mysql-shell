@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -78,9 +78,10 @@ namespace {
                                            Target::INNODB_INTERNALS, "8.0.11");
 
 [[maybe_unused]] bool register_reserved =
-    Upgrade_check_registry::register_check(&get_reserved_keywords_check,
-                                           Target::OBJECT_DEFINITIONS, "8.0.11",
-                                           "8.0.14", "8.0.17", "8.0.31");
+    Upgrade_check_registry::register_check(
+        &get_reserved_keywords_check, Target::OBJECT_DEFINITIONS, "8.0.11",
+        "8.0.14", "8.0.17", "8.0.31", "8.2.0", "8.3.0", "8.4.0", "9.0.0",
+        "9.2.0", "9.4.0", "9.6.0");
 
 [[maybe_unused]] bool register_utf8mb3 = Upgrade_check_registry::register_check(
     std::bind(&get_utf8mb3_check), Target::OBJECT_DEFINITIONS, "8.0.11");
