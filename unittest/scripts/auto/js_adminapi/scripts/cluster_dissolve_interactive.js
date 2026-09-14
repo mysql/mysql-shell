@@ -1,5 +1,22 @@
 // Assumptions: smart deployment routines available
 //@ Initialization
+function wait_for_transaction_receipt() {
+  // Ensure the failing transaction is received before dissolve snapshots the GTIDs
+  var primary_gtids = session.runSql("SELECT @@GLOBAL.gtid_executed").fetchOne()[0];
+  var receiver_session = mysql.getSession(__sandbox_uri2);
+  try {
+    EXPECT_TRUE(wait(100, 0.1, function() {
+      return receiver_session.runSql(
+        "SELECT GTID_SUBSET(GTID_SUBTRACT(?, @@GLOBAL.gtid_executed), received_transaction_set) " +
+        "FROM performance_schema.replication_connection_status " +
+        "WHERE channel_name = 'group_replication_applier'",
+        [primary_gtids]).fetchOne()[0] === 1;
+    }));
+  } finally {
+    receiver_session.close();
+  }
+}
+
 testutil.deploySandbox(__mysql_sandbox_port1, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
@@ -163,6 +180,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@ Execute trx that will lead to error on instance2, again
 // WL11889 - FR9_01
 session.runSql("CREATE USER 'replication_error_2'@'%' IDENTIFIED BY 'somepass';");
+wait_for_transaction_receipt();
 
 //@<> Dissolve stopped because instance cannot catch up with cluster (force: false).
 // WL11889 FR9_01: error, instance cannot catch up (force: false)
@@ -200,21 +218,7 @@ testutil.waitMemberState(__mysql_sandbox_port2, "ONLINE");
 //@ Execute trx that will lead to error on instance2, one last time
 // WL11889 - FR10_01
 session.runSql("CREATE USER 'replication_error_3'@'%' IDENTIFIED BY 'somepass';");
-
-// Ensure the failing transaction is received before dissolve snapshots the GTIDs
-var primary_gtids = session.runSql("SELECT @@GLOBAL.gtid_executed").fetchOne()[0];
-var receiver_session = mysql.getSession(__sandbox_uri2);
-try {
-  EXPECT_TRUE(wait(100, 0.1, function() {
-    return receiver_session.runSql(
-      "SELECT GTID_SUBSET(GTID_SUBTRACT(?, @@GLOBAL.gtid_executed), received_transaction_set) " +
-      "FROM performance_schema.replication_connection_status " +
-      "WHERE channel_name = 'group_replication_applier'",
-      [primary_gtids]).fetchOne()[0] === 1;
-  }));
-} finally {
-  receiver_session.close();
-}
+wait_for_transaction_receipt();
 
 //@<> Dissolve continues because instance cannot catch up with cluster and user answer 'y' to continue.
 // WL11889 FR10_01: continue (no error), instance cannot catch up (answering 'y' to continue = force: true)
