@@ -55,6 +55,8 @@ BuildRequires: cmake3
 %else
 BuildRequires: cmake
 %endif
+BuildRequires:  bison
+BuildRequires:  python3
 %if 0%{!?with_protobuf:1} && 0%{!?with_mysql_source:1}
 BuildRequires:  protobuf-devel
 BuildRequires:  protobuf-compiler
