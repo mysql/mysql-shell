@@ -213,7 +213,11 @@ cmake .. \
 %endif
 %if 0%{?with_mysql_source:1}
     -DMYSQL_SOURCE_DIR="%{with_mysql_source}" \
+%if 0%{?with_mysql_build:1}
+    -DMYSQL_BUILD_DIR="%{with_mysql_build}" \
+%else
     -DMYSQL_BUILD_DIR="%{with_mysql_source}/bld" \
+%endif
 %endif
 %if 0%{?bundled_openssl:1}
     -DBUNDLED_OPENSSL_DIR="%{bundled_openssl}" \
