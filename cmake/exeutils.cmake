@@ -196,7 +196,15 @@ function(install_bundled_binaries)
   foreach(SOURCE_BINARY ${ARG_BINARIES})
     get_filename_component(SOURCE_BINARY_NAME "${SOURCE_BINARY}" NAME)
     set(COPIED_BINARY "${DESTINATION_BINARY_DIR}/${SOURCE_BINARY_NAME}")
-    set(COPY_TARGET "copy_${SOURCE_BINARY_NAME}")
+    # Sanitise target names and avoid collisions between identical basenames
+    # or names that become identical after sanitisation.
+    string(REGEX REPLACE "[^a-zA-Z0-9_]" "_" SAFE_BINARY_NAME "${SOURCE_BINARY_NAME}")
+    set(COPY_TARGET "copy_${SAFE_BINARY_NAME}")
+    set(_copy_target_suffix 0)
+    while(TARGET "${COPY_TARGET}")
+      math(EXPR _copy_target_suffix "${_copy_target_suffix} + 1")
+      set(COPY_TARGET "copy_${SAFE_BINARY_NAME}_${_copy_target_suffix}")
+    endwhile()
     SET(COPY_COMMAND "")
 
     if(NOT IS_SYMLINK "${SOURCE_BINARY}")
