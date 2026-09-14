@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2024, 2025, Oracle and/or its affiliates.
+# Copyright (c) 2024, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -51,6 +51,12 @@ def strip_actions(data, outf, api_prefix, strip_yyundef):
         nonlocal prefix_added
         nonlocal lnum
         out.append(f"%define api.prefix {{{api_prefix}}}\n")
+        # Keep Bison's internal symbol type distinct between the two parsers.
+        out.append("%code top {\n")
+        out.append(f"#define yysymbol_kind_t {api_prefix}symbol_kind_t\n")
+        out.append("}\n")
+        # The syntax-only lexers do not populate the semantic value.
+        out.append("%initial-action { $$ = {}; }\n")
         prefix_added = True
         lnum += 1
 
