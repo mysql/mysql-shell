@@ -1,4 +1,4 @@
-# Copyright (c) 2024, 2025, Oracle and/or its affiliates.
+# Copyright (c) 2024, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -41,9 +41,18 @@ FOREACH(bin ${binaries})
   ENDIF()
 
   MESSAGE(STATUS "  checking: ${bin}")
-  EXECUTE_PROCESS(COMMAND otool -L ${bin} OUTPUT_VARIABLE COMMAND_OUTPUT)
+  EXECUTE_PROCESS(
+      COMMAND otool -L "${bin}"
+      OUTPUT_VARIABLE COMMAND_OUTPUT
+      RESULT_VARIABLE COMMAND_RESULT
+      ERROR_VARIABLE COMMAND_ERROR
+  )
 
-  STRING(REGEX MATCHALL "[^ \t]+[ \t]" TOKENS ${COMMAND_OUTPUT})
+  IF(NOT "${COMMAND_RESULT}" STREQUAL "0")
+    MESSAGE(FATAL_ERROR "Failed to inspect dependencies of ${bin}: ${COMMAND_ERROR} (${COMMAND_RESULT})")
+  ENDIF()
+
+  STRING(REGEX MATCHALL "[^ \t]+[ \t]" TOKENS "${COMMAND_OUTPUT}")
 
   FOREACH(TOKEN ${TOKENS})
     STRING(STRIP "${TOKEN}" TOKEN)
@@ -59,17 +68,34 @@ FOREACH(bin ${binaries})
         STRING(SUBSTRING "${ENTRY}" ${POS} -1 LIB)
       ENDIF()
 
-      MESSAGE(STATUS "    replacing: ${ENTRY}")
-      EXECUTE_PROCESS(COMMAND install_name_tool -change
-          "${ENTRY}" "@rpath/${LIB}"
-          ${bin} RESULT_VARIABLE COMMAND_RESULT)
+      SET(REPLACEMENT "@rpath/${LIB}")
 
-      IF("${COMMAND_RESULT}" STREQUAL "1")
-        MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${LIB} to bundled one on ${bin}.")
+      IF("${ENTRY}" STREQUAL "${REPLACEMENT}")
+        CONTINUE()
+      ENDIF()
+
+      MESSAGE(STATUS "    replacing: ${ENTRY}")
+      EXECUTE_PROCESS(
+          COMMAND install_name_tool -change "${ENTRY}" "${REPLACEMENT}" "${bin}"
+          RESULT_VARIABLE COMMAND_RESULT
+          ERROR_VARIABLE COMMAND_ERROR
+      )
+
+      IF(NOT "${COMMAND_RESULT}" STREQUAL "0")
+        MESSAGE(FATAL_ERROR "Failed resetting dynamic library ${LIB} to bundled one on ${bin}: ${COMMAND_ERROR} (${COMMAND_RESULT})")
       ENDIF()
     ENDIF()
   ENDFOREACH()
 
-  EXECUTE_PROCESS(COMMAND otool -L ${bin})
+  EXECUTE_PROCESS(
+      COMMAND otool -L "${bin}"
+      RESULT_VARIABLE COMMAND_RESULT
+      ERROR_VARIABLE COMMAND_ERROR
+  )
+
+  IF(NOT "${COMMAND_RESULT}" STREQUAL "0")
+    MESSAGE(FATAL_ERROR "Failed to inspect dependencies of ${bin}: ${COMMAND_ERROR} (${COMMAND_RESULT})")
+  ENDIF()
+
   MESSAGE(STATUS "  done: ${bin}")
 ENDFOREACH()

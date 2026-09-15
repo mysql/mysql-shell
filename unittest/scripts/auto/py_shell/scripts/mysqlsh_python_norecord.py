@@ -51,6 +51,7 @@ r = subprocess.run(
     stderr=subprocess.STDOUT
 )
 
+EXPECT_EQ(0, r.returncode)
 EXPECT_EQ(" ".join([sys.executable, sys.prefix, sys.exec_prefix]), r.stdout.strip())
 
 #@<> BUG#36200851 make sure that sys.executable is able to load the ssl module
@@ -61,4 +62,5 @@ r = subprocess.run(
     stderr=subprocess.STDOUT
 )
 
+EXPECT_EQ(0, r.returncode)
 EXPECT_EQ("", r.stdout.strip())

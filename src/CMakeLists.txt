@@ -224,7 +224,6 @@ IF(HAVE_PYTHON)
       )
     ENDIF()
   elseif(BUNDLED_PYTHON_DIR)
-    set(WRITE_RPATH TRUE)
     set(EXTRA_COPY_COMMANDS "")
 
     if(BUNDLED_SHARED_PYTHON)
@@ -232,7 +231,6 @@ IF(HAVE_PYTHON)
         set(_PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}")
 
         # add rpath to allow python executable to import dylibs
-        set(WRITE_RPATH FALSE)
         set(EXTRA_COPY_COMMANDS COMMAND install_name_tool -add_rpath "@executable_path/.." "${CMAKE_BINARY_DIR}/${INSTALL_LIBDIR}/bin/python${PYTHONLIBS_MAJOR_MINOR}")
       else()
         file(GLOB _PYTHON_SHARED_LIB "${PYTHON_LIBRARIES}.*")
@@ -249,7 +247,6 @@ IF(HAVE_PYTHON)
           BINARIES "${_PYTHON_SHARED_LIB}"
           DESTINATION "${INSTALL_LIBDIR}"
           TARGET mysqlsh
-          WRITE_RPATH FALSE
           EXTRA_COPY_COMMANDS ${LIB_EXTRA_COPY_COMMANDS}
       )
     endif()
@@ -259,7 +256,6 @@ IF(HAVE_PYTHON)
         BINARIES "${PYTHON_EXECUTABLE}"
         DESTINATION "${INSTALL_LIBDIR}/bin"
         TARGET mysqlsh
-        WRITE_RPATH ${WRITE_RPATH}
         EXTRA_COPY_COMMANDS ${EXTRA_COPY_COMMANDS}
     )
 
@@ -429,66 +425,26 @@ IF(BUNDLED_ANTLR_DIR)
       BINARIES ${_ANTLR4_SHARED_LIB}
       DESTINATION "${INSTALL_LIBDIR}"
       TARGET mysqlsh
-      WRITE_RPATH FALSE
   )
 ENDIF()
 
 # If defined, installs the client authentication plugins
 IF(AUTH_CLIENT_PLUGINS)
   IF(AUTH_CLIENT_PLUGINS_DEPS)
-    SET(AUTH_CLIENT_PLUGINS_DEPS_OPTIONS)
-    IF(LINUX_UBUNTU AND NOT BUNDLED_OPENSSL)
-      # Do not add an RPATH to libfido2 itself; debugedit corrupts this
-      # patched DSO in dh_strip on Ubuntu builds using the system OpenSSL
-      # libraries.
-      LIST(APPEND AUTH_CLIENT_PLUGINS_DEPS_OPTIONS WRITE_RPATH FALSE)
-    ENDIF()
-
     install_bundled_binaries(
         DESCRIPTION "MySQL authentication plugins - dependencies"
         BINARIES ${AUTH_CLIENT_PLUGINS_DEPS}
         DESTINATION "${INSTALL_LIBDIR}"
         TARGET mysqlsh
-        ${AUTH_CLIENT_PLUGINS_DEPS_OPTIONS}
     )
   ENDIF()
 
-  SET(AUTH_CLIENT_PLUGINS_WITH_RPATH ${AUTH_CLIENT_PLUGINS})
-  SET(AUTH_CLIENT_PLUGINS_WITHOUT_RPATH)
-
-  IF(LINUX_UBUNTU AND NOT BUNDLED_OPENSSL)
-    SET(AUTH_CLIENT_PLUGINS_WITH_RPATH)
-
-    # The WebAuthn plugin needs the RPATH to find libfido2. Other
-    # authentication plugins in Ubuntu system-OpenSSL packages use only
-    # system shared libraries; avoid patching them before dh_strip.
-    FOREACH(_plugin ${AUTH_CLIENT_PLUGINS})
-      IF(_plugin MATCHES "authentication_webauthn_client\\.")
-        LIST(APPEND AUTH_CLIENT_PLUGINS_WITH_RPATH "${_plugin}")
-      ELSE()
-        LIST(APPEND AUTH_CLIENT_PLUGINS_WITHOUT_RPATH "${_plugin}")
-      ENDIF()
-    ENDFOREACH()
-  ENDIF()
-
-  IF(AUTH_CLIENT_PLUGINS_WITHOUT_RPATH)
-    install_bundled_binaries(
-        DESCRIPTION "MySQL authentication plugins without RPATH"
-        BINARIES ${AUTH_CLIENT_PLUGINS_WITHOUT_RPATH}
-        DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
-        TARGET mysqlsh
-        WRITE_RPATH FALSE
-    )
-  ENDIF()
-
-  IF(AUTH_CLIENT_PLUGINS_WITH_RPATH)
-    install_bundled_binaries(
-        DESCRIPTION "MySQL authentication plugins"
-        BINARIES ${AUTH_CLIENT_PLUGINS_WITH_RPATH}
-        DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
-        TARGET mysqlsh
-    )
-  ENDIF()
+  install_bundled_binaries(
+      DESCRIPTION "MySQL authentication plugins"
+      BINARIES ${AUTH_CLIENT_PLUGINS}
+      DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
+      TARGET mysqlsh
+  )
 ELSE()
   MESSAGE(WARNING "Could not find Authentication Client Plugins!")
 ENDIF()
@@ -523,6 +479,5 @@ IF (JIT_EXECUTOR_LIB)
       BINARIES "${INSTALL_JIT_EXECUTOR_LIBRARY}"
       DESTINATION "${INSTALL_LIBDIR}"
       TARGET mysqlsh
-      WRITE_RPATH FALSE
   )
 ENDIF()

@@ -1,4 +1,4 @@
-# Copyright (c) 2024, Oracle and/or its affiliates.
+# Copyright (c) 2024, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -23,3 +23,11 @@
 
 # this is a workaround to 'cmake -E copy', which is following symlinks, we want to copy them
 file(COPY "${src_file}" DESTINATION "${dst_dir}")
+
+# COPY preserves timestamps at second precision. Without a later binary
+# modification the copy can remain older than its source and rebuild forever.
+# Do not touch through a symlink into a dependency outside the build directory.
+if(NOT IS_SYMLINK "${src_file}")
+  get_filename_component(file_name "${src_file}" NAME)
+  file(TOUCH_NOCREATE "${dst_dir}/${file_name}")
+endif()
