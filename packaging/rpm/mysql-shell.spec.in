@@ -30,6 +30,8 @@
 
 %{?with_static: %global static 1}
 
+%{!?bundle_fido:%global bundle_fido 1}
+
 %global commercial  @COMMERCIAL_VER@
 %global cloud  @CLOUD_VER@
 
@@ -141,7 +143,7 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 
 %if 0%{?with_mysql_source:1}
 # fido-based client authentication plugins are not available on EL7
-%if 0%{?rhel} && 0%{?rhel} < 8
+%if (0%{?rhel} && 0%{?rhel} < 8) || !%{bundle_fido}
 %global _pluginlibs %{nil}
 %else
 %global _pluginlibs libfido2.*
@@ -267,12 +269,14 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
 %{_libexecdir}/mysqlsh/mysqlbinlog
 %if 0%{?with_mysql_source:1}
 %{_prefix}/lib/mysql/plugins/*
+%if %{bundle_fido}
 %if 0%{?rhel}
 %if 0%{?rhel} > 7
 %{_prefix}/lib/mysqlsh/libfido2.so*
 %endif
 %else
 %{_prefix}/lib/mysqlsh/libfido2.so*
+%endif
 %endif
 %{_prefix}/lib/mysqlsh/libprotobuf*
 %{_prefix}/lib/mysqlsh/libabsl_*

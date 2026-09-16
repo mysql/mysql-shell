@@ -190,6 +190,10 @@ IF(MY_HOST_SYSTEM_NAME MATCHES "SunOS")
   SET(SOLARIS 1)
 ENDIF()
 
+IF(MY_HOST_SYSTEM_NAME MATCHES "FreeBSD")
+  SET(FREEBSD 1)
+ENDIF()
+
 IF(MY_HOST_SYSTEM_NAME MATCHES "Linux")
   # Trust 'rpm -qf /' rather than 'uname -s'
   STRING(REGEX MATCH "\\.el([6789])\\." MATCH_FSYS "${MY_HOST_FILESYSTEM_NAME}")
@@ -461,6 +465,17 @@ IF(NOT BUILD_SOURCE_PACKAGE)
     SET(MYSQL_BUILD_DIR "${MYSQL_SOURCE_DIR}/bld" CACHE PATH "Path to MySQL build directory")
     MESSAGE(STATUS "MYSQL_BUILD_DIR has been set to: ${MYSQL_BUILD_DIR}")
   ENDIF()
+
+  IF(NOT EXISTS "${MYSQL_BUILD_DIR}/CMakeCache.txt")
+    MESSAGE(FATAL_ERROR
+      "MySQL build cache not found:\n"
+      "  ${MYSQL_BUILD_DIR}/CMakeCache.txt\n"
+      "Configure MySQL and set MYSQL_BUILD_DIR to its build directory.")
+  ENDIF()
+
+  LOAD_CACHE("${MYSQL_BUILD_DIR}"
+    READ_WITH_PREFIX MYSQL_DEP_
+    WITH_FIDO FIDO_LIBRARY)
 ENDIF()
 
 INCLUDE(version.cmake)
@@ -1072,6 +1087,11 @@ IF(MYSQL_BUILD_DIR)
       "mysql_native_password"
     )
 
+    IF(FREEBSD)
+      LIST(REMOVE_ITEM EXPECTED_AUTH_CLIENT_PLUGINS
+        "authentication_kerberos_client")
+    ENDIF()
+
     IF(${OPENSSL_MAJOR_MINOR_FIX_VERSION} VERSION_GREATER_EQUAL "1.1.1")
       IF(${MYSQL_VERSION} VERSION_GREATER_EQUAL "8.2.0")
         LIST(APPEND EXPECTED_AUTH_CLIENT_PLUGINS "authentication_webauthn_client")
@@ -1085,19 +1105,31 @@ IF(MYSQL_BUILD_DIR)
           LIST(REMOVE_ITEM AUTH_CLIENT_PLUGINS_COPY "${_plugin}")
 
           IF(_expected_plugin STREQUAL "authentication_webauthn_client")
-            SET(_library_subdirs "${MYSQL_BUILD_DIR}/library_output_directory")
+            SET(AUTH_CLIENT_PLUGINS_DEPS "")
 
-            IF(WIN32)
-              STRING(APPEND _library_subdirs "/${CMAKE_BUILD_TYPE}")
-              FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/fido2.dll")
-            ELSEIF(APPLE)
-              FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/libfido2*.dylib")
+            IF(MYSQL_DEP_WITH_FIDO STREQUAL "system")
+              IF(NOT MYSQL_DEP_FIDO_LIBRARY OR
+                 NOT EXISTS "${MYSQL_DEP_FIDO_LIBRARY}")
+                MESSAGE(FATAL_ERROR
+                  "MySQL uses system libfido2, but FIDO_LIBRARY does not name an existing library file: '${MYSQL_DEP_FIDO_LIBRARY}'")
+              ENDIF()
+
+              MESSAGE(STATUS "Using MySQL's system libfido2: ${MYSQL_DEP_FIDO_LIBRARY}")
             ELSE()
-              FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/libfido2.so*")
-            ENDIF()
+              SET(_library_subdirs "${MYSQL_BUILD_DIR}/library_output_directory")
 
-            IF(NOT AUTH_CLIENT_PLUGINS_DEPS)
-              MESSAGE(FATAL_ERROR "Couldn't find libfido2, a dependency of authentication_webauthn_client")
+              IF(WIN32)
+                STRING(APPEND _library_subdirs "/${CMAKE_BUILD_TYPE}")
+                FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/fido2.dll")
+              ELSEIF(APPLE)
+                FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/libfido2*.dylib")
+              ELSE()
+                FILE(GLOB AUTH_CLIENT_PLUGINS_DEPS "${_library_subdirs}/libfido2.so*")
+              ENDIF()
+
+              IF(NOT AUTH_CLIENT_PLUGINS_DEPS)
+                MESSAGE(FATAL_ERROR "Couldn't find libfido2, a dependency of authentication_webauthn_client")
+              ENDIF()
             ENDIF()
           ENDIF()
           BREAK()

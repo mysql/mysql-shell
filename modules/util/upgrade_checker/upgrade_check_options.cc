@@ -171,8 +171,8 @@ void Upgrade_check_options::verify_options() {
     throw std::invalid_argument(
         "Check timeout must be non-zero, positive value");
   }
-  constexpr auto max_seconds =
-      std::chrono::duration_cast<std::chrono::seconds, int64_t>(
+  constexpr int64_t max_seconds =
+      std::chrono::duration_cast<std::chrono::seconds>(
           std::chrono::steady_clock::duration::max())
           .count();
   if (check_timeout.has_value() && *check_timeout > max_seconds) {

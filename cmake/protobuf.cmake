@@ -112,23 +112,47 @@ IF(NOT WITH_PROTOBUF)
   ELSE()
     FILE(GLOB BUNDLED_ABSEIL_LIBRARIES LIST_DIRECTORIES false "${_protobuf_lib_dir}/libabsl_*.so")
 
-    IF(NOT APPLE)
-      FOREACH(_lib ${BUNDLED_ABSEIL_LIBRARIES})
-        IF(_lib MATCHES "libabsl_hash\\.so$")
-          list(APPEND PROTOBUF_LIBRARIES "${_lib}")
-        ENDIF()
-      ENDFOREACH()
-    ENDIF()
+    IF(BUNDLED_ABSEIL_LIBRARIES)
+      IF(NOT APPLE)
+        FOREACH(_lib ${BUNDLED_ABSEIL_LIBRARIES})
+          IF(_lib MATCHES "libabsl_hash\\.so$")
+            list(APPEND PROTOBUF_LIBRARIES "${_lib}")
+          ENDIF()
+        ENDFOREACH()
+      ENDIF()
 
-    IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
-      # we need to explicitly link with log libraries and their dependencies
-      FOREACH(_lib ${BUNDLED_ABSEIL_LIBRARIES})
-        IF(_lib MATCHES "libabsl_log_|libabsl_raw_logging_internal")
-          list(APPEND PROTOBUF_LIBRARIES "${_lib}")
-        ELSEIF(_lib MATCHES "libabsl_raw_hash_set")
-          list(PREPEND PROTOBUF_LIBRARIES "${_lib}")
-        ENDIF()
-      ENDFOREACH()
+      IF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        # we need to explicitly link with log libraries and their dependencies
+        FOREACH(_lib ${BUNDLED_ABSEIL_LIBRARIES})
+          IF(_lib MATCHES "libabsl_log_|libabsl_raw_logging_internal")
+            list(APPEND PROTOBUF_LIBRARIES "${_lib}")
+          ELSEIF(_lib MATCHES "libabsl_raw_hash_set")
+            list(PREPEND PROTOBUF_LIBRARIES "${_lib}")
+          ENDIF()
+        ENDFOREACH()
+      ENDIF()
+    ELSEIF(CMAKE_BUILD_TYPE STREQUAL "Debug")
+      # Include dependency archives as well as the directly used libraries.
+      FILE(GLOB_RECURSE _abseil_static_libraries LIST_DIRECTORIES false
+        "${MYSQL_BUILD_DIR}/${ABSEIL_DIR}/absl/libabsl_*.a")
+
+      IF(NOT _abseil_static_libraries)
+        MESSAGE(FATAL_ERROR
+          "Could not find Abseil libraries required for a Debug build in MySQL build directory: ${MYSQL_BUILD_DIR}")
+      ENDIF()
+
+      IF(APPLE)
+        # The Apple linker already searches archives repeatedly.
+        list(APPEND PROTOBUF_LIBRARIES ${_abseil_static_libraries})
+      ELSEIF(CMAKE_CXX_LINK_GROUP_USING_RESCAN_SUPPORTED OR
+             CMAKE_LINK_GROUP_USING_RESCAN_SUPPORTED)
+        # Resolve references between archives independently of their order.
+        STRING(REPLACE ";" "," _abseil_link_group "${_abseil_static_libraries}")
+        list(APPEND PROTOBUF_LIBRARIES "$<LINK_GROUP:RESCAN,${_abseil_link_group}>")
+      ELSE()
+        MESSAGE(FATAL_ERROR
+          "Linking static Abseil libraries requires CMake 3.24 or newer and a toolchain with RESCAN support.")
+      ENDIF()
     ENDIF()
   ENDIF()
 ENDIF()

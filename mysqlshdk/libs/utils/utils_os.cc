@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2023, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -35,6 +35,9 @@
 #include <mach/mach_types.h>
 #include <mach/vm_statistics.h>
 #include <pthread.h>
+#elif __FreeBSD__
+#include <pthread.h>
+#include <sys/sysctl.h>
 #else
 #include <pthread.h>
 #include <sys/sysinfo.h>
@@ -61,6 +64,18 @@ uint64_t available_memory() {
       KERN_SUCCESS == host_statistics64(mach_port, HOST_VM_INFO,
                                         (host_info64_t)&vm_stats, &count)) {
     return static_cast<uint64_t>(vm_stats.free_count) * page_size;
+  }
+#elif __FreeBSD__
+  uint32_t free_pages = 0;
+  unsigned int page_size = 0;
+  size_t free_pages_len = sizeof(free_pages);
+  size_t page_size_len = sizeof(page_size);
+
+  if (sysctlbyname("vm.stats.vm.v_free_count", &free_pages, &free_pages_len,
+                   nullptr, 0) == 0 &&
+      sysctlbyname("vm.stats.vm.v_page_size", &page_size, &page_size_len,
+                   nullptr, 0) == 0) {
+    return static_cast<uint64_t>(free_pages) * page_size;
   }
 #else
   struct sysinfo info;

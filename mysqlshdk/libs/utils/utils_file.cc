@@ -67,12 +67,16 @@
 #include <limits.h>
 #include <mach-o/dyld.h>
 #else
-#ifdef __sun
+#if defined(__sun) || defined(__FreeBSD__)
 #include <limits.h>
 #else
 #include <linux/limits.h>
 #endif
 #endif
+#endif
+
+#ifdef __FreeBSD__
+#include <sys/sysctl.h>
 #endif
 
 namespace shcore {
@@ -271,6 +275,17 @@ std::string get_binary_path() {
     throw std::runtime_error(
         str_format("get_binary_folder: Readlink failed with error %d", errno));
   }
+#elif defined(__FreeBSD__)
+  char path[PATH_MAX]{'\0'};
+  size_t size = sizeof(path);
+  int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+
+  if (sysctl(mib, 4, path, &size, nullptr, 0) == 0) {
+    exe_path.assign(path);
+  } else {
+    throw std::runtime_error(
+        str_format("get_binary_folder: sysctl failed with error %d", errno));
+  }
 #endif
 #endif
 #endif
@@ -432,7 +447,7 @@ size_t file_size(const char *path) {
 #if defined(_WIN32)
   struct _stat64 file_stat = {};
   const auto ret = _wstat64(utf8_to_wide(path).c_str(), &file_stat);
-#elif defined(__APPLE__) || defined(__SUNPRO_CC)
+#elif defined(__APPLE__) || defined(__SUNPRO_CC) || defined(__FreeBSD__)
   struct stat file_stat = {};
   const auto ret = ::stat(path, &file_stat);
 #else

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -864,6 +864,7 @@ std::vector<std::string> get_default_config_paths(shcore::OperatingSystem os) {
     case shcore::OperatingSystem::SOLARIS:
     case shcore::OperatingSystem::LINUX:
     case shcore::OperatingSystem::MACOS:
+    case shcore::OperatingSystem::FREEBSD:
       default_paths.push_back("/etc/my.cnf");
       default_paths.push_back("/etc/mysql/my.cnf");
       if (!sysconfdir.empty()) default_paths.push_back(sysconfdir + "/my.cnf");

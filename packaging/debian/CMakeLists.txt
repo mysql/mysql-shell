@@ -72,6 +72,8 @@ endif()
 # custom packaging steps.
 option(COMMUNITY_BUILD "Set to true if this is a community build" ON)
 
+option(BUNDLE_FIDO "Include bundled libfido2 in the package" ON)
+
 if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(CONFLICTING_PRODUCT_SUFFIX "")
@@ -301,11 +303,16 @@ if (MYSQL_SOURCE_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For client authentication plugins
 usr/lib/mysql/plugins/*.so
-usr/lib/mysqlsh/libfido2.so*
 # For protobuf library
 usr/lib/mysqlsh/libprotobuf*.so*
 usr/lib/mysqlsh/libabsl_*.so
 ")
+if (BUNDLE_FIDO)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"# dependency of client authentication plugins
+usr/lib/mysqlsh/libfido2.so*
+")
+endif()
 endif()
 
 if (BUNDLED_MYSQL_CONFIG_EDITOR OR MYSQL_DIR)

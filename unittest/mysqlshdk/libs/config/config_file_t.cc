@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2018, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -839,9 +839,9 @@ TEST_F(ConfigFileTest, get_default_config_paths) {
   };
 
   std::vector<shcore::OperatingSystem> unix_os_list{
-      shcore::OperatingSystem::DEBIAN, shcore::OperatingSystem::REDHAT,
+      shcore::OperatingSystem::DEBIAN,  shcore::OperatingSystem::REDHAT,
       shcore::OperatingSystem::SOLARIS, shcore::OperatingSystem::LINUX,
-      shcore::OperatingSystem::MACOS};
+      shcore::OperatingSystem::MACOS,   shcore::OperatingSystem::FREEBSD};
   for (const auto &unix_os : unix_os_list) {
     test_unix_defaults(unix_os);
   }

@@ -39,6 +39,7 @@
 #ifdef WIN32
 #include <Lmcons.h>
 #else
+#include <sys/wait.h>
 #include <unistd.h>
 #ifdef HAVE_GETPWUID_R
 #include <pwd.h>
@@ -248,6 +249,7 @@ std::string errno_to_string(int err) {
 #endif
 
 #if defined(_WIN32) || defined(__sun) || defined(__APPLE__) || \
+    defined(__FreeBSD__) ||                                    \
     ((_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) &&   \
      !_GNU_SOURCE)  // NOLINT
   char buf[256];
@@ -691,6 +693,8 @@ OperatingSystem get_os_type() {
   os = OperatingSystem::MACOS;
 #elif __sun
   os = OperatingSystem::SOLARIS;
+#elif __FreeBSD__
+  os = OperatingSystem::FREEBSD;
 #elif __linux__
   os = OperatingSystem::LINUX;
 
@@ -760,6 +764,8 @@ std::string to_string(OperatingSystem os_type) {
       return "macos";
     case OperatingSystem::SOLARIS:
       return "solaris";
+    case OperatingSystem::FREEBSD:
+      return "freebsd";
     default:
       assert(0);
       return "unknown";
