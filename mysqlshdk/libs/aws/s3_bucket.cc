@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -52,6 +52,9 @@ using rest::Signed_rest_service;
 using rest::String_response;
 
 namespace {
+
+const std::string k_checksum_header = "x-amz-checksum-sha256";
+const std::string k_checksum_algorithm_header = "x-amz-sdk-checksum-algorithm";
 
 constexpr std::size_t k_min_part_size = 5242880;  // 5 MiB
 // 5 GiB or architecture limit, whichever is smaller
@@ -188,6 +191,7 @@ rest::Signed_request S3_bucket::delete_object_request(
 rest::Signed_request S3_bucket::put_object_request(
     const std::string &object_name, rest::Headers headers) {
   // PutObject
+  headers[k_checksum_algorithm_header] = "SHA256";
   return create_object_request(object_name, std::move(headers));
 }
 
@@ -299,7 +303,7 @@ S3_bucket::parse_list_multipart_uploaded_parts(
     }
 
     if (const auto etag = part->FirstChildElement("ETag")) {
-      details.etag = etag->GetText();
+      details.metadata.etag = etag->GetText();
     } else {
       throw shcore::Exception::runtime_error(
           "'ListPartsResult'.'Part' does not have an 'ETag' element");
@@ -310,6 +314,20 @@ S3_bucket::parse_list_multipart_uploaded_parts(
     } else {
       throw shcore::Exception::runtime_error(
           "'ListPartsResult'.'Part' does not have a 'Size' element");
+    }
+
+    if (const auto checksum = part->FirstChildElement("ChecksumSHA256")) {
+      if (const auto value = checksum->GetText()) {
+        details.metadata.checksum = value;
+      }
+    } else {
+      throw shcore::Exception::runtime_error(
+          "'ListPartsResult'.'Part' does not have a 'ChecksumSHA256' element");
+    }
+
+    if (details.metadata.checksum.empty()) {
+      throw shcore::Exception::runtime_error(
+          "'ListPartsResult'.'Part'.'ChecksumSHA256' element is empty");
     }
 
     parts.emplace_back(std::move(details));
@@ -324,7 +342,8 @@ rest::Signed_request S3_bucket::create_multipart_upload_request(
   // no body
   *request_body = "";
   rest::Query query = {{"uploads", {}}};
-  return create_object_request(object_name, std::move(query));
+  return create_object_request(
+      object_name, {{"x-amz-checksum-algorithm", "SHA256"}}, std::move(query));
 }
 
 std::string S3_bucket::parse_create_multipart_upload(
@@ -350,7 +369,61 @@ rest::Signed_request S3_bucket::upload_part_request(
   // UploadPart
   rest::Query query = {{"partNumber", std::to_string(part_num)},
                        {"uploadId", object.upload_id}};
-  return create_object_request(object.name, std::move(query));
+  return create_object_request(
+      object.name, {{k_checksum_algorithm_header, "SHA256"}}, std::move(query));
+}
+
+Multipart_object_part::Metadata S3_bucket::parse_multipart_upload(
+    const rest::Response &response) {
+  auto metadata = Container::parse_multipart_upload(response);
+
+  if (const auto checksum = response.headers.find(k_checksum_header);
+      checksum != response.headers.end()) {
+    metadata.checksum = checksum->second;
+  }
+
+  if (metadata.checksum.empty()) {
+    throw shcore::Exception::runtime_error(
+        "Missing SHA256 checksum in UploadPart response");
+  }
+
+  return metadata;
+}
+
+Multipart_object_part::Metadata S3_bucket::parse_multipart_upload_copy(
+    const rest::Base_response_buffer &buffer) {
+  const auto xml = parse_xml(buffer);
+  const auto root = xml->FirstChildElement("CopyPartResult");
+
+  if (!root) {
+    throw shcore::Exception::runtime_error(
+        "Expected root element called 'CopyPartResult'");
+  }
+
+  Multipart_object_part::Metadata metadata;
+
+  if (const auto etag = root->FirstChildElement("ETag")) {
+    metadata.etag = etag->GetText();
+  } else {
+    throw shcore::Exception::runtime_error(
+        "'CopyPartResult' does not have an 'ETag' element");
+  }
+
+  if (const auto checksum = root->FirstChildElement("ChecksumSHA256")) {
+    if (const auto value = checksum->GetText()) {
+      metadata.checksum = value;
+    }
+  } else {
+    throw shcore::Exception::runtime_error(
+        "'CopyPartResult' does not have a 'ChecksumSHA256' element");
+  }
+
+  if (metadata.checksum.empty()) {
+    throw shcore::Exception::runtime_error(
+        "'CopyPartResult'.'ChecksumSHA256' element is empty");
+  }
+
+  return metadata;
 }
 
 rest::Signed_request S3_bucket::commit_multipart_upload_request(
@@ -370,8 +443,12 @@ rest::Signed_request S3_bucket::commit_multipart_upload_request(
   for (const auto &part : parts) {
     printer.OpenElement("Part", true);
 
+    printer.OpenElement("ChecksumSHA256", true);
+    printer.PushText(part.metadata.checksum.c_str());
+    printer.CloseElement(true);  // ChecksumSHA256
+
     printer.OpenElement("ETag", true);
-    printer.PushText(part.etag.c_str());
+    printer.PushText(part.metadata.etag.c_str());
     printer.CloseElement(true);  // ETag
 
     printer.OpenElement("PartNumber", true);
@@ -470,28 +547,12 @@ void S3_bucket::copy_object_multipart(const std::string &src_name,
     part_number = std::to_string(++id);
 
     // copy headers & query
-    auto request = create_signed_request(object_path(new_name), headers, query);
+    auto request = create_object_request(new_name, headers, query);
     rest::String_response response;
     service->put(&request, &response);
 
-    {
-      const auto xml = parse_xml(response.buffer);
-      const auto root = xml->FirstChildElement("CopyPartResult");
-
-      if (!root) {
-        throw shcore::Exception::runtime_error(
-            "Expected root element called 'CopyPartResult'");
-      }
-
-      if (const auto etag = root->FirstChildElement("ETag")) {
-        Multipart_object_part part{id, etag->GetText(), part_size};
-        parts.emplace_back(std::move(part));
-      } else {
-        throw shcore::Exception::runtime_error(
-            "'CopyPartResult' does not have an 'ETag' element");
-      }
-    }
-
+    parts.push_back(
+        {id, part_size, parse_multipart_upload_copy(response.buffer)});
     start = end + 1;
   }
 
@@ -517,12 +578,19 @@ rest::Signed_request S3_bucket::create_bucket_request(rest::Query query) const {
 
 rest::Signed_request S3_bucket::create_object_request(
     const std::string &name, rest::Headers headers) const {
-  return create_signed_request(object_path(name), std::move(headers), {});
+  return create_object_request(name, std::move(headers), {});
 }
 
 rest::Signed_request S3_bucket::create_object_request(const std::string &name,
                                                       rest::Query query) const {
-  return create_signed_request(object_path(name), {}, std::move(query));
+  return create_object_request(name, {}, std::move(query));
+}
+
+rest::Signed_request S3_bucket::create_object_request(const std::string &name,
+                                                      rest::Headers headers,
+                                                      rest::Query query) const {
+  return create_signed_request(object_path(name), std::move(headers),
+                               std::move(query));
 }
 
 rest::Signed_request S3_bucket::create_signed_request(std::string path,

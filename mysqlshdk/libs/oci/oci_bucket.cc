@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2020, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -249,8 +249,8 @@ Oci_bucket::parse_list_multipart_uploaded_parts(
   for (const auto &value : *uploads) {
     const auto part = value.as_map();
     parts.push_back({static_cast<size_t>(part->get_uint("partNumber")),
-                     part->get_string("etag"),
-                     static_cast<size_t>(part->get_uint("size"))});
+                     static_cast<size_t>(part->get_uint("size")),
+                     {part->get_string("etag"), {}}});
   }
 
   return parts;
@@ -283,8 +283,9 @@ rest::Signed_request Oci_bucket::commit_multipart_upload_request(
   shcore::Array_t etags = shcore::make_array();
 
   for (const auto &part : parts) {
-    etags->emplace_back(shcore::make_dict(
-        "partNum", static_cast<uint64_t>(part.part_num), "etag", part.etag));
+    etags->emplace_back(shcore::make_dict("partNum",
+                                          static_cast<uint64_t>(part.part_num),
+                                          "etag", part.metadata.etag));
   }
 
   *request_body = encode_json("partsToCommit", std::move(etags));

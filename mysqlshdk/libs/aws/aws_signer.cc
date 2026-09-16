@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -26,10 +26,12 @@
 #include "mysqlshdk/libs/aws/aws_signer.h"
 
 #include <cassert>
+#include <optional>
 #include <string_view>
 #include <utility>
 
 #include "mysqlshdk/libs/utils/strformat.h"
+#include "mysqlshdk/libs/utils/utils_encoding.h"
 #include "mysqlshdk/libs/utils/utils_ssl.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
 
@@ -40,11 +42,15 @@ namespace {
 
 const std::string k_empty_payload_hash =
     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+const std::string k_empty_payload_checksum =
+    "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
 
 const std::string k_authorization_header = "Authorization";
 const std::string k_host_header = "Host";
 const std::string k_date_header = "x-amz-date";
 const std::string k_hash_header = "x-amz-content-sha256";
+const std::string k_checksum_header = "x-amz-checksum-sha256";
+const std::string k_checksum_algorithm_header = "x-amz-sdk-checksum-algorithm";
 const std::string k_token_header = "x-amz-security-token";
 
 std::string hex(const std::vector<unsigned char> &hash) {
@@ -69,6 +75,12 @@ std::string hex(const std::vector<unsigned char> &hash) {
     *ptr++ = *c;
   }
 
+  return encoded;
+}
+
+std::string base64(const std::vector<unsigned char> &hash) {
+  std::string encoded;
+  shcore::encode_base64(hash.data(), hash.size(), &encoded);
   return encoded;
 }
 
@@ -109,10 +121,23 @@ rest::Headers Aws_signer::sign_request(const rest::Signed_request &request,
     }
   }
 
-  // hash of the payload - Hex(SHA256Hash(<payload>)
-  const auto &payload_hash = request.size
-                                 ? hex_sha256({request.body, request.size})
-                                 : k_empty_payload_hash;
+  // hash of the payload - Hex(SHA256Hash(<payload>))
+  const auto digest = request.size ? std::make_optional(shcore::ssl::sha256(
+                                         {request.body, request.size}))
+                                   : std::nullopt;
+  const auto &payload_hash = digest ? hex(*digest) : k_empty_payload_hash;
+
+  // S3 upload requests select SHA256 using the SDK checksum algorithm header.
+  // Generate a checksum only for that selection, preserving any checksum
+  // explicitly supplied by the caller.
+  if (const auto algorithm = result.find(k_checksum_algorithm_header);
+      algorithm != result.end()) {
+    if (algorithm->second == "SHA256" &&
+        result.find(k_checksum_header) == result.end()) {
+      result[k_checksum_header] =
+          digest ? base64(*digest) : k_empty_payload_checksum;
+    }
+  }
 
   // add required headers
   result[k_host_header] = m_host;

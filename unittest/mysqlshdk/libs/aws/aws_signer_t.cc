@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -39,7 +39,8 @@ namespace aws {
 
 class Aws_signer_test : public testing::Test {
  protected:
-  Aws_signer create_signer() {
+  Aws_signer create_signer(const std::string &service = "s3") {
+    m_signer_config.set_service(service);
     Aws_signer signer{m_signer_config};
 
     signer.m_sign_all_headers = true;
@@ -89,10 +90,10 @@ class Aws_signer_test : public testing::Test {
     EXPECT_EQ(authorization, headers.at("Authorization"));
   }
 
- private:
   // Friday, 24 May 2013 00:00:00
   static constexpr time_t k_now = 1369353600;
 
+ private:
   static constexpr auto k_now_date = "20130524";
 
   static constexpr auto k_host = "examplebucket.s3.amazonaws.com";
@@ -132,6 +133,8 @@ class Aws_signer_test : public testing::Test {
     const std::string &region() const override { return m_region; }
 
     const std::string &service() const override { return m_service; }
+
+    void set_service(const std::string &service) { m_service = service; }
 
     Aws_credentials_provider *credentials_provider() const override {
       return m_credentials_provider.get();
@@ -188,6 +191,117 @@ TEST_F(Aws_signer_test, list_objects) {
   test_sign_request(
       request,
       "34b48302e7b5fa45bde8084f4b7868a86f0a534bc59db6670ed5711ef69dc6f7");
+}
+
+TEST_F(Aws_signer_test, generates_sha256_checksum) {
+  rest::Signed_request request{"/object",
+                               {{"x-amz-sdk-checksum-algorithm", "SHA256"}}};
+  request.type = rest::Type::PUT;
+  request.body = "abc";
+  request.size = 3;
+
+  const auto headers = create_signer().sign_request(request, k_now);
+
+  EXPECT_EQ("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            headers.at("x-amz-content-sha256"));
+  EXPECT_EQ("ungWv48Bz+pBQUDeXa4iI7ADYaOWF3qctBD/YfIAFa0=",
+            headers.at("x-amz-checksum-sha256"));
+  EXPECT_EQ("SHA256", headers.at("x-amz-sdk-checksum-algorithm"));
+  EXPECT_NE(std::string::npos,
+            headers.at("Authorization")
+                .find("SignedHeaders=host;x-amz-checksum-sha256;"
+                      "x-amz-content-sha256;x-amz-date;"
+                      "x-amz-sdk-checksum-algorithm, Signature="));
+}
+
+TEST_F(Aws_signer_test, generates_sha256_checksum_for_empty_body) {
+  rest::Signed_request request{"/object",
+                               {{"x-amz-sdk-checksum-algorithm", "SHA256"}}};
+  request.type = rest::Type::PUT;
+
+  const auto headers = create_signer().sign_request(request, k_now);
+
+  EXPECT_EQ("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            headers.at("x-amz-content-sha256"));
+  EXPECT_EQ("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=",
+            headers.at("x-amz-checksum-sha256"));
+  EXPECT_EQ("SHA256", headers.at("x-amz-sdk-checksum-algorithm"));
+  EXPECT_NE(std::string::npos,
+            headers.at("Authorization")
+                .find("SignedHeaders=host;x-amz-checksum-sha256;"
+                      "x-amz-content-sha256;x-amz-date;"
+                      "x-amz-sdk-checksum-algorithm, Signature="));
+}
+
+TEST_F(Aws_signer_test, generates_sha256_checksum_for_binary_body) {
+  rest::Signed_request request{"/object",
+                               {{"x-amz-sdk-checksum-algorithm", "SHA256"}}};
+  request.type = rest::Type::PUT;
+  const std::string data{"a\0b", 3};
+  request.body = data.data();
+  request.size = data.size();
+
+  const auto headers = create_signer().sign_request(request, k_now);
+
+  EXPECT_EQ("59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138",
+            headers.at("x-amz-content-sha256"));
+  EXPECT_EQ("WbJxrhu8sdMdQZKYF/Sxb7Q5608xUgta0dXOmJIKcTg=",
+            headers.at("x-amz-checksum-sha256"));
+  EXPECT_EQ("SHA256", headers.at("x-amz-sdk-checksum-algorithm"));
+  EXPECT_NE(std::string::npos,
+            headers.at("Authorization")
+                .find("SignedHeaders=host;x-amz-checksum-sha256;"
+                      "x-amz-content-sha256;x-amz-date;"
+                      "x-amz-sdk-checksum-algorithm, Signature="));
+}
+
+TEST_F(Aws_signer_test, preserves_supplied_sha256_checksum) {
+  rest::Signed_request request{
+      "/object",
+      {{"x-amz-checksum-sha256", "caller-supplied-checksum"},
+       {"x-amz-sdk-checksum-algorithm", "SHA256"}}};
+  request.type = rest::Type::PUT;
+  request.body = "abc";
+  request.size = 3;
+
+  const auto headers = create_signer().sign_request(request, k_now);
+
+  EXPECT_EQ("caller-supplied-checksum", headers.at("x-amz-checksum-sha256"));
+  EXPECT_NE(std::string::npos,
+            headers.at("Authorization")
+                .find("SignedHeaders=host;x-amz-checksum-sha256;"
+                      "x-amz-content-sha256;x-amz-date;"
+                      "x-amz-sdk-checksum-algorithm, Signature="));
+}
+
+TEST_F(Aws_signer_test, does_not_generate_unselected_s3_checksum) {
+  rest::Signed_request request{"/object"};
+  request.type = rest::Type::PUT;
+  request.body = "abc";
+  request.size = 3;
+
+  const auto headers = create_signer().sign_request(request, k_now);
+
+  EXPECT_EQ(headers.end(), headers.find("x-amz-checksum-sha256"));
+  EXPECT_EQ("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            headers.at("x-amz-content-sha256"));
+}
+
+TEST_F(Aws_signer_test, does_not_generate_sts_checksum) {
+  rest::Signed_request request{"/object"};
+  request.type = rest::Type::POST;
+  request.body = "abc";
+  request.size = 3;
+
+  const auto headers = create_signer("sts").sign_request(request, k_now);
+
+  EXPECT_EQ(headers.end(), headers.find("x-amz-checksum-sha256"));
+  EXPECT_EQ("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            headers.at("x-amz-content-sha256"));
+  EXPECT_NE(std::string::npos,
+            headers.at("Authorization")
+                .find("/sts/aws4_request, SignedHeaders=host;"
+                      "x-amz-content-sha256;x-amz-date, Signature="));
 }
 
 }  // namespace aws

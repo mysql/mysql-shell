@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -392,9 +392,9 @@ Blob_container::parse_list_multipart_uploaded_parts(
       Multipart_object_part details;
 
       // Name is base64 encoded id, should be turned into sequence
-      details.etag.assign(get_child_text(part, "Name"));
+      details.metadata.etag.assign(get_child_text(part, "Name"));
       std::string decoded_id;
-      shcore::decode_base64(details.etag, &decoded_id);
+      shcore::decode_base64(details.metadata.etag, &decoded_id);
       details.part_num = shcore::lexical_cast<std::size_t>(decoded_id);
 
       details.size =
@@ -460,9 +460,9 @@ Signed_request Blob_container::upload_part_request(
       {{"comp", "block"}, {"blockid", part_id(part_num)}});
 }
 
-std::string Blob_container::parse_multipart_upload(
+Multipart_object_part::Metadata Blob_container::parse_multipart_upload(
     const rest::Response & /*response*/) {
-  return "";
+  return {};
 }
 
 Signed_request Blob_container::commit_multipart_upload_request(

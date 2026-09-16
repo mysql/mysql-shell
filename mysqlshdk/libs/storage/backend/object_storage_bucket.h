@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -49,9 +49,14 @@ struct Multipart_object {
 };
 
 struct Multipart_object_part {
+  struct Metadata {
+    std::string etag;
+    std::string checksum;
+  };
+
   std::size_t part_num = 0;
-  std::string etag;
   std::size_t size = 0;
+  Metadata metadata;
 };
 
 struct Object_details {
@@ -251,6 +256,9 @@ class Container {
 
   rest::Signed_rest_service *ensure_connection();
 
+  virtual Multipart_object_part::Metadata parse_multipart_upload(
+      const rest::Response &response);
+
  private:
   virtual rest::Signed_request list_objects_request(
       const std::string &prefix, size_t limit, bool recursive,
@@ -303,8 +311,6 @@ class Container {
 
   virtual std::string parse_create_multipart_upload(
       const rest::String_response &response) = 0;
-
-  virtual std::string parse_multipart_upload(const rest::Response &response);
 
   virtual rest::Signed_request upload_part_request(
       const Multipart_object &object, size_t part_num, size_t size) = 0;

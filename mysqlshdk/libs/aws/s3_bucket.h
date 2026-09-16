@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -76,6 +76,12 @@ class S3_bucket : public storage::backend::object_storage::Container {
   void delete_objects(const std::vector<std::string> &list);
 
  private:
+#ifdef FRIEND_TEST
+  friend class Aws_s3_bucket_checksum_test;
+  friend class Bucket_test;
+  friend class Aws_s3_object_lock_test;
+#endif  // FRIEND_TEST
+
   rest::Signed_request list_objects_request(
       const std::string &prefix, size_t limit, bool recursive,
       const Object_details::Fields_mask &fields,
@@ -122,6 +128,12 @@ class S3_bucket : public storage::backend::object_storage::Container {
                                            size_t part_num,
                                            size_t size) override;
 
+  Multipart_object_part::Metadata parse_multipart_upload(
+      const rest::Response &response) override;
+
+  Multipart_object_part::Metadata parse_multipart_upload_copy(
+      const rest::Base_response_buffer &buffer);
+
   rest::Signed_request commit_multipart_upload_request(
       const Multipart_object &object,
       const std::vector<Multipart_object_part> &parts,
@@ -136,6 +148,10 @@ class S3_bucket : public storage::backend::object_storage::Container {
                                              rest::Headers headers = {}) const;
 
   rest::Signed_request create_object_request(const std::string &name,
+                                             rest::Query query) const;
+
+  rest::Signed_request create_object_request(const std::string &name,
+                                             rest::Headers headers,
                                              rest::Query query) const;
 
   rest::Signed_request create_signed_request(std::string path,

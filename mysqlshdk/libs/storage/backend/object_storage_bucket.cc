@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -350,11 +350,12 @@ Multipart_object_part Container::upload_part(const Multipart_object &object,
                            part_num, object.name.c_str(), error.what()));
   }
 
-  return {part_num, parse_multipart_upload(response), size};
+  return {part_num, size, parse_multipart_upload(response)};
 }
 
-std::string Container::parse_multipart_upload(const rest::Response &response) {
-  return response.headers.at("ETag");
+Multipart_object_part::Metadata Container::parse_multipart_upload(
+    const rest::Response &response) {
+  return {response.headers.at("ETag"), {}};
 }
 
 void Container::commit_multipart_upload(

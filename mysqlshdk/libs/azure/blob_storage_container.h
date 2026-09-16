@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -160,7 +160,8 @@ class Blob_container : public Container {
   Signed_request upload_part_request(const Multipart_object &object,
                                      size_t part_num, size_t size) override;
 
-  std::string parse_multipart_upload(const rest::Response &response) override;
+  Multipart_object_part::Metadata parse_multipart_upload(
+      const rest::Response &response) override;
 
   Signed_request commit_multipart_upload_request(
       const Multipart_object &object,

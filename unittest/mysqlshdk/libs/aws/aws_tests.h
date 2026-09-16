@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -57,7 +57,9 @@ class Aws_tests : public testing::Test {
     setup_test();
   }
 
-  virtual void setup_test() {
+  virtual void setup_test() { setup_test("MYSQLSH_S3_BUCKET_NAME"); }
+
+  void setup_test(const char *bucket_name_variable) {
     const auto read_var = [this](const char *name, std::string *out,
                                  bool required = true) {
       const auto var = getenv(name);
@@ -69,7 +71,7 @@ class Aws_tests : public testing::Test {
       }
     };
 
-    read_var("MYSQLSH_S3_BUCKET_NAME", &m_bucket_name);
+    read_var(bucket_name_variable, &m_bucket_name);
     read_var("MYSQLSH_AWS_SHARED_CREDENTIALS_FILE", &m_credentials_file, false);
     read_var("MYSQLSH_AWS_CONFIG_FILE", &m_config_file, false);
     read_var("MYSQLSH_AWS_PROFILE", &m_profile, false);
@@ -84,6 +86,22 @@ class Aws_tests : public testing::Test {
 
   std::string skip_reason() const {
     return shcore::str_join(m_skip_reasons, "\n");
+  }
+
+  std::shared_ptr<S3_bucket_config> get_config(const std::string &bucket = {}) {
+    const auto options = shcore::make_dict(
+        S3_bucket_options::bucket_name_option(),
+        bucket.empty() ? m_bucket_name : bucket,
+        S3_bucket_options::credentials_file_option(), m_credentials_file,
+        S3_bucket_options::config_file_option(), m_config_file,
+        S3_bucket_options::profile_option(), m_profile,
+        S3_bucket_options::region_option(), m_region,
+        S3_bucket_options::endpoint_override_option(), m_endpoint_override);
+
+    S3_bucket_options parsed_options;
+    S3_bucket_options::options().unpack(options, &parsed_options);
+
+    return std::make_shared<S3_bucket_config>(parsed_options);
   }
 
   std::vector<std::string> m_skip_reasons;
@@ -148,22 +166,6 @@ class Aws_s3_tests : public Aws_tests,
     for (const auto &name : m_objects) {
       bucket.put_object(name, "0", 1);
     }
-  }
-
-  std::shared_ptr<S3_bucket_config> get_config(const std::string &bucket = {}) {
-    const auto options = shcore::make_dict(
-        S3_bucket_options::bucket_name_option(),
-        bucket.empty() ? m_bucket_name : bucket,
-        S3_bucket_options::credentials_file_option(), m_credentials_file,
-        S3_bucket_options::config_file_option(), m_config_file,
-        S3_bucket_options::profile_option(), m_profile,
-        S3_bucket_options::region_option(), m_region,
-        S3_bucket_options::endpoint_override_option(), m_endpoint_override);
-
-    S3_bucket_options parsed_options;
-    S3_bucket_options::options().unpack(options, &parsed_options);
-
-    return std::make_shared<S3_bucket_config>(parsed_options);
   }
 
   void clean_bucket(S3_bucket &bucket, bool clean_uploads = true) {

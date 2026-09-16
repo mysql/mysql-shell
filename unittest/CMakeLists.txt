@@ -147,6 +147,10 @@ if(WITH_TESTS)
       SET_SOURCE_FILES_PROPERTIES(${CMAKE_SOURCE_DIR}/ext/linenoise-ng/src/ConvertUTF.cpp PROPERTIES COMPILE_FLAGS "-Wno-keyword-macro")
     ENDIF()
 
+    SET_SOURCE_FILES_PROPERTIES(
+      "${CMAKE_SOURCE_DIR}/unittest/mysqlshdk/libs/aws/s3_bucket_t.cc"
+      PROPERTIES INCLUDE_DIRECTORIES "$<TARGET_PROPERTY:tinyxml2,INTERFACE_INCLUDE_DIRECTORIES>")
+
     add_shell_executable(run_unit_tests "${mysqlsh_tests_SRC}" TRUE)
 
     # Disable debug symbols in 32 bit platforms

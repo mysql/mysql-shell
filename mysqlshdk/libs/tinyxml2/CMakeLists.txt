@@ -1,4 +1,4 @@
-# Copyright (c) 2022, 2025 Oracle and/or its affiliates.
+# Copyright (c) 2022, 2026 Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -29,9 +29,12 @@ set(tinyxml2_SOURCES
   ${CMAKE_SOURCE_DIR}/ext/tinyxml2-11.0.0/tinyxml2.cpp
 )
 
-set(TINYXML2_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/ext/tinyxml2-11.0.0 PARENT_SCOPE)
+set(TINYXML2_INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/ext/tinyxml2-11.0.0)
+set(TINYXML2_INCLUDE_DIRECTORIES ${TINYXML2_INCLUDE_DIRECTORIES} PARENT_SCOPE)
 
 add_convenience_library(tinyxml2
   ${tinyxml2_SOURCES}
   COMPILE_OPTIONS ${TINYXML2_COMPILE_OPTIONS}
 )
+
+target_include_directories(tinyxml2 INTERFACE ${TINYXML2_INCLUDE_DIRECTORIES})
