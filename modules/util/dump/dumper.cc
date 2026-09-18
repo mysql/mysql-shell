@@ -6305,11 +6305,10 @@ void Dumper::validate_schemas_list() const {
 }
 
 void Dumper::log_server_version() const {
-  log_info("Source server: %s",
-           query("SELECT CONCAT(@@version, ' ', @@version_comment)")
-               ->fetch_one()
-               ->get_string(0)
-               .c_str());
+  const auto result = query(
+      shcore::str_format("SELECT CONCAT(%s, ' ', @@version_comment)",
+                         mysqlshdk::db::get_server_version_sql(session())));
+  log_info("Source server: %s", result->fetch_one()->get_string(0).c_str());
 }
 
 void Dumper::print_object_stats() const {

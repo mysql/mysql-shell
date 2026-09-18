@@ -56,6 +56,7 @@
 #include "mysqlshdk/include/scripting/shexcept.h"
 #include "mysqlshdk/include/shellcore/console.h"
 #include "mysqlshdk/include/shellcore/shell_init.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/mysql/utils.h"
@@ -5826,12 +5827,13 @@ bool Dump_loader::is_data_load_complete() const {
 }
 
 void Dump_loader::log_server_version() const {
+  const auto version_sql = mysqlshdk::db::get_server_version_sql(m_session);
+  const auto result = sql::ar::query(
+      m_reconnect_callback, m_session,
+      shcore::str_format("SELECT CONCAT(%s, ' ', @@version_comment)",
+                         version_sql));
   log_info("Destination server: %s",
-           sql::ar::query(m_reconnect_callback, m_session,
-                          "SELECT CONCAT(@@version, ' ', @@version_comment)")
-               ->fetch_one()
-               ->get_string(0)
-               .c_str());
+           result->fetch_one()->get_string(0).c_str());
 }
 
 void Dump_loader::push_pending_task(Task_ptr task) {

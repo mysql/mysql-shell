@@ -77,6 +77,10 @@ session1.run_sql("/*!80021 alter instance disable innodb redo_log */")
 
 shell.connect(__sandbox_uri1)
 util.dump_instance(os.path.join(outdir, "dump_instance"), {"showProgress": False})
+# Verify that the source log reports the exact server build version, including the update number when available.
+source_version = get_server_version_with_update(session1)
+source_version_comment = session1.run_sql("SELECT @@version_comment").fetch_one()[0]
+EXPECT_SHELL_LOG_CONTAINS(f"Source server: {source_version} {source_version_comment}")
 
 # BUG#34566034 - load failed when performance_schema was disabled
 prepare(__mysql_sandbox_port2, options={"performance_schema": "OFF"})
@@ -213,6 +217,10 @@ util.dump_instance(os.path.join(outdir, "dump_admin"), {"compatibility":["strip_
 # load with admin user
 reset_server(session2)
 util.load_dump(os.path.join(outdir, "dump_admin"), {"loadUsers":1, "loadDdl":0, "loadData":0, "excludeUsers":["root@%","root@localhost"]})
+# Verify that the destination log reports the exact server build version, including the update number when available.
+destination_version = get_server_version_with_update(session2)
+destination_version_comment = session2.run_sql("SELECT @@version_comment").fetch_one()[0]
+EXPECT_SHELL_LOG_CONTAINS(f"Destination server: {destination_version} {destination_version_comment}")
 
 EXPECT_EQ("""GRANT USAGE ON *.* TO `myuser`@`%`
 GRANT SELECT, SHOW VIEW ON `mysql`.* TO `myuser`@`%`
@@ -2829,15 +2837,15 @@ session1.run_sql("DROP USER admin@'%'")
 # load dump
 dump_dir = os.path.join(outdir, "dump_instance")
 wipeout_server(session2)
-session2.run_sql("CREATE USER admin@'%' IDENTIFIED BY 'pass' WITH MAX_QUERIES_PER_HOUR 70")
+session2.run_sql("CREATE USER admin@'%' IDENTIFIED BY 'pass' WITH MAX_QUERIES_PER_HOUR 71")
 session2.run_sql("GRANT ALL ON *.* TO 'admin'@'%'")
 shell.connect("mysql://admin:pass@{0}:{1}".format(__host, __mysql_sandbox_port2))
 
 WIPE_SHELL_LOG()
 # we don't specify the error message here, it can vary depending on when the error is reported
 EXPECT_THROWS(lambda: util.load_dump(dump_dir), "")
-EXPECT_STDOUT_CONTAINS("User 'admin' has exceeded the 'max_questions' resource (current value: 70)")
-EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.loadDump\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 70\), SQL: "))
+EXPECT_STDOUT_CONTAINS("User 'admin' has exceeded the 'max_questions' resource (current value: 71)")
+EXPECT_SHELL_LOG_MATCHES(re.compile(r"Info: util.loadDump\(\): tid=\d+: MySQL Error 1226 \(42000\): User 'admin' has exceeded the 'max_questions' resource \(current value: 71\), SQL: "))
 
 #@<> BUG#33788895 - cleanup
 shell.options["logSql"] = old_log_sql

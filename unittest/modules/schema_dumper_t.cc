@@ -38,6 +38,7 @@
 // needs to be included first for FRIEND_TEST
 #include "unittest/gprod_clean.h"
 
+#include "modules/util/common/dump/server_info.h"
 #include "modules/util/dump/compatibility_issue.h"
 #include "modules/util/dump/instance_cache.h"
 #include "modules/util/dump/schema_dumper.h"
@@ -234,6 +235,71 @@ class Schema_dumper_test : public Shell_core_test_wrapper {
 
 bool Schema_dumper_test::run_directory_tests = false;
 bool Schema_dumper_test::initialized = false;
+
+TEST_F(Schema_dumper_test, write_comment_uses_version_with_update) {
+  const auto result =
+      session->query("SHOW VARIABLES LIKE 'version_with_update'");
+  const auto row = result->fetch_one();
+  const auto expected_version =
+      row ? row->get_string(1)
+          : session->query("SELECT @@version")->fetch_one()->get_string(0);
+
+  auto sd = schema_dumper();
+  EXPECT_NO_THROW(sd.write_comment(file.get()));
+
+  const auto expected = "-- Server version\t" + expected_version + "\n";
+  expect_output_contains({expected.c_str()});
+}
+
+TEST(Schema_dumper, write_comment_preserves_fallback_version) {
+  const auto session = std::make_shared<testing::Mock_mysql_session>();
+  const mysqlshdk::db::Connection_options connection_options;
+
+  EXPECT_CALL(*session, get_connection_options())
+      .WillOnce(::testing::ReturnRef(connection_options));
+  EXPECT_CALL(*session, get_server_version()).Times(0);
+
+  Instance_cache cache;
+  cache.server.sysvars.version = "10.4.18-MariaDB";
+  cache.server.version.number =
+      mysqlshdk::utils::Version("5.6.0-10.4.18-MariaDB");
+
+  mysqlshdk::storage::backend::Memory_file file{"dump.sql"};
+  file.open(mysqlshdk::storage::Mode::WRITE);
+
+  Schema_dumper{session, cache}.write_comment(&file);
+
+  file.close();
+  EXPECT_THAT(file.content(),
+              HasSubstr("-- Server version\t10.4.18-MariaDB\n"));
+  EXPECT_THAT(file.content(),
+              Not(HasSubstr("-- Server version\t5.6.0-10.4.18-MariaDB\n")));
+}
+
+TEST(Schema_dumper, write_comment_preserves_version_with_update) {
+  const auto session = std::make_shared<testing::Mock_mysql_session>();
+  const mysqlshdk::db::Connection_options connection_options;
+
+  EXPECT_CALL(*session, get_connection_options())
+      .WillOnce(::testing::ReturnRef(connection_options));
+
+  Instance_cache cache;
+  cache.server = common::server_info(shcore::json::parse_object_or_throw(R"({
+    "sysvars": {
+      "version": "26.10.0-commercial",
+      "version_with_update": "26.10.0.01-commercial"
+    }
+  })"));
+
+  mysqlshdk::storage::backend::Memory_file file{"dump.sql"};
+  file.open(mysqlshdk::storage::Mode::WRITE);
+
+  Schema_dumper{session, cache}.write_comment(&file);
+
+  file.close();
+  EXPECT_THAT(file.content(),
+              HasSubstr("-- Server version\t26.10.0.01-commercial\n"));
+}
 
 TEST_F(Schema_dumper_test, dump_table) {
   auto sd = schema_dumper();

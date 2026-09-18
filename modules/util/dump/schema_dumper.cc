@@ -43,6 +43,7 @@
 #include <functional>
 #include <map>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -758,8 +759,14 @@ void Schema_dumper::write_comment(IFile *sql_file, const std::string &db_name,
     print_comment(
         sql_file, false,
         "-- ------------------------------------------------------\n");
-    print_comment(sql_file, false, "-- Server version\t%s\n",
-                  m_mysql->get_server_version().get_full().c_str());
+    const std::string_view server_version =
+        m_cache.server.sysvars.version_with_update.empty()
+            ? m_cache.server.sysvars.version
+            : m_cache.server.sysvars.version_with_update;
+
+    print_comment(sql_file, false, "-- Server version\t%.*s\n",
+                  static_cast<int>(server_version.size()),
+                  server_version.data());
   }
 }
 

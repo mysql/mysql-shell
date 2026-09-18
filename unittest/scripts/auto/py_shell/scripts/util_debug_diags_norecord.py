@@ -208,6 +208,10 @@ shell.connect(__sandbox_uri1)
 outpath = run_collect(__sandbox_uri1, None)
 # allMembers is true but it's a standalone instance, so it's a no-op
 CHECK_DIAGPACK(outpath, [(0, session1)], is_cluster=False, allMembers=1, innodbMutex=False, localTarget=True)
+# Verify that the diagnostics report contains the exact server build version, including the update number when available.
+server_version = get_server_version_with_update(session1)
+version_comment = session1.run_sql("SELECT @@version_comment").fetch_one()[0]
+EXPECT_FILE_CONTENTS(outpath, "0.instance", re.escape(f"Version: {version_comment} {server_version}\n".encode("utf-8")))
 
 #@<> output is a directory, default filename with timestamp - all
 # TSFR_1_3_4

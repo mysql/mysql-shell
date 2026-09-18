@@ -76,6 +76,7 @@ struct Server_variables {
   uint16_t port = 0;
   std::string server_uuid;
   std::string_view version;
+  std::string_view version_with_update;
 
   std::map<std::string, std::string> all;
 };

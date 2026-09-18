@@ -78,6 +78,11 @@ void initialize_sysvars(Server_variables *sysvars) {
       sysvars->all.end() != version) {
     sysvars->version = version->second;
   }
+
+  if (const auto version = sysvars->all.find("version_with_update");
+      sysvars->all.end() != version) {
+    sysvars->version_with_update = version->second;
+  }
 }
 
 const auto optional_string = [](const shcore::json::Value &o, const char *n) {

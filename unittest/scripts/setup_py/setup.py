@@ -165,6 +165,12 @@ def defined(cb):
         return False
 
 
+def get_server_version_with_update(session):
+    row = session.run_sql(
+        "SHOW GLOBAL VARIABLES WHERE Variable_name = 'version_with_update'").fetch_one()
+    return row[1] if row else session.run_sql("SELECT @@version").fetch_one()[0]
+
+
 def create_root_from_anywhere(session):
     session.run_sql("SET SQL_LOG_BIN=0")
     session.run_sql("CREATE USER root@'%' IDENTIFIED BY 'root'")
