@@ -71,6 +71,7 @@ function mark_gtid_set_complete(flag) {
 //@<> Setup + Create primary cluster
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2]);
 var session = scene.session
+var __version_with_update = get_server_version_with_update(session);
 var cluster = scene.cluster
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {report_host: hostname});
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
@@ -122,7 +123,7 @@ session4.runSql("RESET " + get_reset_binary_logs_keyword());
 session4.runSql("SET GLOBAL gtid_purged=?", [gtid_executed]);
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 EXPECT_THROWS_TYPE(function(){cluster_set.createReplicaCluster(__sandbox_uri4, "myReplicaCluster", {recoveryMethod: "clone"})}, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.", "MYSQLSH");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 testutil.dbugSet("");
 
 //@<> createReplicaCluster: recoveryMethod:clone, subset GTIDs -> clone
@@ -402,10 +403,10 @@ testutil.dbugSet("+d,dba_clone_version_check_fail");
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + automatic donor not valid
 EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone"}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor not valid
-EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" +__version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster_set.createReplicaCluster(__sandbox_uri4, "clone", {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Instance '" + hostname + ":" + __mysql_sandbox_port1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" +__version_with_update + ").", "MYSQLSH");
 
 //@<> createReplicaCluster: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor valid
 

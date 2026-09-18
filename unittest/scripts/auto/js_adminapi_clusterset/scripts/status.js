@@ -103,11 +103,11 @@ cs.describe();
 
 //@ Extended 1
 
-function CHECK_EXTENDED_1(s) {
+function CHECK_EXTENDED_1(s, extended) {
 EXPECT_EQ("PRIMARY", cluster1(s)["topology"][__address1h]["memberRole"]);
 EXPECT_EQ("R/W", cluster1(s)["topology"][__address1h]["mode"]);
 EXPECT_EQ("ONLINE", cluster1(s)["topology"][__address1h]["status"]);
-EXPECT_NE(null, cluster1(s)["topology"][__address1h]["version"]);
+EXPECT_EQ(__version, cluster1(s)["topology"][__address1h]["version"]);
 EXPECT_EQ("String", type(cluster1(s)["transactionSet"]));
 EXPECT_EQ(undefined, cluster1(s)["receivedTransactionSet"]);
 EXPECT_EQ(undefined, cluster1(s)["transactionSetConsistencyStatus"]);
@@ -117,12 +117,19 @@ EXPECT_EQ(undefined, cluster1(s)["transactionSetMissingGtidSet"]);
 EXPECT_EQ("PRIMARY", cluster2(s)["topology"][__address4h]["memberRole"]);
 EXPECT_EQ("R/O", cluster2(s)["topology"][__address4h]["mode"]);
 EXPECT_EQ("ONLINE", cluster2(s)["topology"][__address4h]["status"]);
-EXPECT_NE(null, cluster2(s)["topology"][__address4h]["version"]);
+EXPECT_EQ(__version, cluster2(s)["topology"][__address4h]["version"]);
 
 EXPECT_EQ("SECONDARY", cluster2(s)["topology"][__address5h]["memberRole"]);
 EXPECT_EQ("R/O", cluster2(s)["topology"][__address5h]["mode"]);
 EXPECT_EQ("ONLINE", cluster2(s)["topology"][__address5h]["status"]);
-EXPECT_NE(null, cluster2(s)["topology"][__address5h]["version"]);
+EXPECT_EQ(__version, cluster2(s)["topology"][__address5h]["version"]);
+EXPECT_EQ(__version, cluster3(s)["topology"][__address6h]["version"]);
+
+for (var [member, member_session] of [[instance1(s), session1], [instance4(s), session4],
+                                      [instance5(s), session5], [instance6(s), session6]]) {
+  EXPECT_EQ(extended >= 2 ? get_server_version_with_update(member_session) : undefined,
+            member["versionWithUpdate"]);
+}
 
 EXPECT_EQ("String", type(cluster2(s)["transactionSet"]));
 EXPECT_EQ("OK", cluster2(s)["transactionSetConsistencyStatus"]);
@@ -142,7 +149,7 @@ EXPECT_EQ("ON", cluster3(s)["clusterSetReplication"]["receiverStatus"]);
 
 s = cs.status({extended:1});
 
-CHECK_EXTENDED_1(s);
+CHECK_EXTENDED_1(s, 1);
 EXPECT_EQ(undefined, cluster2(s)["receivedTransactionSet"]);
 
 c1s = c1.status({extended:1});
@@ -157,7 +164,7 @@ CHECK_STANDALONE_STATUS_REPLICA(c3s);
 //@<> Extended 2
 s = cs.status({extended:2});
 
-CHECK_EXTENDED_1(s);
+CHECK_EXTENDED_1(s, 2);
 
 EXPECT_EQ("String", type(cluster2(s)["receivedTransactionSet"]));
 
@@ -186,7 +193,7 @@ EXPECT_EQ(15, cluster2(s)["clusterSetReplication"]["receiverTimeSinceLastMessage
 //@<> Extended 3
 s = cs.status({extended:3});
 
-CHECK_EXTENDED_1(s);
+CHECK_EXTENDED_1(s, 3);
 
 EXPECT_EQ("String", type(cluster2(s)["receivedTransactionSet"]));
 

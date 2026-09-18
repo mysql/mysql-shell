@@ -101,6 +101,7 @@ testutil.deploySandbox(__mysql_sandbox_port2, "root", {"report_host": hostname_i
 testutil.deploySandbox(__mysql_sandbox_port3, "root", {"report_host": hostname_ip});
 
 session1 = mysql.getSession(__sandbox_uri1);
+var __version_with_update = get_server_version_with_update(session1);
 session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 
@@ -630,12 +631,12 @@ __endpoint_uri1 = hostname_ip+":"+__mysql_sandbox_port1;
 
 EXPECT_THROWS_TYPE(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone"}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 //@<> rejoinInstance: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor not valid {VER(>=8.0.17)}
 EXPECT_THROWS_TYPE(function() { rs.rejoinInstance(__sandbox_uri3, {recoveryMethod: "clone", cloneDonor: __endpoint1}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.", "MYSQLSH");
 
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 //@<> rejoinInstance: recoveryMethod: clone, errant GTIDs + purged GTIDs + cloneDonor valid {VER(>=8.0.17)}
 
@@ -664,17 +665,17 @@ __endpoint_uri2 = hostname_ip+":"+__mysql_sandbox_port2;
 
 testutil.expectPrompt("Please select a recovery method [I]ncremental recovery/[A]bort (default Incremental recovery): ", "a");
 EXPECT_THROWS(function() { rs.addInstance(__sandbox3); }, "Cancelled");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 shell.options.useWizards = false;
 
 //@<> instance has empty GTID set + gtidSetIsComplete:0 + recoveryMethod:CLONE + clone unavailable {VER(>=8.0.17)}
 EXPECT_THROWS(function() { rs.addInstance(__sandbox3, {recoveryMethod:"CLONE"}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 //@<> cloneDonor invalid: clone unavailable {VER(>=8.0.17)}
 EXPECT_THROWS(function() { rs.addInstance(__sandbox3, {recoveryMethod:"clone", cloneDonor: __sandbox1}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 // Tests for the scenario on which clone is unavailable
 
@@ -692,7 +693,7 @@ session3.runSql("FLUSH BINARY LOGS");
 session3.runSql("PURGE BINARY LOGS BEFORE DATE_ADD(NOW(), INTERVAL 1 DAY)");
 
 EXPECT_THROWS(function() { rs.rejoinInstance(__sandbox3); }, "Instance provisioning required");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 EXPECT_OUTPUT_CONTAINS(`ERROR: The target instance must be either cloned or fully re-provisioned before it can be re-added to the target replicaset.`);
 
 // rejoinInstance()
@@ -700,11 +701,11 @@ EXPECT_OUTPUT_CONTAINS(`ERROR: The target instance must be either cloned or full
 //@<> Try to rejoin instance with purged transactions on PRIMARY + clone unavailable + recoveryMethod (fail) {VER(>=8.0.17) && __dbug}
 session3.runSql("STOP " + get_replica_keyword());
 EXPECT_THROWS(function() { rs.rejoinInstance(__sandbox3, {recoveryMethod: "clone"}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 //@<> Try to rejoin instance with purged transactions on PRIMARY + clone unavailable + recoveryMethod + cloneDonor (fail) {VER(>=8.0.17) && __dbug}
 EXPECT_THROWS(function() { rs.rejoinInstance(__sandbox3, {recoveryMethod: "clone", cloneDonor: __sandbox1}); }, "Cannot use recoveryMethod=clone because the selected donor is incompatible or no compatible donors are available due to version/platform incompatibilities.");
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint_uri2}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 testutil.dbugSet("");
 

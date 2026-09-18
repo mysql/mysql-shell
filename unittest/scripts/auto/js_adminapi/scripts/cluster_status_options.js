@@ -13,6 +13,7 @@ if (__version_num < 80300) {
 }
 
 shell.connect(__sandbox_uri1);
+var __version_with_update = get_server_version_with_update(session);
 var cluster = dba.createCluster("cluster", {gtidSetIsComplete: true});
 
 // Create a test dataset so that RECOVERY takes a while
@@ -46,6 +47,8 @@ function json_check_fields(json, template) {
                 unexpected = unexpected.concat(r["unexpected"]);
             }
         } else if (k in json) {
+            if (k == "version" || k == "versionWithUpdate")
+                EXPECT_EQ(template[k], json[k], k);
             if (json[k] != null)
                 EXPECT_EQ(normtype(template[k]), normtype(json[k]), k);
             if (normtype(template[k]) == 'Object') {
@@ -168,7 +171,8 @@ const extended_1_status_templ_80 = {
                 "replicationLag": "",
                 "role": "",
                 "status": "",
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -202,7 +206,8 @@ const extended_1_status_templ_8023 = {
                 "role": "",
                 "applierWorkerThreads": 4,
                 "status": "",
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -237,7 +242,8 @@ const extended_1_status_templ_8026 = {
                 "role": "",
                 "applierWorkerThreads": 4,
                 "status": "",
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -272,7 +278,8 @@ const extended_1_status_templ_57 = {
                 "readReplicas": {},
                 "role": "",
                 "status": "",
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -315,7 +322,8 @@ const extended_2_status_templ_80 = {
                     "proposedCount": 0,
                     "rollbackCount": 0
                 },
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -359,7 +367,8 @@ const extended_2_status_templ_8023 = {
                     "proposedCount": 0,
                     "rollbackCount": 0
                 },
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -404,7 +413,8 @@ const extended_2_status_templ_8026 = {
                     "proposedCount": 0,
                     "rollbackCount": 0
                 },
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -446,7 +456,8 @@ const extended_2_status_templ_57 = {
                     "inQueueCount": 0,
                     "lastConflictFree" : ""
                 },
-                "version": __version
+                "version": __version,
+                "versionWithUpdate": __version_with_update
             }
         },
         "topologyMode": "Single-Primary"
@@ -478,6 +489,7 @@ const full_status_templ_80 = {
                 "role": "",
                 "status": "",
                 "version": __version,
+                "versionWithUpdate": __version_with_update,
                 "transactions": {
                     "appliedCount": 0,
                     "checkedCount": 0,
@@ -564,6 +576,7 @@ const full_status_templ_8023 = {
                 "applierWorkerThreads": 4,
                 "status": "",
                 "version": __version,
+                "versionWithUpdate": __version_with_update,
                 "transactions": {
                     "appliedCount": 0,
                     "checkedCount": 0,
@@ -657,6 +670,7 @@ const full_status_templ_57 = {
                 "role": "",
                 "status": "",
                 "version": __version,
+                "versionWithUpdate": __version_with_update,
                 "transactions": {
                     "checkedCount": 0,
                     "committedAllMembers": "",
@@ -970,6 +984,7 @@ testutil.stopSandbox(__mysql_sandbox_port2);
 var stat = cluster.status({extended:3});
 var loc = json_find_key(stat, hostname+":" + __mysql_sandbox_port2);
 EXPECT_NE(undefined, loc["shellConnectError"]);
+EXPECT_EQ(undefined, loc["versionWithUpdate"]);
 
 //@<> F6- With parallel appliers for 8.0 {VER(>=8.0) && VER(<8.0.23)}
 // TS5_1	Verify that information about the coordinator thread is added to the status of a member if the member has multithreaded slave enabled when calling cluster.status().

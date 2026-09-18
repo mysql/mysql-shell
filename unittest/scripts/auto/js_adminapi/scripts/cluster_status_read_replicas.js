@@ -8,6 +8,8 @@ function check_default_status(extended, rr_status, current_source, replication_s
   EXPECT_EQ(current_source, rr_status["address"], "address");
   EXPECT_EQ("ONLINE", rr_status["status"], "status");
   EXPECT_EQ(__version, rr_status["version"], "version");
+  EXPECT_EQ(extended >= 1 ? __version_with_update : undefined,
+            rr_status["versionWithUpdate"], "versionWithUpdate");
   EXPECT_EQ("READ_REPLICA", rr_status["role"], "role");
   EXPECT_EQ(undefined, rr_status["instanceErrors"], "instanceErrors");
 
@@ -76,6 +78,7 @@ function check_default_status(extended, rr_status, current_source, replication_s
 //@<> Setup + Create cluster
 var scene = new ClusterScenario([__mysql_sandbox_port1, __mysql_sandbox_port2, __mysql_sandbox_port3], {"manualStartOnBoot": true});
 var session = scene.session
+var __version_with_update = get_server_version_with_update(session);
 var cluster = scene.cluster
 
 testutil.deploySandbox(__mysql_sandbox_port4, "root", {report_host: hostname});
@@ -185,11 +188,12 @@ EXPECT_EQ("WARNING: Read Replica's replication channel is stopped. Use Cluster.r
 //@<> Status with UNREACHABLE read-replica
 testutil.killSandbox(__mysql_sandbox_port4);
 
-status = cluster.status();
+status = cluster.status({extended: 1});
 print(status);
 read_replica1 = status["defaultReplicaSet"]["topology"][__endpoint1]["readReplicas"][__endpoint4];
 EXPECT_EQ(__endpoint4, read_replica1["address"]);
 EXPECT_EQ("UNREACHABLE", read_replica1["status"]);
+EXPECT_EQ(undefined, read_replica1["versionWithUpdate"]);
 EXPECT_EQ("ERROR: Could not connect to the Read-Replica: The instance is unreachable.", read_replica1["instanceErrors"][0]);
 
 //@<> Status with ERROR read-replica

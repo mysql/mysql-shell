@@ -179,6 +179,8 @@ class IInstance {
   virtual bool is_ssl_enabled() const = 0;
 
   virtual bool is_read_only(bool super) const = 0;
+
+  // Includes the 'update' part when available
   virtual utils::Version get_version() const = 0;
 
   virtual std::optional<std::string> get_system_variable(

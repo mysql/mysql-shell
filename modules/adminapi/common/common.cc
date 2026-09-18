@@ -226,7 +226,7 @@ bool is_option_supported(
     throw std::runtime_error(shcore::str_format(
         "Unsupported server version '%s': AdminAPI operations in this version "
         "of MySQL Shell are supported on MySQL Server %s and above ",
-        version.get_full().c_str(),
+        version.get_full_with_update().c_str(),
         Precondition_checker::k_min_adminapi_server_version.get_short()
             .c_str()));
   }
@@ -235,7 +235,7 @@ bool is_option_supported(
     throw std::runtime_error(shcore::str_format(
         "Unsupported server version '%s': AdminAPI operations in this version "
         "of MySQL Shell support MySQL Server versions %s",
-        version.get_full().c_str(),
+        version.get_full_with_update().c_str(),
         mysqlshdk::utils::version::supported_servers().c_str()));
   }
 

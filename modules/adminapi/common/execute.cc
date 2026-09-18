@@ -303,7 +303,7 @@ shcore::Value execute_query(const mysqlshdk::mysql::IInstance &instance,
                             std::string_view instance_label,
                             const std::string &query) {
   auto jmain = gen_output_main(instance.descr(), instance_label,
-                               instance.get_version().get_full());
+                               instance.get_version().get_base());
 
   auto add_error = [&jmain](std::string_view type, std::string_view msg,
                             std::optional<int> code = std::nullopt) {

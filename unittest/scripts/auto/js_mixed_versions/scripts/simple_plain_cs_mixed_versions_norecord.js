@@ -121,6 +121,9 @@ session2 = mysql.getSession(__sandbox_uri2);
 session3 = mysql.getSession(__sandbox_uri3);
 session4 = mysql.getSession(__sandbox_uri4);
 
+let lower_server_version_with_update = get_server_version_with_update(session1);
+let higher_server_version_with_update = get_server_version_with_update(session4);
+
 function get_clients(s, ignore_ids) {
   var ignore_ids = "connection_id(),"+ignore_ids;
   if (shell.getSession().uri == s.uri)
@@ -290,7 +293,7 @@ NOTE: Group Replication will communicate with other members using '${hostname}:$
 
 * Checking transaction state of the instance...
 
-WARNING: Clone-based recovery not available: Instance '${hostname}:${__mysql_sandbox_port1}' cannot be a donor because its version (${lower_server_version}) isn't compatible with the recipient's (${higher_server_version}).
+WARNING: Clone-based recovery not available: Instance '${hostname}:${__mysql_sandbox_port1}' cannot be a donor because its version (${lower_server_version_with_update}) isn't compatible with the recipient's (${higher_server_version_with_update}).
 
 NOTE: The target instance '${hostname}:${__mysql_sandbox_port4}' has not been pre-provisioned (GTID set is empty).
 
@@ -466,7 +469,7 @@ cs.status({extended:1});
 
 if (current_to_secondary_replication_is_incompatible()) {
     EXPECT_THROWS(function() { cs.setPrimaryCluster("replicacluster"); }, "Incompatible replication source version");
-    check_incompatible_replication_source(higher_server_version, lower_server_version, __mysql_sandbox_port4, __mysql_sandbox_port1);
+    check_incompatible_replication_source(higher_server_version_with_update, lower_server_version_with_update, __mysql_sandbox_port4, __mysql_sandbox_port1);
 } else {
     cs.setPrimaryCluster("replicacluster");
 }

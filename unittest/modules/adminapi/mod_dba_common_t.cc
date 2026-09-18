@@ -680,7 +680,7 @@ TEST_F(Admin_api_common_test, check_admin_account_access_restrictions) {
                      {{"'admin'@'localhost'"}, {"'admin'@'%'"}}}});
   expect_all_privileges(mock_session);
   EXPECT_TRUE(check_admin_account_access_restrictions(
-      instance, "admin", "localhost", false,
+      mysqlshdk::mysql::Instance{mock_session}, "admin", "localhost", false,
       mysqlsh::dba::Cluster_type::GROUP_REPLICATION));
 }
 

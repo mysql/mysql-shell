@@ -153,6 +153,56 @@ TEST(Version, version_parsing) {
   EXPECT_STREQ("8.4.0", Version(8, 4, 0).get_base().c_str());
 }
 
+TEST(Version, update_parsing_and_formatting) {
+  for (const auto *base : {"8.4.8", "9.7.0", "26.7.1"}) {
+    for (const int update : {0, 1, 123}) {
+      for (const auto *extra : {"", "-debug", "-commercial-cloud"}) {
+        const auto full =
+            std::string(base) + "." + std::to_string(update) + extra;
+        SCOPED_TRACE(full);
+        const Version v(full);
+        EXPECT_EQ(full, v.get_full_with_update());
+        EXPECT_EQ(base, v.get_base());
+        EXPECT_EQ(std::string(base) + extra, v.get_full());
+        EXPECT_EQ(Version(std::string(base) + extra).is_mds(), v.is_mds());
+      }
+    }
+  }
+
+  for (const auto *full : {"8", "8.4", "8.4.8", "8.4.8-debug"}) {
+    const Version v(full);
+    EXPECT_EQ(full, v.get_full_with_update());
+  }
+
+  for (const auto *invalid : {"9.7.0.", "9.7.0.x", "9.7.0.1x", "9.7.0.1.2",
+                              "9.7.0.2147483648", "9.7.0.-debug"}) {
+    SCOPED_TRACE(invalid);
+    EXPECT_THROW(Version{invalid}, std::invalid_argument);
+  }
+}
+
+TEST(Version, update_does_not_affect_compatibility) {
+  for (const auto *base : {"8.4.8", "9.7.0", "26.7.1"}) {
+    for (const auto *update : {"", ".0", ".1", ".123-debug"}) {
+      const Version v(std::string(base) + update);
+      for (const auto *other_update : {"", ".0", ".2", ".456-commercial"}) {
+        const Version other(std::string(base) + other_update);
+        EXPECT_TRUE(v == other);
+        EXPECT_FALSE(v != other);
+        EXPECT_TRUE(v <= other);
+        EXPECT_TRUE(v >= other);
+        EXPECT_FALSE(v < other);
+        EXPECT_FALSE(v > other);
+        EXPECT_EQ(other.numeric(), v.numeric());
+        EXPECT_EQ(other.numeric_version_series(), v.numeric_version_series());
+        EXPECT_EQ(version::is_lts(other), version::is_lts(v));
+        EXPECT_EQ(0, version::major_difference(v, other));
+      }
+      EXPECT_LT(v, Version(v.get_major(), v.get_minor(), v.get_patch() + 1));
+    }
+  }
+}
+
 TEST(Version, corresponding_versions) {
   EXPECT_THAT(version::corresponding_versions(Version(8, 1, 0)),
               ElementsAre(Version(8, 0, 34), Version(8, 1, 0)));

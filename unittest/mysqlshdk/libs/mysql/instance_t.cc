@@ -23,6 +23,7 @@
  * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/mysql/instance.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "unittest/mysqlshdk/libs/mysql/user_privileges_t.h"
@@ -60,6 +61,72 @@ TEST_F(Instance_test, get_session) {
   mysqlshdk::mysql::Instance instance(_session);
 
   EXPECT_EQ(_session, instance.get_session());
+}
+
+TEST_F(Instance_test, get_version_with_update) {
+  const std::string query =
+      "show GLOBAL variables where `variable_name` in ('version_with_update')";
+  const mysqlshdk::utils::Version version(9, 7, 0);
+  EXPECT_CALL(session, get_server_version())
+      .Times(3)
+      .WillRepeatedly(Return(version));
+
+  for (const auto *full : {"9.7.0.0", "9.7.0.2", "9.7.0.2-debug"}) {
+    SCOPED_TRACE(full);
+    mysqlshdk::mysql::Instance instance(_session);
+    session.expect_query(query).then_return(
+        {{query,
+          {"Variable_name", "Value"},
+          {Type::String, Type::String},
+          {{"version_with_update", full}}}});
+
+    EXPECT_EQ(full, instance.get_version().get_full_with_update());
+    EXPECT_EQ(full, instance.get_version().get_full_with_update());
+    EXPECT_EQ(version, instance.get_version());
+    EXPECT_TRUE(session.queries().empty());
+  }
+}
+
+TEST_F(Instance_test, get_version_with_update_missing) {
+  const std::string query =
+      "show GLOBAL variables where `variable_name` in ('version_with_update')";
+  EXPECT_CALL(session, get_server_version())
+      .WillOnce(Return(mysqlshdk::utils::Version(8, 0, 36)));
+  session.expect_query(query).then_return(
+      {{query, {"Variable_name", "Value"}, {Type::String, Type::String}, {}}});
+  mysqlshdk::mysql::Instance instance(_session);
+
+  EXPECT_EQ("8.0.36", instance.get_version().get_full_with_update());
+  EXPECT_EQ("8.0.36", instance.get_version().get_full_with_update());
+  EXPECT_TRUE(session.queries().empty());
+}
+
+TEST_F(Instance_test, get_version_with_update_query_error) {
+  const std::string query =
+      "show GLOBAL variables where `variable_name` in ('version_with_update')";
+  EXPECT_CALL(session, get_server_version())
+      .WillOnce(Return(mysqlshdk::utils::Version(9, 7, 0)));
+  session.expect_query(query).then_throw("Lost connection to MySQL server",
+                                         2013);
+  mysqlshdk::mysql::Instance instance(_session);
+
+  EXPECT_EQ("9.7.0", instance.get_version().get_full_with_update());
+  EXPECT_EQ("9.7.0", instance.get_version().get_full_with_update());
+  EXPECT_TRUE(session.queries().empty());
+}
+
+TEST_F(Instance_test, get_version_from_server) {
+  const auto connection = mysqlshdk::db::mysql::Session::create();
+  connection->connect(_connection_options);
+  mysqlshdk::mysql::Instance instance(connection);
+  const auto reported_version =
+      instance.get_sysvar_string("version_with_update");
+  const auto version = instance.get_version();
+
+  EXPECT_EQ(connection->get_server_version(), version);
+  EXPECT_EQ(
+      reported_version.value_or(connection->get_server_version().get_full()),
+      version.get_full_with_update());
 }
 
 TEST_F(Instance_test, get_sysvar_string_existing_variable) {
@@ -1246,6 +1313,12 @@ TEST_F(Instance_test, is_set_persist_supported) {
   // Simulate 8.0.11 version is used.
   EXPECT_CALL(session, get_server_version())
       .WillRepeatedly(Return(mysqlshdk::utils::Version(8, 0, 11)));
+
+  session
+      .expect_query(
+          "show GLOBAL variables where `variable_name` in "
+          "('version_with_update')")
+      .then({"Variable_name", "Value"});
 
   // Set persisted_globals_load is OFF.
   session

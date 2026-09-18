@@ -645,8 +645,8 @@ void Base_cluster_impl::check_replication_version_compatibility(
           "understand the limitations and potential issues, use the "
           "'dba.versionCompatibilityChecks' option to bypass this check.",
           potential_str, source_descr.c_str(),
-          source_version.get_full().c_str(), replica_descr.c_str(),
-          replica_version.get_full().c_str());
+          source_version.get_full_with_update().c_str(), replica_descr.c_str(),
+          replica_version.get_full_with_update().c_str());
       format_message(Message_type::ERROR, error_message);
       break;
     }
@@ -658,9 +658,9 @@ void Base_cluster_impl::check_replication_version_compatibility(
           "where new functionality from version %s is not yet utilized. It "
           "is not suitable for regular continuous production deployment.",
           potential_str, source_descr.c_str(),
-          source_version.get_full().c_str(), replica_descr.c_str(),
-          replica_version.get_full().c_str(),
-          source_version.get_full().c_str());
+          source_version.get_full_with_update().c_str(), replica_descr.c_str(),
+          replica_version.get_full_with_update().c_str(),
+          source_version.get_base().c_str());
       format_message(Message_type::WARNING, warning_message);
       break;
     }
@@ -669,8 +669,8 @@ void Base_cluster_impl::check_replication_version_compatibility(
           "The %sreplication source's ('%s') version (%s) is compatible "
           "with the replica instance's ('%s') version (%s).",
           potential_str, source_descr.c_str(),
-          source_version.get_full().c_str(), replica_descr.c_str(),
-          replica_version.get_full().c_str());
+          source_version.get_full_with_update().c_str(), replica_descr.c_str(),
+          replica_version.get_full_with_update().c_str());
       format_message(Message_type::INFO, info_message);
       break;
     }
@@ -757,8 +757,8 @@ void Base_cluster_impl::check_compatible_clone_donor(
               "Instance '%s' cannot be a donor because its "
               "version (%s) isn't compatible with the recipient's (%s).",
               donor.get_canonical_address().c_str(),
-              donor_version.get_full().c_str(),
-              recipient_version.get_full().c_str()),
+              donor_version.get_full_with_update().c_str(),
+              recipient_version.get_full_with_update().c_str()),
           SHERR_DBA_CLONE_DIFF_VERSION);
     }
   }

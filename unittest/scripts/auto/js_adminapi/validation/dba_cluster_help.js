@@ -1235,6 +1235,10 @@ DESCRIPTION
         cluster member;
       - Boolean: equivalent to assign either 0 (false) or 1 (true).
 
+      NOTE: At verbosity level 1 or higher, each reachable instance also
+            includes a versionWithUpdate field with its full server version,
+            including the update component when available.
+
 //@<OUT> setPrimaryInstance
 NAME
       setPrimaryInstance - Elects a specific cluster member as the new primary.

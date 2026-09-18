@@ -855,6 +855,10 @@ DESCRIPTION
         as replication delay, heartbeat delay, retry count and connection retry
         for the ClusterSet replication channel.
 
+      NOTE: At verbosity level 2 or higher, each reachable instance also
+            includes a versionWithUpdate field with its full server version,
+            including the update component when available.
+
 //@<OUT> Describe
 NAME
       describe - Describe the structure of the ClusterSet.

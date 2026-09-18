@@ -615,7 +615,7 @@ std::optional<std::string> create_user_with_random_password(
           "Unable to retrieve generated password for account %.*s@%s. "
           "Server version: %s",
           static_cast<int>(user.length()), user.data(), hosts.front().c_str(),
-          instance.get_version().get_full().c_str()));
+          instance.get_version().get_full_with_update().c_str()));
     }
 
     grant_user_privileges(instance, user, hosts.front(), cur_options);
@@ -715,7 +715,7 @@ void set_random_password(const IInstance &instance, const std::string &user,
           "Unable to retrieve generated password for account %.*s@%s. "
           "Server version: %s",
           static_cast<int>(user.length()), user.data(), hosts.front().c_str(),
-          instance.get_version().get_full().c_str()));
+          instance.get_version().get_full_with_update().c_str()));
     }
 
     *out_password = std::move(*generated_password);

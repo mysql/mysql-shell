@@ -527,6 +527,10 @@ The extended option supports Integer or Boolean values:
 @li 3: includes more detailed stats about the replication machinery of each
        cluster member;
 @li Boolean: equivalent to assign either 0 (false) or 1 (true).
+
+@note At verbosity level 1 or higher, each reachable instance also includes a
+versionWithUpdate field with its full server version, including the update
+component when available.
 )*");
 
 /**

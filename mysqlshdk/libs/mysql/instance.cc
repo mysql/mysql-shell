@@ -605,7 +605,19 @@ bool Instance::is_read_only(bool super) const {
 }
 
 utils::Version Instance::get_version() const {
-  if (!m_version) m_version = m_session->get_server_version();
+  if (!m_version) {
+    // The session version omits the update component. Cache it as a fallback.
+    m_version = m_session->get_server_version();
+    if (!m_version) return m_version;
+
+    // SHOW VARIABLES returns no row on servers without @@version_with_update
+    try {
+      const auto version = get_sysvar_string("version_with_update");
+      if (version && !version->empty()) m_version = utils::Version(*version);
+    } catch (const db::Error &e) {
+      log_debug("Could not read @@version_with_update: %s", e.what());
+    }
+  }
   return m_version;
 }
 

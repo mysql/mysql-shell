@@ -25,9 +25,11 @@
 
 #include <string>
 
+#include "modules/adminapi/common/base_cluster_impl.h"
 #include "unittest/gprod_clean.h"
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils.h"
+#include "unittest/test_utils/mocks/gmock_clean.h"
 
 #include "mysqlshdk/libs/mysql/version_compatibility.h"
 
@@ -47,6 +49,60 @@ class Admin_api_replication_version_compat_test
     return session;
   }
 };
+
+TEST_F(Admin_api_replication_version_compat_test,
+       diagnostics_include_version_update) {
+  using mysqlshdk::utils::Version;
+
+  EXPECT_THROW_LIKE(
+      mysqlshdk::mysql::verify_compatible_replication_versions(
+          Version("27.0.0.2-debug"), Version(9, 7, 0)),
+      std::runtime_error,
+      "Unsupported MySQL Server version at source instance: 27.0.0.2-debug");
+  EXPECT_THROW_LIKE(
+      mysqlshdk::mysql::verify_compatible_replication_versions(
+          Version(9, 7, 0), Version("27.0.0.2-debug")),
+      std::runtime_error,
+      "Unsupported MySQL Server version at replica instance: 27.0.0.2-debug");
+
+  for (const std::string source_full : {"9.7.0.0", "9.7.0.12-debug"}) {
+    SCOPED_TRACE(source_full);
+    const Version source_version(source_full);
+    auto issues = shcore::make_array();
+    Base_cluster_impl::check_replication_version_compatibility(
+        "source", "replica", source_version, Version("9.7.0.1"), false, false,
+        &issues);
+    EXPECT_TRUE(issues->empty());
+
+    Base_cluster_impl::check_replication_version_compatibility(
+        "source", "replica", source_version, Version("8.4.0.2"), false, false,
+        &issues);
+    ASSERT_EQ(1, issues->size());
+    EXPECT_THAT(
+        issues->front().as_string(),
+        ::testing::HasSubstr("WARNING: The replication source ('source') "
+                             "is running version " +
+                             source_full));
+    EXPECT_THAT(issues->front().as_string(),
+                ::testing::HasSubstr("version 8.4.0.2."));
+    EXPECT_THAT(
+        issues->front().as_string(),
+        ::testing::HasSubstr("new functionality from version 9.7.0 is"));
+
+    issues->clear();
+    Base_cluster_impl::check_replication_version_compatibility(
+        "source", "replica", source_version, Version(8, 3, 0), false, false,
+        &issues);
+    ASSERT_EQ(1, issues->size());
+    EXPECT_THAT(issues->front().as_string(),
+                ::testing::HasSubstr("ERROR: The replication source ('source') "
+                                     "is running version " +
+                                     source_full));
+    EXPECT_THAT(
+        issues->front().as_string(),
+        ::testing::HasSubstr("target replica's ('replica') version 8.3.0"));
+  }
+}
 
 TEST_F(Admin_api_replication_version_compat_test,
        verify_compatible_replication_versions) {

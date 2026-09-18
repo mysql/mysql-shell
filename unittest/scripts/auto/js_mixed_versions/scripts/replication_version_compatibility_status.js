@@ -2,10 +2,14 @@
 
 shell.options.logLevel = "debug"
 
+function get_base_version(version) {
+    return version.split('-')[0].split('.').slice(0, 3).join('.');
+}
+
 function status_replication_compatibility_warning(source_version, target_version, source_port, target_port, potential=false) {
     let source_type = potential ? "potential replication source" : "replication source";
 
-    return "WARNING: The " + source_type + " ('" + hostname + ":" + source_port + "') is running version " + source_version + ", which has limited compatibility with the target instance's ('" + hostname + ":" + target_port + "') version " + target_version + ". This setup should only be used for rollback purposes, where new functionality from version " + source_version + " is not yet utilized. It is not suitable for regular continuous production deployment.";
+    return "WARNING: The " + source_type + " ('" + hostname + ":" + source_port + "') is running version " + source_version + ", which has limited compatibility with the target instance's ('" + hostname + ":" + target_port + "') version " + target_version + ". This setup should only be used for rollback purposes, where new functionality from version " + get_base_version(source_version) + " is not yet utilized. It is not suitable for regular continuous production deployment.";
 }
 
 //@<> INCLUDE replication_version_compatibility_utils.inc
@@ -34,11 +38,9 @@ EXPECT_NO_THROWS(function() { r = dba.createReplicaSet("rs"); });
 EXPECT_NO_THROWS(function() { r.addInstance(__sandbox_uri2, {recoveryMethod: "incremental"}); });
 EXPECT_NO_THROWS(function() { r.addInstance(__sandbox_uri3, {recoveryMethod: "incremental"}); });
 
-var primary_version = session.runSql('SELECT @@version').fetchOne()[0];
-primary_version = primary_version.split('-')[0];
+var primary_version = get_server_version_with_update(session);
 
-var secondary_version = session2.runSql('SELECT @@version').fetchOne()[0];
-secondary_version = secondary_version.split('-')[0];
+var secondary_version = get_server_version_with_update(session2);
 
 var status = r.status();
 
@@ -103,7 +105,7 @@ if (current_to_secondary_replication_is_incompatible()) {
 
     EXPECT_EQ(status_replication_compatibility_warning(primary_version, secondary_version, __mysql_sandbox_port3, __mysql_sandbox_port2, true), status["clusters"]["replica_cluster"]["topology"][`${hostname}:${__mysql_sandbox_port2}`]["instanceErrors"][1])
 
-    EXPECT_SHELL_LOG_CONTAINS("Warning: The replication source ('" + hostname + ":" + __mysql_sandbox_port1 + "') is running version " + primary_version + ", which has limited compatibility with the target instance's ('" + hostname + ":" + __mysql_sandbox_port2 + "') version " + secondary_version + ". This setup should only be used for rollback purposes, where new functionality from version " + primary_version + " is not yet utilized. It is not suitable for regular continuous production deployment.");
+    EXPECT_SHELL_LOG_CONTAINS("Warning: The replication source ('" + hostname + ":" + __mysql_sandbox_port1 + "') is running version " + primary_version + ", which has limited compatibility with the target instance's ('" + hostname + ":" + __mysql_sandbox_port2 + "') version " + secondary_version + ". This setup should only be used for rollback purposes, where new functionality from version " + get_base_version(primary_version) + " is not yet utilized. It is not suitable for regular continuous production deployment.");
 }
 
 // Positive tests

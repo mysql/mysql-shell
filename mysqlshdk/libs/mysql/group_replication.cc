@@ -1053,7 +1053,7 @@ void check_instance_version_compatibility(
 
     // downgrades between series are not allowed
     throw std::runtime_error(
-        "Instance version '" + target_version.get_base() +
+        "Instance version '" + target_version.get_full_with_update() +
         "' cannot be lower than the cluster lowest version '" +
         lowest_cluster_version.get_base() + "'.");
   }

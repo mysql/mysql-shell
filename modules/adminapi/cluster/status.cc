@@ -658,7 +658,7 @@ void Status::collect_local_status(shcore::Dictionary_t dict,
     (*dict)["recovery"] = shcore::Value(recovery_node);
   }
 
-  (*dict)["version"] = shcore::Value(version.get_full());
+  (*dict)["version"] = shcore::Value(version.get_base());
 }
 
 void Status::feed_metadata_info(shcore::Dictionary_t dict,
@@ -1584,6 +1584,8 @@ shcore::Dictionary_t Status::get_topology(
 
       if (m_extended.has_value()) {
         if (*m_extended >= 1) {
+          (*member)["versionWithUpdate"] =
+              shcore::Value(instance->get_version().get_full_with_update());
           fence_sysvars = instance->get_fence_sysvars();
 
           const auto &workers =
@@ -2224,7 +2226,12 @@ shcore::Dictionary_t Status::feed_read_replica_info(const Read_replica_info &rr,
 
   if (rr_instance) {
     rr_dict->set("version",
-                 shcore::Value(rr_instance->get_version().get_full()));
+                 shcore::Value(rr_instance->get_version().get_base()));
+    if (m_extended.value_or(0) >= 1) {
+      rr_dict->set(
+          "versionWithUpdate",
+          shcore::Value(rr_instance->get_version().get_full_with_update()));
+    }
   }
 
   rr_dict->set("role", shcore::Value("READ_REPLICA"));

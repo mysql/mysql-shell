@@ -127,7 +127,8 @@ ${*}
                         }
                     ]
                 },
-                "version": "[[*]]"
+                "version": "[[*]]",
+                "versionWithUpdate": "[[*]]"
             },
             "<<<hostname>>>:<<<__mysql_sandbox_port2>>>": {
                 "address": "<<<hostname>>>:<<<__mysql_sandbox_port2>>>",
@@ -216,7 +217,8 @@ ${*}
 ?{}
                     ]
                 },
-                "version": "[[*]]"
+                "version": "[[*]]",
+                "versionWithUpdate": "[[*]]"
             }
         },
         "topologyMode": "Single-Primary"

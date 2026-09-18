@@ -22,6 +22,7 @@ function stop_replica(session) {
 //@<> Setup + Create cluster
 var scene = new ClusterScenario([__mysql_sandbox_port1], {"manualStartOnBoot": true});
 var session = scene.session
+var __version_with_update = get_server_version_with_update(session);
 var cluster = scene.cluster
 
 testutil.deploySandbox(__mysql_sandbox_port2, "root", {report_host: hostname});
@@ -566,7 +567,7 @@ testutil.dbugSet("+d,dba_clone_version_check_fail");
 
 EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "Instance provisioning required");
 
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 testutil.assertNoPrompts(); // No prompts
 
@@ -575,7 +576,7 @@ shell.options.useWizards=0;
 
 EXPECT_THROWS(function() { cluster.addReplicaInstance(__sandbox_uri4); }, "Instance provisioning required");
 
-EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version})`);
+EXPECT_OUTPUT_CONTAINS(`WARNING: Clone-based recovery not available: Instance '${__endpoint1}' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (${__version_with_update})`);
 
 testutil.dbugSet("");
 
@@ -584,10 +585,10 @@ testutil.dbugSet("");
 //@<> addReplicaInstance: recoveryMethod: clone, automatic donor not valid {__dbug}
 testutil.dbugSet("+d,dba_clone_version_check_fail");
 
-EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone"}); }, "Instance '" + __endpoint1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone"}); }, "Instance '" + __endpoint1 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version_with_update + ").", "MYSQLSH");
 
 //@<> addReplicaInstance: recoveryMethod: clone, cloneDonor not valid {__dbug}
-EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance '" + __endpoint2 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version + ").", "MYSQLSH");
+EXPECT_THROWS_TYPE(function() { cluster.addReplicaInstance(__sandbox_uri4, {recoveryMethod: "clone", cloneDonor: __endpoint2}); }, "Instance '" + __endpoint2 + "' cannot be a donor because its version (8.0.17) isn't compatible with the recipient's (" + __version_with_update + ").", "MYSQLSH");
 
 testutil.dbugSet("");
 

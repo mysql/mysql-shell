@@ -129,13 +129,13 @@ Replication_version_compatibility verify_compatible_replication_versions(
   if (is_unsupported_version(source)) {
     throw std::runtime_error(shcore::str_format(
         "Unsupported MySQL Server version at source instance: %s",
-        source.get_full().c_str()));
+        source.get_full_with_update().c_str()));
   }
 
   if (is_unsupported_version(replica)) {
     throw std::runtime_error(shcore::str_format(
         "Unsupported MySQL Server version at replica instance: %s",
-        replica.get_full().c_str()));
+        replica.get_full_with_update().c_str()));
   }
 
   // If {major.minor.patch.build/extra} are equal, it's compatible

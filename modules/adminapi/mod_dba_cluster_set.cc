@@ -461,6 +461,10 @@ queue size, applier queue GTID set, coordinator state, etc.
 @li 3: includes important replication related configuration settings, such
 as replication delay, heartbeat delay, retry count and connection retry
 for the ClusterSet replication channel.
+
+@note At verbosity level 2 or higher, each reachable instance also includes a
+versionWithUpdate field with its full server version, including the update
+component when available.
 )*");
 /**
  * $(CLUSTERSET_STATUS_BRIEF)

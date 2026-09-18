@@ -12,12 +12,14 @@ def check_for_instance(output, number_instances, target_address):
         count += 1
         EXPECT_TRUE("instance" in i, "Object is missing field \"instance\".")
         EXPECT_TRUE("address" in i["instance"], "Instance is missing field \"address\".")
+        EXPECT_TRUE("version" in i["instance"], "Instance is missing field \"version\".")
         if i["instance"]["address"] == target_address:
             target = i
     EXPECT_EQ(number_instances, count, "Incorrect number of instances on the output.")
     return target
 
 def check_output(i, columns):
+    EXPECT_EQ(__version, i["instance"]["version"])
     EXPECT_TRUE("output" in i, "Object is missing field \"output\".")
     EXPECT_FALSE("error" in i, "Object shouldn't have \"error\" field.")
     EXPECT_TRUE("executionTime" in i, "Output is missing field \"executionTime\".")
@@ -31,6 +33,7 @@ def check_output(i, columns):
        EXPECT_EQ(columns[i], output["columnNames"][i], f'Column names don\'t match: \'{columns[i]}\' vs \'{output["columnNames"][i]}\'')
 
 def check_error(i, type, msg):
+    EXPECT_EQ(__version if type == "mysql" else None, i["instance"]["version"])
     EXPECT_TRUE("error" in i, "Object is missing field \"error\".")
     EXPECT_FALSE("output" in i, "Object shouldn't have \"output\" field.")
     error = i["error"]
@@ -41,6 +44,7 @@ def check_error(i, type, msg):
         EXPECT_EQ(msg, error["message"], "Error message doesn't match")
 
 def check_warning(i, msg):
+    EXPECT_EQ(None, i["instance"]["version"])
     EXPECT_TRUE("warnings" in i, "Object is missing field \"warnings\".")
     warnings = i["warnings"]
     EXPECT_TRUE(msg in warnings, "Warning message not found.")

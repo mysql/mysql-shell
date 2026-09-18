@@ -7,6 +7,11 @@ sandbox_uris[__mysql_sandbox_port3] = __sandbox_uri3;
 
 var add_instance_options = {HoSt:localhost, port: 0000, PassWord:'root', scheme:'mysql'};
 
+function get_server_version_with_update(session) {
+    var row = session.runSql("SHOW GLOBAL VARIABLES WHERE Variable_name = 'version_with_update'").fetchOne();
+    return row ? row[1] : session.runSql("SELECT @@version").fetchOne()[0].split('-')[0];
+}
+
 // Gets the initial UUID of the given instance caching the data
 // for further requests
 var sandbox_uuids = {}
