@@ -70,6 +70,16 @@ class Version {
   bool has_patch() const { return _patch.has_value(); }
 
   /**
+   * Returns the update version, or 0 if not present.
+   */
+  int get_update() const { return _update.value_or(0); }
+
+  /**
+   * Returns true if the update version is present.
+   */
+  bool has_update() const { return _update.has_value(); }
+
+  /**
    * Returns the extra part of the version string, or an empty string if not
    * present.
    */
@@ -84,6 +94,12 @@ class Version {
    * Returns the version string in format \<major\>.\<minor\>.\<patch\>.
    */
   std::string get_base() const;
+
+  /**
+   * Returns the version string including the update part when present:
+   * \<major\>.\<minor\>.\<patch\>[.update].
+   */
+  std::string get_base_with_update() const;
 
   /**
    * Returns the version string in format \<major\>.\<minor\>.\<patch\>[-extra].

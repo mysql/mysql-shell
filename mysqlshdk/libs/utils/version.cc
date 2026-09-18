@@ -143,6 +143,14 @@ std::string Version::get_base() const {
   return ret_val;
 }
 
+std::string Version::get_base_with_update() const {
+  std::string ret_val = get_base();
+
+  if (_update) ret_val.append(".").append(std::to_string(*_update));
+
+  return ret_val;
+}
+
 std::string Version::get_full() const {
   std::string ret_val = get_base();
 
@@ -152,9 +160,8 @@ std::string Version::get_full() const {
 }
 
 std::string Version::get_full_with_update() const {
-  std::string ret_val = get_base();
+  std::string ret_val = get_base_with_update();
 
-  if (_update) ret_val.append(".").append(std::to_string(*_update));
   if (_extra) ret_val.append("-").append(*_extra);
 
   return ret_val;

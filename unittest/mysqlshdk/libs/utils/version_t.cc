@@ -27,6 +27,9 @@
 
 #include "mysqlshdk/libs/utils/version.h"
 
+#include <utility>
+#include <vector>
+
 #include "unittest/gtest_clean.h"
 #include "unittest/test_utils/mocks/gmock_clean.h"
 
@@ -161,6 +164,10 @@ TEST(Version, update_parsing_and_formatting) {
             std::string(base) + "." + std::to_string(update) + extra;
         SCOPED_TRACE(full);
         const Version v(full);
+        EXPECT_TRUE(v.has_update());
+        EXPECT_EQ(update, v.get_update());
+        EXPECT_EQ(std::string(base) + "." + std::to_string(update),
+                  v.get_base_with_update());
         EXPECT_EQ(full, v.get_full_with_update());
         EXPECT_EQ(base, v.get_base());
         EXPECT_EQ(std::string(base) + extra, v.get_full());
@@ -169,8 +176,17 @@ TEST(Version, update_parsing_and_formatting) {
     }
   }
 
-  for (const auto *full : {"8", "8.4", "8.4.8", "8.4.8-debug"}) {
+  for (const auto &[full, base] :
+       std::vector<std::pair<const char *, const char *>>{
+           {"8", "8"},
+           {"8.4", "8.4"},
+           {"8.4.8", "8.4.8"},
+           {"8.4.8-debug", "8.4.8"},
+       }) {
     const Version v(full);
+    EXPECT_FALSE(v.has_update());
+    EXPECT_EQ(0, v.get_update());
+    EXPECT_EQ(base, v.get_base_with_update());
     EXPECT_EQ(full, v.get_full_with_update());
   }
 
