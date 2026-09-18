@@ -12,6 +12,32 @@
     "removal": "9.5.0"
   },
   {
+    "name": "group_replication_communication_stack",
+    "version": "8.0.27",
+    "deprecation": [
+      "8.4.11",
+      "9.7.2",
+      "26.7.0"
+    ],
+    "initial": {
+      "all": {
+        "default": {
+          "all": "XCOM"
+        }
+      }
+    },
+    "changes": [
+      {
+        "version": "26.7.0",
+        "all": {
+          "default": {
+            "all": "MYSQL"
+          }
+        }
+      }
+    ]
+  },
+  {
     "name": "group_replication_components_stop_timeout",
     "version": "5.7.17",
     "initial": {
@@ -89,6 +115,11 @@
         }
       }
     ]
+  },
+  {
+    "name": "group_replication_ip_allowlist",
+    "version": "8.0.22",
+    "deprecation": "8.4.11"
   },
   {
     "name": "group_replication_ip_whitelist",
@@ -513,13 +544,19 @@
   {
     "name": "authentication_fido_rp_id",
     "version": "8.0.27",
-    "deprecation": "8.0.35",
+    "deprecation": [
+      "8.0.35",
+      "8.2.0"
+    ],
     "removal": "8.4.0"
   },
   {
     "name": "avoid_temporal_upgrade",
     "version": "5.6.24",
-    "deprecation": "5.6.24",
+    "deprecation": [
+      "5.6.24",
+      "5.7.6"
+    ],
     "removal": "8.4.0"
   },
   {
@@ -611,42 +648,10 @@
     "deprecation": "8.0.34",
     "changes": [
       {
-        "version": "5.1.14",
-        "all": {
-          "default": {
-            "all": "MIXED"
-          }
-        }
-      },
-      {
         "version": "5.1.29",
         "all": {
           "default": {
             "all": "STATEMENT"
-          }
-        }
-      },
-      {
-        "version": "5.1.32",
-        "all": {
-          "default": {
-            "all": "MIXED"
-          }
-        }
-      },
-      {
-        "version": "5.5.15",
-        "all": {
-          "default": {
-            "all": "STATEMENT"
-          }
-        }
-      },
-      {
-        "version": "5.5.31",
-        "all": {
-          "default": {
-            "all": "MIXED"
           }
         }
       },
@@ -662,7 +667,7 @@
   },
   {
     "name": "binlog_gtid_simple_recovery",
-    "version": "5.7.6",
+    "version": "5.6.23",
     "initial": {
       "all": {
         "default": {
@@ -689,7 +694,10 @@
   {
     "name": "binlog_transaction_dependency_tracking",
     "version": "5.7.22",
-    "deprecation": "8.0.35",
+    "deprecation": [
+      "8.0.35",
+      "8.2.0"
+    ],
     "removal": "8.4.0",
     "initial": {
       "all": {
@@ -777,10 +785,6 @@
         }
       }
     ]
-  },
-  {
-    "name": "character_set",
-    "deprecation": "4.1.1"
   },
   {
     "name": "character_set_client",
@@ -967,12 +971,6 @@
         }
       }
     ]
-  },
-  {
-    "name": "create_old_temporals",
-    "version": "5.6.25",
-    "deprecation": "5.6.25",
-    "removal": "5.7.0"
   },
   {
     "name": "daemon_memcached_enable_binlog",
@@ -1358,11 +1356,6 @@
     "name": "have_openssl",
     "deprecation": "8.0.26",
     "removal": "8.4.0"
-  },
-  {
-    "name": "have_partition_engine",
-    "version": "5.1.1",
-    "deprecation": "5.1.6"
   },
   {
     "name": "have_profiling",
@@ -2353,7 +2346,10 @@
   {
     "name": "innodb_undo_tablespaces",
     "version": "5.6.3",
-    "deprecation": "5.7.21",
+    "deprecation": [
+      "5.7.21",
+      "8.0.4"
+    ],
     "removal": "9.3.0",
     "initial": {
       "all": {
@@ -2795,10 +2791,6 @@
     "deprecation": "8.0.34"
   },
   {
-    "name": "log-update",
-    "deprecation": "5.0.0"
-  },
-  {
     "name": "log-warnings",
     "deprecation": "5.7.2",
     "removal": "8.0.3",
@@ -3062,11 +3054,6 @@
     ]
   },
   {
-    "name": "max_long_data_size",
-    "version": "5.1.57",
-    "deprecation": "5.1.57"
-  },
-  {
     "name": "max_statement_time",
     "version": "5.7.4",
     "removal": "5.7.8"
@@ -3110,13 +3097,21 @@
     ]
   },
   {
-    "name": "myisam_max_extra_sort_file_size",
-    "deprecation": "5.0.6"
+    "name": "multi_range_count",
+    "version": "5.0.3",
+    "deprecation": "5.6.7",
+    "removal": "8.0.3"
   },
   {
     "name": "myisam_repair_threads",
-    "deprecation": "5.7.38",
-    "removal": "5.7.39"
+    "deprecation": [
+      "5.7.38",
+      "8.0.29"
+    ],
+    "removal": [
+      "5.7.39",
+      "8.0.30"
+    ]
   },
   {
     "name": "mysql_native_password_proxy_users",
@@ -3331,13 +3326,19 @@
   },
   {
     "name": "new",
-    "deprecation": "8.0.35",
+    "deprecation": [
+      "8.0.35",
+      "8.2.0"
+    ],
     "removal": "8.4.0"
   },
   {
     "name": "old",
     "version": "5.1.18",
-    "deprecation": "8.0.35",
+    "deprecation": [
+      "8.0.35",
+      "8.2.0"
+    ],
     "removal": "8.4.0"
   },
   {
@@ -4149,11 +4150,6 @@
     ]
   },
   {
-    "name": "optimizer_use_mrr",
-    "version": "5.2.4",
-    "removal": "6.0.14"
-  },
-  {
     "name": "performance_schema_max_cond_classes",
     "version": "5.5.3",
     "initial": {
@@ -4455,7 +4451,10 @@
   {
     "name": "performance_schema_show_processlist",
     "version": "5.7.39",
-    "deprecation": "8.0.35"
+    "deprecation": [
+      "8.0.35",
+      "8.2.0"
+    ]
   },
   {
     "name": "profiling",
@@ -4487,13 +4486,6 @@
     "name": "query_cache_size",
     "deprecation": "5.7.20",
     "removal": "8.0.3",
-    "initial": {
-      "all": {
-        "default": {
-          "64": "0 (Bytes)"
-        }
-      }
-    },
     "changes": [
       {
         "version": "5.6.8",
@@ -4529,16 +4521,17 @@
   },
   {
     "name": "range_alloc_block_size",
-    "initial": {
-      "all": {
-        "default": {
-          "32": "4096 (4 KB)"
-        }
-      }
-    },
     "changes": [
       {
         "version": "5.5.3",
+        "all": {
+          "default": {
+            "all": "4096 (4 KB)"
+          }
+        }
+      },
+      {
+        "version": "5.7.8",
         "all": {
           "default": {
             "64": "4096 (4 KB)"
@@ -4633,24 +4626,17 @@
     "deprecation": "8.4.0"
   },
   {
-    "name": "rpl_recovery_rank",
-    "deprecation": "5.5.3"
-  },
-  {
     "name": "rpl_semi_sync_master_enabled",
-    "version": "6.0.8",
     "deprecation": "8.0.26",
     "removal": "9.5.0"
   },
   {
     "name": "rpl_semi_sync_master_timeout",
-    "version": "6.0.8",
     "deprecation": "8.0.26",
     "removal": "9.5.0"
   },
   {
     "name": "rpl_semi_sync_master_trace_level",
-    "version": "6.0.8",
     "deprecation": "8.0.26",
     "removal": "9.5.0"
   },
@@ -4668,13 +4654,11 @@
   },
   {
     "name": "rpl_semi_sync_slave_enabled",
-    "version": "6.0.8",
     "deprecation": "8.0.26",
     "removal": "9.5.0"
   },
   {
     "name": "rpl_semi_sync_slave_trace_level",
-    "version": "6.0.8",
     "deprecation": "8.0.26",
     "removal": "9.5.0"
   },
@@ -4823,12 +4807,15 @@
   {
     "name": "show_old_temporals",
     "version": "5.6.24",
-    "deprecation": "5.6.24",
+    "deprecation": [
+      "5.6.24",
+      "5.7.6"
+    ],
     "removal": "8.4.0"
   },
   {
     "name": "simplified_binlog_gtid_recovery",
-    "version": "5.7.5",
+    "version": "5.6.21",
     "deprecation": "5.6.23",
     "removal": "5.7.6"
   },
@@ -5392,6 +5379,39 @@
             ]
           }
         }
+      },
+      {
+        "version": "9.5.0",
+        "all": {
+          "vartype": "set",
+          "default": {
+            "all": "ONLY_FULL_GROUP_BY STRICT_TRANS_TABLES NO_ZERO_IN_DATE NO_ZERO_DATE ERROR_FOR_DIVISION_BY_ZERO NO_ENGINE_SUBSTITUTION"
+          },
+          "allowed": {
+            "all": [
+              "ALLOW_INVALID_DATES",
+              "ANSI_QUOTES",
+              "ERROR_FOR_DIVISION_BY_ZERO",
+              "HIGH_NOT_PRECEDENCE",
+              "IGNORE_SPACE",
+              "INTERPRET_UTF8_AS_UTF8MB4",
+              "NO_AUTO_VALUE_ON_ZERO",
+              "NO_BACKSLASH_ESCAPES",
+              "NO_DIR_IN_CREATE",
+              "NO_ENGINE_SUBSTITUTION",
+              "NO_UNSIGNED_SUBTRACTION",
+              "NO_ZERO_DATE",
+              "NO_ZERO_IN_DATE",
+              "ONLY_FULL_GROUP_BY",
+              "PAD_CHAR_TO_FULL_LENGTH",
+              "PIPES_AS_CONCAT",
+              "REAL_AS_FLOAT",
+              "STRICT_ALL_TABLES",
+              "STRICT_TRANS_TABLES",
+              "TIME_TRUNCATE_FRACTIONAL"
+            ]
+          }
+        }
       }
     ]
   },
@@ -5477,12 +5497,10 @@
   },
   {
     "name": "sync_master_info",
-    "version": "6.0.11",
     "deprecation": "8.0.26"
   },
   {
     "name": "sync_relay_log_info",
-    "version": "6.0.11",
     "deprecation": "8.0.34"
   },
   {
@@ -5710,6 +5728,14 @@
             "all": "2"
           }
         }
+      },
+      {
+        "version": "9.7.2",
+        "all": {
+          "default": {
+            "all": "32"
+          }
+        }
       }
     ]
   },
@@ -5737,7 +5763,6 @@
   {
     "name": "thread_pool_size",
     "version": "5.5.16",
-    "removal": "6.0.14",
     "initial": {
       "all": {
         "default": {
@@ -5758,19 +5783,12 @@
   },
   {
     "name": "thread_stack",
-    "initial": {
-      "all": {
-        "default": {
-          "32": "196608 (192 KB)",
-          "64": "262144 (256 KB)"
-        }
-      }
-    },
     "changes": [
       {
         "version": "5.5.3",
         "all": {
           "default": {
+            "32": "196608 (192 KB)",
             "64": "262144 (256 KB)"
           }
         }
@@ -5801,7 +5819,10 @@
   {
     "name": "timed_mutexes",
     "version": "5.0.3",
-    "deprecation": "5.5.39",
+    "deprecation": [
+      "5.5.39",
+      "5.6.20"
+    ],
     "removal": "5.7.5"
   },
   {
@@ -5864,45 +5885,8 @@
     ]
   },
   {
-    "name": "transaction_alloc_block_size",
-    "initial": {
-      "all": {
-        "default": {
-          "64": "8192 (8 KB)"
-        }
-      }
-    },
-    "changes": [
-      {
-        "version": "5.5.43",
-        "all": {
-          "default": {
-            "all": "8192 (8 KB)"
-          }
-        }
-      }
-    ]
-  },
-  {
     "name": "transaction_prealloc_size",
-    "deprecation": "8.0.29",
-    "initial": {
-      "all": {
-        "default": {
-          "64": "4096 (4 KB)"
-        }
-      }
-    },
-    "changes": [
-      {
-        "version": "5.5.43",
-        "all": {
-          "default": {
-            "all": "4096 (4 KB)"
-          }
-        }
-      }
-    ]
+    "deprecation": "8.0.29"
   },
   {
     "name": "transaction_write_set_extraction",

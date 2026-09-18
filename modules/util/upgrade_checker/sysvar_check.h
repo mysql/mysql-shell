@@ -101,8 +101,8 @@ struct Sysvar_version_check;
 struct Sysvar_definition {
   std::string name;
   std::optional<Version> introduction_version;
-  std::optional<Version> deprecation_version;
-  std::optional<Version> removal_version;
+  std::vector<Version> deprecation_versions;
+  std::vector<Version> removal_versions;
   Sysvar_configuration initials;
   std::map<Version, Sysvar_configuration> changes;
   std::optional<std::string> replacement;

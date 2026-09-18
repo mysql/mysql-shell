@@ -667,7 +667,7 @@ TEST(Upgrade_checker_Sysvar_definition, get_check_negative) {
   // Variable deprecated after server version
   {
     auto sysvar = test_sysvar();
-    sysvar.deprecation_version = Version(8, 0, 1);
+    sysvar.deprecation_versions = {Version(8, 0, 1)};
     auto ui = upgrade_info(Version(5, 7, 44), Version(8, 0, 0));
     EXPECT_FALSE(sysvar.get_check(ui).has_value());
 
@@ -709,7 +709,7 @@ TEST(Upgrade_checker_Sysvar_definition, get_check_positive) {
   // No changes but variable is deprecated before source server version
   {
     auto sysvar = test_sysvar();
-    sysvar.deprecation_version = Version(5, 7, 43);
+    sysvar.deprecation_versions = {Version(5, 7, 43)};
     auto ui = upgrade_info(Version(5, 7, 44), Version(8, 0, 0));
     EXPECT_TRUE(sysvar.get_check(ui).has_value());
 
@@ -720,7 +720,7 @@ TEST(Upgrade_checker_Sysvar_definition, get_check_positive) {
   // version
   {
     auto sysvar = test_sysvar();
-    sysvar.deprecation_version = Version(8, 0, 0);
+    sysvar.deprecation_versions = {Version(8, 0, 0)};
     auto ui = upgrade_info(Version(5, 7, 44), Version(8, 0, 0));
     EXPECT_TRUE(sysvar.get_check(ui).has_value());
 
@@ -734,7 +734,7 @@ TEST(Upgrade_checker_Sysvar_definition, get_check_positive) {
   // version and on target version
   {
     auto sysvar = test_sysvar();
-    sysvar.removal_version = Version(8, 0, 0);
+    sysvar.removal_versions = {Version(8, 0, 0)};
     auto ui = upgrade_info(Version(5, 7, 44), Version(8, 0, 0));
     EXPECT_TRUE(sysvar.get_check(ui).has_value());
 
@@ -742,6 +742,87 @@ TEST(Upgrade_checker_Sysvar_definition, get_check_positive) {
     EXPECT_TRUE(sysvar.get_check(ui).has_value());
 
     EXPECT_EQ(1, test_get_checks({sysvar}, ui).size());
+  }
+}
+
+TEST(Upgrade_checker_Sysvar_definition,
+     get_check_release_specific_lifecycle_versions) {
+  auto sysvar = test_sysvar();
+  sysvar.deprecation_versions = {Version(8, 4, 11), Version(9, 7, 2),
+                                 Version(26, 7, 0)};
+  sysvar.removal_versions = {Version(8, 4, 12), Version(9, 7, 3),
+                             Version(26, 10, 0)};
+
+  {
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(8, 4, 10), Version(8, 4, 10)));
+    EXPECT_FALSE(check.has_value());
+  }
+
+  {
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(8, 4, 10), Version(8, 4, 11)));
+    ASSERT_TRUE(check.has_value());
+    ASSERT_TRUE(check->deprecation_version.has_value());
+    EXPECT_EQ(Version(8, 4, 11), *check->deprecation_version);
+    EXPECT_FALSE(check->removal_version.has_value());
+  }
+
+  {
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(9, 7, 0), Version(9, 7, 1)));
+    EXPECT_FALSE(check.has_value());
+  }
+
+  {
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(9, 7, 0), Version(9, 7, 2)));
+    ASSERT_TRUE(check.has_value());
+    ASSERT_TRUE(check->deprecation_version.has_value());
+    EXPECT_EQ(Version(9, 7, 2), *check->deprecation_version);
+    EXPECT_FALSE(check->removal_version.has_value());
+  }
+
+  {
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(9, 7, 0), Version(9, 7, 3)));
+    ASSERT_TRUE(check.has_value());
+    ASSERT_TRUE(check->removal_version.has_value());
+    EXPECT_EQ(Version(9, 7, 3), *check->removal_version);
+  }
+
+  {
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(9, 7, 0), Version(26, 10, 0)));
+    ASSERT_TRUE(check.has_value());
+    ASSERT_TRUE(check->deprecation_version.has_value());
+    EXPECT_EQ(Version(26, 7, 0), *check->deprecation_version);
+    ASSERT_TRUE(check->removal_version.has_value());
+    EXPECT_EQ(Version(26, 10, 0), *check->removal_version);
+  }
+
+  {
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(9, 7, 3), Version(26, 10, 0)));
+    EXPECT_FALSE(check.has_value());
+  }
+
+  auto innovation_sysvar = test_sysvar();
+  innovation_sysvar.deprecation_versions = {Version(8, 0, 35),
+                                            Version(8, 2, 0)};
+
+  {
+    const auto check = innovation_sysvar.get_check(
+        upgrade_info(Version(8, 0, 34), Version(8, 1, 0)));
+    EXPECT_FALSE(check.has_value());
+  }
+
+  {
+    const auto check = innovation_sysvar.get_check(
+        upgrade_info(Version(8, 0, 34), Version(8, 2, 0)));
+    ASSERT_TRUE(check.has_value());
+    ASSERT_TRUE(check->deprecation_version.has_value());
+    EXPECT_EQ(Version(8, 2, 0), *check->deprecation_version);
   }
 }
 
@@ -851,7 +932,7 @@ TEST(Upgrade_checker_Sysvar_registry, get_checks_allowed) {
 
   auto sv2 = test_sysvar("variable_2");
   sv2.introduction_version = Version(2, 0, 0);
-  sv2.removal_version = Version(4, 0, 0);
+  sv2.removal_versions = {Version(4, 0, 0)};
   sv2.set_allowed({"two-2"});
   sv2.set_allowed({"two-3"}, Version(3, 0, 0));
 
@@ -940,7 +1021,7 @@ TEST(Upgrade_checker_Sysvar_registry, get_checks_forbidden) {
 
   auto sv2 = test_sysvar("variable_2");
   sv2.introduction_version = Version(2, 0, 0);
-  sv2.removal_version = Version(4, 0, 0);
+  sv2.removal_versions = {Version(4, 0, 0)};
   sv2.set_forbidden({"two-2"});
   sv2.set_forbidden({"two-3"}, Version(3, 0, 0));
 
@@ -1017,6 +1098,21 @@ TEST(Upgrade_checker_sysvar_registry, load_configuration) {
   Sysvar_registry reg;
   EXPECT_NO_THROW(reg.load_configuration());
 
+  // Variables documented only in historical release lines are outside the
+  // supported upgrade range and must not be included in the configuration.
+  EXPECT_THROW(reg.get_sysvar("optimizer_use_mrr"), std::out_of_range);
+  EXPECT_THROW(reg.get_sysvar("sql_log_update"), std::out_of_range);
+  EXPECT_THROW(reg.get_sysvar("table_lock_wait_timeout"), std::out_of_range);
+
+  const auto &thread_pool_size = reg.get_sysvar("thread_pool_size");
+  EXPECT_TRUE(thread_pool_size.removal_versions.empty());
+
+  const auto &multi_range_count = reg.get_sysvar("multi_range_count");
+  ASSERT_EQ(1, multi_range_count.deprecation_versions.size());
+  EXPECT_EQ(Version(5, 6, 7), multi_range_count.deprecation_versions[0]);
+  ASSERT_EQ(1, multi_range_count.removal_versions.size());
+  EXPECT_EQ(Version(8, 0, 3), multi_range_count.removal_versions[0]);
+
   // Verifies removal and replacement properly loaded
   {
     auto sysvar = reg.get_sysvar("innodb_stats_sample_pages");
@@ -1024,8 +1120,26 @@ TEST(Upgrade_checker_sysvar_registry, load_configuration) {
     EXPECT_STREQ("innodb_stats_transient_sample_pages",
                  sysvar.replacement.value().c_str());
 
-    EXPECT_TRUE(sysvar.removal_version.has_value());
-    EXPECT_EQ(Version(8, 0, 0), sysvar.removal_version.value());
+    ASSERT_EQ(1, sysvar.removal_versions.size());
+    EXPECT_EQ(Version(8, 0, 0), sysvar.removal_versions[0]);
+  }
+
+  // Verifies release-specific lifecycle versions and default changes are
+  // properly loaded.
+  {
+    const auto sysvar = reg.get_sysvar("group_replication_communication_stack");
+    ASSERT_EQ(3, sysvar.deprecation_versions.size());
+    EXPECT_EQ(Version(8, 4, 11), sysvar.deprecation_versions[0]);
+    EXPECT_EQ(Version(9, 7, 2), sysvar.deprecation_versions[1]);
+    EXPECT_EQ(Version(26, 7, 0), sysvar.deprecation_versions[2]);
+
+    const auto check =
+        sysvar.get_check(upgrade_info(Version(8, 4, 8), Version(26, 7, 0)));
+    ASSERT_TRUE(check.has_value());
+    ASSERT_TRUE(check->deprecation_version.has_value());
+    EXPECT_EQ(Version(26, 7, 0), *check->deprecation_version);
+    EXPECT_STREQ("XCOM", check->initial_defaults.c_str());
+    EXPECT_STREQ("MYSQL", check->updated_defaults.c_str());
   }
 
   // Verifies changes are properly loaded
@@ -1141,6 +1255,35 @@ size_t count_issues_for(const std::vector<Upgrade_issue> &issues,
   return count;
 }
 }  // namespace
+
+TEST(Upgrade_checker_Sysvar_check, group_replication_xcom_deprecated) {
+  const auto server_info = upgrade_info(Version(8, 4, 8), Version(26, 7, 0));
+  Sysvar_check check(server_info);
+
+  auto msession = std::make_shared<testing::Mock_session>();
+  auto mock_pool = std::make_shared<testing::Mock_session_pool>();
+  mock_pool->setup_repeated_session(msession);
+
+  Upgrade_check_options options;
+  Checker_cache cache(options.filters);
+  override_sysvar(&cache, "group_replication_communication_stack", "XCOM");
+
+  const auto issues = check.run(
+      {msession, server_info,
+       std::dynamic_pointer_cast<mysqlshdk::db::Session_pool>(mock_pool),
+       &cache});
+
+  ASSERT_EQ(1,
+            count_issues_for(issues, "group_replication_communication_stack"));
+  for (const auto &issue : issues) {
+    if (issue.schema == "group_replication_communication_stack") {
+      EXPECT_EQ(Upgrade_issue::WARNING, issue.level);
+      EXPECT_STREQ(
+          "variable deprecated at version 26.7.0 is set to XCOM (SERVER)..",
+          issue.description.c_str());
+    }
+  }
+}
 
 // Regression test for the colon-separated cipher list false positive: a
 // ssl_cipher / tls_ciphersuites value that is a colon-separated list of

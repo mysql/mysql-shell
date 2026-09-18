@@ -25,13 +25,19 @@ import re
 import urllib.request
 import xml.etree.ElementTree as ET
 import typing
+import dataclasses
+import copy
 import json
 import os
 
 INITIAL_VERSION = [0, 0, 0]
-MINIMAL_VERSION = [5, 7, 0]
 BASEDIR = os.path.dirname(__file__)
 REPO_ROOT = os.path.dirname(os.path.dirname(BASEDIR))
+XML_URL = "https://mydocs.mysql.oraclecorp.com/shell-files/mysqld.xml"
+SYSVAR_XML_FILE = os.path.join(BASEDIR, "mysqld.xml")
+SYSVAR_CONFIGURATION_FILE = os.path.join(
+    REPO_ROOT, "res", "upgrade_checker", "sysvars.json")
+SYSVAR_DEFAULTS_FILE = os.path.join(BASEDIR, "sysvar_defaults.json")
 
 # These variables are documented as strings, but in reality they are sets.
 FORCE_TYPES={
@@ -62,6 +68,127 @@ class Sysvar_out_of_scope(Exception):
         super().__init__(*args)
 
 
+Version_tuple = typing.Tuple[int, int, int]
+Version_series = typing.Tuple[int, int]
+
+
+def parse_version(version: str) -> Version_tuple:
+    normalized = version.split('-', 1)[0]
+    components = normalized.split('.')
+    if not 1 <= len(components) <= 3 or any(
+            not part.isascii() or not part.isdecimal() for part in components):
+        raise Sysvar_definition_error(f"Invalid version: '{version}'")
+
+    try:
+        parts = tuple(int(part) for part in components)
+    except ValueError as error:
+        raise Sysvar_definition_error(
+            f"Invalid version: '{version}'") from error
+
+    return typing.cast(Version_tuple, (parts + (0, 0, 0))[:3])
+
+
+def version_series(version: str) -> Version_series:
+    parsed = parse_version(version)
+    return parsed[0], parsed[1]
+
+
+def is_ndb_version(version: typing.Optional[str]) -> bool:
+    return version is not None and '-ndb-' in version
+
+
+class Release_policy:
+    def __init__(self, minimum_version: Version_tuple,
+                 excluded_series: typing.AbstractSet[Version_series]) -> None:
+        self.minimum_version = minimum_version
+        self.minimum_series = minimum_version[:2]
+        self.excluded_series = frozenset(excluded_series)
+
+    def is_excluded(self, version: str) -> bool:
+        return version_series(version) in self.excluded_series
+
+    def is_at_or_after_baseline(self, version: str) -> bool:
+        return parse_version(version) >= self.minimum_version
+
+    def is_relevant_manual(self, version: str) -> bool:
+        series = version_series(version)
+        return series >= self.minimum_series and series not in self.excluded_series
+
+
+RELEASE_POLICY = Release_policy((5, 7, 0), {(6, 0)})
+
+
+@dataclasses.dataclass(frozen=True)
+class Resolved_version_history:
+    introduced: typing.Optional[str]
+    deprecations: typing.Tuple[str, ...]
+    removals: typing.Tuple[str, ...]
+
+
+@dataclasses.dataclass(frozen=True)
+class Xml_version_history:
+    manuals: typing.Tuple[str, ...]
+    introductions: typing.Tuple[str, ...]
+    deprecations: typing.Tuple[str, ...]
+    removals: typing.Tuple[str, ...]
+
+    @classmethod
+    def from_xml(cls, versions: ET.Element) -> 'Xml_version_history':
+        return cls(*(tuple(node_versions(versions, kind)) for kind in (
+            'manual', 'introduced', 'deprecated', 'removed')))
+
+    def resolve(self, policy: Release_policy, name: str,
+                predefined: bool = False) -> Resolved_version_history:
+        manuals = tuple(version for version in self.manuals
+                        if policy.is_relevant_manual(version))
+        if not manuals and not predefined:
+            raise Sysvar_out_of_scope(
+                f"The variable '{name}' has no relevant manual, ignoring it")
+
+        introductions = tuple(version for version in self.introductions
+                              if not policy.is_excluded(version))
+        deprecations = tuple(version for version in self.deprecations
+                            if not policy.is_excluded(version))
+        all_removals = tuple(version for version in self.removals
+                             if not policy.is_excluded(version))
+        removals = tuple(version for version in all_removals
+                         if policy.is_at_or_after_baseline(version))
+
+        for removed in all_removals:
+            for introduced in introductions:
+                if version_series(introduced) == version_series(removed) and \
+                        parse_version(introduced) > parse_version(removed):
+                    raise Sysvar_definition_error(
+                        f"The variable '{name}' is introduced at {introduced} "
+                        f"after its removal at {removed} in the same series")
+
+        # Manuals may continue documenting a variable after its removal and do
+        # not require a later introduction in that documentation's series.
+
+        # An introduction must explain the earliest relevant documented
+        # presence. A later branch's introduction cannot replace an unknown
+        # introduction in an earlier manual series.
+        removal_series = {version_series(removed) for removed in removals}
+        first_manual_series = version_series(manuals[0]) if manuals else None
+        candidates = tuple(
+            introduced for introduced in introductions
+            if first_manual_series is not None and
+            version_series(introduced) <= first_manual_series and (
+                first_manual_series in removal_series or not any(
+                    parse_version(introduced) <= parse_version(removed) and
+                    version_series(removed) < first_manual_series
+                    for removed in removals)))
+        introduced = candidates[0] if candidates else None
+
+        # Removals before a selected reintroduction belong to the old history.
+        # Keeping them would make the consumer skip even reintroduced sources.
+        if introduced is not None:
+            removals = tuple(removed for removed in removals
+                             if parse_version(removed) >= parse_version(introduced))
+
+        return Resolved_version_history(introduced, deprecations, removals)
+
+
 def node_attribute(node: ET.Element, target: str, default:str = None):
     return default if node is None or target not in node.attrib else node.attrib[target]
 
@@ -69,6 +196,31 @@ def node_attribute(node: ET.Element, target: str, default:str = None):
 def node_version(node: ET.Element, target: str):
     version = node_attribute(node, target)
     return None if version is None else version.split('-')[0]
+
+
+def node_versions(node: ET.Element, target: str):
+    versions = set()
+    for child in node.findall(target):
+        version = node_attribute(child, 'version')
+        if version is not None:
+            parse_version(version)
+            versions.add(version.split('-', 1)[0])
+
+    return sorted(versions, key=lambda version: (parse_version(version), version))
+
+
+def normalize_versions(versions):
+    if isinstance(versions, list):
+        return list(versions)
+
+    return [versions]
+
+
+def serialize_versions(versions):
+    if len(versions) == 1:
+        return versions[0]
+
+    return versions
 
 
 def node_text(node: ET.Element):
@@ -225,13 +377,24 @@ class Platform_value:
 
     def load(self, other):
         if 'default' in other:
-            self.default = other['default']
+            self.default = copy.deepcopy(other['default'])
 
         if 'allowed' in other:
-            self.allowed = other['allowed']
+            self.allowed = copy.deepcopy(other['allowed'])
 
         if 'forbidden' in other:
-            self.forbidden = other['forbidden']
+            self.forbidden = copy.deepcopy(other['forbidden'])
+
+    def merge(self, other: 'Platform_value') -> None:
+        self.vartype = other.vartype
+
+        for attribute in ('default', 'allowed'):
+            current = getattr(self, attribute)
+            incoming = getattr(other, attribute)
+            if 'all' in incoming:
+                current.clear()
+
+            current.update(incoming)
 
     def is_allowed_subset(self, other):
         if len(self.allowed) == 0 and len(other.allowed) > 0:
@@ -315,6 +478,18 @@ class Xml_value(object):
             if self.macos is None:
                 self.macos = Platform_value()
             self.macos.load(other['macos'])
+
+    def merge(self, other: 'Xml_value') -> None:
+        for platform in ('all', 'windows', 'unix', 'linux', 'macos'):
+            incoming = getattr(other, platform)
+            if incoming is None:
+                continue
+
+            current = getattr(self, platform)
+            if current is None:
+                setattr(self, platform, incoming)
+            else:
+                current.merge(incoming)
 
     def set_value(self, value, allowed, platform, bitsize, units, vartype):
         if platform == 'all':
@@ -464,16 +639,19 @@ class Xml_value(object):
 
 
 class Xml_values(object):
-    def __init__(self, introduced: str, warning_cb) -> None:
-        self.introduced: str = introduced
+    def __init__(self, introduced: typing.Optional[str], warning_cb,
+                 release_policy: Release_policy = RELEASE_POLICY) -> None:
+        self.introduced = introduced
         self.version_values = {}
         self.warning_cb = warning_cb
+        self.release_policy = release_policy
 
     def load_xml(self, values: typing.List[ET.Element]):
         introduced_version = INITIAL_VERSION if self.introduced is None else list(
-            map(int, self.introduced.split('.')))
+            parse_version(self.introduced))
 
         units = None
+        versioned_values = []
         for value in values:
             default = value.find('value[@default]')
             allowed = value.findall('choice')
@@ -493,7 +671,7 @@ class Xml_values(object):
                 if inversion is None:
                     out_version = node_version(value, 'outversion')
                     if out_version is not None:
-                        out_version = list(map(int, out_version.split('.')))
+                        out_version = list(parse_version(out_version))
 
                     if out_version is not None and out_version < introduced_version:
                         inversion = INITIAL_VERSION
@@ -501,18 +679,26 @@ class Xml_values(object):
                         inversion = introduced_version
                 else:
                     try:
-                        inversion = list(map(int, inversion.split('.')))
-                    except Exception:
+                        inversion = list(parse_version(inversion))
+                    except Sysvar_definition_error:
                         value = node_attribute(default, 'default')
                         self.warning_cb(
                             f"Ignoring value '{value}': platform: '{platform}', version: '{inversion}'")
                         continue
 
-                # IGNORE THESE VALUES THEY ARE NOT REFLECTED IN THE DOCS
-                if inversion >= [6, 0, 0] and inversion < [8, 0, 0]:
+                if self.release_policy.is_excluded('.'.join(map(str, inversion))):
                     continue
 
-                self.set_value(default, allowed, inversion, platform, bitsize, units, vartype)
+                versioned_values.append(
+                    (inversion, default, allowed, platform, bitsize, vartype))
+
+        # Assemble each version before folding pre-baseline state, so a newer
+        # common value replaces older architecture-specific values without
+        # losing specific overrides from the same version.
+        for inversion, default, allowed, platform, bitsize, vartype in versioned_values:
+            self.set_value(default, allowed, inversion, platform, bitsize, units, vartype)
+
+        self.__fold_prebaseline_values()
 
         # Purge the allowed values if they are present on the variable
         self.__purge_values()
@@ -523,10 +709,7 @@ class Xml_values(object):
 
     def load(self, other):
         for change in other:
-            try:
-                version = change.pop('version')
-            except NameError:
-                version = '0.0.0'
+            version = change.get('version', '0.0.0')
 
             if version not in self.version_values:
                 self.version_values[version] = Xml_value()
@@ -534,19 +717,26 @@ class Xml_values(object):
             self.version_values[version].load(change)
 
     def set_value(self, default, allowed, version, platform, bitsize, units, vartype):
-        target: Xml_value = None
-
         str_version = ".".join(map(str, version))
-        if version < MINIMAL_VERSION and len(self.version_values) == 1:
-            _, target = self.version_values.popitem()
-            self.version_values[str_version] = target
-        else:
-            if str_version not in self.version_values:
-                self.version_values[str_version] = Xml_value()
+        if str_version not in self.version_values:
+            self.version_values[str_version] = Xml_value()
 
-            target = self.version_values[str_version]
+        self.version_values[str_version].set_value(
+            default, allowed, platform, bitsize, units, vartype)
 
-        target.set_value(default, allowed, platform, bitsize, units, vartype)
+    def __fold_prebaseline_values(self) -> None:
+        resolved_values = {}
+        for version in sorted(self.version_values, key=parse_version):
+            value = self.version_values[version]
+            if resolved_values and \
+                    parse_version(version) < self.release_policy.minimum_version:
+                _, previous = resolved_values.popitem()
+                previous.merge(value)
+                value = previous
+
+            resolved_values[version] = value
+
+        self.version_values = resolved_values
 
     def __purge_no_changes(self):
         """
@@ -626,6 +816,8 @@ class Xml_values(object):
 
     def shell_config(self, force_type=None):
         changes = []
+        introduced_version = None if self.introduced is None else list(
+            parse_version(self.introduced))
 
         # Gets the all the versions sorted in numeric order
         versions = sorted([list(map(int, version.split('.')))
@@ -635,7 +827,7 @@ class Xml_values(object):
             str_version = ".".join(map(str, version))
             # for key, val in self.changes.items():
             config = {}
-            if version != INITIAL_VERSION and str_version != self.introduced:
+            if version != INITIAL_VERSION and version != introduced_version:
                 config["version"] = str_version
 
             config.update(self.version_values[str_version].shell_config(force_type))
@@ -648,23 +840,19 @@ class Xml_values(object):
             values.clear_allowed()
 
 
-PREDEFINED = {}
-with open(os.path.join(BASEDIR, 'sysvar_defaults.json'), "r+") as file:
-    variables = json.load(file)
-    for var in variables:
-        PREDEFINED[var['name']] = var
-
-
 class Xml_sysvar(object):
-    def __init__(self, source) -> None:
+    def __init__(self, source, release_policy: Release_policy = RELEASE_POLICY,
+                 predefined: typing.Optional[typing.Mapping[str, dict]] = None) -> None:
         self.name = ""
         self.sysvar = False
         self.warnings = []
-        self.removed = None
-        self.deprecated = None
+        self.removed = []
+        self.deprecated = []
         self.introduced = None
         self.values = None
         self.replacement = None
+        self.release_policy = release_policy
+        self.predefined = {} if predefined is None else predefined
 
         if isinstance(source, dict):
             self.load(source)
@@ -679,31 +867,28 @@ class Xml_sysvar(object):
         self.sysvar = types.find('system') is not None
 
         if self.is_sysvar():
-            versions = node.find('versions')
-            self.removed = node_version(
-                versions.find('removed'), 'version')
+            history = Xml_version_history.from_xml(node.find('versions'))
+            resolved = history.resolve(
+                self.release_policy, self.name, self.name in self.predefined)
+            self.introduced = resolved.introduced
+            self.deprecated = list(resolved.deprecations)
+            self.removed = list(resolved.removals)
 
-            self.introduced = node_version(
-                versions.find('introduced'), 'version')
+            self.values = Xml_values(
+                self.introduced, self.__on_warning_cb, self.release_policy)
 
-            if not self.removed is None and self.name not in PREDEFINED:
-                removed_version = list(map(int, self.removed.split('.')))
-                if removed_version < MINIMAL_VERSION:
-                    raise Sysvar_out_of_scope(
-                        f"The variable '{self.name}' was removed at {self.removed}, ignoring it")
-                if self.introduced is not None:
-                    introduced_version = list(
-                        map(int, self.introduced.split('.')))
-                    if introduced_version >= [6, 0, 0] and introduced_version < [8, 0, 0] and removed_version < [8, 0, 0]:
-                        raise Sysvar_out_of_scope(
-                            f"The variable '{self.name}' was introduced at {self.introduced} and removed at {self.removed}, ignoring it")
+            values = node.findall('values')
+            # Some options contain both Server and NDB value histories. NDB
+            # versions must not override the corresponding Server defaults.
+            if node_attribute(node, 'section') != 'ndb':
+                values = [
+                    value for value in values
+                    if not any(is_ndb_version(
+                        node_attribute(value, attribute))
+                        for attribute in ('inversion', 'outversion'))
+                ]
 
-            self.deprecated = node_version(
-                versions.find('deprecated'), 'version')
-
-            self.values = Xml_values(self.introduced, self.__on_warning_cb)
-
-            self.values.load_xml(node.findall('values'))
+            self.values.load_xml(values)
 
     def __on_warning_cb(self, warning):
         self.warnings.append(warning)
@@ -712,10 +897,10 @@ class Xml_sysvar(object):
         return self.sysvar
 
     def is_deprecated(self):
-        return self.deprecated is not None
+        return len(self.deprecated) > 0
 
     def is_removed(self):
-        return self.removed is not None
+        return len(self.removed) > 0
 
     def has_replacement(self):
         return self.replacement is not None
@@ -724,7 +909,7 @@ class Xml_sysvar(object):
         return self.values is not None and self.values.has_changes()
 
     def should_be_included(self):
-        if self.name in PREDEFINED:
+        if self.name in self.predefined:
             return (True, "Included in pre-defined list")
 
         if not self.is_sysvar():
@@ -752,10 +937,10 @@ class Xml_sysvar(object):
             self.introduced = value['introduced']
 
         if 'deprecated' in value:
-            self.deprecated = value['deprecated']
+            self.deprecated = normalize_versions(value['deprecated'])
 
         if 'removed' in value:
-            self.removed = value['removed']
+            self.removed = normalize_versions(value['removed'])
 
         if 'replacement' in value:
             self.replacement = value['replacement']
@@ -763,7 +948,7 @@ class Xml_sysvar(object):
         all_changes = []
         if 'initial' in value:
             initial_version = self.introduced if self.introduced is not None else '0.0.0'
-            initial_change = value['initial']
+            initial_change = dict(value['initial'])
             initial_change['version'] = initial_version
             all_changes.append(initial_change)
 
@@ -772,7 +957,8 @@ class Xml_sysvar(object):
 
         if len(all_changes) > 0:
             if self.values is None:
-                self.values = Xml_values(self.introduced, self.__on_warning_cb)
+                self.values = Xml_values(
+                    self.introduced, self.__on_warning_cb, self.release_policy)
             self.values.load(all_changes)
 
     def shell_config(self):
@@ -787,10 +973,10 @@ class Xml_sysvar(object):
             config["version"] = self.introduced
 
         if self.is_deprecated():
-            config["deprecation"] = self.deprecated
+            config["deprecation"] = serialize_versions(self.deprecated)
 
         if self.is_removed():
-            config["removal"] = self.removed
+            config["removal"] = serialize_versions(self.removed)
 
         if self.has_replacement():
             config["replacement"] = self.replacement
@@ -810,62 +996,91 @@ class Xml_sysvar(object):
             self.values.clear_allowed()
 
 
-# Download the system variables xml file
-sysvar_xml_file = os.path.join(BASEDIR, "mysqld.xml")
-
-sysvar_configuration_file = os.path.join(REPO_ROOT, "res", "upgrade_checker", "sysvars.json")
-urllib.request.urlretrieve("https://mydocs.mysql.oraclecorp.com/shell-files/mysqld.xml", sysvar_xml_file)
-
-# Parse the system variables file
-tree = ET.parse(sysvar_xml_file)
-
-# Deletes the xml file
-os.remove(sysvar_xml_file)
-root = tree.getroot()
+@dataclasses.dataclass(frozen=True)
+class Generation_result:
+    records: typing.List[dict]
+    included_count: int
+    excluded_count: int
 
 
-included_count = 0
-excluded_count = 0
-sysvars = {}
-for mysqldoption in root.iter('mysqloption'):
-    try:
-        option = Xml_sysvar(mysqldoption)
+def load_predefined(path: str) -> typing.Dict[str, dict]:
+    """Read sysvar_defaults.json and index records by variable name."""
+    with open(path, "r") as file:
+        variables = json.load(file)
 
-        if option.name in NO_ALLOWED_VALUES_SYSVARS:
-            option.clear_allowed()
+    return {variable['name']: variable for variable in variables}
 
-        included, reason = option.should_be_included()
 
-        if included:
-            included_count += 1
-            sysvars[option.name] = option
-        else:
+def generate_configuration(
+        root: ET.Element, predefined: typing.Mapping[str, dict],
+        release_policy: "Release_policy") -> Generation_result:
+    """Resolve all mysqloption nodes and return JSON-ready records."""
+    included_count = 0
+    excluded_count = 0
+    sysvars = {}
+    for mysqldoption in root.iter('mysqloption'):
+        try:
+            option = Xml_sysvar(mysqldoption, release_policy, predefined)
+
+            if option.name in NO_ALLOWED_VALUES_SYSVARS:
+                option.clear_allowed()
+
+            included, reason = option.should_be_included()
+
+            if included:
+                included_count += 1
+                sysvars[option.name] = option
+            else:
+                excluded_count += 1
+
+            if len(option.warnings):
+                print(f"WARNINGS processing '{option.name}':")
+                for warning in option.warnings:
+                    print(f"- {warning}")
+
+        except Sysvar_out_of_scope as err:
+            print(err)
             excluded_count += 1
 
-        if len(option.warnings):
-            print(f"WARNINGS processing '{option.name}':")
-            for warning in option.warnings:
-                print(f"- {warning}")
+    for name, value in predefined.items():
+        if name in sysvars:
+            sysvars[name].load(value)
+        else:
+            var = Xml_sysvar(value, release_policy, predefined)
+            sysvars[name] = var
 
-    except Sysvar_out_of_scope as err:
-        print(err)
-        excluded_count += 1
+    records = []
+    for name, option in sysvars.items():
+        records.append(option.shell_config())
 
-for name, value in PREDEFINED.items():
-    if name in sysvars:
-        sysvars[name].load(value)
-    else:
-        var = Xml_sysvar(value)
-        sysvars[name] = var
-
-varlist = []
-for name, option in sysvars.items():
-    varlist.append(option.shell_config())
+    return Generation_result(records, included_count, excluded_count)
 
 
-with open(sysvar_configuration_file, 'w') as file:
-    file.write(json.dumps(varlist, indent=2))
+def update_configuration(xml_url: str, xml_path: str, output_path: str,
+                         defaults_path: str,
+                         release_policy: "Release_policy") -> None:
+    """Download source XML and write the generated configuration."""
+    predefined = load_predefined(defaults_path)
+    urllib.request.urlretrieve(xml_url, xml_path)
+    tree = ET.parse(xml_path)
+    os.remove(xml_path)
 
-print(f"Total Variables: {included_count + excluded_count}")
-print(f"Included: {included_count}")
-print(f"Excluded: {excluded_count}")
+    result = generate_configuration(
+        tree.getroot(), predefined, release_policy)
+
+    with open(output_path, 'w') as file:
+        file.write(json.dumps(result.records, indent=2) + '\n')
+
+    print(f"Total Variables: {result.included_count + result.excluded_count}")
+    print(f"Included: {result.included_count}")
+    print(f"Excluded: {result.excluded_count}")
+
+
+def main() -> None:
+    update_configuration(XML_URL, SYSVAR_XML_FILE,
+                         SYSVAR_CONFIGURATION_FILE,
+                         SYSVAR_DEFAULTS_FILE, RELEASE_POLICY)
+
+
+if __name__ == "__main__":
+    main()
