@@ -78,6 +78,7 @@ std::shared_ptr<Mock_result> make_string_result(
 class Mock_mysqlx_session : public mysqlshdk::db::mysqlx::Session {
  public:
   MOCK_CONST_METHOD0(get_connection_id, uint64_t());
+  MOCK_CONST_METHOD0(get_server_version, mysqlshdk::utils::Version());
   MOCK_CONST_METHOD0(get_ssl_cipher, const char *());
   MOCK_CONST_METHOD0(get_connection_options,
                      const mysqlshdk::db::Connection_options &());

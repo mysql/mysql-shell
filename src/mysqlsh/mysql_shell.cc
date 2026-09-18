@@ -47,6 +47,7 @@
 #include "modules/util/mod_util.h"
 #include "mysqlshdk/libs/db/connection_options.h"
 #include "mysqlshdk/libs/db/session.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/db/utils_error.h"
 #include "mysqlshdk/libs/utils/atomic_flag.h"
 #include "mysqlshdk/libs/utils/fault_injection.h"
@@ -1132,11 +1133,13 @@ std::shared_ptr<mysqlsh::ShellBaseSession> Mysql_shell::connect(
               std::to_string(new_session->get_connection_id());
     if (session_type == "Session") message += " (X protocol)";
     try {
-      message += "\nServer version: " +
-                 new_session->get_core_session()
-                     ->query("select concat(@@version, ' ', @@version_comment)")
-                     ->fetch_one()
-                     ->get_string(0);
+      const auto core_session = new_session->get_core_session();
+      const auto result = core_session->query(shcore::str_format(
+          "select concat(%s, ' ', @@version_comment)",
+          mysqlshdk::db::get_server_version_sql(core_session)));
+      const auto row = result->fetch_one_or_throw();
+
+      message += "\nServer version: " + row->get_string(0);
     } catch (const mysqlshdk::db::Error &e) {
       // ignore password expired errors
       if (e.code() == ER_MUST_CHANGE_PASSWORD) {

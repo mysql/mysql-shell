@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -37,6 +37,11 @@
 
 namespace mysqlshdk {
 namespace db {
+
+bool supports_version_with_update(const mysqlshdk::utils::Version &version);
+const char *get_server_version_sql(ISession *session);
+const char *get_server_version_sql(const std::shared_ptr<ISession> &session);
+const char *get_client_library_version();
 
 std::string to_string(const IRow &row);
 

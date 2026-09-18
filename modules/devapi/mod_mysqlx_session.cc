@@ -50,6 +50,7 @@
 #include "mysqlshdk/include/shellcore/utils_help.h"
 #include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/utils/logger.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 #include "mysqlshdk/libs/utils/utils_file.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
@@ -728,18 +729,17 @@ shcore::Value::Map_type_ref Session::get_status() {
     // (*status)["SERVER_INFO"] = shcore::Value(_conn->get_server_info());
 
     (*status)["PROTOCOL_VERSION"] = shcore::Value("X protocol");
-    unsigned long ver = mysql_get_client_version();
-    std::stringstream sv;
-    sv << ver / 10000 << "." << (ver % 10000) / 100 << "." << ver % 100;
-    (*status)["CLIENT_LIBRARY"] = shcore::Value(sv.str());
+    (*status)["CLIENT_LIBRARY"] =
+        shcore::Value(mysqlshdk::db::get_client_library_version());
     // (*status)["INSERT_ID"] = shcore::Value(???);
 
-    result = execute_sql(
+    result = execute_sql(shcore::str_format(
         "select @@character_set_client, @@character_set_connection, "
         "@@character_set_server, @@character_set_database, "
-        "concat(@@version, ' ', @@version_comment) as version, "
+        "concat(%s, ' ', @@version_comment) as version, "
         "@@mysqlx_socket, @@mysqlx_port, @@datadir, @@character_set_results "
-        "limit 1");
+        "limit 1",
+        mysqlshdk::db::get_server_version_sql(_session)));
     row = result->fetch_one();
     if (row) {
       (*status)["CLIENT_CHARSET"] =

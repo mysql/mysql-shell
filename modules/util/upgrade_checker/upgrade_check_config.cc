@@ -29,6 +29,8 @@
 #include <utility>
 
 #include "mysqlshdk/include/shellcore/scoped_contexts.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
+#include "mysqlshdk/libs/utils/strformat.h"
 
 namespace mysqlsh {
 namespace upgrade_checker {
@@ -73,14 +75,16 @@ void Upgrade_check_config::set_session(
   m_session = session;
   if (!m_session) return;
 
-  const auto result = session->query(
-      "select @@version, @@version_comment, UPPER(@@version_compile_os), "
-      "@@version_compile_machine;");
+  const auto result = session->query(shcore::str_format(
+      "select %s, @@version_comment, "
+      "UPPER(@@version_compile_os), @@version_compile_machine;",
+      mysqlshdk::db::get_server_version_sql(session)));
 
   if (const auto row = result->fetch_one()) {
-    m_upgrade_info.server_version = Version(row->get_string(0));
-    m_upgrade_info.server_version_long =
-        row->get_string(0) + " - " + row->get_string(1);
+    const auto version = row->get_string(0);
+
+    m_upgrade_info.server_version = Version(version);
+    m_upgrade_info.server_version_long = version + " - " + row->get_string(1);
     m_upgrade_info.server_os = row->get_string(2);
 
     // This comes from KNOWN_64BIT_ARCHITECTURES in the server code

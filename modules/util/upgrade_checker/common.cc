@@ -131,16 +131,18 @@ std::unordered_map<std::string, Version> generate_mapping() {
 std::unordered_map<std::string, Version> k_latest_versions = generate_mapping();
 
 void Upgrade_info::validate(bool listing) const {
+  const auto server_version_display = server_version.get_base_with_update();
+
   if (!listing || server_version) {
     if (server_version < Version(5, 7, 0))
       throw std::invalid_argument(shcore::str_format(
           "Detected MySQL server version is %s, but this tool "
           "requires server to be at least at version 5.7",
-          server_version.get_base().c_str()));
+          server_version_display.c_str()));
 
     if (server_version >= mysqlshdk::utils::k_shell_version)
       throw std::invalid_argument("Detected MySQL Server version is " +
-                                  server_version.get_base() +
+                                  server_version_display +
                                   ". MySQL Shell cannot check MySQL server "
                                   "instances for upgrade if they "
                                   "are at a version the same as or higher than "
@@ -150,7 +152,7 @@ void Upgrade_info::validate(bool listing) const {
       throw std::invalid_argument(shcore::str_format(
           "Detected MySQL server version is %s, but this tool supports "
           "checking upgrades from MySQL Server versions %s",
-          server_version.get_base().c_str(),
+          server_version_display.c_str(),
           supported_source_server_versions().c_str()));
   }
 

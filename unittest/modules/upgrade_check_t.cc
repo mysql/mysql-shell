@@ -40,6 +40,7 @@
 #include "modules/util/upgrade_checker/upgrade_check_registry.h"
 #include "mysqlshdk/libs/db/mysql/session.h"
 #include "mysqlshdk/libs/db/session_pool.h"
+#include "mysqlshdk/libs/db/utils/utils.h"
 #include "mysqlshdk/libs/utils/utils_general.h"
 #include "mysqlshdk/libs/utils/utils_path.h"
 #include "mysqlshdk/libs/utils/utils_string.h"
@@ -595,6 +596,20 @@ class MySQL_upgrade_check_test : public Shell_core_test_wrapper {
   Shell_test_json_validator m_json_output;
 };
 
+class Upgrade_check_config_test : public Shell_core_test_wrapper {};
+
+TEST(Server_version_with_update, supported_versions) {
+  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(8, 0, 44)));
+  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(8, 4, 11)));
+  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(8, 4, 12)));
+  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(9, 6, 99)));
+  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(9, 7, 2)));
+  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(9, 7, 3)));
+  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(26, 9, 99)));
+  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(26, 10, 0)));
+  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(27, 0, 0)));
+}
+
 TEST(Upgrade_check_cache, cache_tables) {
   {
     // Verifies the original queries are created by default
@@ -836,6 +851,12 @@ TEST_F(MySQL_upgrade_check_test, upgrade_info_validation) {
         upgrade_info(Version("26.6.0"), Version("26.7.0")).validate(),
         std::invalid_argument,
         unsupported_source_error(Version("26.6.0")).c_str());
+
+    auto exact_version =
+        upgrade_info(Version("10.0.0.12-commercial"), Version("26.7.0"));
+    EXPECT_THROW_LIKE(
+        exact_version.validate(), std::invalid_argument,
+        "Detected MySQL server version is 10.0.0.12, but this tool supports");
   }
 
   // Second Check - Pointless to use shell on server of the same version or
@@ -902,6 +923,54 @@ TEST_F(MySQL_upgrade_check_test, upgrade_info_validation) {
         upgrade_info(Version("8.0.12"), Version("8.0.12")).validate(),
         std::invalid_argument, "Target version must be greater");
   }
+}
+
+TEST_F(Upgrade_check_config_test, uses_server_version_with_update) {
+  auto session = std::make_shared<testing::Mock_session>();
+  EXPECT_CALL(*session, get_server_version())
+      .WillOnce(testing::Return(Version("26.10.0")));
+  session
+      ->expect_query(
+          "select @@version_with_update, @@version_comment, "
+          "UPPER(@@version_compile_os), @@version_compile_machine;")
+      .then({"version_with_update", "@@version_comment", "@@version_compile_os",
+             "@@version_compile_machine"})
+      .add_row({"26.10.0.12-commercial", "MySQL Enterprise Server", "LINUX",
+                "x86_64"});
+
+  Upgrade_check_config config{Upgrade_check_options{}};
+  config.set_session(session);
+
+  const auto &info = config.upgrade_info();
+  EXPECT_EQ(Version("26.10.0.12-commercial"), info.server_version);
+  EXPECT_TRUE(info.server_version.has_update());
+  EXPECT_EQ(12, info.server_version.get_update());
+  EXPECT_EQ("26.10.0.12", info.server_version.get_base_with_update());
+  EXPECT_EQ("26.10.0.12-commercial - MySQL Enterprise Server",
+            info.server_version_long);
+}
+
+TEST_F(Upgrade_check_config_test, falls_back_to_server_version) {
+  auto session = std::make_shared<testing::Mock_session>();
+  EXPECT_CALL(*session, get_server_version())
+      .WillOnce(testing::Return(Version("8.0.44")));
+  session
+      ->expect_query(
+          "select @@version, @@version_comment, "
+          "UPPER(@@version_compile_os), @@version_compile_machine;")
+      .then({"version", "@@version_comment", "@@version_compile_os",
+             "@@version_compile_machine"})
+      .add_row(
+          {"8.0.44-commercial", "MySQL Enterprise Server", "LINUX", "x86_64"});
+
+  Upgrade_check_config config{Upgrade_check_options{}};
+  config.set_session(session);
+
+  const auto &info = config.upgrade_info();
+  EXPECT_EQ(Version("8.0.44-commercial"), info.server_version);
+  EXPECT_FALSE(info.server_version.has_update());
+  EXPECT_EQ("8.0.44-commercial - MySQL Enterprise Server",
+            info.server_version_long);
 }
 
 TEST_F(MySQL_upgrade_check_test, checklist_generation) {

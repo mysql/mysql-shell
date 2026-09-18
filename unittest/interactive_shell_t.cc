@@ -21,6 +21,10 @@
  along with this program; if not, write to the Free Software Foundation, Inc.,
  51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA */
 
+#include <mysql.h>
+#include <mysqld_error.h>
+
+#include <array>
 #include <cstdio>
 #include <optional>
 
@@ -1857,6 +1861,51 @@ TEST_F(Interactive_shell_test, status_x) {
   ASSERT_TRUE(static_cast<bool>(std::getline(ss, line)));
   EXPECT_NE(std::string::npos, line.find("Uptime"));
   EXPECT_NE(std::string::npos, line.find("sec"));
+}
+
+TEST_F(Interactive_shell_test, reports_server_and_client_version_with_update) {
+  const std::array<std::string, 2> uris{_mysql_uri, _uri};
+
+  for (const auto &uri : uris) {
+    wipe_all();
+    execute("\\connect " + uri);
+
+    const auto session = _interactive_shell->shell_context()->get_dev_session();
+    ASSERT_TRUE(session) << output_handler.std_err;
+    const auto core_session = session->get_core_session();
+    ASSERT_TRUE(core_session);
+    std::string server_version;
+
+    try {
+      server_version = core_session->query("SELECT @@version_with_update")
+                           ->fetch_one_or_throw()
+                           ->get_string(0);
+    } catch (const mysqlshdk::db::Error &error) {
+      if (error.code() != ER_UNKNOWN_SYSTEM_VARIABLE) {
+        throw;
+      }
+
+      server_version = core_session->query("SELECT @@version")
+                           ->fetch_one_or_throw()
+                           ->get_string(0);
+    }
+
+    server_version.append(" ").append(
+        core_session->query("SELECT @@version_comment")
+            ->fetch_one_or_throw()
+            ->get_string(0));
+
+    MY_EXPECT_STDOUT_CONTAINS("Server version: " + server_version);
+
+    wipe_all();
+    execute("\\status");
+
+    MY_EXPECT_STDOUT_CONTAINS(shcore::str_format(
+        "%-30s%s", "Server version: ", server_version.c_str()));
+    MY_EXPECT_STDOUT_CONTAINS(shcore::str_format(
+        "%-30s%s",
+        "Client library: ", mysql_get_client_info_with_version_update()));
+  }
 }
 
 TEST_F(Interactive_shell_test, status_classic) {

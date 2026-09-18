@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -25,6 +25,8 @@
 
 #include "mysqlshdk/libs/db/utils/utils.h"
 
+#include <mysql.h>
+
 #include <vector>
 
 #include "mysqlshdk/include/shellcore/shell_init.h"
@@ -35,6 +37,33 @@
 
 namespace mysqlshdk {
 namespace db {
+
+bool supports_version_with_update(const mysqlshdk::utils::Version &version) {
+  if (version.get_major() == 8 && version.get_minor() == 4) {
+    return version >= mysqlshdk::utils::Version(8, 4, 12);
+  }
+
+  if (version.get_major() == 9 && version.get_minor() == 7) {
+    return version >= mysqlshdk::utils::Version(9, 7, 3);
+  }
+
+  return version >= mysqlshdk::utils::Version(26, 10, 0);
+}
+
+const char *get_server_version_sql(ISession *session) {
+  return supports_version_with_update(session->get_server_version())
+             ? "@@version_with_update"
+             : "@@version";
+}
+
+const char *get_server_version_sql(const std::shared_ptr<ISession> &session) {
+  return get_server_version_sql(session.get());
+}
+
+const char *get_client_library_version() {
+  const auto version = mysql_get_client_info_with_version_update();
+  return version ? version : mysql_get_client_info();
+}
 
 std::string to_string(const IRow &row) {
   std::string text;
