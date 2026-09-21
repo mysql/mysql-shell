@@ -3187,6 +3187,109 @@ TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values) {
                     "variable is set to '0', allowed values include: 1.");
 }
 
+TEST_F(MySQL_upgrade_check_test, sys_vars_optimizer_switch) {
+  // BUG#39875290: validate the generated metadata through the sysVars check,
+  // including versions whose identical snapshots are removed by the generator.
+  struct Test_case {
+    Version source;
+    Version target;
+    std::string value;
+    std::string invalid_value;
+  };
+
+  const Test_case cases[] = {
+      {Version(8, 0, 20), Version(8, 0, 21), "hypergraph_optimizer=off",
+       "hypergraph_optimizer=off"},
+      {Version(8, 0, 21), Version(8, 0, 22), "hypergraph_optimizer=off", ""},
+      {Version(8, 0, 21), Version(8, 0, 22), "hypergraph_optimizer=on",
+       "hypergraph_optimizer=on"},
+      {Version(8, 0, 22), Version(8, 1, 0), "hash_set_operations=on",
+       "hash_set_operations=on"},
+      {Version(8, 1, 0), Version(8, 2, 0),
+       "hypergraph_optimizer=off,hash_set_operations=on", ""},
+      {Version(8, 1, 0), Version(8, 2, 0),
+       "hypergraph_optimizer=off,hash_set_operations=off", ""},
+      {Version(8, 4, 9), Version(8, 4, 11),
+       "hypergraph_optimizer=off,hash_set_operations=on", ""},
+      {Version(8, 4, 9), Version(8, 4, 11),
+       "hypergraph_optimizer=off,hash_set_operations=off", ""},
+      {Version(8, 4, 9), Version(8, 4, 11), "hypergraph_optimizer=on",
+       "hypergraph_optimizer=on"},
+      {Version(8, 4, 9), Version(9, 0, 0), "hypergraph_optimizer=on", ""},
+      {Version(9, 0, 0), Version(9, 3, 0), "hypergraph_optimizer=on", ""},
+      {Version(9, 3, 0), Version(9, 3, 1), "hypergraph_optimizer=off", ""},
+      {Version(9, 3, 0), Version(9, 3, 1), "hypergraph_optimizer=on", ""},
+      {Version(9, 3, 1), Version(9, 7, 0), "hypergraph_optimizer=off", ""},
+      {Version(9, 3, 1), Version(9, 7, 0), "hypergraph_optimizer=on", ""},
+      {Version(9, 7, 0), k_shell_version,
+       "hypergraph_optimizer=off,hash_set_operations=on", ""},
+      {Version(9, 7, 0), k_shell_version,
+       "hypergraph_optimizer=on,hash_set_operations=off", ""},
+      {Version(8, 4, 9), Version(8, 4, 11),
+       "hypergraph_optimizer=off,hash_set_operations=on,unknown_flag=on",
+       "unknown_flag=on"}};
+
+  for (const auto &test : cases) {
+    SCOPED_TRACE(test.source.get_base() + " -> " + test.target.get_base() +
+                 ": " + test.value);
+    info.server_version = test.source;
+    info.target_version = test.target;
+    Sysvar_check check(info);
+
+    Upgrade_check_options options;
+    Checker_cache temp_cache(options.filters);
+    override_sysvar(&temp_cache, "optimizer_switch", test.value,
+                    "COMMAND_LINE");
+    const auto result = check.run({session, info, session_pool, &temp_cache});
+    const auto issue = std::ranges::find_if(result, [](const auto &item) {
+      return item.schema == "optimizer_switch";
+    });
+
+    if (test.invalid_value.empty()) {
+      EXPECT_EQ(result.end(), issue);
+    } else {
+      ASSERT_NE(result.end(), issue);
+      EXPECT_EQ(Upgrade_issue::ERROR, issue->level);
+      EXPECT_TRUE(shcore::str_beginswith(
+          issue->description,
+          "variable value includes '" + test.invalid_value + "',"))
+          << issue->description;
+    }
+  }
+}
+
+TEST_F(MySQL_upgrade_check_test, sys_vars_optimizer_switch_server_value) {
+  SKIP_IF_NOT_BETWEEN(Version(8, 2, 0), Version(8, 4, 999));
+
+  for (const auto &hash_value : {"on", "off"}) {
+    SCOPED_TRACE(hash_value);
+    session->execute(
+        std::string("SET SESSION optimizer_switch = 'hash_set_operations=") +
+        hash_value + "'");
+    const auto value = session->query("SELECT @@SESSION.optimizer_switch")
+                           ->fetch_one()
+                           ->get_string(0);
+    ASSERT_NE(std::string::npos, value.find("hypergraph_optimizer=off"));
+
+    // Explicitly setting a single flag yields the entire effective value.
+    // Mark it as configured so the check validates it instead of skipping a
+    // COMPILED default. The server's global configuration is unchanged.
+    for (const auto &target : {Version(8, 4, 11), k_shell_version}) {
+      SCOPED_TRACE(target.get_base());
+      info.target_version = target;
+      Sysvar_check check(info);
+      Upgrade_check_options options;
+      Checker_cache temp_cache(options.filters);
+      override_sysvar(&temp_cache, "optimizer_switch", value, "COMMAND_LINE");
+      const auto result = check.run({session, info, session_pool, &temp_cache});
+
+      for (const auto &issue : result) {
+        EXPECT_NE("optimizer_switch", issue.schema) << issue.description;
+      }
+    }
+  }
+}
+
 TEST_F(MySQL_upgrade_check_test, sys_vars_allowed_values_57) {
   SKIP_IF_NOT_5_7_UP_TO(Version(8, 0, 0));
 

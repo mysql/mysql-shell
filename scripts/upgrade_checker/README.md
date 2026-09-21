@@ -29,6 +29,11 @@ specific values from processing by "sysvar" check. Downside of
 sysvar_defaults.json is that it will replace whole parts of
 definition, that now needs to be maintained manually.
 
+For `optimizer_switch`, the generator corrects the XML snapshots before
+processing them: `hypergraph_optimizer=off` is allowed from 8.0.22, and both
+`on` and `off` are allowed from 9.0.0, when HeatWave supports enabling it.
+The other choices remain sourced from the XML.
+
 File sysvar_defaults.json is required when adding sys var
 replacement by another variable information, because mysqld.xml
 does not contain a dedicated field for that.

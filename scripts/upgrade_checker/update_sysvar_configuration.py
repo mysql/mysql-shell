@@ -252,6 +252,41 @@ def fix_dict_values(values : dict) -> dict:
         result[key] = fix_value(val)
     return result
 
+
+def fix_optimizer_switch_values(
+        values: typing.List[ET.Element]) -> typing.List[ET.Element]:
+    """Fill gaps in the documented hypergraph_optimizer choices (BUG#39875290)."""
+    values = copy.deepcopy(values)
+
+    for value in values:
+        try:
+            version = parse_version(node_version(value, 'inversion') or '0.0.0')
+        except Sysvar_definition_error:
+            # Leave malformed versions for the normal value parser to report.
+            continue
+
+        if version < (8, 0, 22):
+            continue
+
+        # The switch exists since 8.0.22; HeatWave supports enabling it since 9.0.
+        allowed = 'off' if version < (9, 0, 0) else '{on|off}'
+        prefix = 'hypergraph_optimizer='
+
+        for choice in value.findall('choice'):
+            if node_attribute(choice, 'value', '').startswith(prefix):
+                value.remove(choice)
+
+        # Keep the choice order consistent so identical snapshots are removed.
+        position = next((index for index, child in enumerate(value)
+                         if child.tag == 'choice' and
+                         node_attribute(child, 'value', '') > prefix),
+                        len(value))
+        value.insert(position, ET.Element(
+            'choice', value=f'hypergraph_optimizer={allowed}'))
+
+    return values
+
+
 SCALES = {
     'bytes':(1024, 'KB'),
     'KB':(1024, 'MB'),
@@ -887,6 +922,9 @@ class Xml_sysvar(object):
                         node_attribute(value, attribute))
                         for attribute in ('inversion', 'outversion'))
                 ]
+
+            if self.name == 'optimizer_switch':
+                values = fix_optimizer_switch_values(values)
 
             self.values.load_xml(values)
 

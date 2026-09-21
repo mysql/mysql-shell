@@ -338,6 +338,65 @@ class XmlSysvarIntegrationTest(unittest.TestCase):
             root, {} if predefined is None else predefined,
             self.generator.RELEASE_POLICY if policy is None else policy)
 
+    def test_optimizer_switch_hypergraph_values_follow_release_boundaries(self):
+        values = [
+            ('5.7.33', ['index_merge={on|off}', 'legacy=off']),
+            ('8.0.21', ['index_merge={on|off}']),
+            ('8.0.22', ['index_merge={on|off}']),
+            ('8.2.0', ['hash_set_operations={on|off}', 'index_merge={on|off}']),
+            ('9.0.0', ['hash_set_operations={on|off}',
+                       'hypergraph_optimizer=off', 'index_merge={on|off}']),
+            ('9.3.0', ['hash_set_operations={on|off}',
+                       'hypergraph_optimizer=off', 'index_merge={on|off}']),
+            ('9.3.1', ['hash_set_operations={on|off}',
+                       'hypergraph_optimizer=on', 'index_merge={on|off}']),
+            ('9.7.0', ['hash_set_operations={on|off}',
+                       'hypergraph_optimizer={on|off}', 'index_merge={on|off}']),
+            ('26.7.0', ['hash_set_operations={on|off}',
+                        'hypergraph_optimizer={on|off}', 'index_merge={on|off}',
+                        'new_flag={on|off}']),
+        ]
+        base = ['index_merge=on', 'index_merge=off']
+        hash_set = ['hash_set_operations=on', 'hash_set_operations=off']
+        hypergraph = ['hypergraph_optimizer=on', 'hypergraph_optimizer=off']
+        expected = {
+            '5.7.33': base + ['legacy=off'],
+            '8.0.21': base,
+            '8.0.22': ['hypergraph_optimizer=off'] + base,
+            '8.2.0': hash_set + ['hypergraph_optimizer=off'] + base,
+            '9.0.0': hash_set + hypergraph + base,
+            '26.7.0': hash_set + hypergraph + base + ['new_flag=on', 'new_flag=off'],
+        }
+
+        for ordered in (values, list(reversed(values))):
+            option = mysqloption('optimizer_switch', [
+                ('introduced', '5.1.34'), ('manual', '5.7'), ('manual', '8.0'),
+                ('manual', '8.4'), ('manual', '9.7'), ('manual', '26.7')], [
+                    ({'inversion': version, 'vartype': 'set'}, None, choices)
+                    for version, choices in ordered])
+            original = ET.tostring(option)
+
+            for run in range(2):
+                with self.subTest(order=ordered[0][0], run=run):
+                    records = self.generate(option).records
+                    self.assertEqual(len(records), 1)
+                    self.assertEqual({
+                        change['version']: change['all']['allowed']['all']
+                        for change in records[0]['changes']}, expected)
+                    self.assertEqual(ET.tostring(option), original)
+
+    def test_hypergraph_adjustment_does_not_change_other_variables(self):
+        result = self.generate(mysqloption('other_switch', [
+            ('manual', '8.0'), ('manual', '8.4'), ('manual', '9.7')], [
+                ({'inversion': '8.0.22', 'vartype': 'set'}, None, ['old']),
+                ({'inversion': '9.0.0', 'vartype': 'set'}, None, ['new'])]))
+        self.assertEqual(result.records, [{
+            'name': 'other_switch', 'changes': [
+                {'version': '8.0.22', 'all': {
+                    'vartype': 'set', 'allowed': {'all': ['old']}}},
+                {'version': '9.0.0', 'all': {
+                    'vartype': 'set', 'allowed': {'all': ['new']}}}]}])
+
     def test_complete_lifecycle_output_is_independent_of_xml_child_order(self):
         fixtures = (
             ('optimizer_use_mrr', [
