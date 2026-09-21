@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -65,11 +65,13 @@ std::vector<std::string> Polyglot_object::get_members() const {
     throw Exception::scripting_error(Polyglot_error(m_thread, rc).format());
   }
 
+  if (size == 0) return {};
+
   std::vector<poly_value> poly_keys;
   poly_keys.resize(size);
 
   if (const auto rc = poly_value_get_member_keys(
-          m_thread, m_context, m_object.get(), &size, &poly_keys[0]);
+          m_thread, m_context, m_object.get(), &size, poly_keys.data());
       rc != poly_ok) {
     throw Exception::scripting_error(Polyglot_error(m_thread, rc).format());
   }
@@ -172,7 +174,7 @@ Value Polyglot_object::call(const std::string &name,
       }
 
       poly_value result;
-      throw_if_error(poly_value_execute, m_thread, member, &poly_args[0],
+      throw_if_error(poly_value_execute, m_thread, member, poly_args.data(),
                      poly_args.size(), &result);
       ret_val = m_types->poly_value_to_native_value(result);
     } else {
@@ -276,8 +278,9 @@ Value Polyglot_function::invoke(const Argument_list &args) {
   }
 
   poly_value result;
-  if (const auto rc = poly_value_execute(
-          ctx->thread(), m_function, &poly_args[0], poly_args.size(), &result);
+  if (const auto rc =
+          poly_value_execute(ctx->thread(), m_function, poly_args.data(),
+                             poly_args.size(), &result);
       rc != poly_ok) {
     throw Exception::scripting_error(
         Polyglot_error(ctx->thread(), rc).format());

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024, 2025, Oracle and/or its affiliates.
+ * Copyright (c) 2024, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -221,8 +221,8 @@ poly_value poly_null(poly_thread thread, poly_context context) {
 poly_value poly_array(poly_thread thread, poly_context context,
                       const std::vector<poly_value> &values) {
   poly_value array;
-  throw_if_error(poly_create_array, thread, context, &values[0], values.size(),
-                 &array);
+  throw_if_error(poly_create_array, thread, context, values.data(),
+                 values.size(), &array);
 
   return array;
 }
@@ -234,10 +234,13 @@ std::vector<std::string> get_member_keys(poly_thread thread,
   throw_if_error(poly_value_get_member_keys, thread, context, object, &size,
                  nullptr);
 
+  if (size == 0) return {};
+
   std::vector<poly_value> poly_keys;
   poly_keys.resize(size);
+
   throw_if_error(poly_value_get_member_keys, thread, context, object, &size,
-                 &poly_keys[0]);
+                 poly_keys.data());
 
   std::vector<std::string> keys;
   for (auto key : poly_keys) {
