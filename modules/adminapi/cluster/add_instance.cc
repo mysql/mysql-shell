@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2022, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -256,8 +256,10 @@ void Add_instance::prepare(checks::Check_type check_type,
   // members and those local_address values are already validated on the
   // validate_local_address_ip_compatibility method, so we only need to
   // validate the group_seeds value provided by the user.
+  // Fetch the port first to preserve the SQL order used by session replay.
+  const auto canonical_port = m_target_instance->get_canonical_port();
   m_gr_opts.check_option_values(m_target_instance->get_version(),
-                                m_target_instance->get_canonical_port());
+                                canonical_port);
 
   m_gr_opts.manual_start_on_boot =
       m_cluster_impl->get_manual_start_on_boot_option();
