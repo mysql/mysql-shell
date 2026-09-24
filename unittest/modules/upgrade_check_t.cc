@@ -600,11 +600,11 @@ class Upgrade_check_config_test : public Shell_core_test_wrapper {};
 
 TEST(Server_version_with_update, supported_versions) {
   EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(8, 0, 44)));
-  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(8, 4, 11)));
-  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(8, 4, 12)));
+  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(8, 4, 12)));
+  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(8, 4, 13)));
   EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(9, 6, 99)));
-  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(9, 7, 2)));
-  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(9, 7, 3)));
+  EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(9, 7, 3)));
+  EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(9, 7, 4)));
   EXPECT_FALSE(mysqlshdk::db::supports_version_with_update(Version(26, 9, 99)));
   EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(26, 10, 0)));
   EXPECT_TRUE(mysqlshdk::db::supports_version_with_update(Version(27, 0, 0)));
@@ -819,8 +819,8 @@ TEST(Upgrade_check_options,
   const auto generated = generate_latest_versions_mapping(Version(26, 10, 0));
 
   EXPECT_EQ(Version(8, 0, 46), generated.at("8.0"));
-  EXPECT_EQ(Version(8, 4, 12), generated.at("8.4"));
-  EXPECT_EQ(Version(9, 7, 3), generated.at("9.7"));
+  EXPECT_EQ(Version(8, 4, 13), generated.at("8.4"));
+  EXPECT_EQ(Version(9, 7, 4), generated.at("9.7"));
   EXPECT_EQ(Version(26, 10, 0), generated.at("26.10"));
 }
 

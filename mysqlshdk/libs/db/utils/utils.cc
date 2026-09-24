@@ -39,12 +39,13 @@ namespace mysqlshdk {
 namespace db {
 
 bool supports_version_with_update(const mysqlshdk::utils::Version &version) {
+  // version_with_update was introduced in 8.4.13, 9.7.4 and 26.10.0
   if (version.get_major() == 8 && version.get_minor() == 4) {
-    return version >= mysqlshdk::utils::Version(8, 4, 12);
+    return version.get_patch() >= 13;
   }
 
   if (version.get_major() == 9 && version.get_minor() == 7) {
-    return version >= mysqlshdk::utils::Version(9, 7, 3);
+    return version.get_patch() >= 4;
   }
 
   return version >= mysqlshdk::utils::Version(26, 10, 0);

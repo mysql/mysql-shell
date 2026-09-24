@@ -668,7 +668,10 @@ namespace calendar {
 
 std::vector<Version> corresponding_versions(const Version &version) {
   const auto offset = release_offset(version);
-  const auto legacy_lts_patch = offset + version.get_patch();
+  // 8.4.12 and 9.7.3 were one-off releases between July and October 2026.
+  // Later one-off releases use the update number instead of the patch number.
+  const auto legacy_lts_patch =
+      offset + version.get_patch() + (offset > 0 ? 1 : 0);
 
   std::vector<Version> result;
   result.emplace_back(8, 4,

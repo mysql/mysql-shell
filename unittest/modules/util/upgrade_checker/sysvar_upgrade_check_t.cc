@@ -750,7 +750,7 @@ TEST(Upgrade_checker_Sysvar_definition,
   auto sysvar = test_sysvar();
   sysvar.deprecation_versions = {Version(8, 4, 11), Version(9, 7, 2),
                                  Version(26, 7, 0)};
-  sysvar.removal_versions = {Version(8, 4, 12), Version(9, 7, 3),
+  sysvar.removal_versions = {Version(8, 4, 13), Version(9, 7, 4),
                              Version(26, 10, 0)};
 
   {
@@ -785,10 +785,10 @@ TEST(Upgrade_checker_Sysvar_definition,
 
   {
     const auto check =
-        sysvar.get_check(upgrade_info(Version(9, 7, 0), Version(9, 7, 3)));
+        sysvar.get_check(upgrade_info(Version(9, 7, 0), Version(9, 7, 4)));
     ASSERT_TRUE(check.has_value());
     ASSERT_TRUE(check->removal_version.has_value());
-    EXPECT_EQ(Version(9, 7, 3), *check->removal_version);
+    EXPECT_EQ(Version(9, 7, 4), *check->removal_version);
   }
 
   {
@@ -803,7 +803,7 @@ TEST(Upgrade_checker_Sysvar_definition,
 
   {
     const auto check =
-        sysvar.get_check(upgrade_info(Version(9, 7, 3), Version(26, 10, 0)));
+        sysvar.get_check(upgrade_info(Version(9, 7, 4), Version(26, 10, 0)));
     EXPECT_FALSE(check.has_value());
   }
 
