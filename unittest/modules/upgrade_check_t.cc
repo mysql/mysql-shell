@@ -814,6 +814,25 @@ TEST(Upgrade_check_options, generated_target_version_aliases_match_current) {
   EXPECT_FALSE(generated.contains("26"));
 }
 
+TEST(Upgrade_check_options, generated_target_version_aliases_ignore_update) {
+  // WL17369-NF2-02: Update-only changes preserve upgrade target selection.
+  const auto base = mysqlshdk::utils::k_shell_version.get_base();
+  const auto expected = generate_latest_versions_mapping(Version(base));
+
+  for (const auto update : {0, 2, 12, 34}) {
+    SCOPED_TRACE(update);
+    const auto actual = generate_latest_versions_mapping(
+        Version(base + "." + std::to_string(update)));
+    ASSERT_EQ(expected.size(), actual.size());
+
+    for (const auto &[alias, version] : expected) {
+      SCOPED_TRACE(alias);
+      ASSERT_TRUE(actual.contains(alias));
+      EXPECT_EQ(version.get_base(), actual.at(alias).get_base());
+    }
+  }
+}
+
 TEST(Upgrade_check_options,
      generated_future_target_version_aliases_use_lts_anchor) {
   const auto generated = generate_latest_versions_mapping(Version(26, 10, 0));

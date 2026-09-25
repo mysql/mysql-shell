@@ -328,6 +328,13 @@ std::string SHCORE_PUBLIC get_machine_type();
  */
 const char *SHCORE_PUBLIC get_long_version();
 
+/**
+ * Same as get_long_version(), but additionally includes the update component.
+ *
+ * @return version string
+ */
+const char *SHCORE_PUBLIC get_long_version_with_update();
+
 #ifdef _WIN32
 
 std::string SHCORE_PUBLIC last_error_to_string(DWORD code);

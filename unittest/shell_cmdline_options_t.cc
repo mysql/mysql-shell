@@ -837,6 +837,56 @@ TEST_F(Shell_cmdline_options, default_values) {
 #endif
 }
 
+// WL17369-HLS-01: Option selection and extra-detail flags.
+TEST_F(Shell_cmdline_options, version_options) {
+  const struct {
+    std::vector<std::string> flags;
+    bool print_version;
+    bool with_update;
+    bool extra;
+  } cases[] = {
+      {{}, false, false, false},
+      {{"--version"}, true, false, false},
+      {{"-V"}, true, false, false},
+      {{"--version", "--version"}, true, false, true},
+      {{"-V", "-V"}, true, false, true},
+      {{"--version", "-V"}, true, false, true},
+      {{"--version-with-update"}, true, true, false},
+      {{"--version-with-update", "--version"}, true, true, true},
+      {{"--version", "--version-with-update"}, true, true, true},
+      {{"--version-with-update", "-V"}, true, true, true},
+      {{"-V", "--version-with-update"}, true, true, true},
+      {{"--version-with-update", "--version-with-update"}, true, true, true},
+      {{"--version", "--version-with-update", "--version"}, true, true, true}};
+
+  for (const auto &entry : cases) {
+    auto args = entry.flags;
+    args.insert(args.begin(), "mysqlsh");
+    std::vector<char *> argv;
+
+    for (auto &arg : args) {
+      argv.push_back(arg.data());
+    }
+
+    argv.push_back(nullptr);
+    SCOPED_TRACE(shcore::str_join(args, " "));
+    Shell_options options(args.size(), argv.data());
+    EXPECT_EQ(0, options.get().exit_code);
+    EXPECT_EQ(entry.print_version, options.action_print_version());
+    EXPECT_EQ(entry.with_update, options.action_print_version_with_update());
+    EXPECT_EQ(entry.extra, options.action_print_version_extra());
+  }
+}
+
+// WL17369-FR1-03: --version-with-update rejects an attached argument.
+TEST_F(Shell_cmdline_options, version_with_update_rejects_argument) {
+  char arg0[] = "mysqlsh";
+  char arg1[] = "--version-with-update=1";
+  char *argv[] = {arg0, arg1, nullptr};
+  Shell_options options(2, argv);
+  EXPECT_EQ(1, options.get().exit_code);
+}
+
 TEST_F(Shell_cmdline_options, default_mode_none_is_rejected) {
   char arg0[] = "ut";
   char arg1[] = "--js";

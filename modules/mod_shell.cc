@@ -173,6 +173,7 @@ void Shell::init() {
   add_property("options");
   add_property("reports");
   add_property("version");
+  add_property("versionWithUpdate");
 
   expose("parseUri", &Shell::parse_uri, "uri")->cli(false);
   expose("unparseUri", &Shell::unparse_uri, "options")->cli(false);
@@ -275,6 +276,20 @@ String Shell::version;
 str Shell::version;
 #endif
 
+REGISTER_HELP_PROPERTY(versionWithUpdate, shell);
+REGISTER_HELP(
+    SHELL_VERSIONWITHUPDATE_BRIEF,
+    "MySQL Shell version information, including the update component.");
+
+/**
+ * $(SHELL_VERSIONWITHUPDATE_BRIEF)
+ */
+#if DOXYGEN_JS
+String Shell::versionWithUpdate;
+#elif DOXYGEN_PY
+str Shell::version_with_update;
+#endif
+
 shcore::Value Shell::get_member(const std::string &prop) const {
   shcore::Value ret_val;
 
@@ -285,6 +300,8 @@ shcore::Value Shell::get_member(const std::string &prop) const {
     ret_val = shcore::Value(m_reports);
   } else if (prop == "version") {
     ret_val = shcore::Value(shcore::get_long_version());
+  } else if (prop == "versionWithUpdate") {
+    ret_val = shcore::Value(shcore::get_long_version_with_update());
   } else {
     ret_val = Cpp_object_bridge::get_member(prop);
   }

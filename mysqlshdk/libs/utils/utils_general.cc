@@ -909,6 +909,12 @@ const char *get_long_version() {
          " (" MYSQL_COMPILATION_COMMENT ")";
 }
 
+const char *get_long_version_with_update() {
+  return "Ver " MYSH_VERSION_WITH_UPDATE EXTRA_NAME_SUFFIX " for " SYSTEM_TYPE
+         " on " MACHINE_TYPE " - for MySQL " MYSQL_SERVER_VERSION_WITH_UPDATE
+         " (" MYSQL_COMPILATION_COMMENT ")";
+}
+
 #ifdef _WIN32
 
 std::string SHCORE_PUBLIC last_error_to_string(DWORD code) {

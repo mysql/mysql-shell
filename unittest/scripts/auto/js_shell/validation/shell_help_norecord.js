@@ -12,6 +12,9 @@ PROPERTIES
       reports
             Gives access to built-in and user-defined reports.
 
+      versionWithUpdate
+            MySQL Shell version information, including the update component.
+
 FUNCTIONS
       addExtensionObjectMember(object, name, member[, definition])
             Adds a member to an extension object.

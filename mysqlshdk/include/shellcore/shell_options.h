@@ -298,6 +298,10 @@ class Shell_options final : public shcore::Options {
 
   bool action_print_version() const { return print_cmd_line_version; }
 
+  bool action_print_version_with_update() const {
+    return print_cmd_line_version_with_update;
+  }
+
   bool action_print_version_extra() const {
     return print_cmd_line_version_extra;
   }
@@ -329,6 +333,7 @@ class Shell_options final : public shcore::Options {
 
   bool print_cmd_line_helper = false;
   bool print_cmd_line_version = false;
+  bool print_cmd_line_version_with_update = false;
   bool print_cmd_line_version_extra = false;
 
  private:

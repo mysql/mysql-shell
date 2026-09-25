@@ -732,6 +732,7 @@ TEST_F(Completer_frontend, js_shell) {
 
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.rec", "shell.reconnect()");
+  // WL17369-HLS-02: JavaScript completion includes versionWithUpdate.
   EXPECT_AFTER_TAB_TAB("shell.", strv({"addExtensionObjectMember()",
                                        "autoCompleteSql()",
                                        "connect()",
@@ -772,7 +773,8 @@ TEST_F(Completer_frontend, js_shell) {
                                        "storeCredential()",
                                        "storeSecret()",
                                        "unparseUri()",
-                                       "version"}));
+                                       "version",
+                                       "versionWithUpdate"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 
@@ -1299,6 +1301,7 @@ TEST_F(Completer_frontend, py_shell) {
 
   EXPECT_AFTER_TAB("sh", "shell");
   EXPECT_AFTER_TAB("shell.rec", "shell.reconnect()");
+  // WL17369-HLS-02: Python completion includes version_with_update.
   EXPECT_AFTER_TAB_TAB("shell.", strv({"add_extension_object_member()",
                                        "auto_complete_sql()",
                                        "connect()",
@@ -1339,7 +1342,8 @@ TEST_F(Completer_frontend, py_shell) {
                                        "store_credential()",
                                        "store_secret()",
                                        "unparse_uri()",
-                                       "version"}));
+                                       "version",
+                                       "version_with_update"}));
 
   EXPECT_TAB_DOES_NOTHING("shell.conect()");
 

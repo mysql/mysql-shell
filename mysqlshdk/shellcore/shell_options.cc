@@ -275,6 +275,19 @@ Shell_options::Shell_options(
           .handle_command_line_input(opt_name, value);
     };
   };
+
+  const auto print_version = [this](bool with_update) {
+    if (print_cmd_line_version) {
+      print_cmd_line_version_extra = true;
+    }
+
+    print_cmd_line_version = true;
+
+    if (with_update) {
+      print_cmd_line_version_with_update = true;
+    }
+  };
+
   // clang-format off
   add_startup_options(!flags.is_set(Option_flags::CONNECTION_ONLY))
     (&print_cmd_line_helper, false,
@@ -826,13 +839,15 @@ Shell_options::Shell_options(
           storage.connection_data.set_password("");
       })
     (cmdline("-V", "--version"),
-        "Prints the version of MySQL Shell.", [this](const std::string&, const char*) {
-        if (print_cmd_line_version) {
-          print_cmd_line_version_extra = true;
-        }
-
-        print_cmd_line_version = true;
-    });
+        "Prints the version of MySQL Shell.",
+        [print_version](const std::string &, const char *) {
+          print_version(false);
+        })
+    (cmdline("--version-with-update"),
+        "Prints the version of MySQL Shell, including the update component.",
+        [print_version](const std::string &, const char *) {
+          print_version(true);
+        });
 
   add_startup_options(true)
     (cmdline("--ssl-key=<file_name>"),

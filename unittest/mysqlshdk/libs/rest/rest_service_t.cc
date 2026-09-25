@@ -324,7 +324,7 @@ TEST_F(Rest_service_test, user_agent) {
   const auto response = m_service.get(&request);
   EXPECT_EQ(Response::Status_code::OK, response.status);
   EXPECT_EQ(
-      "mysqlsh/" MYSH_VERSION,
+      "mysqlsh/" MYSH_VERSION_WITH_UPDATE,
       response.json().as_map()->get_map("headers")->get_string("user-agent"));
 }
 

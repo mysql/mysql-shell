@@ -152,7 +152,8 @@ class Version {
   int parse_token(std::string_view data);
 };
 
-inline const Version k_shell_version = Version(MYSH_VERSION EXTRA_NAME_SUFFIX);
+inline const Version k_shell_version =
+    Version(MYSH_VERSION_WITH_UPDATE EXTRA_NAME_SUFFIX);
 
 namespace version {
 

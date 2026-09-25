@@ -226,6 +226,8 @@ Usage: mysqlsh [OPTIONS] [URI]
   --no-password                    Sets empty password and disables prompt for
                                    password.
   -V, --version                    Prints the version of MySQL Shell.
+  --version-with-update            Prints the version of MySQL Shell, including
+                                   the update component.
   --ssl-key=<file_name>            The path to the SSL private key file in PEM
                                    format.
   --ssl-cert=<file_name>           The path to the SSL public key certificate

@@ -62,6 +62,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Options options;
   Reports reports;
   String version;
+  String versionWithUpdate;
   Dictionary parseUri(String uri);
   String unparseUri(Dictionary options);
   String prompt(String message, Dictionary options);
@@ -108,6 +109,7 @@ class SHCORE_PUBLIC Shell : public shcore::Cpp_object_bridge
   Options options;
   Reports reports;
   str version;
+  str version_with_update;
   dict parse_uri(str uri);
   str unparse_uri(dict options);
   str prompt(str message, dict options);

@@ -41,6 +41,18 @@ using testing::Contains;
 using testing::ElementsAre;
 using testing::Not;
 
+// WL17369-NF2-02: Compatibility of the configured Shell version.
+TEST(Version, shell_version) {
+  EXPECT_TRUE(k_shell_version.has_update());
+  EXPECT_EQ(MYSH_VERSION_WITH_UPDATE EXTRA_NAME_SUFFIX,
+            k_shell_version.get_full_with_update());
+  EXPECT_EQ(MYSH_VERSION EXTRA_NAME_SUFFIX, k_shell_version.get_full());
+
+  const Version compatibility_version(MYSH_VERSION EXTRA_NAME_SUFFIX);
+  EXPECT_EQ(compatibility_version, k_shell_version);
+  EXPECT_EQ(compatibility_version.numeric(), k_shell_version.numeric());
+}
+
 TEST(Version, version_parsing) {
   // Full version
   {
@@ -197,6 +209,7 @@ TEST(Version, update_parsing_and_formatting) {
   }
 }
 
+// WL17369-NF2-02: Comparisons, numeric IDs, and version-series classification.
 TEST(Version, update_does_not_affect_compatibility) {
   for (const auto *base : {"8.4.8", "9.7.0", "26.7.1"}) {
     for (const auto *update : {"", ".0", ".1", ".123-debug"}) {

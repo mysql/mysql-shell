@@ -485,9 +485,9 @@ IF(NOT BUILD_SOURCE_PACKAGE)
   IF("${MYSQL_MAJOR_VERSION}.${MYSQL_MINOR_VERSION}"
       VERSION_LESS "${MYSH_BASE_VERSION}")
     MESSAGE(FATAL_ERROR
-      "Building MySQL Shell ${MYSH_VERSION} requires MySQL Server "
+      "Building MySQL Shell ${MYSH_VERSION_WITH_UPDATE} requires MySQL Server "
       "${MYSH_BASE_VERSION} or newer. "
-      "Found ${MYSQL_VERSION} in '${MYSQL_SOURCE_DIR}'.")
+      "Found ${MYSQL_VERSION_WITH_UPDATE} in '${MYSQL_SOURCE_DIR}'.")
   ENDIF()
 ENDIF()
 
@@ -1245,7 +1245,7 @@ find_package(libssh 0.9.2 REQUIRED)
 
 message(STATUS "Found libssh: ${libssh_VERSION}, using config: ${libssh_CONFIG}")
 
-add_definitions(-DMYSH_VERSION="${MYSH_VERSION}" -DMYSH_BUILD_ID="${MYSH_BUILD_ID}" -DEXTRA_NAME_SUFFIX="${EXTRA_NAME_SUFFIX}")
+add_definitions(-DMYSH_VERSION="${MYSH_VERSION}" -DMYSH_VERSION_WITH_UPDATE="${MYSH_VERSION_WITH_UPDATE}" -DMYSH_BUILD_ID="${MYSH_BUILD_ID}" -DEXTRA_NAME_SUFFIX="${EXTRA_NAME_SUFFIX}")
 if(WIN32)
   add_definitions(-DMYSH_VERSION_WIN="${MYSH_VERSION_WIN}")
 endif()

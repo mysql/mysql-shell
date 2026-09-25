@@ -250,13 +250,16 @@ static void handle_redirect(
   }
 }
 
-static std::string version_string(const char *argv0, bool extra) {
+static std::string version_string(const char *argv0, bool extra,
+                                  bool with_update) {
+  const auto *version = with_update ? shcore::get_long_version_with_update()
+                                    : shcore::get_long_version();
   std::string version_msg;
   version_msg.resize(1024);
 
   if (*MYSH_BUILD_ID && extra) {
     snprintf(&version_msg[0], version_msg.size(), "%s   %s - build %s", argv0,
-             shcore::get_long_version(), MYSH_BUILD_ID);
+             version, MYSH_BUILD_ID);
     version_msg.resize(strlen(&version_msg[0]));
     if (*MYSH_COMMIT_ID) {
       version_msg.append(" - commit_id ");
@@ -268,8 +271,7 @@ static std::string version_string(const char *argv0, bool extra) {
       version_msg.append(MYSH_PRODUCT_ID);
     }
   } else {
-    snprintf(&version_msg[0], version_msg.size(), "%s   %s", argv0,
-             shcore::get_long_version());
+    snprintf(&version_msg[0], version_msg.size(), "%s   %s", argv0, version);
     version_msg.resize(strlen(&version_msg[0]));
   }
   return version_msg;
@@ -480,7 +482,7 @@ int main(int argc, char **argv) {
 
   mysqlsh::Scoped_logger scoped_logger(logger);
 
-  log_info("%s", version_string(argv[0], true).c_str());
+  log_info("%s", version_string(argv[0], true, true).c_str());
   mysqlsh::Scoped_log_sql log_sql(std::make_shared<shcore::Log_sql>());
   shcore::current_log_sql()->push("main");
 
@@ -549,7 +551,8 @@ int main(int argc, char **argv) {
 
     if (shell_options->action_print_version()) {
       std::string version_msg =
-          version_string(argv[0], shell_options->action_print_version_extra());
+          version_string(argv[0], shell_options->action_print_version_extra(),
+                         shell_options->action_print_version_with_update());
 
 #ifdef ENABLE_SESSION_RECORDING
       version_msg.append(" + session_recorder");

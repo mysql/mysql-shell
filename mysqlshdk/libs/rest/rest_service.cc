@@ -59,7 +59,9 @@ namespace {
 static constexpr auto k_content_type = "Content-Type";
 static constexpr auto k_application_json = "application/json";
 
-constexpr const char *get_user_agent() { return "mysqlsh/" MYSH_VERSION; }
+constexpr const char *get_user_agent() {
+  return "mysqlsh/" MYSH_VERSION_WITH_UPDATE;
+}
 
 void configure_allowed_protocols(CURL *handle) {
 #if LIBCURL_VERSION_NUM >= 0x075500
