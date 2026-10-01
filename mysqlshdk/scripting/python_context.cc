@@ -479,31 +479,42 @@ Python_context::Python_context(bool redirect_stdio) {
       Py_DECREF(tmp);
     };
 
-    auto python_packages_path = shcore::path::join_path(
-        shcore::get_library_folder(), "python-packages");
-
-    add_path(python_packages_path);
-
-    // also add any .zip modules
-    for (const auto &path : shcore::listdir(python_packages_path)) {
-      if (shcore::str_endswith(path, ".zip")) {
-        add_path(shcore::path::join_path(python_packages_path, path));
-      }
-    }
+    std::vector<std::string> python_packages_paths{shcore::path::join_path(
+        shcore::get_library_folder(), "python-packages")};
 
 #ifdef PYTHON_DEPS_PATH
-    // When python is bundled with the shell, the 3rd party dependencies are
-    // included on the site-packages folder and so automatically added to the
-    // PYTHONPATH.
-    // When python is not bundled, PYTHON_DEPS_PATH contains the folder where
-    // they are included on the shell package, adding to PYTHONPATH has to be
-    // done here.
-    python_packages_path =
-        shcore::path::join_path(shcore::get_library_folder(), PYTHON_DEPS_PATH);
-
-    // we're using wheels for the python deps, so just the root path is needed
-    add_path(python_packages_path);
+    // Bundled Python processes its own site-packages directory at startup.
+    // With system Python, we need to register the bundled dependencies here.
+    python_packages_paths.emplace_back(shcore::path::join_path(
+        shcore::get_library_folder(), PYTHON_DEPS_PATH));
 #endif
+
+    py::Release site{PyImport_ImportModule("site")};
+
+    if (!site) {
+      throw Exception::runtime_error("Unable to import Python site module: " +
+                                     fetch_and_clear_exception());
+    }
+
+    for (const auto &python_packages_path : python_packages_paths) {
+      add_path(python_packages_path);
+
+      // Preserve ZIP discovery and its precedence over paths from .pth files.
+      for (const auto &path : shcore::listdir(python_packages_path)) {
+        if (shcore::str_endswith(path, ".zip")) {
+          add_path(shcore::path::join_path(python_packages_path, path));
+        }
+      }
+
+      py::Release result{PyObject_CallMethod(site.get(), "addsitedir", "s",
+                                             python_packages_path.c_str())};
+
+      if (!result) {
+        throw Exception::runtime_error(
+            "Unable to process Python package path '" + python_packages_path +
+            "': " + fetch_and_clear_exception());
+      }
+    }
   }
 
   // register shell module
