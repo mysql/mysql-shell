@@ -201,8 +201,7 @@ TEST(Shell_version_metadata, update_components) {
       shcore::path::join_path(MYSQLX_SOURCE_HOME, "version.cmake");
 
   if (cmake.empty() || !shcore::is_file(version_cmake)) {
-    GTEST_SKIP()
-        << "Metadata fixtures require CMake and the Shell source tree.";
+    SKIP_TEST("Metadata fixtures require CMake and the Shell source tree.");
   }
 
   const auto directory = shcore::create_temporary_folder();
