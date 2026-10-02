@@ -472,8 +472,8 @@ Python_context::Python_context(bool redirect_stdio) {
 
   // add our bundled packages to sys.path
   {
-    PyObject *sys_path = PySys_GetObject("path");
-    auto add_path = [sys_path](const std::string &path) {
+    auto add_path = [](const std::string &path) {
+      PyObject *sys_path = PySys_GetObject("path");
       PyObject *tmp = PyString_FromString(path.c_str());
       PyList_Append(sys_path, tmp);
       Py_DECREF(tmp);
