@@ -166,7 +166,7 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 @PRODUCT@
 a query and administration shell client and framework.
 
-%if 0%{?suse_version}
+%if 0%{?suse_version} && 0%{?suse_version} == 1500
 %debug_package
 %endif
 
