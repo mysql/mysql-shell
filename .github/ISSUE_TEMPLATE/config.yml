@@ -1,0 +1,4 @@
+contact_links:
+  - name: Bug Reports
+    url: https://bugs.mysql.com/
+    about: Bug reports must be filed at bugs.mysql.com instead of GitHub.
