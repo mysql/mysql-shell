@@ -1697,9 +1697,10 @@ std::unique_ptr<Sql_upgrade_check> get_column_definition_check() {
       ids::k_column_definition, Category::SCHEMA,
       std::vector<Check_query>{
           {"SELECT table_schema,table_name,column_name,concat('##', "
-           "column_type, 'AutoIncrement') as tag FROM "
+           "data_type, 'AutoIncrement') as tag FROM "
            "information_schema.columns WHERE <<schema_and_table_filter>> AND "
-           "column_type IN ('float', 'double') and extra = 'auto_increment'",
+           "data_type IN ('float', 'double') and extra LIKE "
+           "'%auto_increment%'",
            Upgrade_issue::Object_type::COLUMN}},
       Upgrade_issue::ERROR);
 }
