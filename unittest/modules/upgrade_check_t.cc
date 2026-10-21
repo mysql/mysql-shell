@@ -5392,13 +5392,13 @@ TEST_F(MySQL_upgrade_check_test, column_definition_check) {
   msession
       ->expect_query(
           {"SELECT table_schema,table_name,column_name,concat('##', "
-           "column_type, 'AutoIncrement') as tag FROM "
+           "data_type, 'AutoIncrement') as tag FROM "
            "information_schema.columns WHERE (STRCMP(TABLE_SCHEMA COLLATE "
            "utf8_bin,'mysql')&STRCMP(TABLE_SCHEMA COLLATE "
            "utf8_bin,'sys')&STRCMP(TABLE_SCHEMA COLLATE "
            "utf8_bin,'performance_schema')&STRCMP(TABLE_SCHEMA COLLATE "
-           "utf8_bin,'information_schema'))<>0 AND column_type IN ('float', "
-           "'double') and extra = 'auto_increment'",
+           "utf8_bin,'information_schema'))<>0 AND data_type IN ('float', "
+           "'double') and extra LIKE '%auto_increment%'",
            [](const std::string &query) {
              return remove_quoted_strings(query, k_sys_schemas);
            }})
@@ -5466,6 +5466,64 @@ TEST_F(MySQL_upgrade_check_test, column_definition_check_57) {
                        all_issues.size(), {all_issues[0]}, {all_issues[1]});
 
   session->execute("drop schema if exists myschema");
+}
+
+TEST_F(MySQL_upgrade_check_test, column_definition_check_57_type_variants) {
+  SKIP_IF_NOT_5_7_UP_TO(Version(8, 3, 0));
+  PrepareTestDatabase("column_definition_check");
+
+  // Precision, UNSIGNED and ZEROFILL change COLUMN_TYPE (e.g. 'float(10,2)',
+  // 'float unsigned', 'double unsigned zerofill') while DATA_TYPE stays the
+  // bare type name. 8.4 rejects these columns just like plain FLOAT/DOUBLE.
+  session->execute(
+      "create table mytable1 (mycolumn float(10,2) key auto_increment)");
+  session->execute(
+      "create table mytable2 (mycolumn double(20,4) key auto_increment)");
+  session->execute(
+      "create table mytable3 (mycolumn float unsigned key auto_increment)");
+  session->execute(
+      "create table mytable4 (mycolumn double zerofill key auto_increment)");
+
+  // Controls: not FLOAT/DOUBLE, or not AUTO_INCREMENT.
+  session->execute("create table mytable5 (mycolumn int key auto_increment)");
+  session->execute(
+      "create table mytable6 (id int key auto_increment, mycolumn double)");
+
+  std::vector<std::pair<std::string, std::string>> expected = {
+      {"mytable1", "FLOAT"},
+      {"mytable2", "DOUBLE"},
+      {"mytable3", "FLOAT"},
+      {"mytable4", "DOUBLE"}};
+
+  // INVISIBLE columns exist as of 8.0.23. Their EXTRA is
+  // 'auto_increment INVISIBLE' rather than 'auto_increment'.
+  if (_target_server_version >= Version(8, 0, 23)) {
+    session->execute(
+        "create table mytable7 (mycolumn float not null auto_increment "
+        "invisible, c int, primary key (mycolumn))");
+    expected.emplace_back("mytable7", "FLOAT");
+  }
+
+  auto check = get_column_definition_check();
+
+  issues = check->run({session, info, session_pool, &cache});
+
+  ASSERT_EQ(expected.size(), issues.size());
+
+  std::sort(issues.begin(), issues.end(),
+            [](const Upgrade_issue &a, const Upgrade_issue &b) {
+              return a.table < b.table;
+            });
+
+  for (size_t i = 0; i < expected.size(); ++i) {
+    SCOPED_TRACE(expected[i].first);
+    EXPECT_ISSUE(issues[i], "column_definition_check", expected[i].first,
+                 "mycolumn", Upgrade_issue::Level::ERROR);
+    EXPECT_EQ("The column is of type " + expected[i].second +
+                  " and has the AUTO_INCREMENT flag set, this is no longer "
+                  "supported.",
+              issues[i].description);
+  }
 }
 
 // WL#15974-TSFR_2_1
