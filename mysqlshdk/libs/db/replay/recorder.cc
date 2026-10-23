@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,6 +68,9 @@ void Recorder_mysql::do_connect(const mysqlshdk::db::Connection_options &data) {
     if (const char *s = get_connection_info()) info["connection_info"] = s;
     if (const char *s = get_server_info()) info["server_info"] = s;
     info["server_version"] = mysql::Session::get_server_version().get_full();
+
+    if (!is_server_version_known()) info["server_version_unknown"] = "1";
+
     info["connection_id"] = std::to_string(get_connection_id());
     info["protocol_info"] = std::to_string(get_protocol_info());
     _trace->serialize_connect_ok(info);

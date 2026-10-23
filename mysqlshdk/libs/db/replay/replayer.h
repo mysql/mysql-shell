@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2024, Oracle and/or its affiliates.
+ * Copyright (c) 2017, 2026, Oracle and/or its affiliates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License, version 2.0,
@@ -68,6 +68,7 @@ class Replayer_mysql : public mysql::Session {
   const char *get_connection_info() override;
   const char *get_server_info() override;
   mysqlshdk::utils::Version get_server_version() const override;
+  bool is_server_version_known() const override;
 
   const mysqlshdk::db::Connection_options &get_connection_options()
       const override;

@@ -52,7 +52,8 @@ bool supports_version_with_update(const mysqlshdk::utils::Version &version) {
 }
 
 const char *get_server_version_sql(ISession *session) {
-  return supports_version_with_update(session->get_server_version())
+  return session->is_server_version_known() &&
+                 supports_version_with_update(session->get_server_version())
              ? "@@version_with_update"
              : "@@version";
 }

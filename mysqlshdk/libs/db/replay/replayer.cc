@@ -72,6 +72,7 @@ extern Result_row_hook g_replay_row_hook;
 class Replayer_impl {
  public:
   void connect(const mysqlshdk::db::Connection_options &data) {
+    _info.clear();
     _connection_options = data;
     mysqlshdk::db::Connection_options expected = _trace->expected_connect();
 
@@ -153,6 +154,8 @@ class Replayer_impl {
   }
 
   void close() {
+    _info.clear();
+
     if (_open) {
       _open = false;
       _trace->expected_close();
@@ -263,6 +266,10 @@ const char *Replayer_mysql::get_server_info() {
 
 mysqlshdk::utils::Version Replayer_mysql::get_server_version() const {
   return mysqlshdk::utils::Version(_impl->get_info("server_version"));
+}
+
+bool Replayer_mysql::is_server_version_known() const {
+  return is_open() && _impl->get_info("server_version_unknown") != "1";
 }
 
 const mysqlshdk::db::Connection_options &

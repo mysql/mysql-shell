@@ -31,6 +31,7 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "commands/command_help.h"
@@ -1623,6 +1624,19 @@ bool Mysql_shell::cmd_status(
           println(shcore::str_format(
               format.c_str(), "Client library: ",
               (*status)["CLIENT_LIBRARY"].descr(true).c_str()));
+
+        if (status->has_key("SERVER_INFO")) {
+          const auto server_info = status->get_string("SERVER_INFO");
+          constexpr std::string_view suffix = "-router";
+
+          if (shcore::str_endswith(server_info, suffix)) {
+            const auto router =
+                "MySQL Router " +
+                server_info.substr(0, server_info.size() - suffix.size());
+            println(
+                shcore::str_format(format.c_str(), "Router: ", router.c_str()));
+          }
+        }
 
         if (status->has_key("CONNECTION"))
           println(shcore::str_format(

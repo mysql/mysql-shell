@@ -276,6 +276,9 @@ void Session_impl::set_reject_local_infile_callbacks() {
 
 void Session_impl::connect(
     const mysqlshdk::db::Connection_options &connection_options) {
+  m_server_version.reset();
+  m_server_version_known = true;
+
   long flags = CLIENT_MULTI_RESULTS;
 
   if (connection_options.can_handle_expired_passwords() ||
@@ -552,6 +555,19 @@ void Session_impl::connect(
                           _connection_options.get_register_factor().c_str());
     _connection_options.remove(kRegisterFactor);
   }
+
+  if (shcore::str_endswith(mysql_get_server_info(_mysql), "-router")) {
+    try {
+      // Router's greeting describes the proxy, not necessarily the backend.
+      // Resolve it before exposing the session; getters must not issue queries.
+      const auto result = query("SELECT @@version", true);
+      m_server_version.emplace(result->fetch_one_or_throw()->get_string(0));
+    } catch (...) {
+      // Version discovery is best effort and must not fail the connection.
+      // Until reconnect, use @@version instead of trusting the Router version.
+      m_server_version_known = false;
+    }
+  }
 }
 
 std::optional<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
@@ -624,6 +640,9 @@ std::optional<mysqlshdk::db::Ssl_mode> Session_impl::setup_ssl(
 }
 
 void Session_impl::close() {
+  m_server_version.reset();
+  m_server_version_known = true;
+
   // This should be logged, for now commenting to
   // avoid having unneeded output on the script mode
   if (_prev_result) _prev_result.reset();
@@ -968,6 +987,8 @@ void Session_impl::setup_default_character_set() {
 }
 
 MYSQL *Session_impl::release_connection() {
+  m_server_version.reset();
+  m_server_version_known = true;
   return std::exchange(_mysql, nullptr);
 }
 

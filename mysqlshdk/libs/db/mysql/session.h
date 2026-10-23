@@ -171,6 +171,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
 
   virtual mysqlshdk::utils::Version get_server_version() const {
     if (_mysql) {
+      if (m_server_version.has_value()) return *m_server_version;
+
       auto ulversion = mysql_get_server_version(_mysql);
       return mysqlshdk::utils::Version(
           (ulversion / 10000) % 100, (ulversion / 100) % 100, ulversion % 100);
@@ -253,6 +255,8 @@ class Session_impl : public std::enable_shared_from_this<Session_impl> {
   std::shared_ptr<MYSQL_RES> _prev_result;
   mysqlshdk::db::Connection_options _connection_options;
   uint64_t m_thread_id = 0;
+  std::optional<mysqlshdk::utils::Version> m_server_version;
+  bool m_server_version_known = true;
   std::unique_ptr<Error> m_last_error;
   std::string m_option_tracker_feature_id;
 
@@ -338,6 +342,10 @@ class SHCORE_PUBLIC Session : public ISession,
 
   mysqlshdk::utils::Version get_server_version() const override {
     return _impl->get_server_version();
+  }
+
+  bool is_server_version_known() const override {
+    return is_open() && _impl->m_server_version_known;
   }
 
   const Error *get_last_error() const override {
