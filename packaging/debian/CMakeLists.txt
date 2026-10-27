@@ -77,11 +77,11 @@ option(BUNDLE_FIDO "Include bundled libfido2 in the package" ON)
 if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(CONFLICTING_PRODUCT_SUFFIX "")
-  set(VERSION "${MYSH_VERSION}+commercial-${DEBIAN_REVISION}")
+  set(VERSION "${MYSH_PACKAGE_VERSION}+commercial-${DEBIAN_REVISION}")
 else()
   set(PRODUCT_SUFFIX "")
   set(CONFLICTING_PRODUCT_SUFFIX "-commercial")
-  set(VERSION "${MYSH_VERSION}-${DEBIAN_REVISION}")
+  set(VERSION "${MYSH_PACKAGE_VERSION}-${DEBIAN_REVISION}")
 endif()
 
 # ----------------------------------------------------------------------

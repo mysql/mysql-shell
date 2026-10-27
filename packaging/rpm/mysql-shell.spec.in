@@ -41,11 +41,11 @@
 
 Summary:        Command line shell and scripting environment for MySQL
 Name:           mysql-shell@PRODUCT_SUFFIX@
-Version:        @MYSH_NO_DASH_VERSION@
+Version:        @MYSH_PACKAGE_NO_DASH_VERSION@
 Release:        @RPM_RELEASE@%{?dist}
 License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
-Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
+Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_PACKAGE_VERSION@-src.tar.gz
 
 # Dependencies for the cloud version
 %if 0%{?cloud}
@@ -171,7 +171,7 @@ a query and administration shell client and framework.
 %endif
 
 %prep
-%setup -q -n %{name}-@MYSH_VERSION@-src
+%setup -q -n %{name}-@MYSH_PACKAGE_VERSION@-src
 
 %build
 rm -rf build && mkdir build && cd build

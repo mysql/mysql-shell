@@ -218,7 +218,8 @@ include("${VERSION_CMAKE}")
 file(WRITE "${ROOT_PROJECT_DIR}/actual.txt"
   "${MYSH_VERSION}\n${MYSH_VERSION_WITH_UPDATE}\n"
   "${MYSQL_VERSION}\n${MYSQL_VERSION_WITH_UPDATE}\n"
-  "${MYSH_NO_DASH_VERSION}\n${MYSH_VERSION_WIN}\n")
+  "${MYSH_NO_DASH_VERSION}\n${MYSH_VERSION_WIN}\n"
+  "${MYSH_PACKAGE_NO_DASH_VERSION}\n${MYSH_PACKAGE_VERSION}\n")
 )cmake"));
 
   const struct {
@@ -226,9 +227,11 @@ file(WRITE "${ROOT_PROJECT_DIR}/actual.txt"
     const char *mysql_update;
     int expected_shell_update;
     int expected_mysql_update;
-  } cases[] = {{nullptr, nullptr, 0, 0}, {"", "", 0, 0},   {"0", "0", 0, 0},
-               {"2", "0", 2, 0},         {"0", "1", 0, 1}, {"2", "1", 2, 1},
-               {"12", "34", 12, 34}};
+    const char *expected_package_version;
+  } cases[] = {{nullptr, nullptr, 0, 0, "1.2.3"}, {"", "", 0, 0, "1.2.3"},
+               {"0", "0", 0, 0, "1.2.3"},         {"2", "0", 2, 0, "1.2.3.2"},
+               {"0", "1", 0, 1, "1.2.3"},         {"2", "1", 2, 1, "1.2.3.2"},
+               {"12", "34", 12, 34, "1.2.3.12"}};
   const auto write_metadata = [](const std::string &path, int major, int minor,
                                  int patch, const char *update,
                                  const char *suffix) {
@@ -274,6 +277,8 @@ file(WRITE "${ROOT_PROJECT_DIR}/actual.txt"
       expected += "1.2.3." + std::to_string(entry.expected_shell_update);
 #endif
       expected += "\n";
+      expected += std::string{entry.expected_package_version} + "\n" +
+                  entry.expected_package_version + shell_suffix + "\n";
       EXPECT_EQ(expected,
                 shcore::get_text_file(
                     shcore::path::join_path(directory, "actual.txt"), false));

@@ -1,6 +1,6 @@
  #!/usr/bin/env python
  #
- # Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+ # Copyright (c) 2023, 2026, Oracle and/or its affiliates.
  #
  # This program is free software; you can redistribute it and/or modify
  # it under the terms of the GNU General Public License, version 2.0,
@@ -64,6 +64,9 @@ def safe_path(path):
 
 def guid():
     return str(uuid.uuid4()).upper()
+
+def msi_product_version(major: int, minor: int, patch: int, update: int) -> str:
+    return f"{major}.{minor}.{100 * patch + update}"
 
 def execute(l, status, failure, *args):
     try:
@@ -302,6 +305,12 @@ file(APPEND "${{output_json}}" "  \\"ignore\\":\\"me\\"\\n}}\\n")
         self.vars["CPACK_WIX_LICENSE_RTF"] = safe_path(self.vars["CPACK_WIX_LICENSE_RTF"])
 
     def __create_cpack_vars_file(self):
+        product_version = msi_product_version(
+            int(self.vars["CPACK_PACKAGE_VERSION_MAJOR"]),
+            int(self.vars["CPACK_PACKAGE_VERSION_MINOR"]),
+            int(self.vars["CPACK_PACKAGE_VERSION_PATCH"]),
+            int(self.vars.get("CPACK_PACKAGE_VERSION_UPDATE", "0")))
+
         with open(os.path.join(self.wix_dir, "cpack_variables.wxi"), "w", encoding="utf-8") as f:
             f.write('<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">\n')
 
@@ -313,7 +322,8 @@ file(APPEND "${{output_json}}" "  \\"ignore\\":\\"me\\"\\n}}\\n")
                          "CPACK_WIX_LICENSE_RTF",
                          "CPACK_WIX_PROGRAM_MENU_FOLDER",
                          "CPACK_WIX_UI_REF" ]:
-                f.write(f'  <?define {var}="{self.vars[var]}"?>\n')
+                value = product_version if var == "CPACK_PACKAGE_VERSION" else self.vars[var]
+                f.write(f'  <?define {var}="{value}"?>\n')
 
             f.write("</Include>\n")
 
