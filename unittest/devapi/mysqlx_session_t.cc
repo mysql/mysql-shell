@@ -37,7 +37,7 @@ template <typename Message_type>
 std::string message_to_text(const Message_type &msg) {
   std::string result;
 
-  google::protobuf::TextFormat::PrintToString(msg, &result);
+  (void)google::protobuf::TextFormat::PrintToString(msg, &result);
 
   return msg.GetDescriptor()->full_name() + " { " + result + " }";
 }

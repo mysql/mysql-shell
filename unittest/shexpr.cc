@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
 
     Mysqlx::Expr::Expr *expr = p.expr().release();
     std::string out;
-    google::protobuf::TextFormat::PrintToString(*expr, &out);
+    (void)google::protobuf::TextFormat::PrintToString(*expr, &out);
     delete expr;
 
     std::cout << "OK\n";
