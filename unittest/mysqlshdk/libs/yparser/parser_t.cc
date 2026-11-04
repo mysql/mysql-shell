@@ -316,6 +316,76 @@ TEST(Parser_test, check_syntax) {
       EXPECT_TRUE(parser_X_X.check_syntax(show_parse_tree).empty());
     }
 
+    {
+      // BUG#121526
+      for (const auto with_rollup : {
+               "SELECT a, COUNT(*) FROM t GROUP BY a WITH ROLLUP",
+               "SELECT a, COUNT(*) FROM t GROUP BY a\n    with rollup",
+               "SELECT a, b, COUNT(*) FROM t GROUP BY a, b WITH ROLLUP "
+               "HAVING a > 1 ORDER BY a LIMIT 5",
+               "SELECT a FROM t GROUP BY a /* comment */ WITH ROLLUP",
+           }) {
+        SCOPED_TRACE(with_rollup);
+        EXPECT_TRUE(parser_5_7.check_syntax(with_rollup).empty());
+        EXPECT_TRUE(parser_8_0.check_syntax(with_rollup).empty());
+        EXPECT_TRUE(parser_8_4.check_syntax(with_rollup).empty());
+        EXPECT_TRUE(parser_9_7.check_syntax(with_rollup).empty());
+        EXPECT_TRUE(parser_X_X.check_syntax(with_rollup).empty());
+      }
+
+      constexpr std::string_view procedure_with_rollup =
+          "CREATE PROCEDURE p(h INT) SQL SECURITY INVOKER\n"
+          "BEGIN\n"
+          "  SELECT campus_id, COUNT(*) AS c FROM t\n"
+          "  WHERE hospital_id = h\n"
+          "  GROUP BY campus_id\n"
+          "    WITH ROLLUP;\n"
+          "END";
+      EXPECT_TRUE(parser_5_7.check_syntax(procedure_with_rollup).empty());
+      EXPECT_TRUE(parser_8_0.check_syntax(procedure_with_rollup).empty());
+      EXPECT_TRUE(parser_8_4.check_syntax(procedure_with_rollup).empty());
+      EXPECT_TRUE(parser_9_7.check_syntax(procedure_with_rollup).empty());
+      EXPECT_TRUE(parser_X_X.check_syntax(procedure_with_rollup).empty());
+    }
+
+    {
+      for (const auto with : {
+               "WITH cte AS (SELECT 1) SELECT * FROM cte",
+               "WITH RECURSIVE cte (n) AS (SELECT 1 UNION ALL SELECT n + 1 "
+               "FROM cte WHERE n < 5) SELECT * FROM cte",
+               "SELECT * FROM (WITH cte AS (SELECT 1) SELECT * FROM cte) AS t",
+               "WITH `rollup` AS (SELECT 1) SELECT * FROM `rollup`",
+           }) {
+        SCOPED_TRACE(with);
+        EXPECT_FALSE(parser_5_7.check_syntax(with).empty());
+        EXPECT_TRUE(parser_8_0.check_syntax(with).empty());
+        EXPECT_TRUE(parser_8_4.check_syntax(with).empty());
+        EXPECT_TRUE(parser_9_7.check_syntax(with).empty());
+        EXPECT_TRUE(parser_X_X.check_syntax(with).empty());
+      }
+
+      // matches the server: unquoted 'WITH rollup' lexes as WITH_ROLLUP_SYM
+      constexpr std::string_view cte_named_rollup =
+          "WITH rollup AS (SELECT 1) SELECT * FROM rollup";
+      EXPECT_FALSE(parser_5_7.check_syntax(cte_named_rollup).empty());
+      EXPECT_FALSE(parser_8_0.check_syntax(cte_named_rollup).empty());
+      EXPECT_FALSE(parser_8_4.check_syntax(cte_named_rollup).empty());
+      EXPECT_FALSE(parser_9_7.check_syntax(cte_named_rollup).empty());
+      EXPECT_FALSE(parser_X_X.check_syntax(cte_named_rollup).empty());
+
+      for (const auto with : {
+               "GRANT SELECT ON *.* TO u WITH GRANT OPTION",
+               "CREATE VIEW v AS SELECT 1 WITH CHECK OPTION",
+           }) {
+        SCOPED_TRACE(with);
+        EXPECT_TRUE(parser_5_7.check_syntax(with).empty());
+        EXPECT_TRUE(parser_8_0.check_syntax(with).empty());
+        EXPECT_TRUE(parser_8_4.check_syntax(with).empty());
+        EXPECT_TRUE(parser_9_7.check_syntax(with).empty());
+        EXPECT_TRUE(parser_X_X.check_syntax(with).empty());
+      }
+    }
+
     // TODO(pawel): add a test which uses a 26.7-only feature
   }
 
@@ -337,6 +407,61 @@ TEST(Parser_test, check_syntax) {
       EXPECT_EQ(9, error.token_offset());
       EXPECT_EQ(4, error.token_length());
       EXPECT_EQ("1:10: syntax error: near 'FORM'", error.format());
+    }
+
+    // misplaced WITH
+    {
+      const auto errors = parser.check_syntax("SELECT * FROM t1 WITH x");
+      ASSERT_FALSE(errors.empty());
+
+      const auto &error = errors.front();
+      EXPECT_STREQ("syntax error: near 'WITH'", error.what());
+      EXPECT_EQ(0, error.line());
+      EXPECT_EQ(17, error.line_offset());
+      EXPECT_EQ(17, error.token_offset());
+      EXPECT_EQ(4, error.token_length());
+      EXPECT_EQ("1:18: syntax error: near 'WITH'", error.format());
+    }
+
+    {
+      const auto errors = parser.check_syntax("SELECT *\nFROM t1\nWITH\nx");
+      ASSERT_FALSE(errors.empty());
+
+      const auto &error = errors.front();
+      EXPECT_STREQ("syntax error: near 'WITH'", error.what());
+      EXPECT_EQ(2, error.line());
+      EXPECT_EQ(0, error.line_offset());
+      EXPECT_EQ(17, error.token_offset());
+      EXPECT_EQ(4, error.token_length());
+      EXPECT_EQ("3:1: syntax error: near 'WITH'", error.format());
+    }
+
+    // misplaced WITH ROLLUP, reported at WITH
+    {
+      const auto errors = parser.check_syntax("SELECT * FROM t1 WITH ROLLUP");
+      ASSERT_FALSE(errors.empty());
+
+      const auto &error = errors.front();
+      EXPECT_STREQ("syntax error: near 'WITH'", error.what());
+      EXPECT_EQ(0, error.line());
+      EXPECT_EQ(17, error.line_offset());
+      EXPECT_EQ(17, error.token_offset());
+      EXPECT_EQ(4, error.token_length());
+      EXPECT_EQ("1:18: syntax error: near 'WITH'", error.format());
+    }
+
+    {
+      const auto errors =
+          parser.check_syntax("SELECT *\nFROM t1\nWITH\nROLLUP");
+      ASSERT_FALSE(errors.empty());
+
+      const auto &error = errors.front();
+      EXPECT_STREQ("syntax error: near 'WITH'", error.what());
+      EXPECT_EQ(2, error.line());
+      EXPECT_EQ(0, error.line_offset());
+      EXPECT_EQ(17, error.token_offset());
+      EXPECT_EQ(4, error.token_length());
+      EXPECT_EQ("3:1: syntax error: near 'WITH'", error.format());
     }
 
     // valid multiline statement

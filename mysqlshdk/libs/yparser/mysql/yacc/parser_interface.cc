@@ -85,8 +85,14 @@ void mysqlsh_sql_parser_error(internal::Parser_context *context,
                               const char *s) {
   const auto &lip = context->thd->m_parser_state->m_lip;
 
-  report_parser_error(context, s, *context->iter, lip.yylineno, lip.get_buf(),
-                      lip.get_ptr());
+  if (WITH == context->iter->id) {
+    // the lexer is past WITH (and ROLLUP, if fused), use the saved position
+    report_parser_error(context, s, *context->iter, context->iter_line,
+                        lip.get_buf(), context->iter_ptr);
+  } else {
+    report_parser_error(context, s, *context->iter, lip.yylineno,
+                        lip.get_buf(), lip.get_ptr());
+  }
 }
 
 int mysqlsh_sql_parser_lex(MYSQLSH_SQL_PARSER_STYPE *,
@@ -95,11 +101,33 @@ int mysqlsh_sql_parser_lex(MYSQLSH_SQL_PARSER_STYPE *,
     return k_yyeof;
   }
 
-  ++context->iter;
+  if (context->has_lookahead) {
+    context->iter = context->lookahead;
+    context->has_lookahead = false;
+  } else {
+    ++context->iter;
+  }
 
   if (END_OF_INPUT == context->iter->id || ABORT_SYM == context->iter->id) {
     // no more tokens
     context->end = true;
+  } else if (WITH == context->iter->id) {
+    // fuse 'WITH' 'ROLLUP' like MYSQLlex() does; advancing a copy of iter
+    // consumes the token, so keep it if it's not ROLLUP
+    const auto &lip = context->thd->m_parser_state->m_lip;
+    context->iter_line = lip.yylineno;
+    context->iter_ptr = lip.get_ptr();
+
+    auto next = context->iter;
+    ++next;
+
+    if (ROLLUP_SYM == next->id) {
+      // iter stays at WITH, so errors point to it, like in the server
+      return WITH_ROLLUP_SYM;
+    }
+
+    context->lookahead = next;
+    context->has_lookahead = true;
   }
 
   return context->iter->id;

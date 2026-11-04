@@ -64,6 +64,12 @@ struct Parser_context {
   bool end;
   std::vector<Parser_error> errors;
   Hint_scanner *hint_scanner = nullptr;
+
+  // lookahead used to fuse 'WITH' 'ROLLUP', iter_* hold the position of iter
+  bool has_lookahead = false;
+  SqlLexer::iterator lookahead{nullptr, {}};
+  unsigned int iter_line = 0;
+  const char *iter_ptr = nullptr;
 };
 
 }  // namespace internal
