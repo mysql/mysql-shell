@@ -260,6 +260,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
 # FIXME EL6 doesn't like 'license' macro here, so we use 'doc'
 %doc LICENSE
 %doc README.md
+%dir %{_prefix}/lib/mysqlsh
+%dir %{_datadir}/mysqlsh
+%dir %{_libexecdir}/mysqlsh
 %{_bindir}/mysqlsh
 %{_bindir}/mysql-secret-store-login-path
 %{_bindir}/mysql-secret-store-secret-service
@@ -268,7 +271,8 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
 %endif
 %{_libexecdir}/mysqlsh/mysqlbinlog
 %if 0%{?with_mysql_source:1}
-%{_prefix}/lib/mysql/plugins/*
+%dir %{_prefix}/lib/mysql
+%{_prefix}/lib/mysql/plugins
 %if %{bundle_fido}
 %if 0%{?rhel}
 %if 0%{?rhel} > 7
@@ -281,26 +285,29 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
 %{_prefix}/lib/mysqlsh/libprotobuf*
 %{_prefix}/lib/mysqlsh/libabsl_*
 %endif
-%{_datadir}/mysqlsh/prompt/*
-%{_datadir}/mysqlsh/adminapi-metadata/*
+%{_datadir}/mysqlsh/prompt
+%{_datadir}/mysqlsh/adminapi-metadata
 %{_datadir}/mysqlsh/upgrade_checker.msg
 %{_datadir}/mysqlsh/sysvars.json
+%dir %{_datadir}/mysqlsh/Docs
 %{_datadir}/mysqlsh/Docs/INFO_SRC
 %{_datadir}/mysqlsh/Docs/INFO_BIN
 %if 0%{?bundled_openssl:1}
 %{_prefix}/lib/mysqlsh/libcrypto*
 %{_prefix}/lib/mysqlsh/libssl*
 # we assume OpenSSL3 is bundled and it has the modules
-%{_prefix}/lib/mysqlsh/ossl-modules/*
+%{_prefix}/lib/mysqlsh/ossl-modules
 %endif
 %if 0%{?bundled_python:1}
-%{_prefix}/lib/mysqlsh/include/python*
+%{_prefix}/lib/mysqlsh/include
+%dir %{_prefix}/lib/mysqlsh/bin
 %{_prefix}/lib/mysqlsh/bin/python3.*
 %if 0%{?bundled_shared_python:1}
 %{_prefix}/lib/mysqlsh/libpython*
 %endif
 %endif
 %if 0%{?python_deps:1}%{?bundled_python:1}
+%dir %{_prefix}/lib/mysqlsh/lib
 %{_prefix}/lib/mysqlsh/lib/python*
 %endif
 %if 0%{?bundled_ssh:1}
@@ -309,9 +316,9 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
 %if 0%{?bundled_antlr:1}
 %{_prefix}/lib/mysqlsh/libantlr4-runtime*
 %endif
-%{_prefix}/lib/mysqlsh/plugins/*
-%{_prefix}/lib/mysqlsh/python-packages/*
-%{_prefix}/lib/mysqlsh/yparser/*
+%{_prefix}/lib/mysqlsh/plugins
+%{_prefix}/lib/mysqlsh/python-packages
+%{_prefix}/lib/mysqlsh/yparser
 %{_mandir}/man1/mysqlsh.1*
 %if 0%{?jit_executor_lib:1}
     %{_prefix}/lib/mysqlsh/libjitexecutor*
