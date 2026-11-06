@@ -108,7 +108,7 @@ else()
     set(CPACK_GENERATOR                 "TGZ;DEB")
   else()
     set(CPACK_GENERATOR                 "TGZ;RPM")
-    set(CPACK_RPM_PACKAGE_LICENSE       "GPL")
+    set(CPACK_RPM_PACKAGE_LICENSE       "GPL-2.0-only WITH Universal-FOSS-exception-1.0")
   endif(NOT RPMBUILD_EXECUTABLE)
 endif()
 
