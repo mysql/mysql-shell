@@ -86,7 +86,7 @@ set(CONFIG_BINARY_DIR "${root}")
 set(INSTALL_LIBDIR "../lib")
 set(PYTHON_EXECUTABLE "${root}/python-fixture")
 get_linux_rpath_command(TARGET_BINARY "${copied_binary}" SOURCE_BINARY "${binary}"
-  DESTINATION "${destination}" OUT_COMMAND command)
+  DESTINATION "${destination}" OUT_COMMAND command ${options})
 if(NOT "${binary}" STREQUAL "${copied_binary}")
   get_filename_component(copy_dir "${copied_binary}" DIRECTORY)
   file(COPY "${binary}" DESTINATION "${copy_dir}")
@@ -99,7 +99,7 @@ if(command)
 endif()
 ''')
         values = dict(binary=str(self.binary), copied_binary=str(self.binary),
-                      destination=".", root=str(self.root),
+                      destination=".", root=str(self.root), options="",
                       exeutils=str(OPTIONS.exeutils),
                       CMAKE_READELF=OPTIONS.readelf,
                       PATCHELF_EXECUTABLE=OPTIONS.patchelf)
@@ -190,6 +190,14 @@ endif()
                 self.assert_success(self.apply())
                 self.assertEqual([("RPATH", "$ORIGIN/../lib")], self.tags())
                 run(str(self.binary))
+
+    def test_set_rpath_for_shared_object(self):
+        # e.g. a plugin linked to a library in the build tree, which is bundled
+        self.prepare_path("/original/build/library")
+        copied = self.root / "plugins" / self.binary.name
+        self.assert_success(self.apply(copied_binary=str(copied),
+                                       destination="plugins", options="SET_RPATH"))
+        self.assertEqual([("RPATH", "$ORIGIN/../../lib")], self.tags(copied))
 
     def test_equal_runpath_is_converted(self):
         self.use_executable()
@@ -303,6 +311,8 @@ endif()
         run(OPTIONS.cc, "-shared", "-fPIC", str(self.root / "main.c"), "-o", str(lib))
         run(OPTIONS.patchelf, "--set-rpath", "/original/library", str(lib))
         (project / "libfixture.so").symlink_to(lib.name)
+        for name in ("plugin.so", "plugin_with_rpath.so"):
+            shutil.copy2(lib, project / name)
         shutil.copy2(self.binary, project / "helper")
         shutil.copy2(self.binary, project / "python-fixture")
         # Server build-tree helpers can contain only CMake's RPATH padding.
@@ -325,6 +335,10 @@ install_bundled_binaries(DESCRIPTION helper BINARIES "${CMAKE_SOURCE_DIR}/helper
   DESTINATION libexec/mysqlsh TARGET bundle)
 install_bundled_binaries(DESCRIPTION python BINARIES "${PYTHON_EXECUTABLE}"
   DESTINATION lib/mysqlsh/bin TARGET bundle)
+install_bundled_binaries(DESCRIPTION plugin BINARIES "${CMAKE_SOURCE_DIR}/plugin.so"
+  DESTINATION lib/mysql/plugins TARGET bundle)
+install_bundled_binaries(DESCRIPTION plugin BINARIES "${CMAKE_SOURCE_DIR}/plugin_with_rpath.so"
+  DESTINATION lib/mysql/plugins TARGET bundle SET_RPATH)
 ''')
         for generator in ("Ninja", "Unix Makefiles"):
             for bundled_ssl in ("ON", "OFF"):
@@ -345,6 +359,10 @@ install_bundled_binaries(DESCRIPTION python BINARIES "${PYTHON_EXECUTABLE}"
                                 if bundled_ssl == "ON"
                                 else [])
                     self.assertEqual(expected, self.tags(helper))
+                    plugins = build / "lib/mysql/plugins"
+                    self.assertEqual([], self.tags(plugins / "plugin.so"))
+                    self.assertEqual([("RPATH", "$ORIGIN/../../mysqlsh")],
+                                     self.tags(plugins / "plugin_with_rpath.so"))
                     before = snapshot(helper)
                     run(OPTIONS.cmake, "--build", str(build))
                     self.assertEqual(before, snapshot(helper))

@@ -147,7 +147,7 @@ elseif(NOT WIN32)
   endfunction()
 
   function(get_linux_rpath_command)
-    set(options)
+    set(options SET_RPATH)
     set(oneValueArgs TARGET_BINARY SOURCE_BINARY DESTINATION OUT_COMMAND)
     set(multiValueArgs)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -163,6 +163,12 @@ elseif(NOT WIN32)
     # Permission bits and ET_DYN cannot distinguish libraries from PIEs.
     if(NOT BINARY_NAME MATCHES "\\.so($|\\.)" AND
         (BUNDLED_OPENSSL OR BINARY_NAME STREQUAL PYTHON_BINARY_NAME))
+      set(ACTION SET)
+    endif()
+
+    # Shared objects installed outside INSTALL_LIBDIR which depend on bundled
+    # libraries need an RPATH pointing to INSTALL_LIBDIR.
+    if(ARG_SET_RPATH)
       set(ACTION SET)
     endif()
 
@@ -226,7 +232,8 @@ function(install_bundled_binaries)
     return()
   endif()
 
-  set(options USE_LIBDIR)
+  # SET_RPATH: on Linux, set an RPATH to INSTALL_LIBDIR even for shared objects
+  set(options USE_LIBDIR SET_RPATH)
   set(oneValueArgs DESCRIPTION DESTINATION TARGET)
   set(multiValueArgs BINARIES EXTRA_COPY_COMMANDS)
   cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -281,8 +288,13 @@ function(install_bundled_binaries)
     if(NOT IS_SYMLINK "${SOURCE_BINARY}")
       message(STATUS "  Bundling binary: ${SOURCE_BINARY}, installation directory: ${ARG_DESTINATION}")
       if(LINUX)
+        set(RPATH_OPTIONS)
+        if(ARG_SET_RPATH)
+          list(APPEND RPATH_OPTIONS SET_RPATH)
+        endif()
+
         get_linux_rpath_command(TARGET_BINARY "${COPIED_BINARY}" SOURCE_BINARY "${SOURCE_BINARY}"
-            DESTINATION "${ARG_DESTINATION}" OUT_COMMAND RPATH_COMMAND)
+            DESTINATION "${ARG_DESTINATION}" OUT_COMMAND RPATH_COMMAND ${RPATH_OPTIONS})
         if(RPATH_COMMAND)
           message(STATUS "    will execute: ${RPATH_COMMAND}")
           list(APPEND COPY_COMMAND COMMAND ${RPATH_COMMAND})

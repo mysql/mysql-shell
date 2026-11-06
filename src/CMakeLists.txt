@@ -439,12 +439,39 @@ IF(AUTH_CLIENT_PLUGINS)
     )
   ENDIF()
 
-  install_bundled_binaries(
-      DESCRIPTION "MySQL authentication plugins"
-      BINARIES ${AUTH_CLIENT_PLUGINS}
-      DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
-      TARGET mysqlsh
-  )
+  SET(AUTH_CLIENT_PLUGINS_WITH_RPATH)
+  SET(AUTH_CLIENT_PLUGINS_WITHOUT_RPATH)
+
+  # The WebAuthn plugin is installed outside INSTALL_LIBDIR, but it needs the
+  # bundled libfido2 from there, so it gets an RPATH. The other plugins get
+  # none. With BUNDLED_OPENSSL, those linked to OpenSSL rely on the RPATH of
+  # the mysqlsh executable that loads them to find the bundled copy.
+  FOREACH(_plugin ${AUTH_CLIENT_PLUGINS})
+    IF(AUTH_CLIENT_PLUGINS_DEPS AND _plugin MATCHES "authentication_webauthn_client\\.")
+      LIST(APPEND AUTH_CLIENT_PLUGINS_WITH_RPATH "${_plugin}")
+    ELSE()
+      LIST(APPEND AUTH_CLIENT_PLUGINS_WITHOUT_RPATH "${_plugin}")
+    ENDIF()
+  ENDFOREACH()
+
+  IF(AUTH_CLIENT_PLUGINS_WITHOUT_RPATH)
+    install_bundled_binaries(
+        DESCRIPTION "MySQL authentication plugins"
+        BINARIES ${AUTH_CLIENT_PLUGINS_WITHOUT_RPATH}
+        DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
+        TARGET mysqlsh
+    )
+  ENDIF()
+
+  IF(AUTH_CLIENT_PLUGINS_WITH_RPATH)
+    install_bundled_binaries(
+        DESCRIPTION "MySQL authentication plugins with bundled dependencies"
+        BINARIES ${AUTH_CLIENT_PLUGINS_WITH_RPATH}
+        DESTINATION "${INSTALL_MYSQL_PLUGINS_DIR}"
+        TARGET mysqlsh
+        SET_RPATH
+    )
+  ENDIF()
 ELSE()
   MESSAGE(WARNING "Could not find Authentication Client Plugins!")
 ENDIF()
