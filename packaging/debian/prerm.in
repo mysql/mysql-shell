@@ -23,16 +23,23 @@
 
 set -e
 
-if [ "$1" = "purge" ]; then
-    if [ -d "/usr/lib/mysqlsh" ]; then
-        if rm -rf /usr/lib/mysqlsh; then
-            echo "Successfully deleted /usr/lib/mysqlsh"
-        else
-            echo "Warning: Failed to delete /usr/lib/mysqlsh" >&2
-        fi
-    else
-        echo "Directory /usr/lib/mysqlsh does not exist, nothing to remove"
-    fi
-fi
+# Remove the Python bytecode caches that the embedded interpreter writes at run
+# time into the directories owned by this package, so that dpkg can remove
+# those directories (Debian Python Policy 4.7: byte-compiled files "should be
+# removed in the package's pre-remove script").
+#
+# Only <owned directory>/__pycache__ is ever deleted. /usr/lib/mysqlsh is shared
+# with the mysql-shell / mysql-shell-commercial sibling package, so it must not
+# be removed wholesale.
+case "$1" in
+    remove|upgrade|deconfigure)
+        dpkg -L "$DPKG_MAINTSCRIPT_PACKAGE" | grep '^/usr/lib/mysqlsh/' | \
+        while IFS= read -r p; do
+            if [ -d "$p" ] && [ ! -L "$p" ]; then
+                rm -rf -- "$p/__pycache__"
+            fi
+        done
+        ;;
+esac
 
 #DEBHELPER#

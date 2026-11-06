@@ -243,7 +243,7 @@ set(in_files
   control
   copyright
   rules
-  postrm
+  prerm
 )
 
 foreach(_in_file ${in_files})
