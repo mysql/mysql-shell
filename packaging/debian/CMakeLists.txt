@@ -77,10 +77,16 @@ option(BUNDLE_FIDO "Include bundled libfido2 in the package" ON)
 if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(CONFLICTING_PRODUCT_SUFFIX "")
+  # The commercial package replaces the community one, so it must also satisfy
+  # dependencies on "mysql-shell". The whole line (including the leading
+  # newline) is in the variable, so that no empty Provides field is emitted
+  # for community builds.
+  set(PROVIDES "\nProvides: mysql-shell (= \${binary:Version})")
   set(VERSION "${MYSH_VERSION}+commercial-${DEBIAN_REVISION}")
 else()
   set(PRODUCT_SUFFIX "")
   set(CONFLICTING_PRODUCT_SUFFIX "-commercial")
+  set(PROVIDES "")
   set(VERSION "${MYSH_VERSION}-${DEBIAN_REVISION}")
 endif()
 

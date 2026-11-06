@@ -14,6 +14,6 @@ Architecture: any
 Multi-Arch: foreign
 Depends: ${shlibs:Depends}, ${misc:Depends}, @DEB_DEPS@
 Conflicts: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
-Replaces: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
+Replaces: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@@PROVIDES@
 Description: @PRODUCT@
  MySQL query and administration shell client and framework.
