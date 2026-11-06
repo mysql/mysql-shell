@@ -74,6 +74,10 @@ option(COMMUNITY_BUILD "Set to true if this is a community build" ON)
 
 option(BUNDLE_FIDO "Include bundled libfido2 in the package" ON)
 
+# Build with Python support unless explicitly disabled with -DHAVE_PYTHON=OFF
+# (the RPM spec enables it unconditionally as well)
+option(HAVE_PYTHON "Build with Python support" ON)
+
 if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(CONFLICTING_PRODUCT_SUFFIX "")
