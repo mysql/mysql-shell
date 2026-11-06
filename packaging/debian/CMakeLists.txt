@@ -218,7 +218,6 @@ if(BUNDLED_ANTLR_DIR)
   list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_ANTLR_DIR=${BUNDLED_ANTLR_DIR}")
 else()
   list(APPEND DEB_BUILD_DEPS "libantlr4-runtime-dev (>=4.10)")
-  list(APPEND DEB_BUILD_DEPS "libantlr4-runtime-dev (<<4.11)")
 endif()
 
 string(REPLACE ";" " "  EXTRA_CMAKE_OPTS "${EXTRA_CMAKE_OPTS}")

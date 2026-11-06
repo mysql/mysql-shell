@@ -79,7 +79,6 @@ BuildRequires:  libssh-devel >= 0.9.2
 %endif
 %if 0%{!?bundled_antlr:1}
 BuildRequires:  antlr4-cpp-runtime-devel >= 4.10
-BuildRequires:  antlr4-cpp-runtime-devel < 4.11
 %endif
 %if 0%{!?static}
 BuildRequires:  mysql-devel
