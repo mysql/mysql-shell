@@ -46,13 +46,24 @@ include(../../version.cmake)
 # last changelog entry generated from changelog.in below.
 #
 
+# Honour SOURCE_DATE_EPOCH, if set and not empty, so that the generated
+# changelog is reproducible. Not stored in the cache, so that a reused build
+# directory does not keep a stale timestamp.
 IF (NOT DEFINED DEB_CHANGELOG_TIMESTAMP)
+  IF (NOT "$ENV{SOURCE_DATE_EPOCH}" STREQUAL "")
+    IF (NOT "$ENV{SOURCE_DATE_EPOCH}" MATCHES "^[0-9]+$")
+      MESSAGE(FATAL_ERROR
+        "SOURCE_DATE_EPOCH must be a number of seconds, got '$ENV{SOURCE_DATE_EPOCH}'")
+    ENDIF()
+    SET (_date_command date --utc --rfc-2822 --date "@$ENV{SOURCE_DATE_EPOCH}")
+  ELSE()
+    SET (_date_command date --rfc-2822)
+  ENDIF()
   execute_process(
-    COMMAND date --rfc-2822
+    COMMAND ${_date_command}
     OUTPUT_VARIABLE DEB_CHANGELOG_TIMESTAMP
     OUTPUT_STRIP_TRAILING_WHITESPACE
   )
-  SET (DEB_CHANGELOG_TIMESTAMP ${DEB_CHANGELOG_TIMESTAMP} CACHE STRING "")
 ENDIF()
 
 # A string(TIMESTAMP YEAR "%Y") would do but as using "date" above, use the same
