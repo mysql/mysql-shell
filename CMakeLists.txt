@@ -130,7 +130,7 @@ INCLUDE(CMakePushCheckState)
 
 # On Linux el7/el8/el9 the default gcc is too old,
 # see if devtoolset/gcc-toolset is installed.
-# Same with SUSE linux 15, look for gcc 12 there.
+# Same with SUSE linux 15, look for gcc 13 there.
 # We need to look for gcc before calling PROJECT below.
 OPTION(FORCE_UNSUPPORTED_COMPILER "Disable compiler version checks" OFF)
 MARK_AS_ADVANCED(FORCE_UNSUPPORTED_COMPILER)
