@@ -155,6 +155,7 @@ cd bld
 2. Configure with Visual Studio:
 ```bash
 cmake .. -G "Visual Studio 17 2022" -A x64 \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DMYSQL_SOURCE_DIR=../../mysql-server \
     -DMYSQL_BUILD_DIR=../../mysql-server/bld \
     -DBUNDLED_ANTLR_DIR=C:/path/to/antlr4-runtime-install \
