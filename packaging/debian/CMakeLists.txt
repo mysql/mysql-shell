@@ -147,9 +147,13 @@ else()
   list(APPEND DEB_BUILD_DEPS "libssh-dev (>=0.9.2)")
 endif()
 
-# The top-level CMakeLists.txt always uses the system OpenSSL, so -DWITH_SSL
-# is not forwarded, the headers and libraries are needed to build.
-list(APPEND DEB_BUILD_DEPS "libssl-dev")
+# -DWITH_SSL is not forwarded: the top-level CMakeLists.txt sets it itself,
+# "system" unless BUNDLED_OPENSSL_DIR is given.
+if(BUNDLED_OPENSSL_DIR)
+  list(APPEND EXTRA_CMAKE_OPTS "-DBUNDLED_OPENSSL_DIR=${BUNDLED_OPENSSL_DIR}")
+else()
+  list(APPEND DEB_BUILD_DEPS "libssl-dev")
+endif()
 
 if(WITH_CURL)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_CURL=${WITH_CURL}")
@@ -287,6 +291,15 @@ file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 usr/lib/mysqlsh/include
 usr/lib/mysqlsh/libpython*.so*
 usr/lib/mysqlsh/bin/python3.*
+")
+endif()
+
+if (BUNDLED_OPENSSL_DIR)
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"# For OpenSSL bundle, we assume OpenSSL 3 and its modules
+usr/lib/mysqlsh/libcrypto*.so*
+usr/lib/mysqlsh/libssl*.so*
+usr/lib/mysqlsh/ossl-modules
 ")
 endif()
 
