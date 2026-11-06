@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# Copyright (c) 2016, 2025, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -29,19 +29,21 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 %:
 	#dh $@ --with autoreconf
-	dh  $@
+	dh  $@ --buildsystem=cmake
 # FIXME -DLIB_SUFFIX=64 ???
 
+# Configure and build out of the source tree, in debhelper's default build
+# directory (obj-<triplet>); dh_auto_build, dh_auto_install and dh_auto_clean
+# use the same directory.  The options after "--" are appended to debhelper's
+# own cmake defaults, so they win (CMAKE_BUILD_TYPE in particular).
 override_dh_auto_configure:
-	cmake -G 'Unix Makefiles' \
+	dh_auto_configure -- \
 	    -DCMAKE_INSTALL_PREFIX=/usr \
 	    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 	    -DEXTRA_INSTALL="@EXTRA_INSTALL@" \
 	    -DEXTRA_NAME_SUFFIX="@PRODUCT_SUFFIX@" \
 	    -DUSE_LD_LLD=OFF \
-	    @EXTRA_CMAKE_OPTS@ \
-	    .
-	DEB_BUILD_HARDENING=1 make -j8 VERBOSE=1
+	    @EXTRA_CMAKE_OPTS@
 
 # Do nothing; the test suite requires a sql server, so we can't run it
 # as part of the build.
@@ -59,10 +61,8 @@ PRIVATE_BINDIR     = /usr/lib/mysqlsh
 TMP_BINDIR         = $(TMP_INSTDIR)$(BINDIR)
 TMP_PRIVATE_BINDIR = $(TMP_INSTDIR)$(PRIVATE_BINDIR)
 
-override_dh_auto_clean:
-
 override_dh_auto_install:
-	dh_auto_install -- libdir=$(PRIVATE_BINDIR) DESTDIR=$(TMP_INSTDIR)
+	dh_auto_install --destdir=$(TMP_INSTDIR)
 	# FIXME at this moment only headers are installed but no
 	# "mysqlshdk" library. It is also unclear if eventually we
 	# want the lib and headers, in that case likely in a separate
