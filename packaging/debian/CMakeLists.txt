@@ -147,11 +147,9 @@ else()
   list(APPEND DEB_BUILD_DEPS "libssh-dev (>=0.9.2)")
 endif()
 
-if(WITH_SSL)
-  list(APPEND EXTRA_CMAKE_OPTS "-DWITH_SSL=${WITH_SSL}")
-else()
-  list(APPEND DEB_BUILD_DEPS "openssl")
-endif()
+# The top-level CMakeLists.txt always uses the system OpenSSL, so -DWITH_SSL
+# is not forwarded, the headers and libraries are needed to build.
+list(APPEND DEB_BUILD_DEPS "libssl-dev")
 
 if(WITH_CURL)
   list(APPEND EXTRA_CMAKE_OPTS "-DWITH_CURL=${WITH_CURL}")
