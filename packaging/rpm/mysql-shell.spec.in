@@ -44,7 +44,7 @@ Name:           mysql-shell@PRODUCT_SUFFIX@
 Version:        @MYSH_NO_DASH_VERSION@
 Release:        @RPM_RELEASE@%{?dist}
 License:        @LICENSE_TYPE@
-URL:            http://dev.mysql.com/
+URL:            https://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/MySQL-Shell/%{name}-@MYSH_VERSION@-src.tar.gz
 
 # Dependencies for the cloud version

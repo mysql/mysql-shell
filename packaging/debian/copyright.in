@@ -1,7 +1,7 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: @PRODUCT@
 Upstream-Contact: MySQL Release Engineering <mysql-build@oss.oracle.com>
-Source: http://dev.mysql.com/
+Source: https://dev.mysql.com/
 Files: *
 Copyright: 2016, @DEB_COPYRIGHT_YEAR@, Oracle and/or its affiliates.
 License:
