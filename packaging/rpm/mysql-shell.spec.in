@@ -52,11 +52,7 @@ Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.g
 Requires:       lapack libgfortran5
 %endif
 
-%if 0%{?rhel} && 0%{?rhel} <= 7
-BuildRequires: cmake3
-%else
 BuildRequires: cmake
-%endif
 BuildRequires:  bison
 BuildRequires:  python3
 %if 0%{!?with_protobuf:1} && 0%{!?with_mysql_source:1}
@@ -98,52 +94,32 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 # For rpm => 4.9 only: https://fedoraproject.org/wiki/Packaging:AutoProvidesAndRequiresFiltering
 %global __provides_exclude_from ^(%{_datadir}/mysqlsh/.*|%{_prefix}/lib/mysqlsh/.*)$
 
-%if 0%{?rhel} && 0%{?rhel} < 7
-# https://fedoraproject.org/wiki/EPEL:Packaging#Generic_Filtering_on_EPEL6
-%filter_provides_in %{_datadir}/mysqlsh
-%filter_provides_in %{_prefix}/lib/mysqlsh
-%endif
-
 %if 0%{?bundled_openssl:1}
 %global _openssllibs libcrypto.*|libssl.*
-%if 0%{?rhel} && 0%{?rhel} < 7
-%filter_from_requires /libcrypto/d
-%filter_from_requires /libssl/d
-%endif
 %else
 %global _openssllibs %{nil}
 %endif
 
 %if 0%{?bundled_python:1}
 %global _pythonlibs libpython.*
-%if 0%{?rhel} && 0%{?rhel} < 7
-%filter_from_requires /python/d
-%endif
 %else
 %global _pythonlibs %{nil}
 %endif
 
 %if 0%{?bundled_ssh:1}
 %global _sshlibs libssh.*
-%if 0%{?rhel} && 0%{?rhel} < 7
-%filter_from_requires /libssh/d
-%endif
 %else
 %global _sshlibs %{nil}
 %endif
 
 %if 0%{?bundled_antlr:1}
 %global _antlrlibs libantlr.*
-%if 0%{?rhel} && 0%{?rhel} < 7
-%filter_from_requires /libantlr/d
-%endif
 %else
 %global _antlrlibs %{nil}
 %endif
 
 %if 0%{?with_mysql_source:1}
-# fido-based client authentication plugins are not available on EL7
-%if (0%{?rhel} && 0%{?rhel} < 8) || !%{bundle_fido}
+%if !%{bundle_fido}
 %global _pluginlibs %{nil}
 %else
 %global _pluginlibs libfido2.*
@@ -158,10 +134,6 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 %global __requires_exclude_from ^%{_prefix}/.*\\.(py|sh|ts)$
 %global __requires_exclude ^(%{_openssllibs}|%{_pythonlibs}|%{_sshlibs}|%{_antlrlibs}|%{_pluginlibs}|%{_protobuflibs}|libmysql_deps\\.so.*|libjitexecutor.*|/bin/sh|/usr/bin/sh)$
 
-%if 0%{?rhel} && 0%{?rhel} < 7
-%filter_setup
-%endif
-
 %description
 @PRODUCT@
 a query and administration shell client and framework.
@@ -175,11 +147,7 @@ a query and administration shell client and framework.
 
 %build
 rm -rf build && mkdir build && cd build
-%if 0%{?rhel} && 0%{?rhel} <= 7
-cmake3 .. \
-%else
 cmake .. \
-%endif
     -DCMAKE_INSTALL_PREFIX=%{_prefix} \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DUSE_LD_LLD=0 \
@@ -270,13 +238,7 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
 %if 0%{?with_mysql_source:1}
 %{_prefix}/lib/mysql/plugins/*
 %if %{bundle_fido}
-%if 0%{?rhel}
-%if 0%{?rhel} > 7
 %{_prefix}/lib/mysqlsh/libfido2.so*
-%endif
-%else
-%{_prefix}/lib/mysqlsh/libfido2.so*
-%endif
 %endif
 %{_prefix}/lib/mysqlsh/libprotobuf*
 %{_prefix}/lib/mysqlsh/libabsl_*
