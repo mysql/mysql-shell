@@ -74,14 +74,23 @@ option(COMMUNITY_BUILD "Set to true if this is a community build" ON)
 
 option(BUNDLE_FIDO "Include bundled libfido2 in the package" ON)
 
+# Pre-release versions (-rc, -dmr, ...) must sort before the final release.
+# In Debian versions "~" sorts before everything, even the empty string, so
+# 26.10.0~rc < 26.10.0, whereas 26.10.0-rc would sort after 26.10.0.
+set(DEB_UPSTREAM_VERSION "${MYSH_NO_DASH_VERSION}")
+if(EXTRA_VERSION)
+  string(REGEX REPLACE "^-" "" _deb_extra_version "${EXTRA_VERSION}")
+  set(DEB_UPSTREAM_VERSION "${DEB_UPSTREAM_VERSION}~${_deb_extra_version}")
+endif()
+
 if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(CONFLICTING_PRODUCT_SUFFIX "")
-  set(VERSION "${MYSH_VERSION}+commercial-${DEBIAN_REVISION}")
+  set(VERSION "${DEB_UPSTREAM_VERSION}+commercial-${DEBIAN_REVISION}")
 else()
   set(PRODUCT_SUFFIX "")
   set(CONFLICTING_PRODUCT_SUFFIX "-commercial")
-  set(VERSION "${MYSH_VERSION}-${DEBIAN_REVISION}")
+  set(VERSION "${DEB_UPSTREAM_VERSION}-${DEBIAN_REVISION}")
 endif()
 
 # ----------------------------------------------------------------------
