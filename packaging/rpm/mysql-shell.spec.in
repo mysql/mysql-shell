@@ -81,8 +81,22 @@ BuildRequires:  libssh-devel >= 0.9.2
 BuildRequires:  antlr4-cpp-runtime-devel >= 4.10
 BuildRequires:  antlr4-cpp-runtime-devel < 4.11
 %endif
-%if 0%{!?static}
-BuildRequires:  mysql-devel
+# Same compilers as the toolset logic in the top-level CMakeLists.txt
+%if 0%{?rhel} == 8 || 0%{?rhel} == 9
+BuildRequires:  gcc-toolset-14-gcc
+BuildRequires:  gcc-toolset-14-gcc-c++
+BuildRequires:  gcc-toolset-14-binutils
+BuildRequires:  gcc-toolset-14-annobin-plugin-gcc
+%else
+%if 0%{?suse_version} == 1500
+BuildRequires:  gcc13
+BuildRequires:  gcc13-c++
+%else
+BuildRequires:  gcc-c++
+%endif
+%endif
+BuildRequires:  make
+%if 0%{!?static:1}
 %if 0%{!?bundled_openssl:1}
 BuildRequires:  openssl-devel
 %endif
