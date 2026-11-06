@@ -154,9 +154,6 @@ cmake .. \
 %if 0%{?commercial} || %{?cloud}
     -DEXTRA_NAME_SUFFIX="%{?product_suffix}" \
 %endif
-%if "%{_lib}" == "lib64"
-    -DLIB_SUFFIX=64 \
-%endif
 %if 0%{?bundled_mysql_config_editor:1}
     -DBUNDLED_MYSQL_CONFIG_EDITOR=%{bundled_mysql_config_editor} \
 %endif
@@ -166,12 +163,7 @@ cmake .. \
 %if 0%{?bundled_ssh:1}
     -DBUNDLED_SSH_DIR=%{bundled_ssh} \
 %endif
-%if 0%{?static}
     -DMYSQLCLIENT_STATIC_LINKING=ON \
-%else
-    -DMYSQLCLIENT_STATIC_LINKING=ON \
-    -DHAVE_JS=OFF \
-%endif
 %if 0%{?with_protobuf:1}
     -DWITH_PROTOBUF=%{with_protobuf} \
 %endif
