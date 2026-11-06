@@ -193,9 +193,6 @@ cmake .. \
 %if 0%{?bundled_antlr:1}
     -DBUNDLED_ANTLR_DIR="%{bundled_antlr}" \
 %endif
-%if 0%{?with_yacc_parser:1}
-    -DWITH_YACC_PARSER=1 \
-%endif
 %if 0%{?jit_executor_lib:1}
     -DJIT_EXECUTOR_LIB="%{jit_executor_lib}" \
 %endif

@@ -329,13 +329,6 @@ usr/lib/mysqlsh/libantlr4-runtime*.so*
 ")
 endif()
 
-if (WITH_YACC_PARSER)
-file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
-"
-usr/lib/mysqlsh/yparser
-")
-endif()
-
 if(JIT_EXECUTOR_LIB)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "
