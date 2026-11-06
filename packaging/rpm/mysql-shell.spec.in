@@ -148,7 +148,12 @@ Obsoletes:     mysql-shell < %{version}-%{release}
 %else
 %global _pluginlibs libfido2.*
 %endif
+# libprotobuf and abseil are shipped only when bundled (no -DWITH_PROTOBUF=system)
+%if 0%{!?with_protobuf:1}
 %global _protobuflibs libprotobuf.*|libabsl_.*
+%else
+%global _protobuflibs %{nil}
+%endif
 %else
 %global _pluginlibs %{nil}
 %global _protobuflibs %{nil}
@@ -278,8 +283,10 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
 %{_prefix}/lib/mysqlsh/libfido2.so*
 %endif
 %endif
+%if 0%{!?with_protobuf:1}
 %{_prefix}/lib/mysqlsh/libprotobuf*
 %{_prefix}/lib/mysqlsh/libabsl_*
+%endif
 %endif
 %{_datadir}/mysqlsh/prompt/*
 %{_datadir}/mysqlsh/adminapi-metadata/*

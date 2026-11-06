@@ -303,10 +303,15 @@ if (MYSQL_SOURCE_DIR)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# For client authentication plugins
 usr/lib/mysql/plugins/*.so
-# For protobuf library
+")
+if (NOT WITH_PROTOBUF)
+# libprotobuf and abseil are bundled only when not using the system protobuf
+file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
+"# For protobuf library
 usr/lib/mysqlsh/libprotobuf*.so*
 usr/lib/mysqlsh/libabsl_*.so
 ")
+endif()
 if (BUNDLE_FIDO)
 file(APPEND "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "# dependency of client authentication plugins
