@@ -78,10 +78,12 @@ if(NOT COMMUNITY_BUILD)
   set(PRODUCT_SUFFIX "-commercial")
   set(CONFLICTING_PRODUCT_SUFFIX "")
   set(VERSION "${MYSH_VERSION}+commercial-${DEBIAN_REVISION}")
+  set(DEB_LICENSE "Commercial")
 else()
   set(PRODUCT_SUFFIX "")
   set(CONFLICTING_PRODUCT_SUFFIX "-commercial")
   set(VERSION "${MYSH_VERSION}-${DEBIAN_REVISION}")
+  set(DEB_LICENSE "GPL-2.0-only WITH Universal-FOSS-exception-1.0")
 endif()
 
 # ----------------------------------------------------------------------
@@ -262,8 +264,8 @@ file(WRITE "${DEST_DIR}/mysql-shell${PRODUCT_SUFFIX}.install"
 "usr/bin/mysqlsh
 usr/bin/mysql-secret-store-login-path
 usr/bin/mysql-secret-store-secret-service
-usr/share/mysqlsh/LICENSE    usr/share/doc/mysqlsh
-usr/share/mysqlsh/README.md     usr/share/doc/mysqlsh
+usr/share/mysqlsh/LICENSE    usr/share/doc/mysql-shell${PRODUCT_SUFFIX}
+usr/share/mysqlsh/README.md     usr/share/doc/mysql-shell${PRODUCT_SUFFIX}
 usr/share/mysqlsh/Docs/INFO_SRC     usr/share/mysqlsh/Docs
 usr/share/mysqlsh/Docs/INFO_BIN     usr/share/mysqlsh/Docs
 usr/share/mysqlsh/prompt/*   usr/share/mysqlsh/prompt
