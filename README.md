@@ -88,7 +88,7 @@ https://marketplace.visualstudio.com/items?itemName=Oracle.mysql-shell-for-vs-co
 
 All MySQL users are strongly encouraged to always upgrade to the latest version of MySQL Shell, regardless of the MySQL Server version they're using.
 
-The latest version of MySQL Shell is fully backwards compatible with all supported versions of MySQL Server (**9.x** and **8.4**).
+The latest version of MySQL Shell is fully backwards compatible with all supported versions of MySQL Server (**26.x**, **9.x** and **8.4**).
 
 MySQL Shell also supports older versions of MySQL (**8.0** and older) for a variety of specific purposes in a best-effort basis:
 
