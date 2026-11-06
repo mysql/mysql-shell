@@ -203,5 +203,151 @@ Example:
 mysqlsh --pym pip install certifi PyYAML
 ```
 
+## 6. Building RPM and Debian Packages
+
+The `packaging/rpm` and `packaging/debian` directories contain small CMake
+projects that generate the RPM spec file and the `debian/` directory. They
+only generate files; the packages are then built with `rpmbuild` or
+`dpkg-buildpackage`.
+
+Like a regular build, the packages are built against a MySQL Server source
+**and** build tree of the same series (sections 2 and 3). Installed
+`mysql-devel` or `libmysqlclient-dev` packages are not used. The build tree
+must contain `CMakeCache.txt`, otherwise configuration stops.
+
+### MySQL Server targets
+
+Besides the targets listed in section 3, the server build tree must contain the
+client authentication plugins that the packages install (`lib/mysql/plugins`
+and `libfido2`). Build them in the server build directory:
+
+```bash
+cd ~/mysql-src/mysql-server/bld
+for t in mysql_native_password authentication_oci_client \
+         authentication_openid_connect_client authentication_webauthn_client \
+         authentication_ldap_sasl_client authentication_kerberos_client; do
+    cmake --build . --parallel $(nproc --all) --target $t
+done
+```
+
+`mysqlbinlog` is mandatory: configuring MySQL Shell fails if
+`runtime_output_directory/mysqlbinlog` is missing. `mysql_config_editor` is
+not packaged unless its path is passed explicitly (`bundled_mysql_config_editor`
+for RPM, `BUNDLED_MYSQL_CONFIG_EDITOR` for Debian, see below).
+
+If you build with `WITH_PROTOBUF=system` (RPM `with_protobuf`, Debian
+`WITH_PROTOBUF`), configure the MySQL Server tree with `-DWITH_PROTOBUF=system`
+as well. Otherwise the generated `mysqlx.pb.h` does not match the system
+`protoc`.
+
+### Build an RPM
+
+Install `rpm-build` and `rpmdevtools`, then generate the spec file. It is
+written to the root of the MySQL Shell source tree:
+
+```bash
+cd ~/mysql-src/mysql-shell
+cmake -S packaging/rpm -B /tmp/mysql-shell-rpm-init
+```
+
+Add `-DCOMMUNITY_BUILD=OFF` to build the commercial package. `rpmbuild`
+expects a source archive that unpacks to the directory named in the spec:
+
+```bash
+rpmdev-setuptree
+name=$(awk '/^Name:/{print $2; exit}' mysql-shell.spec)
+srcdir=$(sed -n 's/^%setup .*-n[[:space:]]\+//p' mysql-shell.spec | head -n1 \
+         | sed "s/%{name}/${name}/")
+tar czf ~/rpmbuild/SOURCES/$srcdir.tar.gz --exclude=.git \
+    --transform "s,^\.,$srcdir," .
+cp mysql-shell.spec ~/rpmbuild/SPECS/
+```
+
+Then build, passing the build configuration as `--define` switches:
+
+```bash
+rpmbuild -ba ~/rpmbuild/SPECS/mysql-shell.spec \
+    --define "with_mysql_source $HOME/mysql-src/mysql-server" \
+    --define "bundled_antlr $HOME/mysql-src/antlr4-runtime-install"
+```
+
+The packages are written to `~/rpmbuild/RPMS`. The spec reads these switches:
+
+- `with_mysql_source`: MySQL Server source directory; enables packaging of the
+  client plugins and `libfido2`
+- `with_mysql_build`: MySQL Server build directory (default:
+  `<with_mysql_source>/bld`)
+- `bundled_antlr`: install prefix of the ANTLR4 C++ runtime; it is bundled into
+  the package
+- `bundled_openssl`: OpenSSL installation to bundle
+- `bundled_ssh`: libssh installation to bundle
+- `bundled_curl`: libcurl installation to use (passed as `WITH_CURL`)
+- `bundled_python`: Python installation to bundle
+- `bundled_shared_python`: also package `libpython` (use with `bundled_python`)
+- `python_deps`: directory with the pure-Python modules to package (`certifi`,
+  `PyYAML`)
+- `bundled_mysql_config_editor`: path of the built `mysql_config_editor`
+- `bundled_mysqlbinlog`: path of the built `mysqlbinlog` (default: from the
+  MySQL Server build tree)
+- `jit_executor_lib`: Polyglot API library, enables JavaScript support
+- `with_protobuf`: value of `WITH_PROTOBUF` (for example `system`)
+- `bundle_fido`: set to `0` to leave `libfido2` out of the package
+- `with_tests`: build the unit tests
+
+Without `python_deps` and `bundled_python`, the built-in plugins import
+`certifi` and `yaml` from the system Python at run time.
+
+### Build a Debian or Ubuntu package
+
+Install `debhelper`, `dpkg-dev`, `fakeroot` and `lsb-release`, plus the build
+dependencies from section 1. Generate the `debian/` directory, which is
+written to the root of the MySQL Shell source tree, then build:
+
+```bash
+cd ~/mysql-src/mysql-shell
+cmake -S packaging/debian -B /tmp/mysql-shell-deb-init \
+    -DMYSQL_SOURCE_DIR=$HOME/mysql-src/mysql-server \
+    -DHAVE_PYTHON=1
+dpkg-buildpackage -us -uc -b
+```
+
+The `.deb` files are written to the parent directory of the source tree.
+`HAVE_PYTHON` must be passed explicitly. Without it the package is built
+without Python support. The generator accepts these options:
+
+- `MYSQL_SOURCE_DIR`: MySQL Server source directory
+- `MYSQL_BUILD_DIR`: MySQL Server build directory (default:
+  `${MYSQL_SOURCE_DIR}/bld`)
+- `HAVE_PYTHON`: build with Python support
+- `BUNDLED_PYTHON_DIR`: Python installation to bundle
+- `PYTHON_DEPS`: directory with the pure-Python modules to package (`certifi`,
+  `PyYAML`)
+- `BUNDLED_ANTLR_DIR`: install prefix of the ANTLR4 C++ runtime
+- `BUNDLED_SSH_DIR`: libssh installation to bundle
+- `WITH_CURL`: libcurl installation to use
+- `BUNDLED_MYSQL_CONFIG_EDITOR`: path of the built `mysql_config_editor`
+- `BUNDLED_MYSQLBINLOG`: path of the built `mysqlbinlog`
+- `JIT_EXECUTOR_LIB`: Polyglot API library, enables JavaScript support
+- `WITH_PROTOBUF`: value of `WITH_PROTOBUF` (for example `system`)
+- `BUNDLE_FIDO`: include `libfido2` in the package (default `ON`)
+- `COMMUNITY_BUILD`: `OFF` builds the `mysql-shell-commercial` package
+- `DEBIAN_REVISION`: Debian revision of the package version (default `1`)
+- `WITH_TESTS`: build the unit tests
+
+Without `PYTHON_DEPS` and `BUNDLED_PYTHON_DIR`, the built-in plugins need the
+`python3-certifi` and `python3-yaml` packages at run time.
+
+On Debian 13 the packaged ANTLR4 runtime is 4.9, which is older than the
+required 4.10; build it as described in section 1 and pass
+`-DBUNDLED_ANTLR_DIR`. Ubuntu 24.04 ships 4.10.1, which can be used as is.
+
+Debian packages are built against the system OpenSSL.
+
+Known issues on Ubuntu 24.04:
+
+- Building with the default `dpkg-buildflags` (LTO) fails with
+  `-Werror=stringop-overflow` in the bundled linenoise-ng.
+- `dh_shlibdeps` does not find `libfido2` in the private library directory.
+
 
 Copyright (c) 2016, 2026, Oracle and/or its affiliates.
