@@ -47,6 +47,26 @@ License:        @LICENSE_TYPE@
 URL:            http://dev.mysql.com/
 Source0:        https://cdn.mysql.com/Downloads/%{name}-@MYSH_VERSION@-src.tar.gz
 
+# The built-in plugins and the plugin manager import certifi and yaml at module
+# level, so they need them unless they are shipped with the package (python_deps
+# or a bundled Python). PyYAML is in the base repositories of every supported
+# distribution. certifi is not in the EL9 base or AppStream repositories (EPEL
+# only), so it is a weak dependency: it is installed when available, and the
+# package still installs where it is not. EL8 builds against python38, which
+# has its own PyYAML package but no certifi package.
+%if 0%{!?python_deps:1} && 0%{!?bundled_python:1} && (0%{?rhel} >= 8 || 0%{?fedora} || 0%{?suse_version})
+%if 0%{?rhel} == 8
+Requires:       python38-pyyaml
+%else
+%if 0%{?suse_version}
+Requires:       python3-PyYAML
+%else
+Requires:       python3-pyyaml
+%endif
+Recommends:     python3-certifi
+%endif
+%endif
+
 # Dependencies for the cloud version
 %if 0%{?cloud}
 Requires:       lapack libgfortran5

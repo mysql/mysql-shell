@@ -192,6 +192,13 @@ if(HAVE_PYTHON)
   else()
     list(APPEND DEB_BUILD_DEPS "python3-dev (>= 3.8)")
   endif()
+  # The built-in plugins and the plugin manager import certifi and yaml at
+  # module level. Unless they are shipped with the package (PYTHON_DEPS or a
+  # bundled Python), they must come from the system Python.
+  if(NOT BUNDLED_PYTHON_DIR AND NOT PYTHON_DEPS)
+    list(APPEND DEB_DEPS "python3-certifi")
+    list(APPEND DEB_DEPS "python3-yaml")
+  endif()
 endif()
 
 if(MYSQL_SOURCE_DIR)
