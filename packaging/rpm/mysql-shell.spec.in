@@ -104,7 +104,7 @@ BuildRequires:  openssl-devel
 BuildRequires:  libcurl-devel
 %endif
 %endif
-%if 0%{?commercial} || %{?cloud}
+%if 0%{?commercial} || 0%{?cloud}
 Provides:      mysql-shell = %{version}-%{release}
 Obsoletes:     mysql-shell < %{version}-%{release}
 %endif
@@ -197,7 +197,7 @@ cmake .. \
     -DCMAKE_INSTALL_PREFIX=%{_prefix} \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
     -DUSE_LD_LLD=0 \
-%if 0%{?commercial} || %{?cloud}
+%if 0%{?commercial} || 0%{?cloud}
     -DEXTRA_NAME_SUFFIX="%{?product_suffix}" \
 %endif
 %if "%{_lib}" == "lib64"
