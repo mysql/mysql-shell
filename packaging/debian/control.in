@@ -11,7 +11,7 @@ Vcs-Browser: https://github.com/mysql/mysql-shell
 Package: mysql-shell@PRODUCT_SUFFIX@
 Section: database
 Architecture: any
-Multi-Arch: same
+Multi-Arch: foreign
 Depends: ${shlibs:Depends}, ${misc:Depends}, @DEB_DEPS@
 Conflicts: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
 Replaces: mysql-shell@CONFLICTING_PRODUCT_SUFFIX@
