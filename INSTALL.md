@@ -3,21 +3,22 @@
 ## 1. Prerequisites
 
 ### Required tools and libraries
-- CMake 3.17.5+ (3.19+ on macOS, 3.21+ when using Visual Studio 2022)
+- CMake 3.14.6+ (3.19+ on macOS, 3.21+ when using Visual Studio 2022)
 - GCC 14, Visual Studio 2022 17.13+, or Clang 17+
 - zip
-- python 3.10+
-- libssh 0.9.2
-- openssl 3.x
+- python 3.8+
+- bison 3.0.4+
+- libssh 0.9.2+
+- openssl 1.1.1+
 - antlr4-runtime (C++ runtime ≥ 4.10)
 - git (if you checkout from github instead of using source packages)
 
 #### Suggested packages for EL9-like distributions
 ```bash
-sudo yum install cmake gcc-toolset-14 openssl-devel ncurses-devel rpcgen python3-devel libssh-devel libcurl-devel patchelf
+sudo yum install cmake gcc-toolset-14 bison openssl-devel ncurses-devel rpcgen python3-devel libssh-devel libcurl-devel patchelf
 ```
 
-Please adjust the specific package name for python3 to ensure version 3.10 or newer is installed.
+Please adjust the specific package name for python3 to ensure version 3.8 or newer is installed.
 
 You might also need to enable the developer EPEL repo for patchelf:
 
@@ -28,11 +29,10 @@ sudo dnf config-manager --enable ol9_developer_EPEL
 #### Suggested packages for Ubuntu 24.04 LTS
 ```bash
 sudo apt update
-sudo apt install build-essential cmake ninja-build \
+sudo apt install build-essential cmake ninja-build bison \
     python3-dev python3-venv python3-pip \
     libssl-dev libssh-dev libcurl4-openssl-dev \
-    libprotobuf-dev protobuf-compiler \
-    liblz4-dev zlib1g-dev pkg-config patchelf \
+    pkg-config patchelf \
     libantlr4-runtime-dev
 ```
 
@@ -142,7 +142,7 @@ package, also pass:
 3. Build and install the shell:
 ```bash
 cmake --build . --parallel $(nproc --all)
-sudo make install
+sudo cmake --install .
 ```
 
 ### Windows
