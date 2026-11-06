@@ -88,42 +88,56 @@ endif()
 # Find out if Debian/Ubuntu, the codename, distribution and version
 # ----------------------------------------------------------------------
 
-execute_process(
-  COMMAND lsb_release --short --id
-  OUTPUT_VARIABLE lsb_id
-  RESULT_VARIABLE lsb_result
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+# Read /etc/os-release (systemd.io os-release(5)) instead of running
+# lsb_release, which is not installed by default, and reports "n/a" for the
+# release on Debian testing/unstable.
 
-if(NOT lsb_result EQUAL 0)
-  message(FATAL_ERROR "Can't run lsb_release")
+set(OS_RELEASE_FILE "/etc/os-release")
+if(NOT EXISTS "${OS_RELEASE_FILE}")
+  message(FATAL_ERROR "Can't read ${OS_RELEASE_FILE}")
 endif()
 
-string(TOLOWER "${lsb_id}" lsb_id)
+set(os_id)
+set(os_version_id)
+set(os_codename)
 
-if(NOT lsb_id STREQUAL "debian" AND NOT lsb_id STREQUAL "ubuntu")
+file(STRINGS "${OS_RELEASE_FILE}" os_release_lines
+  REGEX "^(ID|VERSION_ID|VERSION_CODENAME)=")
+
+foreach(os_release_line IN LISTS os_release_lines)
+  # values may be quoted
+  if(os_release_line MATCHES "^([A-Z_]+)=[\"']?([^\"']*)[\"']?$")
+    if(CMAKE_MATCH_1 STREQUAL "ID")
+      set(os_id "${CMAKE_MATCH_2}")
+    elseif(CMAKE_MATCH_1 STREQUAL "VERSION_ID")
+      set(os_version_id "${CMAKE_MATCH_2}")
+    elseif(CMAKE_MATCH_1 STREQUAL "VERSION_CODENAME")
+      set(os_codename "${CMAKE_MATCH_2}")
+    endif()
+  endif()
+endforeach()
+
+string(TOLOWER "${os_id}" os_id)
+
+if(NOT os_id STREQUAL "debian" AND NOT os_id STREQUAL "ubuntu")
   message(FATAL_ERROR "We can only handle Debian or Ubuntu Deb packaging")
 endif()
 
-execute_process(
-  COMMAND lsb_release --short --release
-  OUTPUT_VARIABLE lsb_release
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-execute_process(
-  COMMAND lsb_release --short --codename
-  OUTPUT_VARIABLE CODENAME
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-
-
-if(lsb_id STREQUAL "debian")
-  # For Debian we want just the major release number
-  string(REGEX REPLACE "\\..*" "" lsb_release "${lsb_release}")
+if(os_version_id)
+  set(CODENAME "${os_codename}")
+  if(os_id STREQUAL "debian")
+    # For Debian we want just the major release number
+    string(REGEX REPLACE "\\..*" "" os_version_id "${os_version_id}")
+  endif()
+  set(ID_RELEASE "${os_id}${os_version_id}")
+else()
+  # Debian testing/unstable has no VERSION_ID, only a codename (if any)
+  if(NOT os_codename)
+    set(os_codename "sid")
+  endif()
+  set(CODENAME "unstable")
+  set(ID_RELEASE "${os_id}${os_codename}")
 endif()
-
-set(ID_RELEASE "${lsb_id}${lsb_release}")
 
 message(STATUS "OS distribution : ${ID_RELEASE}")
 message(STATUS "OS code name    : ${CODENAME}")
