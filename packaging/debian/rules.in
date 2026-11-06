@@ -1,5 +1,5 @@
 #!/usr/bin/make -f
-# Copyright (c) 2016, 2025, Oracle and/or its affiliates.
+# Copyright (c) 2016, 2026, Oracle and/or its affiliates.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License, version 2.0,
@@ -68,7 +68,8 @@ override_dh_auto_install:
 	# want the lib and headers, in that case likely in a separate
 	# package. Using a work-around removing all the "dev" files
 	-rm -fr debian/tmp/usr/include 2>/dev/null
-	-rm -fr debian/tmp/usr/lib*/*.{so*,a} 2>/dev/null
+	-rm -f debian/tmp/usr/lib*/*.so* 2>/dev/null
+	-rm -f debian/tmp/usr/lib*/*.a 2>/dev/null
 
 override_dh_install:
 	dh_install --fail-missing
