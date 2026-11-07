@@ -317,6 +317,22 @@ rm -f %{buildroot}%{_datadir}/mysqlsh/{LICENSE,README.md}
     %{_prefix}/lib/mysqlsh/libjitexecutor*
 %endif
 
+%preun
+# Only on erase, not on upgrade ($1 is 1 then). The embedded Python writes
+# __pycache__ directories at run time into the directories this package owns,
+# rpm does not know about them and would leave the directories behind.
+# Only <owned directory>/__pycache__ is removed, never anything else:
+# the directories are shared in name with the commercial edition.
+if [ $1 -eq 0 ]; then
+    rpm -ql %{name} 2>/dev/null | grep '^%{_prefix}/lib/mysqlsh/' | \
+    while IFS= read -r d; do
+        if [ -d "$d" ] && [ ! -L "$d" ]; then
+            rm -rf -- "$d/__pycache__"
+        fi
+    done
+fi
+exit 0
+
 %changelog
 * Tue Aug 16 2022 Nawaz Nazeer Ahamed <nawaz.nazeer.ahamed@oracle.com> - 8.0.31
 - Include man pages
