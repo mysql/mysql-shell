@@ -536,8 +536,15 @@ Consider using %replacement% instead.
 The '%item_id%' plugin is removed as of MySQL %removed%.\n
 It must not be used anymore, please use %replacement% instead.
 
+* pluginUsage.description.Error.mysql_native_password
+The server aborts at startup if the mysql_native_password option is set, so
+remove it from the option files and the command line before upgrading.
+
 * pluginUsage.docLink.authentication_fido
 https://dev.mysql.com/doc/refman/en/webauthn-pluggable-authentication.html
+
+* pluginUsage.docLink.mysql_native_password
+https://dev.mysql.com/doc/refman/en/caching-sha2-pluggable-authentication.html
 
 * pluginUsage.docLink.keyring_file
 https://dev.mysql.com/doc/refman/en/keyring-file-component.html

@@ -716,6 +716,7 @@ TEST(Plugin_usage_check, enabled_and_features) {
     EXPECT_FALSE(check.has_feature("authentication_fido"));
     EXPECT_TRUE(check.has_feature("rpl_semi_sync_master"));
     EXPECT_TRUE(check.has_feature("rpl_semi_sync_slave"));
+    EXPECT_TRUE(check.has_feature("mysql_native_password"));
   }
   {
     // UC Start version before introduction of fido_authentication
@@ -727,6 +728,7 @@ TEST(Plugin_usage_check, enabled_and_features) {
     EXPECT_TRUE(check.has_feature("keyring_encrypted_file"));
     EXPECT_TRUE(check.has_feature("keyring_oci"));
     EXPECT_FALSE(check.has_feature("authentication_fido"));
+    EXPECT_FALSE(check.has_feature("mysql_native_password"));
   }
   {
     // UC Start version after introduction of fido_authentication
@@ -948,6 +950,38 @@ TEST(Plugin_usage_check, errors) {
        {"rpl_semi_sync_master", true},
        {"rpl_semi_sync_slave", true}},
       tested_plugins);
+}
+
+TEST(Plugin_usage_check, mysql_native_password) {
+  // The plugin is reported only on sources where it is optional (8.4.x),
+  // since there it is active only when enabled with an option.
+  Records records = {{"mysql_native_password"}};
+  const std::string doclink =
+      "https://dev.mysql.com/doc/refman/en/"
+      "caching-sha2-pluggable-authentication.html";
+
+  test_feature_check(
+      "Warning for 8.4 targets", &get_plugin_usage_check,
+      {{Version(8, 4, 0), Version(8, 4, 6)}}, records,
+      {{Upgrade_issue::Level::WARNING, "mysql_native_password",
+        "The 'mysql_native_password' plugin is deprecated as of MySQL "
+        "8.0.34 and will be removed in a future release.\n"
+        "Consider using 'caching_sha2_password' plugin instead.",
+        doclink, "mysql_native_password"}});
+
+  test_feature_check(
+      "Error for 9.x targets", &get_plugin_usage_check,
+      {{Version(8, 4, 0), Version(9, 0, 0)},
+       {Version(8, 4, 6), Version(9, 7, 2)}},
+      records,
+      {{Upgrade_issue::Level::ERROR, "mysql_native_password",
+        "The 'mysql_native_password' plugin is removed as of MySQL 9.0.0.\n"
+        "It must not be used anymore, please use 'caching_sha2_password' "
+        "plugin instead.\n"
+        "The server aborts at startup if the mysql_native_password option "
+        "is set, so remove it from the option files and the command line "
+        "before upgrading.",
+        doclink, "mysql_native_password"}});
 }
 
 TEST(Plugin_usage_check, mixed) {

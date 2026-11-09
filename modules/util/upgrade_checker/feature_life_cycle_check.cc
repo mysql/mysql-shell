@@ -305,6 +305,18 @@ Plugin_usage_check::Plugin_usage_check(const Upgrade_info &server_info)
                Version(8, 0, 26),
                Version(9, 5, 0),
                "'rpl_semi_sync_replica' plugin"});
+
+  // Before 8.4.0 the plugin is built in and always active, and the accounts
+  // using it are reported by authMethodUsage. From 8.4.0 it is active only
+  // when enabled with the mysql_native_password option, which the server
+  // rejects at startup as of 9.0.0.
+  if (server_info.server_version >= Version(8, 4, 0)) {
+    add_feature({"mysql_native_password",
+                 {},
+                 Version(8, 0, 34),
+                 Version(9, 0, 0),
+                 "'caching_sha2_password' plugin"});
+  }
 }
 
 std::string Plugin_usage_check::build_query(Checker_cache *) {
