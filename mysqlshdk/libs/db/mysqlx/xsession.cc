@@ -63,8 +63,8 @@ std::string message_to_text(const std::string &binary_message) {
   std::string result;
   Message_type msg;
 
-  msg.ParseFromString(binary_message);
-  google::protobuf::TextFormat::PrintToString(msg, &result);
+  (void)msg.ParseFromString(binary_message);
+  (void)google::protobuf::TextFormat::PrintToString(msg, &result);
 
   return msg.GetDescriptor()->full_name() + " { " + result + " }";
 }
@@ -108,9 +108,9 @@ std::ostream &operator<<(std::ostream &os,
       }
     }
 
-    printer.PrintToString(frame, &output);
+    (void)printer.PrintToString(frame, &output);
   } else {
-    printer.PrintToString(message, &output);
+    (void)printer.PrintToString(message, &output);
   }
 
   return os << message.GetDescriptor()->full_name() << " {\n"
@@ -382,7 +382,7 @@ void XSession_impl::connect(const mysqlshdk::db::Connection_options &data) {
              const uint32_t payload_len) {
         if (type == Mysqlx::Notice::Frame_Type_SESSION_STATE_CHANGED) {
           Mysqlx::Notice::SessionStateChanged change;
-          change.ParseFromArray(payload, payload_len);
+          (void)change.ParseFromArray(payload, payload_len);
           if (!change.IsInitialized()) {
             log_error("Protocol error: Invalid notice received from server: %s",
                       change.InitializationErrorString().c_str());
@@ -845,7 +845,7 @@ xcl::Handler_result XSession_impl::global_notice_handler(
 
     if (type == Mysqlx::Notice::Frame::GROUP_REPLICATION_STATE_CHANGED) {
       Mysqlx::Notice::GroupReplicationStateChanged change;
-      change.ParseFromArray(payload, static_cast<int>(payload_size));
+      (void)change.ParseFromArray(payload, static_cast<int>(payload_size));
 
       notice.type = GlobalNotice::GRViewChanged;
       notice.info.gr_view_change.view_id = change.view_id();
